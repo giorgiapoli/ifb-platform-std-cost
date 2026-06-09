@@ -5,6 +5,6 @@ export default defineConfig({
   plugins: [react()],
   base: '/ifb-platform-std-cost/',
   build: {
-    outDir: 'dist',
+    outDir: 'docs',
   }
 })
