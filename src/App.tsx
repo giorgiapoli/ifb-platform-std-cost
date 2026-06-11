@@ -2431,14 +2431,12 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
         const am: any = {};
         hdrs.forEach(h => {
           const n = norm(h);
-          if(!am.itemCode   && (n==="no"||n==="no_"||["itemno","codice","code"].some(a=>n.includes(a)))) am.itemCode=h;
+          if(!am.itemCode    && (n==="no"||n==="no_"||["itemno","codice","code"].some(a=>n.includes(a)))) am.itemCode=h;
           else if(!am.description && ["description","descrizione"].some(a=>n.includes(a))) am.description=h;
-          else if(!am.date  && ["postingdate","invoicedate","shipdate","date","data"].some(a=>n.includes(a))) am.date=h;
-          else if(!am.qty   && (n==="qty"||n==="quantity"||["quantit"].some(a=>n.includes(a)))) am.qty=h;
-          else if(!am.unitPrice && ["unitprice","prezzounit","unitamount"].some(a=>n.includes(a))) am.unitPrice=h;
-          else if(!am.amount && ["netamount","lineamount","amountlcy","saleslcy","imponibile","nettovalore"].some(a=>n.includes(a))) am.amount=h;
-          else if(!am.amount && n==="amount"||n==="importo") am.amount=h;
-          else if(!am.location && ["location","ubicazione","warehouse","magazzino"].some(a=>n.includes(a))) am.location=h;
+          else if(!am.date   && ["postingdate","invoicedate","shipdate","lastpostingdate","date","data"].some(a=>n.includes(a))) am.date=h;
+          else if(!am.qty    && (n==="qty"||n==="quantity"||["quantit"].some(a=>n.includes(a)))) am.qty=h;
+          else if(!am.unitPrice && ["unitprice","unit price","salesprice","listprice","prezzounit","unitamount","price"].some(a=>n.includes(a.replace(/\s/g,"")))) am.unitPrice=h;
+          else if(!am.location && ["location","locationcode","ubicazione","warehouse","magazzino"].some(a=>n.includes(a))) am.location=h;
         });
         setMapping(am);
         setStep("map");
@@ -2456,40 +2454,29 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
     };
 
     const parsed: any[] = rawRows.map(r => {
-      const code       = String(get(r,"itemCode")||"").trim();
-      const description= String(get(r,"description")||"").trim();
-      if(!code && !description) return null;
-      if(isExcludedDesc(description)) return null;
-
       const dateRaw = get(r,"date");
-      let dateStr   = "";
+      let dateStr = "";
       if(dateRaw) {
         const d = dateRaw instanceof Date ? dateRaw : new Date(dateRaw);
         if(!isNaN(d.getTime())) dateStr = d.toISOString().slice(0,10);
         else dateStr = String(dateRaw).slice(0,10);
       }
 
-      let amount = parseFloat(get(r,"amount"))||0;
-      if(amount===0) {
-        const qty = parseFloat(get(r,"qty"))||0;
-        const up  = parseFloat(get(r,"unitPrice"))||0;
-        if(qty&&up) amount = roundN(qty*up);
-      }
+      const qty       = parseFloat(get(r,"qty"))       || 0;
+      const unitPrice = parseFloat(get(r,"unitPrice"))  || 0;
+      const isSample  = qty > 0 && unitPrice === 0;
 
-      const prod      = findProduct(code, products, xrefs);
-      const nHK       = prod?.nHK || (xrefs.find((x:any)=>x.ifbNo===code)?.nHK) || "";
-      const isAirProd = prod && airList.some((a:any)=>a.productId===prod.id);
-      const location  = String(get(r,"location")||"").trim();
+      const prod     = findProduct(code, products, xrefs);
+      const nHK      = prod?.nHK || (xrefs.find((x:any)=>x.ifbNo===code)?.nHK) || "";
+      const isAirProd= prod && airList.some((a:any)=>a.productId===prod.id);
+      const location = String(get(r,"location")||"").trim();
 
       return {
-        itemCode:    code,
-        description,
-        date:        dateStr,
-        amount,
-        location,
-        nHK,
-        transport:   isAirProd ? "AIR" : "SEA",
-        _prodFound:  !!prod,
+        itemCode: code, description, date: dateStr,
+        qty, unitPrice, isSample,
+        location, nHK,
+        transport:  isAirProd ? "AIR" : "SEA",
+        _prodFound: !!prod,
       };
     }).filter(Boolean);
 
@@ -2549,41 +2536,40 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
   const TableRows = ({data}:{data:any[]}) => (
     <div style={{overflowX:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["Data","Codice","N HK","Descrizione","Importo €","Location","Transport"]}/>
+        <THead cols={["Data","Codice","N HK","Descrizione","Qty","Prezzo unit.","Location","Transport"]}/>
         <tbody>
-          {data.slice(0,500).map((r,i) => {
+          {data.slice(0,500).map((r:any,i:number) => {
             const isMismatch = airMismatches.includes(r);
             return (
               <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:isMismatch?`${T.orange}12`:i%2===0?T.bg:T.surface}}>
-                <TD mono>
-                  <span style={{color:T.muted}}>{r.date||"—"}</span>
-                </TD>
+                <TD mono><span style={{color:T.muted}}>{r.date||"—"}</span></TD>
                 <TD mono><span style={{color:T.gold}}>{r.itemCode||"—"}</span></TD>
                 <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
                 <TD>
-                  <span style={{color: r._prodFound===false ? T.orange : T.text}}>
+                  <span style={{color:r._prodFound===false?T.orange:T.text}}>
                     {r.description}
-                    {r._prodFound===false && <span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ non in anagrafica</span>}
+                    {r._prodFound===false&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ non in anagrafica</span>}
                   </span>
                 </TD>
+                <TD mono><span style={{color:T.muted}}>{r.qty||"—"}</span></TD>
                 <TD mono>
-                  <span style={{color:T.text}}>{r.amount!=null&&r.amount!==0?r.amount.toFixed(2):"—"}</span>
+                  {r.isSample
+                    ? <Chip label="SAMPLE" color={T.purple}/>
+                    : <span style={{color:T.gold}}>{r.unitPrice!=null&&r.unitPrice>0?r.unitPrice.toFixed(2):"—"}</span>}
                 </TD>
-                <TD mono>
-                  <span style={{color:isMismatch?T.orange:T.muted}}>{r.location||"—"}</span>
-                </TD>
+                <TD mono><span style={{color:isMismatch?T.orange:T.muted}}>{r.location||"—"}</span></TD>
                 <TD>
                   {r.transport
                     ? <Chip label={r.transport==="AIR"?"✈ AIR":"⛴ SEA"} color={r.transport==="AIR"?T.orange:T.blue}/>
                     : <span style={{color:T.dim}}>—</span>}
-                  {isMismatch && <span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ location?</span>}
+                  {isMismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ location?</span>}
                 </TD>
               </tr>
             );
           })}
         </tbody>
       </table>
-      {data.length>500 && <div style={{padding:"12px",textAlign:"center",color:T.muted,fontSize:"11px"}}>Mostrate 500/{data.length} righe</div>}
+      {data.length>500&&<div style={{padding:"12px",textAlign:"center",color:T.muted,fontSize:"11px"}}>Mostrate 500/{data.length} righe</div>}
     </div>
   );
 
@@ -2596,7 +2582,7 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
           ["itemCode","Codice articolo *",true],
           ["description","Descrizione",false],
           ["date","Data fattura",false],
-          ["amount","Importo €",false],
+          ["date","Data fattura",false],
           ["qty","Quantità",false],
           ["unitPrice","Prezzo unitario",false],
           ["location","Location / Magazzino",false],
