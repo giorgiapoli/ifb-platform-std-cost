@@ -69,65 +69,44 @@ const COSTS = {
  */
 function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, temperature } = product;
-  const { area, pltPerContainer, hasCert, hasAlcTax, alcTax, convFactor=1, carriage=0, vendorName="", category="" } = logistic;
+  const { area, pltPerContainer, hasCert, hasAlcTax, alcTax, convFactor=1 } = logistic;
 
-  // Units per pallet
-  let unitsPerPlt;
+  let unitsPerPlt: number;
   if(uom==="BOX")      unitsPerPlt = boxPerPallet;
   else if(uom==="KG")  unitsPerPlt = (kgPerBox||qtyPerBox)*boxPerPallet;
   else                 unitsPerPlt = qtyPerBox*boxPerPallet;
 
-  // "Divisore collo" = units per box/parcel for MTS picking cost
-  const divisoreCollo = uom==="BOX" ? 1 : uom==="KG" ? (kgPerBox||qtyPerBox) : qtyPerBox;
-
-  const totalUnits = unitsPerPlt * pltPerContainer;
+  const divisoreCollo = uom==="BOX"?1:uom==="KG"?(kgPerBox||qtyPerBox):qtyPerBox;
+  const totalUnits    = unitsPerPlt * pltPerContainer;
   if(!totalUnits) return null;
 
   const priceEur = (priceInput||0) * convFactor;
-
-  // FOB per unit (EUR)
   const fob = (COSTS.FOB[temperature]?.[area] ?? 0) / totalUnits;
-
-  // LOCAL IMPORT CHARGES: (4100+3800) HKD converted to EUR, per unit
-  const lic = (COSTS.LIC_HKD / eurToHkd) / totalUnits;
-
-  // VGM per unit (EUR)
+  const lic = (COSTS.LIC_HKD / eurToHkd) / totalUnits;   // (4100+3800) HKD → EUR → /unit
   const vgm = COSTS.VGM / totalUnits;
-
-  // Health Certificate per unit (EUR)
-  const hc = hasCert ? COSTS.HC / totalUnits : 0;
-
-  // Pallet cost per unit (EUR)
-  const plt = COSTS.PLT / unitsPerPlt;
-
-  // Alcohol tax per unit (EUR) — alcTax is already a per-unit value from Work_tab TASSA ALCOLICA
+  const hc  = hasCert ? COSTS.HC / totalUnits : 0;
+  const plt = COSTS.PLT / unitsPerPlt;                     // 30 € / pallet → /unit
   const alc = hasAlcTax ? (alcTax||0) : 0;
 
-  // Carriage per unit (EUR)
-  const isWineSpirits = category==="WINE" || category==="SPIRITS";
-  const carriagePlt = carriage>0 ? carriage : isWineSpirits ? COSTS.CARRIAGE_WINE : (COSTS.VENDOR_CARRIAGE[vendorName]||0);
-  const carriageUnit = carriagePlt > 0 ? carriagePlt / unitsPerPlt : 0;
+  // ← carriageUnit RIMOSSO: DAP Final già include carriage (FCA Disc + carriage/unit)
+  const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc;
 
-  const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc + carriageUnit;
-
-  // Warehouse cost per unit (EUR)
   let wh = 0;
-  if(ubicazione==="MTO") {
+  if(ubicazione==="MTO"){
     wh = COSTS.MTO[temperature] / unitsPerPlt;
-  } else if(ubicazione==="MTS") {
-    wh = COSTS.MTS_D[temperature] / unitsPerPlt
-       + COSTS.MTS_I[temperature] / unitsPerPlt
-       + COSTS.MTS_P[temperature] / divisoreCollo;
+  } else if(ubicazione==="MTS"){
+    wh = COSTS.MTS_D[temperature]/unitsPerPlt
+       + COSTS.MTS_I[temperature]/unitsPerPlt
+       + COSTS.MTS_P[temperature]/divisoreCollo;
   }
-  // FOR: no warehouse cost (supplier delivers directly)
 
   const step2Eur = step1Eur + wh;
-
   return {
-    priceEur, fob, lic, vgm, hc, plt, alc, carriageUnit,
+    priceEur, fob, lic, vgm, hc, plt, alc,
     step1Eur, step1Hkd: step1Eur * eurToHkd,
-    wh, step2Eur, step2Hkd: Math.round(step2Eur * eurToHkd * 100)/100,
-    rate: eurToHkd,
+    wh, step2Eur,
+    step2Hkd: Math.round(step2Eur * eurToHkd * 100)/100,
+    rate: eurToHkd, unitsPerPlt,
   };
 }
 
@@ -426,7 +405,7 @@ export default function App() {
             <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>✉ Mail</button>
           </div>
         </div>
-        <div style={{flex:1,padding:"20px 28px",overflow:"auto",width:"calc(100% - 200px)",boxSizing:"border-box"}}>{pages[page]}</div>
+        <div style={{flex:1,paddingTop:"20px",paddingLeft:"28px",paddingBottom:"20px",paddingRight:0,overflow:"auto",width:"calc(100% - 200px)",boxSizing:"border-box"}}>{pages[page]}</div>
       </div>
       {toast&&<div style={{position:"fixed",bottom:"24px",right:"24px",padding:"10px 18px",background:toast.color,borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:"bold",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",zIndex:1000}}>{toast.msg}</div>}
     </div>
@@ -1838,289 +1817,303 @@ function FxRates({fx,setFx,branch,month}) {
 
 // ─── COST TABLE ───────────────────────────────────────────────────────────────
 
-function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,setCostHistory,initFilter,salesRows=[],products=[],xrefs=[]}) {
-  const[search,setSearch]=useState("");
-  const[showDetail,setShowDetail]=useState(null);
-  const needsRecalc=lastImportTs>lastCalcTs;
+function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,
+  setCostHistory,initFilter,salesRows=[],products=[],xrefs=[]}: any) {
 
-  const lastOrderDate=useMemo(()=>{
-    const map={};
-    (salesRows||[]).forEach(row=>{
-      const prod=findProduct(row.itemCode,products,xrefs);
+  const[search,setSearch]     = useState("");
+  const[showDetail,setShowDetail] = useState<string|null>(null);
+  const[invoiceOnly,setInvoiceOnly] = useState(false);
+  const needsRecalc = lastImportTs > lastCalcTs;
+
+  const sixMonthsAgo = new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+
+  // ── data ultima fattura per prodotto ──
+  const lastOrderDate = useMemo(()=>{
+    const map: Record<string,Date> = {};
+    (salesRows||[]).forEach((row:any)=>{
+      const prod = findProduct(row.itemCode, products, xrefs);
       if(!prod) return;
-      const d=row.date?new Date(row.date):null;
-      if(!d||isNaN(d)) return;
+      const d = row.date ? new Date(row.date) : null;
+      if(!d||isNaN(d.getTime())) return;
       if(!map[prod.id]||d>map[prod.id]) map[prod.id]=d;
     });
     return map;
   },[salesRows,products,xrefs]);
 
-  const sixMonthsAgo=new Date();
-  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
+  // set di productId presenti in Sales Invoice
+  const invoiceIds = useMemo(()=>{
+    const s = new Set<string>();
+    (salesRows||[]).forEach((row:any)=>{
+      const prod = findProduct(row.itemCode, products, xrefs);
+      if(prod) s.add(prod.id);
+    });
+    return s;
+  },[salesRows,products,xrefs]);
 
   function saveSnapshot(){
     const ts=Date.now();
     const snap={ts,date:new Date(ts).toISOString(),branch,month,
-      rows:costRows.map(r=>({id:r.id,code:r.code,nHK:r.nHK,description:r.description,
+      rows:costRows.map((r:any)=>({id:r.id,code:r.code,nHK:r.nHK,description:r.description,
         cost:r.cost?.step2Hkd??null,costEur:r.cost?.step2Eur??null,skipReason:r.skipReason||null}))};
-    setCostHistory(prev=>{const n=[snap,...(prev||[])].slice(0,60);LS.set("ifb_costhistory",n);return n;});
+    setCostHistory((prev:any)=>{const n=[snap,...(prev||[])].slice(0,60);LS.set("ifb_costhistory",n);return n;});
     setLastCalcTs(ts);LS.set("ifb_last_calc_ts",ts);
   }
 
-  let filtered=costRows.filter(r=>!search||r.description?.toLowerCase().includes(search.toLowerCase())||r.code?.includes(search)||r.nHK?.includes(search));
-  if(initFilter==="flagged") filtered=filtered.filter(r=>r.flagged===true);
-  else if(initFilter==="errors") filtered=filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
+  let filtered: any[] = costRows.filter((r:any)=>
+    !search||r.description?.toLowerCase().includes(search.toLowerCase())||
+    r.code?.includes(search)||r.nHK?.includes(search));
 
-  const calc=filtered.filter(r=>r.cost?.step2Hkd!=null);
-  const noPrice=filtered.filter(r=>!r.cost&&!r.isAir&&(r.skipReason?.includes("NO PREZZO")||r.skipReason?.includes("PREZZO=0")));
-  const noLog=filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
-  const noCalc=filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason&&!r.skipReason.includes("NO PREZZO")&&!r.skipReason.includes("PREZZO=0")&&r.skipReason!=="NO LOGISTICA"&&r.skipReason!=="AIR");
+  if(initFilter==="flagged") filtered=filtered.filter((r:any)=>r.flagged===true);
+  else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
+  if(invoiceOnly) filtered=filtered.filter((r:any)=>invoiceIds.has(r.id));
 
-  // ── colonne breakdown ──
-  const COST_COLS = [
-    { key:"priceEur",    label:"Prezzo €",       hkd:false, gold:true  },
-    { key:"fob",         label:"FOB €/unit",     hkd:false             },
-    { key:"lic",         label:"LIC €/unit",     hkd:false             },
-    { key:"vgm",         label:"VGM €/unit",     hkd:false             },
-    { key:"hc",          label:"Cert. €/unit",   hkd:false             },
-    { key:"plt",         label:"Pallet €/unit",  hkd:false             },
-    { key:"alc",         label:"Alc.Tax €/unit", hkd:false             },
-    { key:"step1Eur",    label:"Step1 €",        hkd:false, bold:true  },
-    { key:"step1Hkd",    label:"Step1 HKD",      hkd:true,  bold:true  },
-    { key:"wh",          label:"WH €/unit",      hkd:false             },
-    { key:"step2Eur",    label:"Step2 €",        hkd:false, bold:true  },
-    { key:"step2Hkd",    label:"Step2 HKD ✓",    hkd:true,  gold:true, bold:true },
-  ];
+  const calc    = filtered.filter((r:any)=>r.cost?.step2Hkd!=null);
+  const noPrice = filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
+  const noLog   = filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
 
-  const fmt4=(v)=>v!=null&&v!==0?v.toFixed(4):"—";
-  const fmt2=(v)=>v!=null&&v!==0?v.toFixed(2):"—";
+  // ── stile celle ──────────────────────────────────────────────────────────────
+  const stickyTop0: React.CSSProperties = {position:"sticky",top:0,zIndex:12};
+  const stickyTop22: React.CSSProperties = {position:"sticky",top:22,zIndex:12};
+
+  const TH = ({children,accent,w,align="right",sticky=false}:any) => (
+    <th style={{
+      padding:"4px 6px",background:accent?`color-mix(in srgb,${accent} 15%,${T.card})`:`${T.card}`,
+      color:accent||T.muted,textAlign:align as any,
+      borderBottom:`1px solid ${accent?accent+"55":T.border}`,
+      fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",
+      minWidth:w||undefined,
+      ...(sticky?{position:"sticky",left:0,zIndex:13}:{}),
+    }}>{children}</th>
+  );
+
+  const GH = ({children,span,accent}:any) => (
+    <th colSpan={span} style={{
+      padding:"3px 6px",background:accent?`color-mix(in srgb,${accent} 10%,${T.bg})`:`${T.bg}`,
+      color:accent||T.dim,textAlign:"center",
+      borderBottom:`1px solid ${accent?accent+"44":T.border}`,
+      fontSize:"9px",letterSpacing:"0.08em",textTransform:"uppercase",fontWeight:"bold",
+      borderRight:`1px solid ${T.border}22`,whiteSpace:"nowrap",
+    }}>{children}</th>
+  );
+
+  const cell = (color?:string,bold?:boolean,minW?:number): React.CSSProperties => ({
+    padding:"4px 6px",borderBottom:`1px solid ${T.border}`,fontSize:"10px",
+    textAlign:"right",fontFamily:"monospace",verticalAlign:"middle",
+    color:color||T.muted,fontWeight:bold?"bold":"normal",
+    minWidth:minW?`${minW}px`:undefined,whiteSpace:"nowrap",
+  });
+  const cellL = (sticky?:boolean): React.CSSProperties => ({
+    padding:"4px 6px",borderBottom:`1px solid ${T.border}`,fontSize:"10px",
+    textAlign:"left",verticalAlign:"middle",whiteSpace:"nowrap",
+    ...(sticky?{position:"sticky",left:0,zIndex:5,background:T.surface}:{}),
+  });
+
+  const f4=(v:number|undefined)=>v!=null&&v!==0?v.toFixed(4):"—";
+  const f2=(v:number|undefined)=>v!=null&&v!==0?v.toFixed(2):"—";
 
   return(
-    <div>
-      <div style={{display:"flex",alignItems:"center",gap:"14px",marginBottom:"16px",flexWrap:"wrap"}}>
+    <div style={{paddingRight:"20px"}}>
+      {/* ── toolbar ── */}
+      <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px",flexWrap:"wrap"}}>
         <PageHeader title={`Standard Cost · ${branch} · ${month}`}
-          sub={`${calc.length} calcolati · solo INALCA F&B · SEA`}/>
+          sub={`${calc.length} calcolati · INALCA F&B · SEA`}/>
         <button onClick={saveSnapshot} disabled={!needsRecalc}
-          style={{padding:"9px 20px",background:needsRecalc?T.gold:"#333",color:needsRecalc?"#000":T.muted,
-            border:"none",borderRadius:"6px",fontWeight:"bold",cursor:needsRecalc?"pointer":"not-allowed",
-            fontSize:"13px",marginTop:"-8px"}}>
-          {needsRecalc?"⟳ Ricalcola & Salva snapshot":"✓ Costi aggiornati"}
+          style={{padding:"7px 16px",background:needsRecalc?T.gold:"#333",
+            color:needsRecalc?"#000":T.muted,border:"none",borderRadius:"6px",
+            fontWeight:"bold",cursor:needsRecalc?"pointer":"not-allowed",fontSize:"12px",marginTop:"-8px"}}>
+          {needsRecalc?"⟳ Ricalcola & Salva":"✓ Aggiornato"}
         </button>
-        {needsRecalc&&<span style={{color:T.orange,fontSize:"12px",marginTop:"-8px"}}>⚠ Nuovi dati — clicca per salvare</span>}
       </div>
 
-      {(noPrice.length>0||noCalc.length>0||noLog.length>0)&&(
+      {(noLog.length>0||noPrice.length>0)&&(
         <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",
-          padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
-          {noLog.length>0&&<div>⚠ {noLog.length} senza logistica — importa Work_tab da "Logistica"</div>}
-          {noPrice.length>0&&<div>⚠ {noPrice.length} senza prezzo ({month}) — vai su "Import Listini"</div>}
-          {noCalc.length>0&&<div>⚠ {noCalc.length} altri errori di calcolo</div>}
+          padding:"8px 12px",marginBottom:"10px",fontSize:"11px",color:T.orange}}>
+          {noLog.length>0&&<span>⚠ {noLog.length} senza logistica &nbsp;·&nbsp;</span>}
+          {noPrice.length>0&&<span>⚠ {noPrice.length} senza prezzo</span>}
         </div>
       )}
 
-      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…"/>
+      <div style={{display:"flex",gap:"8px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
+        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…"/>
 
-      <div style={{overflowX:"auto"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:"11px"}}>
+        {/* filtro Sales Invoice */}
+        <button onClick={()=>setInvoiceOnly((v:boolean)=>!v)}
+          style={{padding:"5px 12px",
+            background:invoiceOnly?`${T.gold}20`:T.surface,
+            color:invoiceOnly?T.gold:T.muted,
+            border:`1px solid ${invoiceOnly?T.gold:T.border}`,
+            borderRadius:"6px",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap"}}>
+          {invoiceOnly
+            ? `📋 Fatturati (${filtered.length})`
+            : `📋 Solo Sales Invoice (${invoiceIds.size} prod.)`}
+        </button>
+
+        {invoiceOnly&&(
+          <span style={{fontSize:"10px",color:T.muted}}>
+            ⚠ KEEP OLD = ultimo ordine &gt;6 mesi fa
+          </span>
+        )}
+      </div>
+
+      {/* ── tabella ── */}
+      <div style={{overflowX:"auto",width:"100%"}}>
+        <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
           <thead>
-            <tr>
-              {/* Intestazione gruppi */}
-              <th colSpan={5} style={thGroup()}/>
-              <th colSpan={7} style={thGroup(T.blue,"COSTI DI TRASPORTO E DAZI")}/>
-              <th colSpan={2} style={thGroup(T.gold,"STEP 1")}/>
-              <th colSpan={1} style={thGroup(T.purple,"MAGAZZINO")}/>
-              <th colSpan={2} style={thGroup(T.green,"STEP 2 FINALE")}/>
-              <th colSpan={2} style={thGroup()}/>
+            {/* riga gruppi */}
+            <tr style={stickyTop0}>
+              <GH span={3}/>
+              <GH span={2}/>
+              <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>
+              <GH span={2} accent={T.gold}>Step 1</GH>
+              <GH span={1} accent={T.purple}>Magazzino</GH>
+              <GH span={2} accent={T.green}>Step 2 finale</GH>
+              <GH span={2}/>
             </tr>
-            <tr>
-              <Th>N HK</Th>
-              <Th>IFB No</Th>
-              <Th>Descrizione</Th>
-              <Th>UOM · Plt</Th>
-              <Th>Ubicaz.</Th>
-
-              {/* Breakdown costi */}
-              <Th accent={T.blue}>Prezzo €/unit</Th>
-              <Th accent={T.blue}>FOB €/unit</Th>
-              <Th accent={T.blue}>LIC €/unit</Th>
-              <Th accent={T.blue}>VGM €/unit</Th>
-              <Th accent={T.blue}>Cert. €/unit</Th>
-              <Th accent={T.blue}>Pallet €/unit</Th>
-              <Th accent={T.blue}>Alc.Tax €/unit</Th>
-
-              {/* Step 1 */}
-              <Th accent={T.gold}>Step1 €</Th>
-              <Th accent={T.gold}>Step1 HKD</Th>
-
-              {/* Magazzino */}
-              <Th accent={T.purple}>WH €/unit</Th>
-
-              {/* Step 2 */}
-              <Th accent={T.green}>Step2 €</Th>
-              <Th accent={T.green}>Step2 HKD ✓</Th>
-
-              {/* Extra */}
-              <Th>Δ% vs prec</Th>
-              <Th>Ultimo ordine</Th>
+            {/* riga colonne */}
+            <tr style={stickyTop22}>
+              <TH align="left" sticky w={70}>N HK</TH>
+              <TH align="left" w={70}>IFB No</TH>
+              <TH align="left" w={180}>Descrizione</TH>
+              <TH w={60}>UOM</TH>
+              <TH w={55}>Ubicaz.</TH>
+              <TH accent={T.blue} w={70}>Prezzo €</TH>
+              <TH accent={T.blue} w={65}>FOB</TH>
+              <TH accent={T.blue} w={65}>LIC</TH>
+              <TH accent={T.blue} w={55}>VGM</TH>
+              <TH accent={T.blue} w={55}>Cert.</TH>
+              <TH accent={T.blue} w={60}>Pallet</TH>
+              <TH accent={T.blue} w={60}>Alc.Tax</TH>
+              <TH accent={T.gold} w={72}>Step1 €</TH>
+              <TH accent={T.gold} w={80}>Step1 HKD</TH>
+              <TH accent={T.purple} w={65}>WH €</TH>
+              <TH accent={T.green} w={72}>Step2 €</TH>
+              <TH accent={T.green} w={85}>Step2 HKD ✓</TH>
+              <TH w={60}>Δ%</TH>
+              <TH w={90}>Ultimo ordine</TH>
             </tr>
           </thead>
           <tbody>
-            {filtered.map((r,i)=>{
-              const c=r.cost;
-              const prevHkd=r.prevCost?.step2Hkd??null;
-              const hkd=c?.step2Hkd??null;
-              const pct=hkd!=null&&prevHkd!=null&&prevHkd>0?(hkd-prevHkd)/prevHkd*100:null;
-              const lastD=lastOrderDate[r.id];
-              const isOld=lastD&&lastD<sixMonthsAgo;
-              const logRaw=logistics.find(l=>l.productId===r.id&&l.branch===branch);
-              const plt=r.pltUsed||logRaw?.pltPerContainer||"?";
+            {filtered.map((r:any,i:number)=>{
+              const c = r.cost;
+              const prevHkd = r.prevCost?.step2Hkd??null;
+              const hkd    = c?.step2Hkd??null;
+              const pct    = hkd!=null&&prevHkd!=null&&prevHkd>0?(hkd-prevHkd)/prevHkd*100:null;
+              const lastD  = lastOrderDate[r.id];
+              const isOld  = lastD&&lastD<sixMonthsAgo;
+              const rowBg  = i%2===0?T.bg:T.surface;
+              const isSelected = showDetail===r.id;
 
-              const rowBg=r.isAir?`${T.orange}08`:i%2===0?T.bg:T.surface;
-              const isSelected=showDetail===r.id;
-
-              return(
+              return(<>
                 <tr key={r.id}
-                  style={{borderBottom:`1px solid ${T.border}`,background:isSelected?`${T.gold}08`:rowBg,
-                    opacity:r.isAir?0.45:1,cursor:"pointer"}}
-                  onClick={()=>setShowDetail(isSelected?null:r.id)}>
+                  style={{background:isSelected?`${T.gold}08`:rowBg,opacity:r.isAir?0.45:1,cursor:"pointer"}}
+                  onClick={()=>setShowDetail((v:any)=>v===r.id?null:r.id)}>
 
-                  {/* Anagrafica */}
-                  <td style={td()}><span style={{color:T.muted,fontFamily:"monospace"}}>{r.nHK||"—"}</span></td>
-                  <td style={td()}><span style={{color:T.gold,fontFamily:"monospace"}}>{r.code}</span></td>
-                  <td style={td(180)}>{r.description}{r.isAir&&<span style={{marginLeft:"5px",color:T.orange,fontSize:"9px"}}>✈AIR</span>}</td>
-                  <td style={td()}>
-                    <span style={{color:T.muted,fontFamily:"monospace",fontSize:"10px"}}>
-                      {r.uom||"—"} · {plt}plt
-                    </span>
+                  {/* identità */}
+                  <td style={{...cellL(true),background:isSelected?`${T.gold}08`:rowBg}}>
+                    <span style={{color:T.muted,fontFamily:"monospace",fontSize:"10px"}}>{r.nHK||"—"}</span>
                   </td>
-                  <td style={td()}>
+                  <td style={cellL()}>
+                    <span style={{color:T.gold,fontFamily:"monospace",fontSize:"10px"}}>{r.code}</span>
+                  </td>
+                  <td style={{...cellL(),maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis"}}>
+                    {r.description}
+                    {r.isAir&&<span style={{marginLeft:"4px",color:T.orange,fontSize:"9px"}}>✈</span>}
+                  </td>
+                  <td style={cell()}>{r.uom||"—"}</td>
+                  <td style={cell()}>
                     {r.ubicazione
-                      ? <Chip label={r.ubicazione} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>
+                      ? <Chip label={r.ubicazione}
+                          color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>
                       : <span style={{color:T.dim}}>—</span>}
                   </td>
 
-                  {/* Costi breakdown */}
-                  <td style={tdN(T.text)}>{c?`€ ${fmt4(c.priceEur)}`:<span style={{color:T.dim,fontSize:"10px"}}>{r.skipReason||"—"}</span>}</td>
-                  <td style={tdN()}>{c?`${fmt4(c.fob)}`:"—"}</td>
-                  <td style={tdN()}>{c?`${fmt4(c.lic)}`:"—"}</td>
-                  <td style={tdN()}>{c?`${fmt4(c.vgm)}`:"—"}</td>
-                  <td style={tdN(c?.hc>0?T.orange:undefined)}>{c?(c.hc>0?`${fmt4(c.hc)}`:<span style={{color:T.dim}}>—</span>):"—"}</td>
-                  <td style={tdN()}>{c?`${fmt4(c.plt)}`:"—"}</td>
-                  <td style={tdN(c?.alc>0?T.orange:undefined)}>{c?(c.alc>0?`${fmt4(c.alc)}`:<span style={{color:T.dim}}>—</span>):"—"}</td>
+                  {/* costi breakdown */}
+                  <td style={cell(T.text)}>{c?`€${f4(c.priceEur)}`:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}</td>
+                  <td style={cell()}>{c?f4(c.fob):"—"}</td>
+                  <td style={cell()}>{c?f4(c.lic):"—"}</td>
+                  <td style={cell()}>{c?f4(c.vgm):"—"}</td>
+                  <td style={cell(c?.hc>0?T.orange:undefined)}>{c?(c.hc>0?f4(c.hc):"—"):"—"}</td>
+                  <td style={cell()}>{c?f4(c.plt):"—"}</td>
+                  <td style={cell(c?.alc>0?T.orange:undefined)}>{c?(c.alc>0?f4(c.alc):"—"):"—"}</td>
 
-                  {/* Step 1 */}
-                  <td style={tdN(T.gold,true)}>{c?`€ ${c.step1Eur.toFixed(4)}`:"—"}</td>
-                  <td style={tdN(T.gold,true)}>{c?`HK$ ${c.step1Hkd.toFixed(2)}`:"—"}</td>
+                  {/* step 1 */}
+                  <td style={cell(T.gold,true)}>{c?`€${c.step1Eur.toFixed(4)}`:"—"}</td>
+                  <td style={cell(T.gold,true)}>{c?`${c.step1Hkd.toFixed(2)}`:"—"}</td>
 
-                  {/* Magazzino */}
-                  <td style={tdN(T.purple)}>{c?(c.wh>0?`${fmt4(c.wh)}`:<span style={{color:T.dim}}>—</span>):"—"}</td>
+                  {/* magazzino */}
+                  <td style={cell(T.purple)}>{c?(c.wh>0?f4(c.wh):"—"):"—"}</td>
 
-                  {/* Step 2 */}
-                  <td style={tdN(T.green,true)}>{c?`€ ${c.step2Eur.toFixed(4)}`:"—"}</td>
-                  <td style={tdN(T.green,true,true)}>{hkd!=null?`HK$ ${hkd.toFixed(2)}`:<span style={{color:T.dim,fontSize:"10px"}}>{r.skipReason||"—"}</span>}</td>
-
-                  {/* Delta */}
-                  <td style={td()}>
-                    <span style={{color:pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,fontWeight:Math.abs(pct||0)>=3?"bold":"normal",fontFamily:"monospace",fontSize:"11px"}}>
-                      {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
+                  {/* step 2 */}
+                  <td style={cell(T.green,true)}>{c?`€${c.step2Eur.toFixed(4)}`:"—"}</td>
+                  <td style={cell(T.green,true)}>
+                    <span style={{fontSize:"11px",fontWeight:"bold"}}>
+                      {hkd!=null?`${hkd.toFixed(2)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                     </span>
-                    {Math.abs(pct||0)>=3&&<span style={{marginLeft:"4px",fontSize:"9px"}}>⚡</span>}
                   </td>
 
-                  {/* Ultimo ordine */}
-                  <td style={td()}>
+                  {/* delta */}
+                  <td style={cell(pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,Math.abs(pct||0)>=3)}>
+                    {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
+                    {Math.abs(pct||0)>=3&&" ⚡"}
+                  </td>
+
+                  {/* ultimo ordine */}
+                  <td style={{...cell(),textAlign:"center"}}>
                     {!lastD
-                      ? <span style={{color:T.dim,fontSize:"10px"}}>—</span>
+                      ? <span style={{color:T.dim}}>—</span>
                       : isOld
-                        ? <div><span style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>⚠ KEEP OLD</span>
+                        ? <div style={{lineHeight:1.2}}>
+                            <div style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>⚠ KEEP OLD</div>
                             <div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div>
                           </div>
-                        : <span style={{color:T.muted,fontSize:"10px"}}>{lastD.toLocaleDateString("it-IT")}</span>
+                        : <span style={{color:T.muted}}>{lastD.toLocaleDateString("it-IT")}</span>
                     }
                   </td>
                 </tr>
-              );
+
+                {/* ── riga dettaglio espansa ── */}
+                {isSelected&&c&&(
+                  <tr key={r.id+"_detail"}>
+                    <td colSpan={19} style={{padding:"8px 16px",background:`${T.gold}06`,
+                      borderBottom:`1px solid ${T.gold}33`}}>
+                      <div style={{display:"flex",flexWrap:"wrap",gap:"6px",fontSize:"10px"}}>
+                        {([
+                          ["Prezzo acquisto",`€ ${c.priceEur.toFixed(4)}`,T.text],
+                          ["FOB/unit",`€ ${c.fob.toFixed(4)}`,T.blue],
+                          ["LIC/unit",`€ ${c.lic.toFixed(4)}`,T.blue],
+                          ["VGM/unit",`€ ${c.vgm.toFixed(4)}`,T.blue],
+                          ["HC/unit",c.hc>0?`€ ${c.hc.toFixed(4)}`:"—",c.hc>0?T.orange:T.dim],
+                          ["Pallet/unit",`€ ${c.plt.toFixed(4)}`,T.blue],
+                          ["AlcTax/unit",c.alc>0?`€ ${c.alc.toFixed(4)}`:"—",c.alc>0?T.orange:T.dim],
+                          ["Step1 €",`€ ${c.step1Eur.toFixed(4)}`,T.gold],
+                          ["Step1 HKD",`${c.step1Hkd.toFixed(2)}`,T.gold],
+                          ["WH/unit",c.wh>0?`€ ${c.wh.toFixed(4)}`:"—",T.purple],
+                          ["Step2 €",`€ ${c.step2Eur.toFixed(4)}`,T.green],
+                          ["Step2 HKD ✓",`${c.step2Hkd.toFixed(2)}`,T.green],
+                          ["Rate",`${c.rate}`,T.muted],
+                          ["Units/plt",`${c.unitsPerPlt||"—"}`,T.muted],
+                        ] as [string,string,string][]).map(([k,v,col])=>(
+                          <div key={k} style={{padding:"3px 8px",background:T.card,
+                            borderRadius:"4px",border:`1px solid ${T.border}`}}>
+                            <span style={{color:T.dim}}>{k}: </span>
+                            <span style={{color:col,fontWeight:"bold"}}>{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </>);
             })}
           </tbody>
         </table>
       </div>
-
-      {/* Pannello dettaglio */}
-      {showDetail&&(()=>{
-        const r=costRows.find(x=>x.id===showDetail);
-        if(!r?.cost) return null;
-        const c=r.cost;
-        const logRaw=logistics.find(l=>l.productId===r.id&&l.branch===branch);
-        const plt=r.pltUsed||logRaw?.pltPerContainer||"?";
-        return(
-          <div style={{marginTop:"12px",background:T.card,border:`1px solid ${T.gold}44`,borderRadius:"8px",padding:"16px"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
-              <span style={{color:T.gold,fontWeight:"bold",fontSize:"13px"}}>{r.code} · {r.description}</span>
-              <button onClick={()=>setShowDetail(null)}
-                style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"16px"}}>✕</button>
-            </div>
-            <div style={{fontSize:"11px",color:T.muted,marginBottom:"10px",padding:"5px 10px",
-              background:`${T.gold}11`,borderRadius:"5px",border:`1px solid ${T.gold}33`}}>
-              UOM: {r.uom} · Qty/box: {r.qtyPerBox} · Box/plt: {r.boxPerPallet} · Plt/container: {plt}
-              · Units/plt: {c.unitsPerPlt||"—"} · Temp: {r.temperature} · Area: {logRaw?.area||"—"}
-              · Tasso: {c.rate}
-            </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:"6px"}}>
-              {[
-                ["Prezzo acquisto EUR",     c.priceEur,  T.text,   false],
-                ["FOB (nolo) €/unit",       c.fob,       T.blue,   false],
-                ["LIC (import charges)",    c.lic,       T.blue,   false],
-                ["VGM €/unit",              c.vgm,       T.blue,   false],
-                ["Health Certificate",      c.hc,        c.hc>0?T.orange:T.dim, false],
-                ["Pallet €/unit",           c.plt,       T.blue,   false],
-                ["Tassa Alcolica >30°",     c.alc,       c.alc>0?T.orange:T.dim, false],
-                ["▶ STEP 1 EUR",            c.step1Eur,  T.gold,   true],
-                ["▶ STEP 1 HKD",            c.step1Hkd,  T.gold,   true],
-                ["Magazzino WH €/unit",     c.wh,        T.purple, false],
-                ["▶ STEP 2 EUR",            c.step2Eur,  T.green,  true],
-                ["▶ STEP 2 HKD ✓",          c.step2Hkd,  T.green,  true],
-              ].map(([label,val,color,bold])=>(
-                <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
-                  padding:"5px 10px",background:bold?`${color}10`:T.surface,
-                  borderRadius:"5px",fontSize:"11px",border:bold?`1px solid ${color}33`:"none"}}>
-                  <span style={{color:T.muted}}>{label}</span>
-                  <span style={{color,fontWeight:bold?"bold":"normal",fontFamily:"monospace"}}>
-                    {typeof val==="number"&&val!==0?val.toFixed(4):<span style={{color:T.dim}}>—</span>}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-      })()}
     </div>
   );
 }
 
-// ── helper stili tabella ──
-function thGroup(color,label){
-  return{
-    padding:"3px 8px",background:color?`${color}15`:T.bg,color:color||T.dim,
-    textAlign:"center",borderBottom:`1px solid ${color?color+"44":T.border}`,
-    fontSize:"9px",letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:"bold",
-    borderRight:`1px solid ${T.border}`,whiteSpace:"nowrap",
-  };
-}
-function Th({children,accent}){
-  return<th style={{padding:"6px 10px",background:accent?`${accent}10`:T.card,
-    color:accent||T.muted,textAlign:"right",borderBottom:`1px solid ${accent?accent+"44":T.border}`,
-    fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",borderRight:`1px solid ${T.border}33`}}>
-    {children}
-  </th>;
-}
-function td(minW){
-  return{padding:"5px 10px",borderBottom:`1px solid ${T.border}`,fontSize:"11px",
-    verticalAlign:"middle",minWidth:minW||undefined,borderRight:`1px solid ${T.border}22`};
-}
-function tdN(color,bold,big){
-  return{...td(),textAlign:"right",fontFamily:"monospace",
-    color:color||T.muted,fontWeight:bold?"bold":"normal",fontSize:big?"12px":"11px"};
-}
+
 
 // ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
 function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
