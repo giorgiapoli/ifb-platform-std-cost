@@ -220,8 +220,8 @@ export default function App() {
   const[prices,setPrices]       = useState(()=>LS.get("ifb_prices",SEED_PRICES));
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
   const[xrefs,setXrefs]         = useState(()=>LS.get("ifb_xrefs",[]));
-  const[airList,setAirList]     = useState(()=>LS.get("ifb_airlist",[]));
-  const[salesRows,setSalesRows] = useState(()=>LS.get("ifb_sales_invoice",[]));
+  const[airList,setAirList]     = useState<any[]>([]);
+  const[salesRows,setSalesRows] = useState<any[]>([]);
   const[importLogs,setImportLogs] = useState(()=>LS.get("ifb_importlogs",[]));
   const[snapshots,setSnapshots]   = useState(()=>LS.get("ifb_snapshots",[]));
   const[costHistory,setCostHistory] = useState(()=>LS.get("ifb_costhistory",[]));
@@ -237,8 +237,14 @@ export default function App() {
 
   useEffect(()=>{ if(products.length)  LS.set("ifb_products",       products);  }, [products]);
   useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
-  useEffect(()=>{ if(salesRows.length) LS.set("ifb_sales_invoice",  salesRows); }, [salesRows]);
+  useEffect(()=>{ if(branch&&salesRows.length) LS.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
+  // Ricarica dati branch-specifici ad ogni cambio filiale
+  useEffect(()=>{
+    if(!branch) return;
+    setAirList(LS.get(`ifb_airlist_${branch}`,[]));
+    setSalesRows(LS.get(`ifb_sales_invoice_${branch}`,[]));
+  },[branch]);
 
   const showToast = (msg,color=T.green) => { setToast({msg,color}); setTimeout(()=>setToast(null),3500); };
   const bumpImportTs = () => { const ts=Date.now(); setLastImportTs(ts); LS.set("ifb_last_import_ts",ts); return ts; };
@@ -261,7 +267,7 @@ export default function App() {
     const eligible = products.filter(p => p.active && isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
-      const airEntry = airList.find(a=>a.productId===prod.id && (!a.branch||a.branch===branch));
+      const airEntry = airList.find((a:any)=>a.productId===prod.id);
       if(airEntry && isAirTransport(airEntry.transportation))
         return { ...prod, cost:null, prevCost:null, priceInput:null, isAir:true, skipReason:"AIR" };
 
@@ -1240,7 +1246,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       productId: r.productId, code: r.code, nHK: r.nHK,
       description: r.description, transportation: "AIR", branch
     }))];
-    setAirList(next); LS.set("ifb_airlist", next);
+    setAirList(next); LS.set(`ifb_airlist_${branch}`, next);
     const now = Date.now();
     const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
@@ -1321,7 +1327,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
    <button
    onClick={()=>{if(window.confirm(`Eliminare i ${branchAir.length} articoli AIR di ${branch}?`)){
      const kept=airList.filter((a:any)=>a.branch&&a.branch!==branch);
-     setAirList(kept);LS.set("ifb_airlist",kept);
+     setAirList(kept);LS.set(`ifb_airlist_${branch}`,kept);
    }}}
      style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
      ✕ Svuota lista ({branchAir.length})
@@ -2400,7 +2406,7 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
 
   function saveRows(data:any[]) {
     setRows(data);
-    LS.set("ifb_sales_invoice", data);
+    LS.set(`ifb_sales_invoice_${branch}`, data);
   }
 
   // ── Parsing file ─────────────────────────────────────────────────────────
@@ -2721,7 +2727,9 @@ function Storico({snapshots,setSnapshots,costHistory,branch}) {
   const[showNew,setShowNew]=useState(false);
   const[selCostSnap,setSelCostSnap]=useState<any>(null);
 
-  const costSnaps=(costHistory||[]).filter((s:any)=>!branch||s.branch===branch);
+  const branchSnaps = snapshots.filter((s:any)=>
+  !s.branch || s.branch==="ALL" || s.branch===branch
+);
   const snapDate=(s:any)=>new Date(s.date||s.id).toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric"});
 
   function deleteSnap(id:any){
