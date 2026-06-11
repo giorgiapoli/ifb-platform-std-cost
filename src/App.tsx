@@ -293,7 +293,8 @@ export default function App() {
       
       const delta    = cost&&prevCost ? (cost.step2Hkd-prevCost.step2Hkd)/prevCost.step2Hkd*100 : null;
       return { ...prod, cost, prevCost, delta, priceInput:pi, isNew:!prPrev,
-               flagged: delta!==null && Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt };
+        flagged: delta!==null && Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt,
+        temperatureOverride: log.temperatureOverride || null };
     });
   }, [products,logistics,prices,fx,airList,branch,month]);
 
@@ -1186,12 +1187,12 @@ function ImportBC({products,setProducts,importLogs,setImportLogs,snapshots,setSn
 }
 
 // ─── AIR LIST PAGE ────────────────────────────────────────────────────────────
+// ─── AIR LIST PAGE ────────────────────────────────────────────────────────────
 function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const[step,setStep]=useState("main");
   const[headers,setHeaders]=useState([]);
   const[rawRows,setRawRows]=useState([]);
   const[colCode,setColCode]=useState("");
-  const[colTransport,setColTransport]=useState("");
   const[preview,setPreview]=useState([]);
   const[fileName,setFileName]=useState("");
   const[search,setSearch]=useState("");
@@ -1209,9 +1210,7 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
         const rows=data.slice(1).filter(r=>r.some(c=>c!==""));
         setHeaders(hdrs);setRawRows(rows);
         const codeA=["n hk","nhk","no_","no.","no","item no","ifb no","ifb n","code","codice"];
-        const transA=["transportation","transport","trasporto","tipo trasporto","shipping method","shipment method","transp"];
         setColCode(hdrs.find(h=>codeA.some(a=>h.toLowerCase()===a||h.toLowerCase().includes(a)))||"");
-        setColTransport(hdrs.find(h=>transA.some(a=>h.toLowerCase().includes(a)))||"");
         setStep("map");
       }catch(err){showToast("Errore: "+err.message,T.red);}
     };
@@ -1219,58 +1218,62 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
   }
 
   function buildPreview() {
-    const iC=headers.indexOf(colCode),iT=headers.indexOf(colTransport);
+    const iC=headers.indexOf(colCode);
     const mapped=rawRows.map(row=>{
       const code=String(row[iC]||"").trim();
-      const transportation=String(row[iT]||"").trim();
       if(!code) return null;
       const prod=findProduct(code,products,xrefs);
-      return{code,transportation,productId:prod?.id||null,description:prod?.description||code,nHK:prod?.nHK||"",isAir:isAirTransport(transportation),_hasProduct:!!prod};
+      return{code,productId:prod?.id||null,description:prod?.description||code,nHK:prod?.nHK||"",_hasProduct:!!prod};
     }).filter(Boolean);
     setPreview(mapped);setStep("preview");
   }
 
   function executeImport() {
-    const airOnly=preview.filter(r=>r.isAir&&r._hasProduct);
-    const kept=airList.filter(a=>!airOnly.find(r=>r.productId===a.productId));
-    const next=[...kept,...airOnly.map(r=>({productId:r.productId,code:r.code,nHK:r.nHK,description:r.description,transportation:r.transportation}))];
+    const valid=preview.filter(r=>r._hasProduct);
+    const kept=airList.filter(a=>!valid.find(r=>r.productId===a.productId));
+    const next=[...kept,...valid.map(r=>({productId:r.productId,code:r.code,nHK:r.nHK,description:r.description,transportation:"AIR"}))];
     setAirList(next);LS.set("ifb_airlist",next);
     const now=Date.now();
-    const log={id:now,type:"air",date:new Date(now).toISOString(),count:airOnly.length,diffs:[],branch:"HK"};
+    const log={id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch:"HK"};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    bumpImportTs();showToast(`AIR: ${airOnly.length} articoli marcati ✓`,T.gold);
+    bumpImportTs();showToast(`AIR: ${valid.length} articoli salvati ✓`,T.gold);
     setStep("main");setPreview([]);setRawRows([]);setHeaders([]);
   }
 
-  const displayed=airList.filter(a=>!search||a.description?.toLowerCase().includes(search.toLowerCase())||a.code?.includes(search));
+  const _sq=search.toLowerCase();
+  const displayed=airList.filter(a=>!search
+    ||a.description?.toLowerCase().includes(_sq)
+    ||a.code?.toLowerCase().includes(_sq)
+    ||a.nHK?.toLowerCase().includes(_sq));
 
   return(
     <div>
       <PageHeader title="✈ AIR Transport" sub="Articoli trasportati via aerea — esclusi da Standard Cost (calcolo solo SEA)"/>
+
       {step==="map"&&(
         <Section title={`Mappatura — ${fileName}`}>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
-            {[["Colonna Codice *",colCode,setColCode],["Colonna Transportation *",colTransport,setColTransport]].map(([lbl,val,setter])=>(
-              <div key={lbl}>
-                <label style={{display:"block",fontSize:"11px",color:T.gold,marginBottom:"5px"}}>{lbl}</label>
-                <select value={val} onChange={e=>setter(e.target.value)} style={{...inputStyle(),cursor:"pointer"}}>
-                  <option value="">— seleziona —</option>
-                  {headers.map(h=><option key={h} value={h}>{h}</option>)}
-                </select>
-              </div>
-            ))}
+          <div style={{marginBottom:"16px",maxWidth:"320px"}}>
+            <label style={{display:"block",fontSize:"11px",color:T.gold,marginBottom:"5px"}}>Colonna Codice * (N HK o IFB N)</label>
+            <select value={colCode} onChange={e=>setColCode(e.target.value)} style={{...inputStyle(),cursor:"pointer"}}>
+              <option value="">— seleziona —</option>
+              {headers.map(h=><option key={h} value={h}>{h}</option>)}
+            </select>
+          </div>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"16px",padding:"8px 12px",background:`${T.gold}08`,borderRadius:"6px"}}>
+            Tutti i prodotti di questo file verranno marcati come <strong style={{color:T.orange}}>✈ AIR</strong> — nessuna colonna Transportation richiesta.
           </div>
           <div style={{display:"flex",gap:"10px"}}>
             <ActionBtn label="← Ricarica" onClick={()=>setStep("main")}/>
-            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!colCode||!colTransport}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!colCode}/>
           </div>
         </Section>
       )}
+
       {step==="preview"&&(
         <div>
           <div style={{display:"flex",gap:"12px",marginBottom:"16px"}}>
-            {[[preview.filter(r=>r.isAir).length,"AIR",T.orange],[preview.filter(r=>!r.isAir).length,"Non AIR",T.dim],[preview.filter(r=>!r._hasProduct).length,"Non trovati",T.red],[preview.length,"Totale",T.text]].map(([n,l,c])=>(
+            {[[preview.filter(r=>r._hasProduct).length,"Trovati in anagrafica",T.green],[preview.filter(r=>!r._hasProduct).length,"Non trovati",T.red],[preview.length,"Totale",T.text]].map(([n,l,c])=>(
               <div key={l} style={{padding:"10px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"8px"}}>
                 <div style={{fontSize:"18px",fontWeight:"bold",color:c}}>{n}</div>
                 <div style={{fontSize:"10px",color:T.dim,marginTop:"2px"}}>{l}</div>
@@ -1279,47 +1282,45 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
           </div>
           <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
             <ActionBtn label="← Torna" onClick={()=>setStep("map")}/>
-            <ActionBtn label={`✓ Salva ${preview.filter(r=>r.isAir&&r._hasProduct).length} articoli AIR`} onClick={executeImport} primary/>
+            <ActionBtn label={`✓ Salva ${preview.filter(r=>r._hasProduct).length} articoli AIR`} onClick={executeImport} primary/>
           </div>
-          <Section title="Preview (solo AIR)">
+          <Section title="Preview">
             <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <THead cols={["Codice","N HK","Descrizione","Transportation","AIR?","Trovato"]}/>
-              <tbody>{preview.filter(r=>r.isAir).map((r,i)=>(
+              <THead cols={["Codice","N HK","Descrizione","Trovato"]}/>
+              <tbody>{preview.map((r,i)=>(
                 <tr key={i} style={{borderBottom:`1px solid ${T.border}`,opacity:r._hasProduct?1:0.5}}>
                   <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
                   <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
                   <TD>{r.description}</TD>
-                  <TD><Chip label={r.transportation} color={T.orange}/></TD>
-                  <TD><Chip label="✈ AIR" color={T.orange}/></TD>
-                  <TD>{r._hasProduct?<Chip label="OK" color={T.green}/>:<Chip label="NOT FOUND" color={T.red}/>}</TD>
+                  <TD>{r._hasProduct?<Chip label="✈ AIR" color={T.orange}/>:<Chip label="NOT FOUND" color={T.red}/>}</TD>
                 </tr>
               ))}</tbody>
             </table>
           </Section>
         </div>
       )}
+
       {step==="main"&&(
         <>
           <div style={{marginBottom:"20px"}}>
             <label style={{display:"inline-block",padding:"10px 20px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold"}}>
-              📂 Carica report Transportation
+              📂 Carica lista AIR
               <input type="file" accept=".xlsx,.xls,.csv"
                 onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
             </label>
-            <span style={{marginLeft:"12px",fontSize:"12px",color:T.muted}}>Colonne richieste: codice articolo + Transportation</span>
+            <span style={{marginLeft:"12px",fontSize:"12px",color:T.muted}}>Colonna richiesta: N HK o IFB N</span>
           </div>
           {airList.length>0&&(
             <>
               <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo AIR…"/>
               <Section title={`${displayed.length} articoli AIR (esclusi da Standard Cost)`}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <THead cols={["Codice","N HK","Descrizione","Transportation","Azioni"]}/>
+                  <THead cols={["Codice","N HK","Descrizione","Azioni"]}/>
                   <tbody>{displayed.map((a,i)=>(
                     <tr key={a.productId||i} style={{borderBottom:`1px solid ${T.border}`}}>
                       <TD mono><span style={{color:T.gold}}>{a.code}</span></TD>
                       <TD mono><span style={{color:T.muted}}>{a.nHK||"—"}</span></TD>
                       <TD>{a.description}</TD>
-                      <TD><Chip label={a.transportation} color={T.orange}/></TD>
                       <TD><MiniBtn label="✕ Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);LS.set("ifb_airlist",n);}} color={T.red}/></TD>
                     </tr>
                   ))}</tbody>
@@ -1334,78 +1335,122 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-
 function Dashboard({costRows, branch, month, navigate}) {
-  const flagged = costRows.filter(r=>r.cost?.step2Hkd!=null&&r.prevCost?.step2Hkd!=null&&r.prevCost.step2Hkd>0&&Math.abs((r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd)>=0.03);
-  const air      = costRows.filter(r=>r.isAir);
-  const noPrice  = costRows.filter(r=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
-  const noLog    = costRows.filter(r=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
-  const calcZero = costRows.filter(r=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
+  const [activePanel, setActivePanel] = useState<string|null>(null);
+
+  const calcOk   = costRows.filter((r:any)=>r.cost?.step2Hkd!=null);
+  const flagged  = costRows.filter((r:any)=>r.cost?.step2Hkd!=null&&r.prevCost?.step2Hkd!=null&&r.prevCost.step2Hkd>0&&Math.abs((r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd)>=0.03);
+  const air      = costRows.filter((r:any)=>r.isAir);
+  const noPrice  = costRows.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
+  const noLog    = costRows.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
+  const calcZero = costRows.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
 
   const STATS = [
-    { n: costRows.filter(r=>r.cost?.step2Hkd!=null).length, label:"Costi calcolati",        color:T.green,  page:"costs",       filter:null       },
-    { n: flagged.length,                                      label:"Variazioni ≥3%",         color:T.orange, page:"costs",       filter:"flagged"  },
-    { n: air.length,                                          label:"AIR (esclusi)",           color:T.blue,   page:"air",         filter:null       },
-    { n: noPrice.length,                                      label:"Senza prezzo",            color:T.red,    page:"importPrice", filter:null       },
-    { n: noLog.length,                                        label:"No logistica",            color:T.red,    page:"logistics",   filter:"missing"  },
-    { n: calcZero.length,                                     label:"Calc=0 (check UOM/qty)", color:T.orange, page:"costs",       filter:"errors"   },
+    { id:"ok",      n:calcOk.length,   label:"Costi calcolati",       color:T.green,  rows:calcOk   },
+    { id:"flagged", n:flagged.length,  label:"Variazioni ≥3%",        color:T.orange, rows:flagged  },
+    { id:"air",     n:air.length,      label:"AIR (esclusi)",          color:T.blue,   rows:air      },
+    { id:"noPrice", n:noPrice.length,  label:"Senza prezzo",           color:T.red,    rows:noPrice  },
+    { id:"noLog",   n:noLog.length,    label:"No logistica",           color:T.red,    rows:noLog    },
+    { id:"calc0",   n:calcZero.length, label:"Calc=0 (UOM/qty)",       color:T.orange, rows:calcZero },
   ];
+
+  const panel = STATS.find(s=>s.id===activePanel);
+
+  function renderPanel() {
+    if(!panel||panel.rows.length===0)
+      return <div style={{padding:"24px",textAlign:"center",color:T.dim,fontSize:"13px"}}>Nessun articolo in questa categoria.</div>;
+
+    if(activePanel==="ok"||activePanel==="flagged") return (
+      <table style={{width:"100%",borderCollapse:"collapse"}}>
+        <THead cols={["N HK","IFB No","Descrizione","Ubicaz.","Step2 HKD","Prec. HKD","Δ%"]}/>
+        <tbody>{panel.rows.map((r:any,i:number)=>{
+          const pct = r.cost&&r.prevCost&&r.prevCost.step2Hkd>0
+            ? (r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100 : null;
+          return(
+            <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+              <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
+              <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
+              <TD>{r.description}</TD>
+              <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
+              <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost?.step2Hkd?.toFixed(2)||"—"}</span></TD>
+              <TD mono><span style={{color:T.muted}}>{r.prevCost?.step2Hkd?.toFixed(2)||"—"}</span></TD>
+              <TD>{pct!=null
+                ? <span style={{color:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.text,fontWeight:Math.abs(pct)>=3?"bold":"normal"}}>
+                    {pct>0?"+":""}{pct.toFixed(1)}%{Math.abs(pct)>=3?" ⚡":""}
+                  </span>
+                : <span style={{color:T.dim}}>—</span>}
+              </TD>
+            </tr>
+          );
+        })}</tbody>
+      </table>
+    );
+
+    if(activePanel==="air") return (
+      <table style={{width:"100%",borderCollapse:"collapse"}}>
+        <THead cols={["N HK","IFB No","Descrizione"]}/>
+        <tbody>{panel.rows.map((r:any,i:number)=>(
+          <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+            <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
+            <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
+            <TD>{r.description}</TD>
+          </tr>
+        ))}</tbody>
+      </table>
+    );
+
+    // noPrice, noLog, calc0
+    return (
+      <table style={{width:"100%",borderCollapse:"collapse"}}>
+        <THead cols={["N HK","IFB No","Descrizione","Motivo"]}/>
+        <tbody>{panel.rows.map((r:any,i:number)=>(
+          <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+            <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
+            <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
+            <TD>{r.description}</TD>
+            <TD><span style={{color:T.orange,fontSize:"11px"}}>{r.skipReason}</span></TD>
+          </tr>
+        ))}</tbody>
+      </table>
+    );
+  }
 
   return (
     <div>
       <PageHeader title={`Dashboard · ${branch} · ${month}`} sub="Solo articoli INALCA FOOD & BEVERAGE · SEA"/>
       <div style={{display:"flex",gap:"12px",marginBottom:"20px",flexWrap:"wrap"}}>
-        {STATS.map(({n,label,color,page,filter})=>(
-          <button key={label} onClick={()=>navigate(page, filter)}
-            style={{padding:"12px 20px",background:T.card,border:`1px solid ${color}44`,borderRadius:"8px",
-              minWidth:"130px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all 0.2s"}}
-            onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.background=`${color}10`;}}
-            onMouseLeave={e=>{e.currentTarget.style.borderColor=`${color}44`;e.currentTarget.style.background=T.card;}}>
-            <div style={{fontSize:"22px",fontWeight:"bold",color}}>{n}</div>
-            <div style={{fontSize:"11px",color:T.dim,marginTop:"2px"}}>{label}</div>
-            <div style={{fontSize:"9px",color:`${color}99`,marginTop:"4px"}}>→ vai alla pagina</div>
-          </button>
-        ))}
+        {STATS.map(({id,n,label,color,rows})=>{
+          const isActive = activePanel===id;
+          return(
+            <button key={id} onClick={()=>setActivePanel(v=>v===id?null:id)}
+              style={{padding:"12px 20px",
+                background:isActive?`${color}20`:T.card,
+                border:`2px solid ${isActive?color:color+"44"}`,
+                borderRadius:"8px",minWidth:"130px",cursor:"pointer",
+                fontFamily:"inherit",textAlign:"left",transition:"all 0.15s"}}>
+              <div style={{fontSize:"22px",fontWeight:"bold",color}}>{n}</div>
+              <div style={{fontSize:"11px",color:T.dim,marginTop:"2px"}}>{label}</div>
+              <div style={{fontSize:"9px",color:`${color}88`,marginTop:"4px"}}>
+                {isActive?"▲ chiudi":"▼ mostra articoli"}
+              </div>
+            </button>
+          );
+        })}
       </div>
 
-      {flagged.length>0&&(
-        <Section title={`${flagged.length} articoli con variazione ≥ ±3%`} accent={T.orange}>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <thead>
-              <tr>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>N HK</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>IFB No</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Descrizione</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Prec. HKD</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Nuovo HKD</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Δ%</th>
-              </tr>
-            </thead>
-            <tbody>
-              {flagged.map((r,i)=>{
-                const pct=(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100;
-                return(
-                  <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
-                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.code}</span></td>
-                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px"}}>{r.description}</td>
-                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px", fontFamily:"monospace"}}>{r.prevCost.step2Hkd.toFixed(2)}</td>
-                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost.step2Hkd.toFixed(2)}</span></td>
-                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px"}}><span style={{color:pct>0?T.red:T.green,fontWeight:"bold"}}>{pct>0?"+":""}{pct.toFixed(1)}%</span></td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+      {panel&&(
+        <Section title={`${panel.label} · ${panel.rows.length} articoli`} accent={panel.color}>
+          <div style={{overflowX:"auto"}}>
+            {renderPanel()}
+          </div>
         </Section>
       )}
-      {flagged.length===0&&<div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>Nessuna variazione ≥ ±3% questo mese.</div>}
     </div>
   );
 }
 
 // ─── LOGISTICS ────────────────────────────────────────────────────────────────
-// ─── LOGISTICS (CORRETTO) ────────────────────────────────────────────────────────────────
+
 function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportTs, initFilter}) {
   const[search,setSearch]=useState("");
   const[showOnlyMissing,setShowOnlyMissing]=useState(initFilter==="missing");
@@ -1999,7 +2044,7 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
             {/* riga gruppi */}
             <tr style={stickyTop0}>
               <GH span={3}/>
-              <GH span={2}/>
+              <GH span={4}/>
               <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>
               <GH span={2} accent={T.gold}>Step 1</GH>
               <GH span={1} accent={T.purple}>Magazzino</GH>
@@ -2013,6 +2058,8 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
               <TH align="left" w={180}>Descrizione</TH>
               <TH w={60}>UOM</TH>
               <TH w={55}>Ubicaz.</TH>
+              <TH w={55} align="center">Temp.</TH>
+              <TH w={55} align="center">Rettif.</TH>
               <TH accent={T.blue} w={70}>Prezzo €</TH>
               <TH accent={T.blue} w={65}>FOB</TH>
               <TH accent={T.blue} w={65}>LIC</TH>
@@ -2041,7 +2088,7 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
               const isSelected = showDetail===r.id;
 
               return(<>
-                <tr key={r.id}
+                                  <tr key={r.id}
                   style={{background:isSelected?`${T.gold}08`:rowBg,opacity:r.isAir?0.45:1,cursor:"pointer"}}
                   onClick={()=>setShowDetail((v:any)=>v===r.id?null:r.id)}>
 
@@ -2059,9 +2106,24 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
                   <td style={cell()}>{r.uom||"—"}</td>
                   <td style={cell()}>
                     {r.ubicazione
-                      ? <Chip label={r.ubicazione}
-                          color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>
+                      ? <Chip label={r.ubicazione} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>
                       : <span style={{color:T.dim}}>—</span>}
+                  </td>
+
+                  {/* temperatura anagrafica */}
+                  <td style={{...cell(),textAlign:"center"}}>
+                    {r.temperature
+                      ? <Chip label={r.temperature}
+                          color={r.temperature==="FROZEN"?T.blue:r.temperature==="FRESH"?T.green:T.muted}/>
+                      : <span style={{color:T.dim}}>—</span>}
+                  </td>
+
+                  {/* temperatura rettificata (Work_tab) */}
+                  <td style={{...cell(),textAlign:"center"}}>
+                    {r.temperatureOverride && r.temperatureOverride!==r.temperature
+                      ? <Chip label={r.temperatureOverride}
+                          color={r.temperatureOverride==="FROZEN"?T.blue:r.temperatureOverride==="FRESH"?T.green:T.muted}/>
+                      : <span style={{color:T.dim,fontSize:"9px"}}>—</span>}
                   </td>
 
                   {/* costi breakdown */}
@@ -2111,7 +2173,7 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
                 {/* ── riga dettaglio espansa ── */}
                 {isSelected&&c&&(
                   <tr key={r.id+"_detail"}>
-                    <td colSpan={19} style={{padding:"8px 16px",background:`${T.gold}06`,
+                    <td colSpan={21} style={{padding:"8px 16px",background:`${T.gold}06`,
                       borderBottom:`1px solid ${T.gold}33`}}>
                       <div style={{display:"flex",flexWrap:"wrap",gap:"6px",fontSize:"10px"}}>
                         {([
