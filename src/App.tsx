@@ -261,7 +261,7 @@ export default function App() {
     const eligible = products.filter(p => p.active && isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
-      const airEntry = airList.find(a=>a.productId===prod.id);
+      const airEntry = airList.find(a=>a.productId===prod.id && (!a.branch||a.branch===branch));
       if(airEntry && isAirTransport(airEntry.transportation))
         return { ...prod, cost:null, prevCost:null, priceInput:null, isAir:true, skipReason:"AIR" };
 
@@ -356,10 +356,10 @@ export default function App() {
     prices:      <Prices prices={prices} products={products} branch={branch} month={month} setPrices={setPrices} salesRows={salesRows} xrefs={xrefs}/>,
     importPrice: <ImportPrices prices={prices} setPrices={setPrices} products={products} xrefs={xrefs} branch={branch} month={month} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
-    air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     costsInvoice: <CostsOnInvoice costRows={costRows} salesRows={salesRows} products={products} xrefs={xrefs} branch={branch} month={month}/>,
-    sales:       <SalesInvoice rows={salesRows} setRows={setSalesRows} airList={airList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    sales:       <SalesInvoice rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     storico:     <Storico snapshots={snapshots} setSnapshots={setSnapshots} costHistory={costHistory} branch={branch}/>,
     mail:        <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
@@ -1188,7 +1188,7 @@ function ImportBC({products,setProducts,importLogs,setImportLogs,snapshots,setSn
 
 
 // ─── AIR LIST PAGE ────────────────────────────────────────────────────────────
-function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const[step,setStep]=useState("main");
   const[headers,setHeaders]=useState([]);
   const[rawRows,setRawRows]=useState([]);
@@ -1229,20 +1229,29 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
   }
 
   function executeImport() {
-    const valid=preview.filter(r=>r._hasProduct);
-    const kept=airList.filter(a=>!valid.find(r=>r.productId===a.productId));
-    const next=[...kept,...valid.map(r=>({productId:r.productId,code:r.code,nHK:r.nHK,description:r.description,transportation:"AIR"}))];
-    setAirList(next);LS.set("ifb_airlist",next);
-    const now=Date.now();
-    const log={id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch:"HK"};
-    const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
-    const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    bumpImportTs();showToast(`AIR: ${valid.length} articoli salvati ✓`,T.gold);
-    setStep("main");setPreview([]);setRawRows([]);setHeaders([]);
+    const seen = new Set();
+    const valid = preview
+      .filter(r => r._hasProduct)
+      .filter(r => { if(seen.has(r.productId)) return false; seen.add(r.productId); return true; });
+
+    // Mantieni le altre filiali, sostituisce solo quella corrente
+    const kept = airList.filter((a:any) => a.branch && a.branch !== branch);
+    const next = [...kept, ...valid.map(r => ({
+      productId: r.productId, code: r.code, nHK: r.nHK,
+      description: r.description, transportation: "AIR", branch
+    }))];
+    setAirList(next); LS.set("ifb_airlist", next);
+    const now = Date.now();
+    const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch};
+    const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
+    const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
+    bumpImportTs(); showToast(`AIR ${branch}: lista sostituita con ${valid.length} articoli ✓`, T.gold);
+    setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
   }
 
+  const branchAir = airList.filter((a:any) => !a.branch || a.branch===branch);
   const _sq=search.toLowerCase();
-  const displayed=airList.filter(a=>!search
+  const displayed=branchAir.filter((a:any)=>!search
     ||a.description?.toLowerCase().includes(_sq)
     ||a.code?.toLowerCase().includes(_sq)
     ||a.nHK?.toLowerCase().includes(_sq));
@@ -1301,22 +1310,25 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
       )}
 
       {step==="main"&&(
-        <>
-                    <div style={{marginBottom:"20px",display:"flex",gap:"10px",alignItems:"center",flexWrap:"wrap"}}>
-            <label style={{display:"inline-block",padding:"10px 20px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold"}}>
-              📂 Carica lista AIR
-              <input type="file" accept=".xlsx,.xls,.csv"
-                onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
-            </label>
-            {airList.length>0&&(
-              <button
-                onClick={()=>{if(window.confirm(`Eliminare tutti i ${airList.length} articoli AIR?`)){setAirList([]);LS.set("ifb_airlist",[]);}}}
-                style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
-                ✕ Svuota lista ({airList.length})
-              </button>
-            )}
-            <span style={{fontSize:"11px",color:T.muted}}>Colonna richiesta: N HK o IFB N · ogni import sostituisce la lista precedente</span>
-          </div>
+         <>
+         <div style={{marginBottom:"20px",display:"flex",gap:"10px",alignItems:"center",flexWrap:"wrap"}}>
+ <label style={{display:"inline-block",padding:"10px 20px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold"}}>
+   📂 Carica lista AIR
+   <input type="file" accept=".xlsx,.xls,.csv"
+     onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
+ </label>
+ {airList.length>0&&(
+   <button
+   onClick={()=>{if(window.confirm(`Eliminare i ${branchAir.length} articoli AIR di ${branch}?`)){
+     const kept=airList.filter((a:any)=>a.branch&&a.branch!==branch);
+     setAirList(kept);LS.set("ifb_airlist",kept);
+   }}}
+     style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
+     ✕ Svuota lista ({branchAir.length})
+   </button>
+ )}
+ <span style={{fontSize:"11px",color:T.muted}}>Colonna richiesta: N HK o IFB N · ogni import sostituisce la lista precedente</span>
+</div>
           {airList.length>0&&(
             <>
               <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo AIR…"/>
@@ -2372,7 +2384,7 @@ function MailGen({costRows,branch,month}) {
 
 // ─── SALES INVOICE ────────────────────────────────────────────────────────────
 // ─── SALES INVOICE ────────────────────────────────────────────────────────────
-function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const[step,setStep]       = useState(()=>rows?.length?"view":"upload");
   const[preview,setPreview] = useState<any[]>([]);
   const[headers,setHeaders] = useState<string[]>([]);
@@ -2482,7 +2494,7 @@ function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshot
   // ── Execute import (SOSTITUISCE, non aggiunge) ────────────────────────────
   function executeImport() {
     const now = Date.now();
-    saveRows(preview);
+    saveRows(preview.map((r:any) => ({...r, branch})));
     const log = {id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch:"HK"};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
@@ -2492,7 +2504,9 @@ function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshot
   }
 
   // ── Righe visualizzate ────────────────────────────────────────────────────
-  const activeRows: any[] = step==="view" ? (rows||[]) : preview;
+  const activeRows: any[] = step==="view"
+    ? (rows||[]).filter((r:any) => !r.branch || r.branch===branch)
+    : preview;
 
   const airMismatches = activeRows.filter(r =>
     r.transport==="AIR" && !String(r.location||"").toUpperCase().includes("NCJ")
