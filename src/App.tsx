@@ -67,46 +67,72 @@ const COSTS = {
  *   Step1 = purchasePrice + FOB + LIC + VGM + HC + PLT + alcTax + carriageUnit
  *   Step2 = Step1 + warehouseCost
  */
-function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }) {
+function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, temperature } = product;
   const { area, pltPerContainer, hasCert, hasAlcTax, alcTax, convFactor=1 } = logistic;
 
+  // ── Units per pallet (corrisponde a col AB "Quantity x PLT") ──
   let unitsPerPlt: number;
-  if(uom==="BOX")      unitsPerPlt = boxPerPallet;
-  else if(uom==="KG")  unitsPerPlt = (kgPerBox||qtyPerBox)*boxPerPallet;
-  else                 unitsPerPlt = qtyPerBox*boxPerPallet;
+  if      (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
+  else if (uom==="KG")  unitsPerPlt = Number(kgPerBox||qtyPerBox) * Number(boxPerPallet);
+  else                  unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet);   // PCS
 
-  const divisoreCollo = uom==="BOX"?1:uom==="KG"?(kgPerBox||qtyPerBox):qtyPerBox;
-  const totalUnits    = unitsPerPlt * pltPerContainer;
-  if(!totalUnits) return null;
+  // ── Divisore collo per MTS picking ──
+  const divisoreCollo =
+    uom==="BOX" ? 1 :
+    uom==="KG"  ? Number(kgPerBox||qtyPerBox) :
+                  Number(qtyPerBox);
 
-  const priceEur = (priceInput||0) * convFactor;
+  // ── Total units per container (AB * AC nel modello) ──
+  const totalUnits = unitsPerPlt * Number(pltPerContainer);
+  if (!totalUnits) return null;
+
+  const priceEur = Number(priceInput||0) * Number(convFactor);
+
+  // ── FOB = COSTS[temp][area] / (unitsPerPlt * pltPerContainer) ──
   const fob = (COSTS.FOB[temperature]?.[area] ?? 0) / totalUnits;
-  const lic = (COSTS.LIC_HKD / eurToHkd) / totalUnits;   // (4100+3800) HKD → EUR → /unit
-  const vgm = COSTS.VGM / totalUnits;
-  const hc  = hasCert ? COSTS.HC / totalUnits : 0;
-  const plt = COSTS.PLT / unitsPerPlt;                     // 30 € / pallet → /unit
-  const alc = hasAlcTax ? (alcTax||0) : 0;
 
-  // ← carriageUnit RIMOSSO: DAP Final già include carriage (FCA Disc + carriage/unit)
+  // ── LIC = (4100+3800 HKD) / rate / totalUnits ──
+  const lic = (COSTS.LIC_HKD / eurToHkd) / totalUnits;
+
+  // ── VGM = 100 / totalUnits ──
+  const vgm = COSTS.VGM / totalUnits;
+
+  // ── HC = 80 / totalUnits (solo se certificato) ──
+  const hc = hasCert ? COSTS.HC / totalUnits : 0;
+
+  // ── Pallet = 30 / unitsPerPlt (non totalUnits!) ──
+  const plt = COSTS.PLT / unitsPerPlt;
+
+  // ── Tassa alcolica (valore per unità già dalla Work_tab) ──
+  const alc = hasAlcTax ? (Number(alcTax)||0) : 0;
+
+  // ── Step 1: NO carriageUnit — DAP Final lo include già ──
   const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc;
 
+  // ── Warehouse ──
   let wh = 0;
-  if(ubicazione==="MTO"){
-    wh = COSTS.MTO[temperature] / unitsPerPlt;
-  } else if(ubicazione==="MTS"){
-    wh = COSTS.MTS_D[temperature]/unitsPerPlt
-       + COSTS.MTS_I[temperature]/unitsPerPlt
-       + COSTS.MTS_P[temperature]/divisoreCollo;
+  if (ubicazione==="MTO") {
+    // MTO = COSTS_MTO[temp] / unitsPerPlt  (col D/E/F 49 del modello)
+    wh = (COSTS.MTO[temperature] ?? 0) / unitsPerPlt;
+  } else if (ubicazione==="MTS") {
+    wh = (COSTS.MTS_D[temperature] ?? 0) / unitsPerPlt      // Deposito
+       + (COSTS.MTS_I[temperature] ?? 0) / unitsPerPlt      // Inbound
+       + (COSTS.MTS_P[temperature] ?? 0) / divisoreCollo;   // Picking
   }
+  // FOR → wh = 0
 
   const step2Eur = step1Eur + wh;
+
   return {
     priceEur, fob, lic, vgm, hc, plt, alc,
-    step1Eur, step1Hkd: step1Eur * eurToHkd,
-    wh, step2Eur,
-    step2Hkd: Math.round(step2Eur * eurToHkd * 100)/100,
-    rate: eurToHkd, unitsPerPlt,
+    step1Eur,
+    step1Hkd: step1Eur * eurToHkd,
+    wh,
+    step2Eur,
+    step2Hkd: Math.round(step2Eur * eurToHkd * 100) / 100,
+    rate: eurToHkd,
+    unitsPerPlt,
   };
 }
 
@@ -2613,10 +2639,14 @@ function Products({products}:any) {
   const[onlyIFB,setOnlyIFB]=useState(true);
 
   const base=onlyIFB?products.filter((p:any)=>isIFBVendor(p.vendorName)):products;
-  const filtered=base.filter((p:any)=>!search
-    ||p.description?.toLowerCase().includes(search.toLowerCase())
-    ||p.code?.includes(search)
-    ||p.nHK?.includes(search));
+  const q = search.toLowerCase();
+  const filtered = base.filter((p:any) =>
+    !search
+    || p.description?.toLowerCase().includes(q)
+    || p.code?.toLowerCase().includes(q)
+    || p.nHK?.toLowerCase().includes(q)
+  );
+
 
   return(
     <div>
