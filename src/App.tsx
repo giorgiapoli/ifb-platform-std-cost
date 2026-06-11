@@ -283,11 +283,14 @@ export default function App() {
       const pi  = selectPrice(pr, ub);
       const piP = prPrev ? selectPrice(prPrev, ub) : null;
 
-      const cost = calcHK({ priceInput:pi, ubicazione:ub, product:prod, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
+            // Temperatura rettificata dal Work_tab ha precedenza su quella dell'anagrafica
+      const effectiveProd = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
+      const cost = calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
       if(!cost) return { ...prod, cost:null, prevCost:null, priceInput:pi,
         skipReason:`CALC=0 (qty=${prod.qtyPerBox} box/plt=${prod.boxPerPallet} plt=${plt} uom=${prod.uom})` };
 
-      const prevCost = piP!=null ? calcHK({ priceInput:piP, ubicazione:ub, product:prod, logistic:{...log,category:prod.category}, eurToHkd:fxRate }) : null;
+      const prevCost = piP!=null ? calcHK({ priceInput:piP, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate }) : null;
+      
       const delta    = cost&&prevCost ? (cost.step2Hkd-prevCost.step2Hkd)/prevCost.step2Hkd*100 : null;
       return { ...prod, cost, prevCost, delta, priceInput:pi, isNew:!prPrev,
                flagged: delta!==null && Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt };
@@ -1520,6 +1523,8 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
       if (airSea === "AIR") countAir++;
       
       const areaFixed = ["NORD", "CENTRO", "SUD"].includes(area) ? area : "NORD";
+      // Temperatura rettificata dal Work_tab: sovrascrive l'anagrafica se presente
+      const temperatureOverride = (iTemp >= 0 && tempRaw !== "") ? temp : null;
       
       const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
       const entry = {
@@ -1532,7 +1537,8 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
         hasAlcTax,
         alcTax: 0,
         convFactor: 1,
-        carriage
+        carriage,
+        temperatureOverride,
       };
       
       if (existIdx >= 0) {
@@ -1553,7 +1559,11 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
     setLogRawRows([]);
   }
 
-  const allProds = allIFBProducts.filter(p => !search || p.description?.toLowerCase().includes(search.toLowerCase()) || p.code?.includes(search));
+  const _sq = search.toLowerCase();
+  const allProds = allIFBProducts.filter(p => {
+    if(!search) return true;
+    return p.description?.toLowerCase().includes(_sq) || p.code?.toLowerCase().includes(_sq) || p.nHK?.toLowerCase().includes(_sq);
+  });
   const displayed = showOnlyMissing ? allProds.filter(p => !getLog(p.id)) : allProds;
   const missingCount = allIFBProducts.filter(p => !getLog(p.id)).length;
   const withCount = allIFBProducts.filter(p => getLog(p.id) !== null).length;
@@ -2143,64 +2153,117 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
 
 // ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
 function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
-  // Filtra fatture: data da 1 mese fa ad oggi
+  const [showMissingOnly, setShowMissingOnly] = useState(false);
+
   const today = new Date();
   const oneMonthAgo = new Date(today);
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-  // Raccoglie productId unici dalle Sales Invoice degli ultimi 30 giorni
+  const lastInvoiceDate = useMemo(() => {
+    const map: Record<string,Date> = {};
+    salesRows.forEach((r:any) => {
+      const d = r.date ? new Date(r.date) : null;
+      if(!d || isNaN(d.getTime())) return;
+      const prod = findProduct(r.itemCode, products, xrefs);
+      if(!prod) return;
+      if(!map[prod.id] || d > map[prod.id]) map[prod.id] = d;
+    });
+    return map;
+  }, [salesRows, products, xrefs]);
+
   const recentProductIds = new Set(
     salesRows
-      .filter(r => {
-        const d = r.date ? new Date(r.date) : null;
-        return d && d >= oneMonthAgo && d <= today;
-      })
-      .map(r => {
-        const prod = findProduct(r.itemCode, products, xrefs);
-        return prod?.id || null;
-      })
+      .filter((r:any) => { const d = r.date ? new Date(r.date) : null; return d && d >= oneMonthAgo && d <= today; })
+      .map((r:any) => { const prod = findProduct(r.itemCode, products, xrefs); return prod?.id || null; })
       .filter(Boolean)
   );
 
-  // Associa con i costRows calcolati
-  const rows = costRows.filter(r => recentProductIds.has(r.id));
-  const missing = [...recentProductIds].filter(id => !costRows.find(r=>r.id===id&&r.cost));
+  const allRows = costRows
+    .filter((r:any) => recentProductIds.has(r.id))
+    .sort((a:any, b:any) => {
+      const da = lastInvoiceDate[a.id], db = lastInvoiceDate[b.id];
+      if(!da && !db) return 0; if(!da) return 1; if(!db) return -1;
+      return db.getTime() - da.getTime();
+    });
+
+  const rows = showMissingOnly ? allRows.filter((r:any) => !r.cost && !r.isAir) : allRows;
+  const missingCount = allRows.filter((r:any) => !r.cost && !r.isAir).length;
+  const airCount     = allRows.filter((r:any) => r.isAir).length;
 
   return (
     <div>
       <PageHeader
         title={`Costi su Fatture · ${branch} · ${month}`}
-        sub={`Prodotti ordinati negli ultimi 30gg · ${rows.length} trovati · ${missing.length} senza costo`}
+        sub={`Prodotti ordinati negli ultimi 30gg · ${allRows.length} trovati`}
       />
-      {missing.length > 0 && (
+
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+        <button onClick={()=>setShowMissingOnly(v=>!v)}
+          style={{padding:"5px 14px",
+            background:showMissingOnly?`${T.red}20`:T.surface,
+            color:showMissingOnly?T.red:T.muted,
+            border:`1px solid ${showMissingOnly?T.red:T.border}`,
+            borderRadius:"6px",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap",fontWeight:showMissingOnly?"bold":"normal"}}>
+          {showMissingOnly
+            ? `⚠ Senza costo (${rows.length})`
+            : `⚠ Mostra senza costo standard (${missingCount})`}
+        </button>
+        {airCount > 0 && (
+          <span style={{fontSize:"11px",color:T.orange}}>
+            ✈ {airCount} articoli AIR esclusi dal costo standard
+          </span>
+        )}
+      </div>
+
+      {missingCount > 0 && !showMissingOnly && (
         <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
-          ⚠ {missing.length} prodotti ordinati recentemente NON hanno ancora uno Standard Cost calcolato — verifica listino e logistica.
+          ⚠ {missingCount} prodotti ordinati recentemente NON hanno Standard Cost — verifica listino e logistica.
         </div>
       )}
-      <Section title={`${rows.length} prodotti con fattura recente`}>
+
+      <Section title={`${rows.length} prodotti${showMissingOnly?" senza costo standard":""} · data più recente prima`}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["N HK","IFB No","Descrizione","Ubicaz.","Old HKD","New HKD","Δ%","Note"]}/>
+            <THead cols={["Data Fattura","N HK","IFB No","Descrizione","Ubicaz.","Old HKD","New HKD","Δ%","Note"]}/>
             <tbody>
-              {rows.map((r,i) => {
+              {rows.map((r:any,i:number) => {
                 const newHkd = r.cost?.step2Hkd ?? null;
                 const oldHkd = r.prevCost?.step2Hkd ?? null;
-                const pct = newHkd!=null && oldHkd!=null && oldHkd>0
-                  ? (newHkd-oldHkd)/oldHkd*100 : null;
+                const pct = newHkd!=null && oldHkd!=null && oldHkd>0 ? (newHkd-oldHkd)/oldHkd*100 : null;
+                const lastD = lastInvoiceDate[r.id];
                 return (
                   <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                    <TD mono>
+                      <span style={{color:T.gold,fontWeight:"bold"}}>
+                        {lastD ? lastD.toLocaleDateString("it-IT") : "—"}
+                      </span>
+                    </TD>
                     <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
                     <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
                     <TD>{r.description}</TD>
-                    <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
-                    <TD mono><span style={{color:T.muted}}>{oldHkd!=null ? oldHkd.toFixed(2) : "—"}</span></TD>
-                    <TD mono><span style={{color:newHkd!=null?T.gold:T.red,fontWeight:"bold"}}>{newHkd!=null ? newHkd.toFixed(2) : "MANCANTE"}</span></TD>
                     <TD>
-                      {pct!=null
-                        ? <span style={{color:pct>3?T.red:pct<-3?T.green:T.text,fontWeight:"bold"}}>{pct>0?"+":""}{pct.toFixed(1)}%</span>
-                        : <span style={{color:T.dim}}>{r.isNew?"🆕 Nuovo":"—"}</span>}
+                      {r.isAir
+                        ? <Chip label="✈ AIR" color={T.orange}/>
+                        : <Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>}
                     </TD>
-                    <TD><span style={{fontSize:"11px",color:T.dim}}>{r.skipReason||""}</span></TD>
+                    <TD mono><span style={{color:T.muted}}>{oldHkd!=null ? oldHkd.toFixed(2) : "—"}</span></TD>
+                    <TD mono>
+                      <span style={{color:newHkd!=null?T.gold:r.isAir?T.orange:T.red,fontWeight:"bold"}}>
+                        {r.isAir ? "AIR" : newHkd!=null ? newHkd.toFixed(2) : "MANCANTE"}
+                      </span>
+                    </TD>
+                    <TD>
+                      {r.isAir
+                        ? <span style={{color:T.dim}}>—</span>
+                        : pct!=null
+                          ? <span style={{color:pct>3?T.red:pct<-3?T.green:T.text,fontWeight:"bold"}}>{pct>0?"+":""}{pct.toFixed(1)}%</span>
+                          : <span style={{color:T.dim}}>{r.isNew?"🆕 Nuovo":"—"}</span>}
+                    </TD>
+                    <TD>
+                      {r.isAir
+                        ? <Chip label="✈ AIR" color={T.orange}/>
+                        : <span style={{fontSize:"11px",color:T.dim}}>{r.skipReason||""}</span>}
+                    </TD>
                   </tr>
                 );
               })}
@@ -2211,6 +2274,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
     </div>
   );
 }
+
 
 // ─── MAIL GEN ─────────────────────────────────────────────────────────────────
 // Only shows items with |delta| > 3% (point 7)
