@@ -215,11 +215,11 @@ const SEED_FX = [
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const[products,setProducts]   = useState(()=>LS.get("ifb_products",SEED_PRODUCTS));
+  const[products,setProducts]   = useState<any[]>([]);
   const[logistics,setLogistics] = useState(()=>LS.get("ifb_logistics",SEED_LOGISTIC));
   const[prices,setPrices]       = useState(()=>LS.get("ifb_prices",SEED_PRICES));
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
-  const[xrefs,setXrefs]         = useState(()=>LS.get("ifb_xrefs",[]));
+  const[xrefs,setXrefs]         = useState<any[]>([]);
   const[airList,setAirList]     = useState<any[]>([]);
   const[salesRows,setSalesRows] = useState<any[]>([]);
   const[importLogs,setImportLogs] = useState(()=>LS.get("ifb_importlogs",[]));
@@ -235,13 +235,15 @@ export default function App() {
 
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
 
-  useEffect(()=>{ if(products.length)  LS.set("ifb_products",       products);  }, [products]);
+  useEffect(()=>{ if(branch&&products.length) LS.set(`ifb_products_${branch}`, products); },[products,branch]);
   useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
   useEffect(()=>{ if(branch&&salesRows.length) LS.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
+    setProducts(LS.get(`ifb_products_${branch}`,[]));
+    setXrefs(LS.get(`ifb_xrefs_${branch}`,[]));
     setAirList(LS.get(`ifb_airlist_${branch}`,[]));
     setSalesRows(LS.get(`ifb_sales_invoice_${branch}`,[]));
   },[branch]);
@@ -308,7 +310,7 @@ export default function App() {
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
     {id:"products",   icon:"◈", label:"Anagrafica"},
     {id:"importAnag", icon:"⇪", label:"Import Anagrafica", badge:"BC"},
-    {id:"xref",       icon:"⇄", label:"XRef N HK / IFB"},
+    {id:"xref",       icon:"⇄", label:"XRef N / IFB"},
     {id:"logistics",  icon:"◎", label:"Logistica"},
     {id:"prices",     icon:"◉", label:"Listini"},
     {id:"importPrice",icon:"💶", label:"Import Listini",  badge:"BC"},
@@ -356,8 +358,8 @@ export default function App() {
   const pages = {
     dashboard:   <Dashboard costRows={costRows} branch={branch} month={month} navigate={navigate}/>,
     products:    <Products products={products}/>,
-    importAnag:  <ImportBC products={products} setProducts={setProducts} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    xref:        <XRefPage xrefs={xrefs} setXrefs={setXrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    importAnag:  <ImportBC products={products} setProducts={setProducts} branch={branch} importLogs={importLogs}/>,  // <-- AGGIUNTA LA VIRGOLA QUI
+    xref:        <XRefPage xrefs={xrefs} setXrefs={setXrefs} branch={branch} snapshots={snapshots}/>,
     logistics:   <Logistics logistics={logistics} setLogistics={setLogistics} products={products} branch={branch} showToast={showToast} bumpImportTs={bumpImportTs} initFilter={pageFilter}/>,
     prices:      <Prices prices={prices} products={products} branch={branch} month={month} setPrices={setPrices} salesRows={salesRows} xrefs={xrefs}/>,
     importPrice: <ImportPrices prices={prices} setPrices={setPrices} products={products} xrefs={xrefs} branch={branch} month={month} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
@@ -449,7 +451,7 @@ export default function App() {
 }
 
 // ─── XREF PAGE ────────────────────────────────────────────────────────────────
-function XRefPage({xrefs,setXrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const[step,setStep]=useState("main");
   const[rawRows,setRawRows]=useState([]);
   const[headers,setHeaders]=useState([]);
@@ -498,7 +500,7 @@ function XRefPage({xrefs,setXrefs,snapshots,setSnapshots,importLogs,setImportLog
     const diffs=incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo,isNew:r._isNew,changed:r._changed,oldIFB:r._oldIFB}));
     const kept=xrefs.filter(x=>!incoming.find(i=>i.nHK===x.nHK));
     const next=[...incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo})),...kept];
-    setXrefs(next);LS.set("ifb_xrefs",next);
+    setXrefs(next);LS.set(`ifb_xrefs_${branch}`,next);
     const log={id,type:"xref",fileName,date:new Date(id).toISOString(),count:incoming.length,diffs,branch:"ALL"};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
@@ -510,7 +512,7 @@ function XRefPage({xrefs,setXrefs,snapshots,setSnapshots,importLogs,setImportLog
 
   return(
     <div>
-      <PageHeader title="⇄ Cross Reference N HK ↔ IFB N" sub="Tabella di corrispondenza per il matching automatico dei listini"/>
+      <PageHeader title={`⇄ XRef N / IFB N · ${branch}`} sub="Codici filiale ↔ IFB N — ogni filiale ha la propria tabella"/>
       {step==="map"&&(
         <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
@@ -577,7 +579,7 @@ function XRefPage({xrefs,setXrefs,snapshots,setSnapshots,importLogs,setImportLog
                   <tr key={x.nHK+i} style={{borderBottom:`1px solid ${T.border}`}}>
                     <TD mono><span style={{color:T.gold}}>{x.nHK}</span></TD>
                     <TD mono>{x.ifbNo}</TD>
-                    <TD><MiniBtn label="✕" onClick={()=>{const n=xrefs.filter((_,j)=>j!==xrefs.indexOf(x));setXrefs(n);LS.set("ifb_xrefs",n);}} color={T.red}/></TD>
+                    <TD><MiniBtn label="✕" onClick={()=>{const n=xrefs.filter((_,j)=>j!==xrefs.indexOf(x));setXrefs(n);LS.set(`ifb_xrefs_${branch}`,n);}} color={T.red}/></TD>
                   </tr>
                 ))}</tbody>
               </table>
@@ -1001,7 +1003,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
 }
 
 // ─── IMPORT ANAGRAFICA BC ─────────────────────────────────────────────────────
-function ImportBC({products,setProducts,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
+function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
   const[step,setStep]=useState("upload");
   const[headers,setHeaders]=useState([]);
   const[rows,setRows]=useState([]);
@@ -1100,7 +1102,7 @@ function ImportBC({products,setProducts,importLogs,setImportLogs,snapshots,setSn
     }
     const snap={id:now,type:"anagrafica",date:new Date(now).toISOString(),count:newProds.length,diffs,branch:"ALL"};
     const newSnaps=[snap,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    setProducts(newProds);LS.set("ifb_products",newProds);
+    setProducts(newProds);LS.set(`ifb_products_${branch}`,newProds);
     const log={id:now,type:"anagrafica",date:new Date(now).toISOString(),msg:`Importati ${newProds.length} articoli`};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newCount=diffs.filter(d=>d.isNew).length,changed=diffs.filter(d=>!d.isNew&&d.fields.length>0).length;
