@@ -1015,14 +1015,12 @@ function ImportBC({products,setProducts,importLogs,setImportLogs,snapshots,setSn
   };
 
   function autoMap(hdrs) {
-    const m: any={};
+    const m = {};
     for(const field of FIELDS){
       const aliases = LOCAL_ALIASES[field]||[];
-      // Try exact match first (normalized)
-      const h = hdrs.find(h=>aliases.some((a: string)=>h.toLowerCase().replace(/[\s_]/g,"")=== a.replace(/[\s_]/g,"")));
+      const h = hdrs.find(h=>aliases.some(a=>h.toLowerCase().replace(/[\s_]/g,"")=== a.replace(/[\s_]/g,"")));
       if(h){ m[field]=h; continue; }
-      // Then partial match
-      const h2 = hdrs.find(h=>aliases.some((a: string)=>h.toLowerCase().replace(/[\s_]/g,"").includes(a.replace(/[\s_]/g,""))&&a.length>3));
+      const h2 = hdrs.find(h=>aliases.some(a=>h.toLowerCase().replace(/[\s_]/g,"").includes(a.replace(/[\s_]/g,""))&&a.length>3));
       if(h2) m[field]=h2;
     }
     return m;
@@ -1329,7 +1327,6 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
 
-// ─── DASHBOARD (CORRETTO) ────────────────────────────────────────────────────────────────
 function Dashboard({costRows, branch, month, navigate}) {
   const flagged = costRows.filter(r=>r.cost?.step2Hkd!=null&&r.prevCost?.step2Hkd!=null&&r.prevCost.step2Hkd>0&&Math.abs((r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd)>=0.03);
   const air      = costRows.filter(r=>r.isAir);
@@ -1400,6 +1397,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 }
 
 // ─── LOGISTICS ────────────────────────────────────────────────────────────────
+// ─── LOGISTICS (CORRETTO) ────────────────────────────────────────────────────────────────
 function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportTs, initFilter}) {
   const[search,setSearch]=useState("");
   const[showOnlyMissing,setShowOnlyMissing]=useState(initFilter==="missing");
@@ -1551,18 +1549,15 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
   }
 
   const allProds = allIFBProducts.filter(p => !search || p.description?.toLowerCase().includes(search.toLowerCase()) || p.code?.includes(search));
-  const displayed = showOnlyMissing 
-    ? allProds.filter(p => !getLog(p.id))
-    : allProds;
+  const displayed = showOnlyMissing ? allProds.filter(p => !getLog(p.id)) : allProds;
   const missingCount = allIFBProducts.filter(p => !getLog(p.id)).length;
   const withCount = allIFBProducts.filter(p => getLog(p.id) !== null).length;
 
-  return(
+  return (
     <div>
       <PageHeader title={`Logistica · ${branch}`} sub={`${withCount} con logistica (read-only) · ${missingCount} senza logistica (modificabili) — totale ${allIFBProducts.length} IFB`}/>
       
-      <div style={{fontSize:"11px",color:T.muted,marginBottom:"10px",padding:"6px 10px",
-        background:`${T.gold}08`,borderRadius:"6px",border:`1px solid ${T.gold}22`}}>
+      <div style={{fontSize:"11px", color:T.muted, marginBottom:"10px", padding:"6px 10px", background:`${T.gold}08`, borderRadius:"6px", border:`1px solid ${T.gold}22`}}>
         🔒 Righe <strong style={{color:T.gold}}>dorate</strong> = importate da Work_tab (sola lettura) &nbsp;·&nbsp;
         🟠 Righe arancioni = senza logistica (modificabili)
       </div>
@@ -1616,9 +1611,16 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-                {["IFB No","N HK","Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."].map(c => (
-                  <th key={c} style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>{c}</th>
-                ))}
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>IFB No</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>N HK</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Descrizione</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Ubicaz.</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Area</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Plt/Cont</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Cert.</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Alcol &gt;30°</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Carriage</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Conv.</th>
               </tr>
             </thead>
             <tbody>
@@ -1633,7 +1635,6 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
                       {prod.description}
                       {!hasEntry && <span style={{marginLeft:"6px", fontSize:"9px", color:T.orange, fontWeight:"bold"}}>⚠ MANCANTE</span>}
                     </td>
-
                     {hasEntry ? (
                       <>
                         <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
@@ -1698,7 +1699,6 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
   );
 }
 
-// ─── PRICES ───────────────────────────────────────────────────────────────────
 // ─── PRICES (con filtro Sales Invoice) ─────────────────────────────────────────────
 function Prices({prices, products, branch, month, setPrices, salesRows=[], xrefs=[]}) {
   const[search,setSearch]=useState("");
@@ -1837,125 +1837,290 @@ function FxRates({fx,setFx,branch,month}) {
 }
 
 // ─── COST TABLE ───────────────────────────────────────────────────────────────
-// ─── COST TABLE (con ultimo ordine e KEEP OLD) ──────────────────────────────────────
-function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,setCostHistory,initFilter, salesRows=[], products=[], xrefs=[]}) {
+
+function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,setCostHistory,initFilter,salesRows=[],products=[],xrefs=[]}) {
   const[search,setSearch]=useState("");
   const[showDetail,setShowDetail]=useState(null);
   const needsRecalc=lastImportTs>lastCalcTs;
 
-  // Calcola data ultimo ordine per ogni prodotto
-  const lastOrderDate = useMemo(()=>{
+  const lastOrderDate=useMemo(()=>{
     const map={};
     (salesRows||[]).forEach(row=>{
-      const prod=findProduct(row.itemCode, products, xrefs);
+      const prod=findProduct(row.itemCode,products,xrefs);
       if(!prod) return;
       const d=row.date?new Date(row.date):null;
       if(!d||isNaN(d)) return;
       if(!map[prod.id]||d>map[prod.id]) map[prod.id]=d;
     });
     return map;
-  }, [salesRows, products, xrefs]);
+  },[salesRows,products,xrefs]);
 
   const sixMonthsAgo=new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
 
   function saveSnapshot(){
     const ts=Date.now();
-    const snap={ts,date:new Date(ts).toISOString(),branch,month,rows:costRows.map(r=>({id:r.id,code:r.code,nHK:r.nHK,description:r.description,cost:r.cost?.step2Hkd??null,costEur:r.cost?.step2Eur??null,skipReason:r.skipReason||null}))};
+    const snap={ts,date:new Date(ts).toISOString(),branch,month,
+      rows:costRows.map(r=>({id:r.id,code:r.code,nHK:r.nHK,description:r.description,
+        cost:r.cost?.step2Hkd??null,costEur:r.cost?.step2Eur??null,skipReason:r.skipReason||null}))};
     setCostHistory(prev=>{const n=[snap,...(prev||[])].slice(0,60);LS.set("ifb_costhistory",n);return n;});
     setLastCalcTs(ts);LS.set("ifb_last_calc_ts",ts);
   }
 
-  let filtered = costRows.filter(r=>!search||r.description?.toLowerCase().includes(search.toLowerCase())||r.code?.includes(search)||r.nHK?.includes(search));
-  
-  if(initFilter==="flagged"){
-    filtered = filtered.filter(r=>r.flagged===true);
-  } else if(initFilter==="errors"){
-    filtered = filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
-  }
+  let filtered=costRows.filter(r=>!search||r.description?.toLowerCase().includes(search.toLowerCase())||r.code?.includes(search)||r.nHK?.includes(search));
+  if(initFilter==="flagged") filtered=filtered.filter(r=>r.flagged===true);
+  else if(initFilter==="errors") filtered=filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
 
   const calc=filtered.filter(r=>r.cost?.step2Hkd!=null);
   const noPrice=filtered.filter(r=>!r.cost&&!r.isAir&&(r.skipReason?.includes("NO PREZZO")||r.skipReason?.includes("PREZZO=0")));
-  const noLog  =filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
-  const noCalc =filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason&&!r.skipReason.includes("NO PREZZO")&&!r.skipReason.includes("PREZZO=0")&&r.skipReason!=="NO LOGISTICA"&&r.skipReason!=="AIR");
+  const noLog=filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
+  const noCalc=filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason&&!r.skipReason.includes("NO PREZZO")&&!r.skipReason.includes("PREZZO=0")&&r.skipReason!=="NO LOGISTICA"&&r.skipReason!=="AIR");
+
+  // ── colonne breakdown ──
+  const COST_COLS = [
+    { key:"priceEur",    label:"Prezzo €",       hkd:false, gold:true  },
+    { key:"fob",         label:"FOB €/unit",     hkd:false             },
+    { key:"lic",         label:"LIC €/unit",     hkd:false             },
+    { key:"vgm",         label:"VGM €/unit",     hkd:false             },
+    { key:"hc",          label:"Cert. €/unit",   hkd:false             },
+    { key:"plt",         label:"Pallet €/unit",  hkd:false             },
+    { key:"alc",         label:"Alc.Tax €/unit", hkd:false             },
+    { key:"step1Eur",    label:"Step1 €",        hkd:false, bold:true  },
+    { key:"step1Hkd",    label:"Step1 HKD",      hkd:true,  bold:true  },
+    { key:"wh",          label:"WH €/unit",      hkd:false             },
+    { key:"step2Eur",    label:"Step2 €",        hkd:false, bold:true  },
+    { key:"step2Hkd",    label:"Step2 HKD ✓",    hkd:true,  gold:true, bold:true },
+  ];
+
+  const fmt4=(v)=>v!=null&&v!==0?v.toFixed(4):"—";
+  const fmt2=(v)=>v!=null&&v!==0?v.toFixed(2):"—";
 
   return(
     <div>
       <div style={{display:"flex",alignItems:"center",gap:"14px",marginBottom:"16px",flexWrap:"wrap"}}>
-        <PageHeader title={`Standard Cost · ${branch} · ${month}`} sub={`${calc.length} calcolati · solo INALCA F&B · SEA`}/>
+        <PageHeader title={`Standard Cost · ${branch} · ${month}`}
+          sub={`${calc.length} calcolati · solo INALCA F&B · SEA`}/>
         <button onClick={saveSnapshot} disabled={!needsRecalc}
-          style={{padding:"9px 20px",background:needsRecalc?T.gold:"#333",color:needsRecalc?"#000":T.muted,border:"none",borderRadius:"6px",fontWeight:"bold",cursor:needsRecalc?"pointer":"not-allowed",fontSize:"13px",marginTop:"-8px"}}>
+          style={{padding:"9px 20px",background:needsRecalc?T.gold:"#333",color:needsRecalc?"#000":T.muted,
+            border:"none",borderRadius:"6px",fontWeight:"bold",cursor:needsRecalc?"pointer":"not-allowed",
+            fontSize:"13px",marginTop:"-8px"}}>
           {needsRecalc?"⟳ Ricalcola & Salva snapshot":"✓ Costi aggiornati"}
         </button>
-        {needsRecalc&&<span style={{color:T.orange,fontSize:"12px",marginTop:"-8px"}}>⚠ Nuovi dati importati — clicca per salvare</span>}
+        {needsRecalc&&<span style={{color:T.orange,fontSize:"12px",marginTop:"-8px"}}>⚠ Nuovi dati — clicca per salvare</span>}
       </div>
+
       {(noPrice.length>0||noCalc.length>0||noLog.length>0)&&(
-        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
-          {noLog.length>0&&<div>⚠ {noLog.length} senza logistica — importa prima Work_tab dalla pagina "Logistica"</div>}
+        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",
+          padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
+          {noLog.length>0&&<div>⚠ {noLog.length} senza logistica — importa Work_tab da "Logistica"</div>}
           {noPrice.length>0&&<div>⚠ {noPrice.length} senza prezzo ({month}) — vai su "Import Listini"</div>}
-          {noCalc.length>0&&<div>⚠ {noCalc.length} altri errori — vedi colonna "Costo HKD" per dettaglio</div>}
+          {noCalc.length>0&&<div>⚠ {noCalc.length} altri errori di calcolo</div>}
         </div>
       )}
+
       <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…"/>
+
       <div style={{overflowX:"auto"}}>
-        <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <THead cols={["N HK","IFB No","Descrizione","Prezzo €","Ubicaz.","Step1 HKD","Costo HKD","Δ% vs prec","Ultimo ordine",""]}/>
-          <tbody>{filtered.map((r,i)=>{
-            const hkd=r.cost?.step2Hkd??null;
-            const prevHkd=r.prevCost?.step2Hkd??null;
-            const pct=hkd!=null&&prevHkd!=null&&prevHkd>0?(hkd-prevHkd)/prevHkd*100:null;
-            const lastD=lastOrderDate[r.id];
-            const isOld=lastD && lastD<sixMonthsAgo;
-            return(
-              <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface,opacity:r.isAir?0.4:1}}>
-                <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
-                <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
-                <TD>{r.description}{r.isAir&&<span style={{marginLeft:"6px",color:T.orange,fontSize:"10px"}}>✈ AIR</span>}</TD>
-                <TD mono>{r.priceInput!=null?`€ ${roundN(r.priceInput).toFixed(2)}`:"—"}</TD>
-                <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
-                <TD mono>{r.cost?.step1Hkd!=null?roundN(r.cost.step1Hkd).toFixed(2):"—"}</TD>
-                <TD mono><span style={{color:hkd!=null?T.gold:T.dim,fontWeight:"bold"}}>{hkd!=null?hkd.toFixed(2):r.skipReason||"—"}</span></TD>
-                <TD><span style={{color:pct==null?T.dim:pct>3?T.red:pct<-3?T.green:T.text}}>{pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}</span></TD>
-                <TD>
-                  {!lastD ? <span style={{color:T.dim,fontSize:"11px"}}>—</span> : 
-                    isOld ? <div><span style={{color:T.orange,fontWeight:"bold",fontSize:"10px"}}>⚠ KEEP OLD</span><div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div></div>
-                    : <span style={{color:T.muted,fontSize:"11px"}}>{lastD.toLocaleDateString("it-IT")}</span>
-                  }
-                </TD>
-                <TD>{r.cost&&<MiniBtn label="+" onClick={()=>setShowDetail(showDetail===r.id?null:r.id)}/>}</TD>
-              </tr>
-            );
-          })}</tbody>
+        <table style={{width:"100%",borderCollapse:"collapse",fontSize:"11px"}}>
+          <thead>
+            <tr>
+              {/* Intestazione gruppi */}
+              <th colSpan={5} style={thGroup()}/>
+              <th colSpan={7} style={thGroup(T.blue,"COSTI DI TRASPORTO E DAZI")}/>
+              <th colSpan={2} style={thGroup(T.gold,"STEP 1")}/>
+              <th colSpan={1} style={thGroup(T.purple,"MAGAZZINO")}/>
+              <th colSpan={2} style={thGroup(T.green,"STEP 2 FINALE")}/>
+              <th colSpan={2} style={thGroup()}/>
+            </tr>
+            <tr>
+              <Th>N HK</Th>
+              <Th>IFB No</Th>
+              <Th>Descrizione</Th>
+              <Th>UOM · Plt</Th>
+              <Th>Ubicaz.</Th>
+
+              {/* Breakdown costi */}
+              <Th accent={T.blue}>Prezzo €/unit</Th>
+              <Th accent={T.blue}>FOB €/unit</Th>
+              <Th accent={T.blue}>LIC €/unit</Th>
+              <Th accent={T.blue}>VGM €/unit</Th>
+              <Th accent={T.blue}>Cert. €/unit</Th>
+              <Th accent={T.blue}>Pallet €/unit</Th>
+              <Th accent={T.blue}>Alc.Tax €/unit</Th>
+
+              {/* Step 1 */}
+              <Th accent={T.gold}>Step1 €</Th>
+              <Th accent={T.gold}>Step1 HKD</Th>
+
+              {/* Magazzino */}
+              <Th accent={T.purple}>WH €/unit</Th>
+
+              {/* Step 2 */}
+              <Th accent={T.green}>Step2 €</Th>
+              <Th accent={T.green}>Step2 HKD ✓</Th>
+
+              {/* Extra */}
+              <Th>Δ% vs prec</Th>
+              <Th>Ultimo ordine</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((r,i)=>{
+              const c=r.cost;
+              const prevHkd=r.prevCost?.step2Hkd??null;
+              const hkd=c?.step2Hkd??null;
+              const pct=hkd!=null&&prevHkd!=null&&prevHkd>0?(hkd-prevHkd)/prevHkd*100:null;
+              const lastD=lastOrderDate[r.id];
+              const isOld=lastD&&lastD<sixMonthsAgo;
+              const logRaw=logistics.find(l=>l.productId===r.id&&l.branch===branch);
+              const plt=r.pltUsed||logRaw?.pltPerContainer||"?";
+
+              const rowBg=r.isAir?`${T.orange}08`:i%2===0?T.bg:T.surface;
+              const isSelected=showDetail===r.id;
+
+              return(
+                <tr key={r.id}
+                  style={{borderBottom:`1px solid ${T.border}`,background:isSelected?`${T.gold}08`:rowBg,
+                    opacity:r.isAir?0.45:1,cursor:"pointer"}}
+                  onClick={()=>setShowDetail(isSelected?null:r.id)}>
+
+                  {/* Anagrafica */}
+                  <td style={td()}><span style={{color:T.muted,fontFamily:"monospace"}}>{r.nHK||"—"}</span></td>
+                  <td style={td()}><span style={{color:T.gold,fontFamily:"monospace"}}>{r.code}</span></td>
+                  <td style={td(180)}>{r.description}{r.isAir&&<span style={{marginLeft:"5px",color:T.orange,fontSize:"9px"}}>✈AIR</span>}</td>
+                  <td style={td()}>
+                    <span style={{color:T.muted,fontFamily:"monospace",fontSize:"10px"}}>
+                      {r.uom||"—"} · {plt}plt
+                    </span>
+                  </td>
+                  <td style={td()}>
+                    {r.ubicazione
+                      ? <Chip label={r.ubicazione} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>
+                      : <span style={{color:T.dim}}>—</span>}
+                  </td>
+
+                  {/* Costi breakdown */}
+                  <td style={tdN(T.text)}>{c?`€ ${fmt4(c.priceEur)}`:<span style={{color:T.dim,fontSize:"10px"}}>{r.skipReason||"—"}</span>}</td>
+                  <td style={tdN()}>{c?`${fmt4(c.fob)}`:"—"}</td>
+                  <td style={tdN()}>{c?`${fmt4(c.lic)}`:"—"}</td>
+                  <td style={tdN()}>{c?`${fmt4(c.vgm)}`:"—"}</td>
+                  <td style={tdN(c?.hc>0?T.orange:undefined)}>{c?(c.hc>0?`${fmt4(c.hc)}`:<span style={{color:T.dim}}>—</span>):"—"}</td>
+                  <td style={tdN()}>{c?`${fmt4(c.plt)}`:"—"}</td>
+                  <td style={tdN(c?.alc>0?T.orange:undefined)}>{c?(c.alc>0?`${fmt4(c.alc)}`:<span style={{color:T.dim}}>—</span>):"—"}</td>
+
+                  {/* Step 1 */}
+                  <td style={tdN(T.gold,true)}>{c?`€ ${c.step1Eur.toFixed(4)}`:"—"}</td>
+                  <td style={tdN(T.gold,true)}>{c?`HK$ ${c.step1Hkd.toFixed(2)}`:"—"}</td>
+
+                  {/* Magazzino */}
+                  <td style={tdN(T.purple)}>{c?(c.wh>0?`${fmt4(c.wh)}`:<span style={{color:T.dim}}>—</span>):"—"}</td>
+
+                  {/* Step 2 */}
+                  <td style={tdN(T.green,true)}>{c?`€ ${c.step2Eur.toFixed(4)}`:"—"}</td>
+                  <td style={tdN(T.green,true,true)}>{hkd!=null?`HK$ ${hkd.toFixed(2)}`:<span style={{color:T.dim,fontSize:"10px"}}>{r.skipReason||"—"}</span>}</td>
+
+                  {/* Delta */}
+                  <td style={td()}>
+                    <span style={{color:pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,fontWeight:Math.abs(pct||0)>=3?"bold":"normal",fontFamily:"monospace",fontSize:"11px"}}>
+                      {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
+                    </span>
+                    {Math.abs(pct||0)>=3&&<span style={{marginLeft:"4px",fontSize:"9px"}}>⚡</span>}
+                  </td>
+
+                  {/* Ultimo ordine */}
+                  <td style={td()}>
+                    {!lastD
+                      ? <span style={{color:T.dim,fontSize:"10px"}}>—</span>
+                      : isOld
+                        ? <div><span style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>⚠ KEEP OLD</span>
+                            <div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div>
+                          </div>
+                        : <span style={{color:T.muted,fontSize:"10px"}}>{lastD.toLocaleDateString("it-IT")}</span>
+                    }
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
         </table>
       </div>
+
+      {/* Pannello dettaglio */}
       {showDetail&&(()=>{
         const r=costRows.find(x=>x.id===showDetail);
         if(!r?.cost) return null;
         const c=r.cost;
         const logRaw=logistics.find(l=>l.productId===r.id&&l.branch===branch);
-        const pltFromFile=logRaw?.pltPerContainer||0;
-        const pltLabel=`Plt/Container: ${r.pltUsed||"—"}${pltFromFile<=0?" (formula: "+r.temperature+")":" (da Work_tab)"}`;
+        const plt=r.pltUsed||logRaw?.pltPerContainer||"?";
         return(
-          <Section title={`Dettaglio calcolo: ${r.description}`} accent={T.gold} mt="16px">
-            <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px",padding:"5px 10px",background:`${T.gold}11`,borderRadius:"5px",border:`1px solid ${T.gold}33`}}>
-              {pltLabel} · Units/plt: {r.cost?.unitsPerPlt||"—"} · Temp: {r.temperature} · Area: {logRaw?.area||"—"}
+          <div style={{marginTop:"12px",background:T.card,border:`1px solid ${T.gold}44`,borderRadius:"8px",padding:"16px"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"12px"}}>
+              <span style={{color:T.gold,fontWeight:"bold",fontSize:"13px"}}>{r.code} · {r.description}</span>
+              <button onClick={()=>setShowDetail(null)}
+                style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"16px"}}>✕</button>
             </div>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(200px,1fr))",gap:"6px"}}>
-              {[["Prezzo acquisto EUR",c.priceEur],["FOB + Nolo",c.fob],["LIC (4100+3800 HKD)",c.lic],["VGM",c.vgm],["Health Cert.",c.hc],["Pallet (€30/plt)",c.plt],["Tassa Alcolica",c.alc],["Carriage",c.carriageUnit],["= Step 1 EUR",c.step1Eur],["= Step 1 HKD",c.step1Hkd],["Magazzino (MTO/MTS)",c.wh],["= Step 2 EUR",c.step2Eur],["= Step 2 HKD ✓",c.step2Hkd],["Tasso EUR/HKD",c.rate]].map(([k,v])=>(
-                <div key={k} style={{display:"flex",justifyContent:"space-between",padding:"5px 10px",background:T.card,borderRadius:"5px",fontSize:"12px"}}>
-                  <span style={{color:T.muted}}>{k}</span>
-                  <span style={{color:String(k).includes("Step")||String(k).includes("✓")?T.gold:T.text,fontWeight:String(k).includes("✓")?"bold":"normal"}}>{typeof v==="number"?v.toFixed(4):"—"}</span>
+            <div style={{fontSize:"11px",color:T.muted,marginBottom:"10px",padding:"5px 10px",
+              background:`${T.gold}11`,borderRadius:"5px",border:`1px solid ${T.gold}33`}}>
+              UOM: {r.uom} · Qty/box: {r.qtyPerBox} · Box/plt: {r.boxPerPallet} · Plt/container: {plt}
+              · Units/plt: {c.unitsPerPlt||"—"} · Temp: {r.temperature} · Area: {logRaw?.area||"—"}
+              · Tasso: {c.rate}
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))",gap:"6px"}}>
+              {[
+                ["Prezzo acquisto EUR",     c.priceEur,  T.text,   false],
+                ["FOB (nolo) €/unit",       c.fob,       T.blue,   false],
+                ["LIC (import charges)",    c.lic,       T.blue,   false],
+                ["VGM €/unit",              c.vgm,       T.blue,   false],
+                ["Health Certificate",      c.hc,        c.hc>0?T.orange:T.dim, false],
+                ["Pallet €/unit",           c.plt,       T.blue,   false],
+                ["Tassa Alcolica >30°",     c.alc,       c.alc>0?T.orange:T.dim, false],
+                ["▶ STEP 1 EUR",            c.step1Eur,  T.gold,   true],
+                ["▶ STEP 1 HKD",            c.step1Hkd,  T.gold,   true],
+                ["Magazzino WH €/unit",     c.wh,        T.purple, false],
+                ["▶ STEP 2 EUR",            c.step2Eur,  T.green,  true],
+                ["▶ STEP 2 HKD ✓",          c.step2Hkd,  T.green,  true],
+              ].map(([label,val,color,bold])=>(
+                <div key={label} style={{display:"flex",justifyContent:"space-between",alignItems:"center",
+                  padding:"5px 10px",background:bold?`${color}10`:T.surface,
+                  borderRadius:"5px",fontSize:"11px",border:bold?`1px solid ${color}33`:"none"}}>
+                  <span style={{color:T.muted}}>{label}</span>
+                  <span style={{color,fontWeight:bold?"bold":"normal",fontFamily:"monospace"}}>
+                    {typeof val==="number"&&val!==0?val.toFixed(4):<span style={{color:T.dim}}>—</span>}
+                  </span>
                 </div>
               ))}
             </div>
-          </Section>
+          </div>
         );
       })()}
     </div>
   );
 }
 
-
+// ── helper stili tabella ──
+function thGroup(color,label){
+  return{
+    padding:"3px 8px",background:color?`${color}15`:T.bg,color:color||T.dim,
+    textAlign:"center",borderBottom:`1px solid ${color?color+"44":T.border}`,
+    fontSize:"9px",letterSpacing:"0.1em",textTransform:"uppercase",fontWeight:"bold",
+    borderRight:`1px solid ${T.border}`,whiteSpace:"nowrap",
+  };
+}
+function Th({children,accent}){
+  return<th style={{padding:"6px 10px",background:accent?`${accent}10`:T.card,
+    color:accent||T.muted,textAlign:"right",borderBottom:`1px solid ${accent?accent+"44":T.border}`,
+    fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",borderRight:`1px solid ${T.border}33`}}>
+    {children}
+  </th>;
+}
+function td(minW){
+  return{padding:"5px 10px",borderBottom:`1px solid ${T.border}`,fontSize:"11px",
+    verticalAlign:"middle",minWidth:minW||undefined,borderRight:`1px solid ${T.border}22`};
+}
+function tdN(color,bold,big){
+  return{...td(),textAlign:"right",fontFamily:"monospace",
+    color:color||T.muted,fontWeight:bold?"bold":"normal",fontSize:big?"12px":"11px"};
+}
 
 // ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
 function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
