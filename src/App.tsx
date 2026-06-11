@@ -1186,7 +1186,7 @@ function ImportBC({products,setProducts,importLogs,setImportLogs,snapshots,setSn
   );
 }
 
-// ─── AIR LIST PAGE ────────────────────────────────────────────────────────────
+
 // ─── AIR LIST PAGE ────────────────────────────────────────────────────────────
 function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const[step,setStep]=useState("main");
@@ -1302,13 +1302,20 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
 
       {step==="main"&&(
         <>
-          <div style={{marginBottom:"20px"}}>
+                    <div style={{marginBottom:"20px",display:"flex",gap:"10px",alignItems:"center",flexWrap:"wrap"}}>
             <label style={{display:"inline-block",padding:"10px 20px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold"}}>
               📂 Carica lista AIR
               <input type="file" accept=".xlsx,.xls,.csv"
                 onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
             </label>
-            <span style={{marginLeft:"12px",fontSize:"12px",color:T.muted}}>Colonna richiesta: N HK o IFB N</span>
+            {airList.length>0&&(
+              <button
+                onClick={()=>{if(window.confirm(`Eliminare tutti i ${airList.length} articoli AIR?`)){setAirList([]);LS.set("ifb_airlist",[]);}}}
+                style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
+                ✕ Svuota lista ({airList.length})
+              </button>
+            )}
+            <span style={{fontSize:"11px",color:T.muted}}>Colonna richiesta: N HK o IFB N · ogni import sostituisce la lista precedente</span>
           </div>
           {airList.length>0&&(
             <>
@@ -2364,168 +2371,329 @@ function MailGen({costRows,branch,month}) {
 }
 
 // ─── SALES INVOICE ────────────────────────────────────────────────────────────
+// ─── SALES INVOICE ────────────────────────────────────────────────────────────
 function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
-  // Carica da LS direttamente se il prop è vuoto (es. dopo refresh)
-  const[localRows,setLocalRows]=useState(()=>{
-    if(rows&&rows.length>0) return rows;
-    return LS.get("ifb_sales_invoice",[]);
-  });
-  const[step,setStep]=useState(localRows.length?"view":"upload");
-  const[preview,setPreview]=useState([]);
-  const[filter,setFilter]=useState("all");
+  const[step,setStep]       = useState(()=>rows?.length?"view":"upload");
+  const[preview,setPreview] = useState<any[]>([]);
+  const[headers,setHeaders] = useState<string[]>([]);
+  const[mapping,setMapping] = useState<any>({});
+  const[rawRows,setRawRows] = useState<any[]>([]);
+  const[fileName,setFileName]= useState("");
+  const[search,setSearch]   = useState("");
+  const[filterTransport,setFilterTransport] = useState("all"); // all | air | sea
+  const[sortDir,setSortDir] = useState<"desc"|"asc">("desc");
 
-  // Sincronizza se il parent riceve dati dopo il mount
-  useEffect(()=>{
-    if(rows.length>0&&localRows.length===0){
-      setLocalRows(rows); setStep("view");
-    }
-  },[rows]);
+  // Sincronizza step se rows arrivano dopo il mount
+  useEffect(()=>{ if(rows?.length&&step==="upload") setStep("view"); },[rows]);
 
-  function saveRows(data){
-    setLocalRows(data);
+  function saveRows(data:any[]) {
     setRows(data);
-    LS.set("ifb_sales_invoice",data);
+    LS.set("ifb_sales_invoice", data);
   }
 
-  function parseFile(e) {
-    const file=e.target.files?.[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      try{
-        const wb=XLSX.read(ev.target.result,{type:"binary"});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const data=XLSX.utils.sheet_to_json(ws,{defval:""});
-        if(!data.length){showToast("File vuoto",T.red);return;}
-        const norm=s=>String(s||"").toLowerCase().replace(/[\s_()\-\.]/g,"");
-        const firstRow=data[0];
-        const km={};
+  // ── Parsing file ─────────────────────────────────────────────────────────
+  function parseFile(e:any) {
+    const file = e.target.files?.[0]; if(!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read((ev.target as any).result, {type:"binary"});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data: any[][] = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        if(data.length < 2) { showToast("File vuoto", T.red); return; }
 
-        for(const k of Object.keys(firstRow)){
-          const n=norm(k);
-          if(!km.description&&(n.includes("description")||n.includes("descrizione"))) km.description=k;
-          else if(!km.amount&&(
-            n==="amount"||n==="importo"||
-            n.includes("netamount")||n.includes("importonetto")||
-            n.includes("lineamount")||n.includes("lineamt")||
-            n.includes("amountlcy")||n.includes("saleslcy")||
-            n.includes("imponibile")||n.includes("totalrow")||
-            n.includes("nettovalore")||n.includes("valore")||
-            (n.includes("amount")&&!n.includes("vat")&&!n.includes("tax"))
-          )) km.amount=k;
-          else if(!km.location&&(n.includes("location")||n.includes("ubicazione")||n.includes("warehouse")||n.includes("magazzino"))) km.location=k;
-          else if(!km.itemCode&&(n==="no"||n==="no_"||n.includes("itemno")||n.includes("codice")||n.includes("code"))) km.itemCode=k;
-          else if(!km.date&&(n.includes("date")||n.includes("data")||n.includes("postingdate")||n.includes("invoicedate"))) km.date=k;
-          else if(!km.qty&&(n==="qty"||n==="quantity"||n.includes("qtà")||n.includes("quantita"))) km.qty=k;
-          else if(!km.unitPrice&&(n.includes("unitprice")||n.includes("prezzounit")||n.includes("unitamount"))) km.unitPrice=k;
-        }
+        const hdrs = data[0].map((h:any) => String(h||"").trim());
+        const raws = data.slice(1).filter((r:any[]) => r.some(c=>c!==""));
+        setHeaders(hdrs);
+        setRawRows(raws);
 
-        const parsed=data.map(r=>{
-          const code=String(r[km.itemCode]||"");
-          const prod=findProduct(code,products,xrefs);
-          let amount=parseFloat(r[km.amount])||0;
-          if(amount===0&&km.qty&&km.unitPrice){
-            amount=roundN((parseFloat(r[km.qty])||0)*(parseFloat(r[km.unitPrice])||0));
-          }
-          const nHK=prod?.nHK||(xrefs.find(x=>x.ifbNo===code)?.nHK)||"";
-          const isAirProduct=prod&&airList.some(a=>a.productId===prod.id);
-          const transport=isAirProduct?"AIR":"SEA";
-          return{
-            description:String(r[km.description]||""),
-            amount,
-            location:String(r[km.location]||""),
-            itemCode:code, nHK, transport,
-            date:String(r[km.date]||""),
-          };
-        }).filter(r=>!isExcludedDesc(r.description));
-
-        setPreview(parsed); setStep("preview");
-      }catch(err){showToast("Errore: "+err.message,T.red);}
+        // Auto-mapping
+        const norm = (s:string) => s.toLowerCase().replace(/[\s_()\-\.]/g,"");
+        const am: any = {};
+        hdrs.forEach(h => {
+          const n = norm(h);
+          if(!am.itemCode   && (n==="no"||n==="no_"||["itemno","codice","code"].some(a=>n.includes(a)))) am.itemCode=h;
+          else if(!am.description && ["description","descrizione"].some(a=>n.includes(a))) am.description=h;
+          else if(!am.date  && ["postingdate","invoicedate","shipdate","date","data"].some(a=>n.includes(a))) am.date=h;
+          else if(!am.qty   && (n==="qty"||n==="quantity"||["quantit"].some(a=>n.includes(a)))) am.qty=h;
+          else if(!am.unitPrice && ["unitprice","prezzounit","unitamount"].some(a=>n.includes(a))) am.unitPrice=h;
+          else if(!am.amount && ["netamount","lineamount","amountlcy","saleslcy","imponibile","nettovalore"].some(a=>n.includes(a))) am.amount=h;
+          else if(!am.amount && n==="amount"||n==="importo") am.amount=h;
+          else if(!am.location && ["location","ubicazione","warehouse","magazzino"].some(a=>n.includes(a))) am.location=h;
+        });
+        setMapping(am);
+        setStep("map");
+      } catch(err:any) { showToast("Errore: "+err.message, T.red); }
     };
     reader.readAsBinaryString(file);
-    e.target.value="";
+    e.target.value = "";
   }
 
-  function executeImport(){
-    const now=Date.now();
+  // ── Build preview ─────────────────────────────────────────────────────────
+  function buildPreview() {
+    const get = (row:any, field:string) => {
+      const col = mapping[field]; if(!col) return "";
+      const i = headers.indexOf(col); return i>=0 ? row[i] : "";
+    };
+
+    const parsed: any[] = rawRows.map(r => {
+      const code       = String(get(r,"itemCode")||"").trim();
+      const description= String(get(r,"description")||"").trim();
+      if(!code && !description) return null;
+      if(isExcludedDesc(description)) return null;
+
+      const dateRaw = get(r,"date");
+      let dateStr   = "";
+      if(dateRaw) {
+        const d = dateRaw instanceof Date ? dateRaw : new Date(dateRaw);
+        if(!isNaN(d.getTime())) dateStr = d.toISOString().slice(0,10);
+        else dateStr = String(dateRaw).slice(0,10);
+      }
+
+      let amount = parseFloat(get(r,"amount"))||0;
+      if(amount===0) {
+        const qty = parseFloat(get(r,"qty"))||0;
+        const up  = parseFloat(get(r,"unitPrice"))||0;
+        if(qty&&up) amount = roundN(qty*up);
+      }
+
+      const prod      = findProduct(code, products, xrefs);
+      const nHK       = prod?.nHK || (xrefs.find((x:any)=>x.ifbNo===code)?.nHK) || "";
+      const isAirProd = prod && airList.some((a:any)=>a.productId===prod.id);
+      const location  = String(get(r,"location")||"").trim();
+
+      return {
+        itemCode:    code,
+        description,
+        date:        dateStr,
+        amount,
+        location,
+        nHK,
+        transport:   isAirProd ? "AIR" : "SEA",
+        _prodFound:  !!prod,
+      };
+    }).filter(Boolean);
+
+    setPreview(parsed);
+    setStep("preview");
+  }
+
+  // ── Execute import (SOSTITUISCE, non aggiunge) ────────────────────────────
+  function executeImport() {
+    const now = Date.now();
     saveRows(preview);
-    const log={id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch:"HK"};
-    const newLogs=[log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
-    const newSnaps=[log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
+    const log = {id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch:"HK"};
+    const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
+    const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
     bumpImportTs();
-    showToast(`Fattura: ${preview.length} righe importate ✓`,T.gold);
+    showToast(`Fattura: ${preview.length} righe importate ✓`, T.gold);
     setStep("view");
   }
 
-  const activeRows=step==="view"?localRows:preview;
-  const airMismatches=activeRows.filter(r=>{
-    const prod=findProduct(r.itemCode,products,xrefs);
-    if(!prod) return false;
-    const ae=airList.find(a=>a.productId===prod.id);
-    if(!ae||!isAirTransport(ae.transportation)) return false;
-    return !String(r.location||"").toUpperCase().includes("NCJ");
-  });
-  const displayedRows=filter==="air"?airMismatches:activeRows;
+  // ── Righe visualizzate ────────────────────────────────────────────────────
+  const activeRows: any[] = step==="view" ? (rows||[]) : preview;
 
-  const TableRows=({data})=>(
+  const airMismatches = activeRows.filter(r =>
+    r.transport==="AIR" && !String(r.location||"").toUpperCase().includes("NCJ")
+  );
+
+  const _sq = search.toLowerCase();
+  let displayed = activeRows
+    .filter(r => {
+      if(filterTransport==="air") return r.transport==="AIR";
+      if(filterTransport==="sea") return r.transport==="SEA";
+      return true;
+    })
+    .filter(r =>
+      !search ||
+      r.description?.toLowerCase().includes(_sq) ||
+      r.itemCode?.toLowerCase().includes(_sq) ||
+      r.nHK?.toLowerCase().includes(_sq) ||
+      r.location?.toLowerCase().includes(_sq)
+    )
+    .sort((a:any,b:any) => {
+      if(!a.date&&!b.date) return 0;
+      if(!a.date) return 1; if(!b.date) return -1;
+      return sortDir==="desc"
+        ? b.date.localeCompare(a.date)
+        : a.date.localeCompare(b.date);
+    });
+
+  // ── Stats ─────────────────────────────────────────────────────────────────
+  const nAir    = activeRows.filter(r=>r.transport==="AIR").length;
+  const nSea    = activeRows.filter(r=>r.transport==="SEA").length;
+  const nNoCode = activeRows.filter(r=>!r._prodFound).length;
+
+  // ── Tabella righe ─────────────────────────────────────────────────────────
+  const TableRows = ({data}:{data:any[]}) => (
     <div style={{overflowX:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["Descrizione","Importo","Location","Codice","N HK","Transport","Data"]}/>
-        <tbody>{data.slice(0,500).map((r,i)=>{
-          const isMismatch=airMismatches.includes(r);
-          return<tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:isMismatch?"#2a1000":i%2===0?T.bg:T.surface}}>
-            <TD>{r.description}</TD>
-            <TD mono><span style={{color:isMismatch?T.orange:T.text}}>{r.amount?.toFixed(2)}</span></TD>
-            <TD mono><span style={{color:isMismatch?T.orange:T.text}}>{r.location}</span></TD>
-            <TD mono><span style={{color:T.gold}}>{r.itemCode}</span></TD>
-            <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
-            <TD>{r.transport?<Chip label={r.transport} color={isAirTransport(r.transport)?T.orange:T.blue}/>:<span style={{color:T.dim}}>—</span>}</TD>
-            <TD mono>{r.date}</TD>
-          </tr>;
-        })}</tbody>
+        <THead cols={["Data","Codice","N HK","Descrizione","Importo €","Location","Transport"]}/>
+        <tbody>
+          {data.slice(0,500).map((r,i) => {
+            const isMismatch = airMismatches.includes(r);
+            return (
+              <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:isMismatch?`${T.orange}12`:i%2===0?T.bg:T.surface}}>
+                <TD mono>
+                  <span style={{color:T.muted}}>{r.date||"—"}</span>
+                </TD>
+                <TD mono><span style={{color:T.gold}}>{r.itemCode||"—"}</span></TD>
+                <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
+                <TD>
+                  <span style={{color: r._prodFound===false ? T.orange : T.text}}>
+                    {r.description}
+                    {r._prodFound===false && <span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ non in anagrafica</span>}
+                  </span>
+                </TD>
+                <TD mono>
+                  <span style={{color:T.text}}>{r.amount!=null&&r.amount!==0?r.amount.toFixed(2):"—"}</span>
+                </TD>
+                <TD mono>
+                  <span style={{color:isMismatch?T.orange:T.muted}}>{r.location||"—"}</span>
+                </TD>
+                <TD>
+                  {r.transport
+                    ? <Chip label={r.transport==="AIR"?"✈ AIR":"⛴ SEA"} color={r.transport==="AIR"?T.orange:T.blue}/>
+                    : <span style={{color:T.dim}}>—</span>}
+                  {isMismatch && <span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ location?</span>}
+                </TD>
+              </tr>
+            );
+          })}
+        </tbody>
       </table>
+      {data.length>500 && <div style={{padding:"12px",textAlign:"center",color:T.muted,fontSize:"11px"}}>Mostrate 500/{data.length} righe</div>}
     </div>
   );
 
-  if(step==="preview") return(
+  // ── STEP: map ─────────────────────────────────────────────────────────────
+  if(step==="map") return (
     <div>
-      <PageHeader title="Preview Sales Invoice" sub={`${preview.length} righe`}/>
+      <PageHeader title="📋 Sales Invoice · Mappatura colonne" sub={`${fileName} · ${rawRows.length} righe`}/>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"20px",maxWidth:"800px"}}>
+        {([
+          ["itemCode","Codice articolo *",true],
+          ["description","Descrizione",false],
+          ["date","Data fattura",false],
+          ["amount","Importo €",false],
+          ["qty","Quantità",false],
+          ["unitPrice","Prezzo unitario",false],
+          ["location","Location / Magazzino",false],
+        ] as [string,string,boolean][]).map(([field,label,required])=>(
+          <div key={field}>
+            <label style={{display:"block",fontSize:"11px",color:required?T.gold:T.muted,marginBottom:"5px"}}>{label}{required?" *":""}</label>
+            <select value={mapping[field]||""} onChange={e=>setMapping((m:any)=>({...m,[field]:e.target.value||null}))}
+              style={{...inputStyle(),cursor:"pointer",borderColor:required&&!mapping[field]?T.red+"88":T.border}}>
+              <option value="">— non mappato —</option>
+              {headers.map(h=><option key={h} value={h}>{h}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+      <div style={{padding:"8px 12px",background:`${T.blue}08`,borderRadius:"6px",fontSize:"11px",color:T.muted,marginBottom:"16px",maxWidth:"800px"}}>
+        ℹ Il trasporto AIR/SEA viene rilevato automaticamente dalla lista AIR — non serve una colonna Transport.
+      </div>
+      <div style={{display:"flex",gap:"10px"}}>
+        <ActionBtn label="← Ricarica" onClick={()=>setStep("upload")}/>
+        <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["itemCode"]}/>
+      </div>
+    </div>
+  );
+
+  // ── STEP: preview ─────────────────────────────────────────────────────────
+  if(step==="preview") return (
+    <div>
+      <PageHeader title="📋 Sales Invoice · Preview" sub={`${fileName} · ${preview.length} righe valide`}/>
+      {rows?.length>0 && (
+        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
+          ⚠ Questo import <strong>sostituirà</strong> la fattura attuale ({rows.length} righe).
+        </div>
+      )}
+      <div style={{display:"flex",gap:"12px",marginBottom:"16px",flexWrap:"wrap"}}>
+        {[
+          [preview.length,                                      "Righe totali",         T.text  ],
+          [preview.filter(r=>r.transport==="AIR").length,       "✈ AIR",                T.orange],
+          [preview.filter(r=>r.transport==="SEA").length,       "⛴ SEA",                T.blue  ],
+          [preview.filter(r=>!r._prodFound).length,             "⚠ Non in anagrafica",  T.red   ],
+        ].map(([n,l,c])=>(
+          <div key={l as string} style={{padding:"10px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"8px"}}>
+            <div style={{fontSize:"20px",fontWeight:"bold",color:c as string}}>{n as number}</div>
+            <div style={{fontSize:"10px",color:T.dim,marginTop:"2px"}}>{l as string}</div>
+          </div>
+        ))}
+      </div>
       <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
-        <ActionBtn label="← Annulla" onClick={()=>setStep(localRows.length?"view":"upload")}/>
+        <ActionBtn label="← Mappa" onClick={()=>setStep("map")}/>
         <ActionBtn label={`✓ Importa ${preview.length} righe`} onClick={executeImport} primary/>
       </div>
       <TableRows data={preview}/>
     </div>
   );
 
-  return(
+  // ── STEP: upload ──────────────────────────────────────────────────────────
+  if(step==="upload") return (
     <div>
-      <PageHeader title="Sales Invoice" sub={localRows.length?`${localRows.length} righe caricate`:"Nessun file caricato"}/>
-      {airMismatches.length>0&&(
-        <div style={{background:"#2a1000",border:`1px solid ${T.orange}`,borderRadius:"6px",padding:"12px 16px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"12px"}}>
+      <PageHeader title="📋 Sales Invoice" sub="Carica il file fattura per associare i costi agli articoli"/>
+      <Section title="Carica file">
+        <DropZone onFile={(f:File)=>{ const e={target:{files:[f],value:""}} as any; parseFile(e); }} label="Trascina o clicca — Excel / CSV fattura"/>
+      </Section>
+    </div>
+  );
+
+  // ── STEP: view ────────────────────────────────────────────────────────────
+  return (
+    <div>
+      <PageHeader title="📋 Sales Invoice" sub={`${activeRows.length} righe · ${fileName||"dati caricati"}`}/>
+
+      {airMismatches.length>0 && (
+        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}`,borderRadius:"6px",padding:"10px 16px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"12px",flexWrap:"wrap"}}>
           <span style={{color:T.orange,fontWeight:"bold"}}>⚠ {airMismatches.length} righe: trasporto AIR ma location ≠ NCJ</span>
-          <button onClick={()=>setFilter(f=>f==="air"?"all":"air")}
+          <button onClick={()=>setFilterTransport(v=>v==="air"?"all":"air")}
             style={{padding:"4px 12px",background:T.orange,color:"#000",border:"none",borderRadius:"4px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
-            {filter==="air"?"Mostra tutte":"Mostra AIR mismatch"}
+            {filterTransport==="air"?"Mostra tutte":"Mostra AIR mismatch"}
           </button>
         </div>
       )}
-      <div style={{marginBottom:"16px",display:"flex",gap:"10px",alignItems:"center"}}>
-        <label style={{display:"inline-block",padding:"8px 16px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold",fontSize:"12px"}}>
-          📂 {localRows.length?"Ricarica fattura":"Carica fattura"}
-          <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
-        </label>
-        {localRows.length>0&&(
-          <button onClick={()=>{if(confirm("Eliminare i dati fattura?"))saveRows([]);setStep("upload");}}
+
+      {/* Stats bar */}
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"center"}}>
+        {[
+          ["all",  `Tutte (${activeRows.length})`, T.text  ],
+          ["air",  `✈ AIR (${nAir})`,              T.orange],
+          ["sea",  `⛴ SEA (${nSea})`,              T.blue  ],
+        ].map(([v,l,c])=>(
+          <button key={v as string} onClick={()=>setFilterTransport(v as string)}
+            style={{padding:"5px 12px",background:filterTransport===v?`${c}20`:T.surface,
+              color:filterTransport===v?c as string:T.muted,
+              border:`1px solid ${filterTransport===v?c as string:T.border}`,
+              borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:filterTransport===v?"bold":"normal"}}>
+            {l as string}
+          </button>
+        ))}
+
+        <button onClick={()=>setSortDir(d=>d==="desc"?"asc":"desc")}
+          style={{padding:"5px 12px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
+          Data {sortDir==="desc"?"↓ recente":"↑ vecchia"}
+        </button>
+
+        <div style={{marginLeft:"auto",display:"flex",gap:"8px"}}>
+          <label style={{display:"inline-block",padding:"6px 14px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.text}}>
+            📂 Ricarica
+            <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
+          </label>
+          <button onClick={()=>{if(window.confirm(`Eliminare i dati fattura (${activeRows.length} righe)?`)){saveRows([]);setStep("upload");}}}
             style={{padding:"6px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
             ✕ Svuota
           </button>
-        )}
+        </div>
       </div>
-      {localRows.length>0&&(
-        <Section title={`${displayedRows.length} righe${filter==="air"?" (AIR mismatch)":""}`}>
-          <TableRows data={displayedRows}/>
-        </Section>
-      )}
+
+      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca per codice, N HK, descrizione, location…"/>
+
+      <Section title={`${displayed.length} righe${filterTransport!=="all"?` (${filterTransport.toUpperCase()})`:""}`}>
+        <TableRows data={displayed}/>
+      </Section>
     </div>
   );
 }
