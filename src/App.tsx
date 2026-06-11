@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import * as XLSX from "xlsx";
 
 const T = {
@@ -149,6 +149,7 @@ const BC_FIELD_ALIASES = {
   qtyPerBox:   ["quantityxpackaging","quantity x packaging","units per parcel","qty per box","qty/box","pz per cartone"],
   boxPerPallet:["packagingxpallet","packaging x pallet","parcels per pallet","box per pallet","cartoni per pallet"],
   kgPerBox:    ["kgperbox","kg per box","net weight","peso netto","kg per cartone","netweight"],
+  kgxplt: ["kgxplt","kg x pallet","kg per pallet","kgperpallet"],
   temperature: ["producttype","product type","product type rettificato","product type - anagrafica","item tracking code","temperatura","temperature","storage"],
   active:      ["blocked","bloccato","active","attivo"],
   vendorName:  ["vendorname","vendor name","vendor name 2","vendor","fornitore","vendor name2"],
@@ -225,6 +226,14 @@ export default function App() {
   const[branch,setBranch] = useState("");
   const[month,setMonth]   = useState(NOW());
   const[toast,setToast]   = useState(null);
+  const[pageFilter, setPageFilter] = useState(null);
+
+  const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
+
+  useEffect(()=>{ if(products.length)  LS.set("ifb_products",       products);  }, [products]);
+  useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
+  useEffect(()=>{ if(salesRows.length) LS.set("ifb_sales_invoice",  salesRows); }, [salesRows]);
+  useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
 
   const showToast = (msg,color=T.green) => { setToast({msg,color}); setTimeout(()=>setToast(null),3500); };
   const bumpImportTs = () => { const ts=Date.now(); setLastImportTs(ts); LS.set("ifb_last_import_ts",ts); return ts; };
@@ -291,6 +300,7 @@ export default function App() {
     {id:"fx",         icon:"◌", label:"Cambi"},
     {id:"air",        icon:"✈", label:"AIR Transport"},
     {id:"costs",      icon:"◆", label:"Standard Cost"},
+    {id:"costsInvoice", icon:"📋", label:"Costi su Fatture"},
     {id:"sales",      icon:"📋", label:"Sales Invoice"},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
     {id:"mail",       icon:"◻", label:"Mail Mensile"},
@@ -329,16 +339,17 @@ export default function App() {
   const cfg = BRANCH_CFG[branch] || BRANCH_CFG.HK;
 
   const pages = {
-    dashboard:   <Dashboard costRows={costRows} branch={branch} month={month} setPage={setPage}/>,
+    dashboard:   <Dashboard costRows={costRows} branch={branch} month={month} navigate={navigate}/>,
     products:    <Products products={products}/>,
     importAnag:  <ImportBC products={products} setProducts={setProducts} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     xref:        <XRefPage xrefs={xrefs} setXrefs={setXrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    logistics:   <Logistics logistics={logistics} setLogistics={setLogistics} products={products} branch={branch} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    prices:      <Prices prices={prices} products={products} branch={branch} month={month}/>,
+    logistics:   <Logistics logistics={logistics} setLogistics={setLogistics} products={products} branch={branch} showToast={showToast} bumpImportTs={bumpImportTs} initFilter={pageFilter}/>,
+    prices:      <Prices prices={prices} products={products} branch={branch} month={month} setPrices={setPrices} salesRows={salesRows} xrefs={xrefs}/>,
     importPrice: <ImportPrices prices={prices} setPrices={setPrices} products={products} xrefs={xrefs} branch={branch} month={month} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory}/>,
+    costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
+    costsInvoice: <CostsOnInvoice costRows={costRows} salesRows={salesRows} products={products} xrefs={xrefs} branch={branch} month={month}/>,
     sales:       <SalesInvoice rows={salesRows} setRows={setSalesRows} airList={airList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     storico:     <Storico snapshots={snapshots} setSnapshots={setSnapshots} costHistory={costHistory} branch={branch}/>,
     mail:        <MailGen costRows={costRows} branch={branch} month={month}/>,
@@ -601,6 +612,7 @@ function NotesPage() {
 }
 
 // ─── IMPORT LISTINI ───────────────────────────────────────────────────────────
+
 function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
   const[step,setStep]=useState("upload");
   const[rawRows,setRawRows]=useState([]);
@@ -611,118 +623,257 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
   const[importMonth,setImportMonth]=useState(month);
   const[doneInfo,setDoneInfo]=useState(null);
 
+  // Funzione per verificare se un codice è valido (NON Power BI)
+  function isValidCode(code) {
+    if(!code) return false;
+    const str = String(code).trim();
+    if(/^P_/i.test(str)) return false;
+    if(/^\d{7,}$/.test(str.replace(/[^0-9]/g, ""))) return false;
+    if(str.includes("P_BC_")) return false;
+    return true;
+  }
+
   function parseFile(file) {
     setFileName(file.name);
-    const reader=new FileReader();
-    reader.onload=e=>{
-      try{
-        const wb=XLSX.read(e.target.result,{type:"binary"});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const data=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
-        if(data.length<2){showToast("File vuoto",T.red);return;}
-        const hdrs=data[0].map(h=>String(h).trim()).filter(h=>h);
-        const rows=data.slice(1).filter(r=>r.some(c=>c!==""));
-        setHeaders(hdrs);setRawRows(rows);
-        const am={};
-        Object.keys(PRICE_FIELD_ALIASES).forEach(field=>{
-          const aliases=PRICE_FIELD_ALIASES[field];
-          for(const h of hdrs){const hl=h.toLowerCase().trim();if(aliases.some(a=>hl===a)){am[field]=h;break;}}
-          if(!am[field]) for(const h of hdrs){const hl=h.toLowerCase().trim();if(aliases.some(a=>hl.includes(a)&&a.length>3)){am[field]=h;break;}}
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, {type:"binary"});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        if(data.length < 2) { showToast("File vuoto", T.red); return; }
+        
+        const hdrs = data[0].map(h => String(h||"").trim());
+        const rows = data.slice(1).filter(r => r.some(c => c !== ""));
+        setHeaders(hdrs);
+        setRawRows(rows);
+        
+        // Auto-mapping dei campi (solo quelli necessari)
+        const am = {};
+        
+        // Mappa il codice (obbligatorio)
+        const codeAliases = ["no_", "no.", "no", "item no.", "codice", "code", "n hk", "ifb item", "ifb no", "ifb n"];
+        for(const h of hdrs) {
+          const hl = h.toLowerCase().trim();
+          if(codeAliases.some(a => hl === a || hl.includes(a))) {
+            am["code"] = h;
+            break;
+          }
+        }
+        
+        // Mappa la descrizione (opzionale)
+        const descAliases = ["description", "descrizione", "desc", "item description"];
+        for(const h of hdrs) {
+          const hl = h.toLowerCase().trim();
+          if(descAliases.some(a => hl === a || hl.includes(a))) {
+            am["description"] = h;
+            break;
+          }
+        }
+        
+        // Mappa i prezzi
+        const priceFields = ["mtsPrice", "fcaPrice", "fcaDiscount", "fcaDiscounted", "dapPrice", "dapDiscount", "dapDiscounted", "dapFinalDirect"];
+        priceFields.forEach(field => {
+          const aliases = PRICE_FIELD_ALIASES[field] || [];
+          for(const h of hdrs) {
+            const hl = h.toLowerCase().trim();
+            if(aliases.some(a => hl === a || (a.length > 3 && hl.includes(a)))) {
+              am[field] = h;
+              break;
+            }
+          }
         });
-        setMapping(am);setStep("map");
-      }catch(err){showToast("Errore: "+err.message,T.red);}
+        
+        setMapping(am);
+        setStep("map");
+      } catch(err) { 
+        showToast("Errore: "+err.message, T.red); 
+      }
     };
     reader.readAsBinaryString(file);
   }
 
   function buildPreview() {
-    const get=(row,field)=>{const col=mapping[field];if(!col)return null;const i=headers.indexOf(col);return i>=0?row[i]:null;};
-    let skipped=0;
-    const mapped=rawRows.map((row,idx)=>{
-      const rawCode=String(get(row,"code")||"").trim();
-      if(!rawCode) return null;
-      // Filter internal Power BI IDs: P_BC_xxx, P_xxx, or pure long numeric strings (>8 digits)
-      if(/^P_/i.test(rawCode) || /^\d{7,}$/.test(rawCode.replace(/[^0-9]/g,""))){skipped++;return null;}
-      const prod=findProduct(rawCode,products,xrefs);
-      if(!prod){skipped++;return null;}
+    const get = (row, field) => {
+      const col = mapping[field];
+      if(!col) return null;
+      const i = headers.indexOf(col);
+      return i >= 0 ? row[i] : null;
+    };
+    
+    let skipped = 0;
+    let notFound = 0;
+    
+    const mapped = rawRows.map((row, idx) => {
+      const rawCode = String(get(row, "code") || "").trim();
+      const rawDescription = String(get(row, "description") || get(row, "code") || "").trim();
       
-
-      const mtsPrice=parseFloat(get(row,"mtsPrice"))||0;
-      const fcaPrice=parseFloat(get(row,"fcaPrice"))||0;
-      const fcaDiscount=parseFloat(get(row,"fcaDiscount"))||0;
-      const fcaDiscounted=parseFloat(get(row,"fcaDiscounted"))||(fcaPrice-fcaDiscount*fcaPrice/100)||0;
-      const dapPrice=parseFloat(get(row,"dapPrice"))||0;
-      const dapDiscount=parseFloat(get(row,"dapDiscount"))||0;
-      const dapDiscounted=parseFloat(get(row,"dapDiscounted"))||(dapPrice-dapDiscount*dapPrice/100)||0;
-      const vendorName=String(get(row,"vendorName")||"").trim();
-      const section=String(get(row,"section")||"").trim();
-      const dapFinalDirect=parseFloat(get(row,"dapFinalDirect"))||0;
-      let dapFinal=0,dapNote="";
-      if(dapFinalDirect!==0){dapFinal=dapFinalDirect;dapNote="da file";}
-      else{const calc=calcDAPFinal({dapDiscounted,fcaPrice,fcaDiscounted,vendorName,section,products,code:prod.code});dapFinal=calc.dapFinal;dapNote=calc.note;}
-      const existing=prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===importMonth);
-      return{_idx:idx,rawCode,productId:prod.id,nHK:prod.nHK||"—",ifbNo:prod.code,description:prod.description,
-        dapFinal:roundN(dapFinal),mtsPrice:roundN(mtsPrice),fcaDiscounted:roundN(fcaDiscounted),
-        dapPrice:roundN(dapPrice),fcaPrice:roundN(fcaPrice),dapNote,_hasProduct:true,_existing:!!existing};
+      if(!rawCode) { skipped++; return null; }
+      if(!isValidCode(rawCode)) { skipped++; return null; }
+      
+      const prod = findProduct(rawCode, products, xrefs);
+      
+      const mtsPrice = parseFloat(get(row, "mtsPrice")) || 0;
+      const fcaPrice = parseFloat(get(row, "fcaPrice")) || 0;
+      const fcaDiscount = parseFloat(get(row, "fcaDiscount")) || 0;
+      const fcaDiscounted = parseFloat(get(row, "fcaDiscounted")) || (fcaPrice - (fcaDiscount * fcaPrice / 100)) || 0;
+      const dapPrice = parseFloat(get(row, "dapPrice")) || 0;
+      const dapDiscount = parseFloat(get(row, "dapDiscount")) || 0;
+      const dapDiscounted = parseFloat(get(row, "dapDiscounted")) || (dapPrice - (dapDiscount * dapPrice / 100)) || 0;
+      const dapFinalDirect = parseFloat(get(row, "dapFinalDirect")) || 0;
+      
+      let dapFinal = 0;
+      let dapNote = "";
+      if(dapFinalDirect !== 0) {
+        dapFinal = dapFinalDirect;
+        dapNote = "da file";
+      } else if(prod) {
+        dapFinal = dapDiscounted || 0;
+        dapNote = dapDiscounted ? "da DAP Disc." : "";
+      }
+      
+      const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === importMonth) : null;
+      
+      return {
+        _idx: idx,
+        rawCode,
+        ifbNo_from_file: rawCode,
+        description_from_file: rawDescription,
+        productId: prod?.id || null,
+        nHK_from_anag: prod?.nHK || "",
+        ifbNo_from_anag: prod?.code || "",
+        description_from_anag: prod?.description || "",
+        dapFinal: roundN(dapFinal),
+        mtsPrice: roundN(mtsPrice),
+        fcaDiscounted: roundN(fcaDiscounted),
+        dapPrice: roundN(dapPrice),
+        fcaPrice: roundN(fcaPrice),
+        dapNote,
+        _hasProduct: !!prod,
+        _existing: !!existing
+      };
     }).filter(Boolean);
+    
     setPreview(mapped);
-    window._priceSkipped=skipped;
     setStep("preview");
   }
 
   function executeImport() {
-    const snId=Date.now();
-    const updated=[...prices];
-    const diffs=[];
-    let count=0,newCount=0,changed=0;
-    preview.filter(r=>r._hasProduct).forEach(r=>{
-      const idx=updated.findIndex(p=>p.productId===r.productId&&p.branch===branch&&p.month===importMonth);
-      const entry={productId:r.productId,branch,month:importMonth,dapFinal:r.dapFinal,mtsPrice:r.mtsPrice,fcaDiscounted:r.fcaDiscounted,dapPrice:r.dapPrice,fcaPrice:r.fcaPrice};
-      const prev=idx>=0?updated[idx]:null;
-      const diffFields=[];
-      ["dapFinal","mtsPrice","fcaDiscounted","dapPrice","fcaPrice"].forEach(f=>{
-        const oldR=roundN(prev?.[f]||0),newR=roundN(entry[f]||0);
-        if(Math.abs(oldR-newR)>=0.005) diffFields.push({field:f,old:oldR,new:newR,delta:oldR>0?((newR-oldR)/oldR*100):null});
+    const snId = Date.now();
+    const updated = [...prices];
+    const diffs = [];
+    let count = 0, newCount = 0, changed = 0;
+    
+    preview.forEach(r => {
+      if(!r._hasProduct) return;
+      
+      const idx = updated.findIndex(p => p.productId === r.productId && p.branch === branch && p.month === importMonth);
+      const entry = {
+        productId: r.productId,
+        branch,
+        month: importMonth,
+        dapFinal: r.dapFinal,
+        mtsPrice: r.mtsPrice,
+        fcaDiscounted: r.fcaDiscounted,
+        dapPrice: r.dapPrice,
+        fcaPrice: r.fcaPrice
+      };
+      const prev = idx >= 0 ? updated[idx] : null;
+      const diffFields = [];
+      
+      ["dapFinal","mtsPrice","fcaDiscounted","dapPrice","fcaPrice"].forEach(f => {
+        const oldR = roundN(prev?.[f] || 0);
+        const newR = roundN(entry[f] || 0);
+        if(Math.abs(oldR - newR) >= 0.005) {
+          diffFields.push({field: f, old: oldR, new: newR, delta: oldR > 0 ? ((newR - oldR) / oldR * 100) : null});
+        }
       });
-      if(!prev) newCount++; else if(diffFields.length>0) changed++;
-      if(diffFields.length>0||!prev) diffs.push({productId:r.productId,nHK:r.nHK,ifbNo:r.ifbNo,description:r.description,isNew:!prev,fields:diffFields});
-      if(idx>=0) updated[idx]=entry; else updated.push(entry);
+      
+      if(!prev) newCount++;
+      else if(diffFields.length > 0) changed++;
+      
+      if(diffFields.length > 0 || !prev) {
+        diffs.push({
+          productId: r.productId,
+          nHK: r.nHK_from_anag,
+          ifbNo: r.ifbNo_from_anag,
+          description: r.description_from_anag,
+          isNew: !prev,
+          fields: diffFields
+        });
+      }
+      
+      if(idx >= 0) updated[idx] = entry;
+      else updated.push(entry);
       count++;
     });
-    setPrices(updated);LS.set("ifb_prices",updated);
-    const log={id:snId,type:"prices",fileName,branch,month:importMonth,date:new Date(snId).toISOString(),count,newCount,updateCount:changed,diffs};
-    const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
-    const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    setDoneInfo({count,newCount,changed,unchanged:count-newCount-changed});
-    bumpImportTs();setStep("done");
+    
+    setPrices(updated);
+    LS.set("ifb_prices", updated);
+    
+    const log = {
+      id: snId,
+      type: "prices",
+      fileName,
+      branch,
+      month: importMonth,
+      date: new Date(snId).toISOString(),
+      count,
+      newCount,
+      updateCount: changed,
+      diffs
+    };
+    
+    const newLogs = [log, ...importLogs];
+    setImportLogs(newLogs);
+    LS.set("ifb_importlogs", newLogs);
+    
+    const newSnaps = [log, ...snapshots].slice(0, 50);
+    setSnapshots(newSnaps);
+    LS.set("ifb_snapshots", newSnaps);
+    
+    setDoneInfo({ count, newCount, changed, unchanged: count - newCount - changed });
+    bumpImportTs();
+    setStep("done");
   }
 
-  const reset=()=>{setStep("upload");setRawRows([]);setHeaders([]);setFileName("");setMapping({});setPreview([]);setDoneInfo(null);};
+  const reset = () => {
+    setStep("upload");
+    setRawRows([]);
+    setHeaders([]);
+    setFileName("");
+    setMapping({});
+    setPreview([]);
+    setDoneInfo(null);
+  };
 
-  if(step==="done"&&doneInfo) return(
-    <div>
-      <PageHeader title="✓ Import Listini completato" sub={fileName}/>
-      <div style={{padding:"20px",background:`${T.green}11`,border:`1px solid ${T.green}33`,borderRadius:"8px",marginBottom:"16px",fontSize:"13px",color:T.muted,lineHeight:"2"}}>
-        Mese: <strong style={{color:T.gold}}>{importMonth}</strong> · Filiale: <strong style={{color:T.text}}>{branch}</strong><br/>
-        Prezzi totali: <strong style={{color:T.text}}>{doneInfo.count}</strong> &nbsp;·&nbsp;
-        <span style={{color:T.green}}>🆕 {doneInfo.newCount} nuovi</span> &nbsp;·&nbsp;
-        <span style={{color:T.orange}}>✏️ {doneInfo.changed} modificati</span> &nbsp;·&nbsp;
-        <span style={{color:T.dim}}>{doneInfo.unchanged} invariati</span>
+  if(step === "done" && doneInfo) {
+    return (
+      <div>
+        <PageHeader title="✓ Import Listini completato" sub={fileName}/>
+        <div style={{padding:"20px", background:`${T.green}11`, border:`1px solid ${T.green}33`, borderRadius:"8px", marginBottom:"16px", fontSize:"13px", color:T.muted, lineHeight:"2"}}>
+          Mese: <strong style={{color:T.gold}}>{importMonth}</strong> · Filiale: <strong style={{color:T.text}}>{branch}</strong><br/>
+          Prezzi totali: <strong style={{color:T.text}}>{doneInfo.count}</strong> &nbsp;·&nbsp;
+          <span style={{color:T.green}}>🆕 {doneInfo.newCount} nuovi</span> &nbsp;·&nbsp;
+          <span style={{color:T.orange}}>✏️ {doneInfo.changed} modificati</span> &nbsp;·&nbsp;
+          <span style={{color:T.dim}}>{doneInfo.unchanged} invariati</span>
+        </div>
+        <ActionBtn label="💶 Nuovo import" onClick={reset} primary/>
       </div>
-      <ActionBtn label="💶 Nuovo import" onClick={reset} primary/>
-    </div>
-  );
+    );
+  }
 
-  return(
+  return (
     <div>
-      <PageHeader title="💶 Import Listini" sub={`${branch} · filtra automaticamente Vendor = INALCA F&B`}/>
+      <PageHeader title="💶 Import Listini" sub={`${branch} · importa da file PBI / CURRENT PRICELIST`}/>
       <StepBar steps={["upload","map","preview","done"]} current={step}/>
-      {step==="upload"&&(
+      
+      {step === "upload" && (
         <div>
           <Section title="Mese di riferimento">
-            <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
-              <span style={{fontSize:"12px",color:T.muted}}>Mese:</span>
-              <input type="month" value={importMonth} onChange={e=>setImportMonth(e.target.value)} style={{...inputStyle(),width:"160px"}}/>
+            <div style={{display:"flex", alignItems:"center", gap:"12px"}}>
+              <span style={{fontSize:"12px", color:T.muted}}>Mese:</span>
+              <input type="month" value={importMonth} onChange={e => setImportMonth(e.target.value)} style={{...inputStyle(), width:"160px"}}/>
             </div>
           </Section>
           <Section title="Carica file export PBI / CURRENT PRICELIST">
@@ -730,68 +881,103 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
           </Section>
         </div>
       )}
-      {step==="map"&&(
+      
+      {step === "map" && (
         <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
-          <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:"12px",marginBottom:"18px"}}>
-            {Object.keys(PRICE_FIELD_ALIASES).map(field=>{
-              const labels={code:"Codice * (N HK o IFB N)",vendorName:"Vendor Name",section:"Section",mtsPrice:"MTS Price",fcaPrice:"FCA Price",fcaDiscount:"FCA Discount %",fcaDiscounted:"FCA Discounted",dapPrice:"DAP Price",dapDiscount:"DAP Discount %",dapDiscounted:"DAP Discounted",dapFinalDirect:"DAP Final (già calcolato)"};
-              return(
-                <div key={field}>
-                  <label style={{display:"block",fontSize:"11px",color:field==="code"?T.gold:T.muted,marginBottom:"5px"}}>{labels[field]}</label>
-                  <select value={mapping[field]||""} onChange={e=>setMapping(m=>({...m,[field]:e.target.value||null}))} style={{...inputStyle(),cursor:"pointer",borderColor:!mapping[field]&&field==="code"?T.red+"88":T.border}}>
-                    <option value="">— non mappato —</option>
-                    {headers.map(h=><option key={h} value={h}>{h}</option>)}
-                  </select>
-                </div>
-              );
-            })}
+          <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"12px", marginBottom:"18px"}}>
+            <div>
+              <label style={{display:"block", fontSize:"11px", color:T.gold, marginBottom:"5px"}}>📌 Codice * (N HK o IFB N)</label>
+              <select 
+                value={mapping["code"] || ""} 
+                onChange={e => setMapping(m => ({...m, code: e.target.value || null}))} 
+                style={{...inputStyle(), cursor:"pointer", borderColor:!mapping["code"] ? T.red+"88" : T.border}}
+              >
+                <option value="">— seleziona colonna —</option>
+                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+            
+            <div>
+              <label style={{display:"block", fontSize:"11px", color:T.muted, marginBottom:"5px"}}>📝 Descrizione</label>
+              <select 
+                value={mapping["description"] || ""} 
+                onChange={e => setMapping(m => ({...m, description: e.target.value || null}))} 
+                style={{...inputStyle(), cursor:"pointer"}}
+              >
+                <option value="">— non mappato —</option>
+                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
           </div>
-          <div style={{display:"flex",gap:"10px"}}>
+          
+          <div style={{marginTop:"8px", padding:"8px", background:`${T.gold}08`, borderRadius:"6px", fontSize:"11px", color:T.muted}}>
+            ⚡ I campi prezzi (MTS Price, FCA Price, DAP Price, etc.) vengono rilevati automaticamente.
+          </div>
+          
+          <div style={{display:"flex", gap:"10px", marginTop:"16px"}}>
             <ActionBtn label="← Ricarica" onClick={reset}/>
             <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"]}/>
           </div>
         </Section>
       )}
-      {step==="preview"&&(
+      
+      {step === "preview" && (
         <div>
-          {step === "preview" && (
-  <div>
-    <div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
-      {[
-        [preview.length, "Trovati e importabili", T.green],
-        [window._priceSkipped || 0, "Ignorati (non trovati / ID interni Power BI)", T.muted],
-        [preview.filter(r => r._existing).length, "Aggiornamenti", T.orange]
-      ].map(([n, l, c]) => (
-        <div key={l} style={{ padding: "10px 16px", background: T.card, border: `1px solid ${T.border}`, borderRadius: "8px" }}>
-          <div style={{ fontSize: "20px", fontWeight: "bold", color: c }}>{n}</div>
-          <div style={{ fontSize: "10px", color: T.dim, marginTop: "2px" }}>{l}</div>
-        </div>
-      ))}
-    </div>
-    {/* Resto del codice uguale... */}
-  </div>
-)}
-          <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
-            <ActionBtn label="← Torna" onClick={()=>setStep("map")}/>
-            <ActionBtn label={`✓ Importa ${preview.filter(r=>r._hasProduct).length} prezzi per ${importMonth}`} onClick={executeImport} primary/>
+          <div style={{display:"flex", gap:"12px", marginBottom:"16px", flexWrap:"wrap"}}>
+            {[
+              [preview.filter(r => r._hasProduct).length, "✅ Trovati in anagrafica", T.green],
+              [preview.filter(r => !r._hasProduct).length, "❌ NON trovati in anagrafica", T.red],
+              [preview.filter(r => r._existing).length, "✏️ Aggiornamenti", T.orange],
+              [preview.filter(r => !r._existing && r._hasProduct).length, "🆕 Nuovi", T.gold]
+            ].map(([n, l, c]) => (
+              <div key={l} style={{padding:"10px 16px", background:T.card, border:`1px solid ${T.border}`, borderRadius:"8px"}}>
+                <div style={{fontSize:"20px", fontWeight:"bold", color:c}}>{n}</div>
+                <div style={{fontSize:"10px", color:T.dim, marginTop:"2px"}}>{l}</div>
+              </div>
+            ))}
           </div>
+          
+          <div style={{display:"flex", gap:"10px", marginBottom:"16px"}}>
+            <ActionBtn label="← Torna" onClick={() => setStep("map")}/>
+            <ActionBtn label={`✓ Importa ${preview.filter(r => r._hasProduct).length} prezzi per ${importMonth}`} onClick={executeImport} primary/>
+          </div>
+          
           <Section title={`Preview · ${importMonth} · ${branch}`}>
             <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <THead cols={["N HK","IFB N","Descrizione","DAP Final","MTS Price","FCA Disc.","Stato"]}/>
-                <tbody>{preview.map(r=>(
-                  <tr key={r._idx} style={{borderBottom:`1px solid ${T.border}`,opacity:r._hasProduct?1:0.4,background:r._existing?`${T.orange}08`:""}}>
-                    <TD mono><span style={{color:T.gold}}>{r.nHK||"—"}</span></TD>
-                    <TD mono>{r.ifbNo}</TD>
-                    <TD>{r.description}</TD>
-                    <TD mono><span style={{color:T.gold}}>{r.dapFinal>0?`€ ${r.dapFinal.toFixed(2)}`:"—"}</span>{r.dapNote&&<span style={{marginLeft:"4px",fontSize:"9px",color:T.dim}}>({r.dapNote})</span>}</TD>
-                    <TD mono><span style={{color:T.blue}}>{r.mtsPrice>0?`€ ${r.mtsPrice.toFixed(2)}`:"—"}</span></TD>
-                    <TD mono><span style={{color:T.muted}}>{r.fcaDiscounted>0?`€ ${r.fcaDiscounted.toFixed(2)}`:"—"}</span></TD>
-                    <TD>{!r._hasProduct?<Chip label="NOT FOUND" color={T.red}/>:r._existing?<Chip label="AGGIORNA" color={T.orange}/>:<Chip label="NUOVO" color={T.green}/>}</TD>
-                  </tr>
-                ))}</tbody>
+              <table style={{width:"100%", borderCollapse:"collapse"}}>
+                <thead>
+                  <tr>
+                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Codice (dal file)</th>
+                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Descrizione (dal file)</th>
+                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Match Anagrafica</th>
+                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>DAP Final</th>
+                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>MTS Price</th>
+                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>FCA Disc.</th>
+                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Stato</th>
+                   </tr>
+                </thead>
+                <tbody>
+                  {preview.slice(0, 100).map(r => (
+                    <tr key={r._idx} style={{borderBottom:`1px solid ${T.border}`, background: r._hasProduct ? (r._existing ? `${T.orange}08` : T.bg) : `${T.red}08`}}>
+                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.gold}}>{r.ifbNo_from_file}</span></td>
+                      <td style={{padding:"7px 12px", fontSize:"12px"}}>{r.description_from_file || "—"}</td>
+                      <td style={{padding:"7px 12px", fontSize:"12px"}}>{r._hasProduct ? <span style={{color: T.green}}>✓ {r.ifbNo_from_anag}</span> : <span style={{color: T.red}}>✗ non trovato</span>}</td>
+                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.gold}}>{r.dapFinal > 0 ? `€ ${r.dapFinal.toFixed(2)}` : "—"}</span>{r.dapNote && <span style={{marginLeft:"4px", fontSize:"9px", color:T.dim}}>({r.dapNote})</span>}</td>
+                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.blue}}>{r.mtsPrice > 0 ? `€ ${r.mtsPrice.toFixed(2)}` : "—"}</span></td>
+                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.muted}}>{r.fcaDiscounted > 0 ? `€ ${r.fcaDiscounted.toFixed(2)}` : "—"}</span></td>
+                      <td style={{padding:"7px 12px", fontSize:"12px"}}>
+                        {!r._hasProduct ? <span style={{color:T.red, fontSize:"10px"}}>❌ NON IN ANAGRAFICA</span> : r._existing ? <span style={{color:T.orange, fontSize:"10px"}}>✏️ AGGIORNAMENTO</span> : <span style={{color:T.green, fontSize:"10px"}}>🆕 NUOVO</span>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
               </table>
             </div>
+            {preview.length > 100 && (
+              <div style={{padding:"12px", textAlign:"center", color:T.muted, fontSize:"11px"}}>
+                Mostrati primi 100 su {preview.length} risultati
+              </div>
+            )}
           </Section>
         </div>
       )}
@@ -881,6 +1067,7 @@ function ImportBC({products,setProducts,importLogs,setImportLogs,snapshots,setSn
       category:mapBCVal("category",r.category), uom:mapBCVal("uom",r.uom),
       qtyPerBox:parseFloat(r.qtyPerBox)||0, boxPerPallet:parseFloat(r.boxPerPallet)||0,
       kgPerBox:parseFloat(r.kgPerBox)||0, temperature:mapBCVal("temperature",r.temperature),
+      kgxplt: parseFloat(r.kgxplt) || roundN((parseFloat(r.kgPerBox)||0) * (parseFloat(r.boxPerPallet)||0)),
       active:!["true","1","yes"].includes(String(r.active||"").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
@@ -1141,39 +1328,69 @@ function AirListPage({airList,setAirList,products,xrefs,snapshots,setSnapshots,i
 }
 
 // ─── DASHBOARD ────────────────────────────────────────────────────────────────
-function Dashboard({costRows,branch,month,setPage}) {
+
+// ─── DASHBOARD (CORRETTO) ────────────────────────────────────────────────────────────────
+function Dashboard({costRows, branch, month, navigate}) {
   const flagged = costRows.filter(r=>r.cost?.step2Hkd!=null&&r.prevCost?.step2Hkd!=null&&r.prevCost.step2Hkd>0&&Math.abs((r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd)>=0.03);
   const air      = costRows.filter(r=>r.isAir);
   const noPrice  = costRows.filter(r=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
   const noLog    = costRows.filter(r=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
   const calcZero = costRows.filter(r=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
 
-  return(
+  const STATS = [
+    { n: costRows.filter(r=>r.cost?.step2Hkd!=null).length, label:"Costi calcolati",        color:T.green,  page:"costs",       filter:null       },
+    { n: flagged.length,                                      label:"Variazioni ≥3%",         color:T.orange, page:"costs",       filter:"flagged"  },
+    { n: air.length,                                          label:"AIR (esclusi)",           color:T.blue,   page:"air",         filter:null       },
+    { n: noPrice.length,                                      label:"Senza prezzo",            color:T.red,    page:"importPrice", filter:null       },
+    { n: noLog.length,                                        label:"No logistica",            color:T.red,    page:"logistics",   filter:"missing"  },
+    { n: calcZero.length,                                     label:"Calc=0 (check UOM/qty)", color:T.orange, page:"costs",       filter:"errors"   },
+  ];
+
+  return (
     <div>
-      <PageHeader title={`Dashboard · ${branch} · ${month}`} sub="Solo articoli INALCA FOOD &amp; BEVERAGE · SEA"/>
+      <PageHeader title={`Dashboard · ${branch} · ${month}`} sub="Solo articoli INALCA FOOD & BEVERAGE · SEA"/>
       <div style={{display:"flex",gap:"12px",marginBottom:"20px",flexWrap:"wrap"}}>
-        {[[costRows.filter(r=>r.cost?.step2Hkd!=null).length,"Costi calcolati",T.green],[flagged.length,"Variazioni ≥3%",T.orange],[air.length,"AIR (esclusi)",T.blue],[noPrice.length,"Senza prezzo",T.red],[noLog.length,"No logistica",T.red],[calcZero.length,"Calc=0 (check UOM/qty)",T.orange]].map(([n,l,c])=>(
-          <div key={l} style={{padding:"12px 20px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"8px",minWidth:"120px"}}>
-            <div style={{fontSize:"22px",fontWeight:"bold",color:c}}>{n}</div>
-            <div style={{fontSize:"11px",color:T.dim,marginTop:"2px"}}>{l}</div>
-          </div>
+        {STATS.map(({n,label,color,page,filter})=>(
+          <button key={label} onClick={()=>navigate(page, filter)}
+            style={{padding:"12px 20px",background:T.card,border:`1px solid ${color}44`,borderRadius:"8px",
+              minWidth:"130px",cursor:"pointer",fontFamily:"inherit",textAlign:"left",transition:"all 0.2s"}}
+            onMouseEnter={e=>{e.currentTarget.style.borderColor=color;e.currentTarget.style.background=`${color}10`;}}
+            onMouseLeave={e=>{e.currentTarget.style.borderColor=`${color}44`;e.currentTarget.style.background=T.card;}}>
+            <div style={{fontSize:"22px",fontWeight:"bold",color}}>{n}</div>
+            <div style={{fontSize:"11px",color:T.dim,marginTop:"2px"}}>{label}</div>
+            <div style={{fontSize:"9px",color:`${color}99`,marginTop:"4px"}}>→ vai alla pagina</div>
+          </button>
         ))}
       </div>
+
       {flagged.length>0&&(
         <Section title={`${flagged.length} articoli con variazione ≥ ±3%`} accent={T.orange}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["N HK","IFB No","Descrizione","Prec. HKD","Nuovo HKD","Δ%"]}/>
-            <tbody>{flagged.map((r,i)=>{
-              const pct=(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100;
-              return<tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
-                <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
-                <TD>{r.description}</TD>
-                <TD mono>{r.prevCost.step2Hkd.toFixed(2)}</TD>
-                <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost.step2Hkd.toFixed(2)}</span></TD>
-                <TD><span style={{color:pct>0?T.red:T.green,fontWeight:"bold"}}>{pct>0?"+":""}{pct.toFixed(1)}%</span></TD>
-              </tr>;
-            })}</tbody>
+            <thead>
+              <tr>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>N HK</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>IFB No</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Descrizione</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Prec. HKD</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Nuovo HKD</th>
+                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Δ%</th>
+              </tr>
+            </thead>
+            <tbody>
+              {flagged.map((r,i)=>{
+                const pct=(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100;
+                return(
+                  <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
+                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.code}</span></td>
+                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px"}}>{r.description}</td>
+                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px", fontFamily:"monospace"}}>{r.prevCost.step2Hkd.toFixed(2)}</td>
+                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost.step2Hkd.toFixed(2)}</span></td>
+                    <td style={{padding:"7px 12px", borderBottom:`1px solid ${T.border}`, fontSize:"12px"}}><span style={{color:pct>0?T.red:T.green,fontWeight:"bold"}}>{pct>0?"+":""}{pct.toFixed(1)}%</span></td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         </Section>
       )}
@@ -1182,103 +1399,80 @@ function Dashboard({costRows,branch,month,setPage}) {
   );
 }
 
-// ─── PRODUCTS ─────────────────────────────────────────────────────────────────
-function Products({products}) {
-  const[search,setSearch]=useState("");
-  const[onlyIFB,setOnlyIFB]=useState(true);
-  const base = onlyIFB ? products.filter(p=>isIFBVendor(p.vendorName)) : products;
-  const filtered = base.filter(p=>!search||p.description?.toLowerCase().includes(search.toLowerCase())||p.code?.includes(search)||p.nHK?.includes(search));
-  return(
-    <div>
-      <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli totali · ${products.filter(p=>isIFBVendor(p.vendorName)).length} INALCA F&B`}/>
-      <div style={{display:"flex",gap:"10px",marginBottom:"12px",alignItems:"center"}}>
-        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca per codice o descrizione…"/>
-        <button onClick={()=>setOnlyIFB(v=>!v)} style={{padding:"6px 14px",background:onlyIFB?T.gold:T.surface,color:onlyIFB?"#000":T.gold,border:`1px solid ${T.gold}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",whiteSpace:"nowrap"}}>
-          {onlyIFB?"Solo IFB":"Tutti i vendor"}
-        </button>
-      </div>
-      <Section title={`${filtered.length} articoli${onlyIFB?" (INALCA F&B)":""}`}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["N HK","IFB No","Descrizione","Vendor","Categoria","UOM","Qty/Box","Box/Plt","Kg/Box","Temp","Attivo"]}/>
-            <tbody>{filtered.map((p,i)=>(
-              <tr key={p.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                <TD mono><span style={{color:T.muted}}>{p.nHK||"—"}</span></TD>
-                <TD mono><span style={{color:T.gold}}>{p.code}</span></TD>
-                <TD>{p.description}</TD>
-                <TD><span style={{fontSize:"10px",color:isIFBVendor(p.vendorName)?T.gold:T.dim}}>{p.vendorName||"—"}</span></TD>
-                <TD><Chip label={p.category||"—"} color={p.category==="WINE"?T.purple:p.category==="MEAT"?T.red:p.category==="SPIRITS"?T.orange:T.blue}/></TD>
-                <TD>{p.uom}</TD><TD mono>{p.qtyPerBox}</TD><TD mono>{p.boxPerPallet}</TD><TD mono>{p.kgPerBox||"—"}</TD>
-                <TD><Chip label={p.temperature||"—"} color={p.temperature==="FROZEN"?T.blue:p.temperature==="FRESH"?T.green:T.muted}/></TD>
-                <TD><Chip label={p.active?"Sì":"No"} color={p.active?T.green:T.red}/></TD>
-              </tr>
-            ))}</tbody>
-          </table>
-        </div>
-      </Section>
-    </div>
-  );
-}
-
 // ─── LOGISTICS ────────────────────────────────────────────────────────────────
-function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportTs}) {
+function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportTs, initFilter}) {
   const[search,setSearch]=useState("");
-  const[showOnlyMissing,setShowOnlyMissing]=useState(false);
+  const[showOnlyMissing,setShowOnlyMissing]=useState(initFilter==="missing");
   const[mapStep,setMapStep]=useState("idle");
   const[logHeaders,setLogHeaders]=useState([]);
   const[logRawRows,setLogRawRows]=useState([]);
-  // Store column indices in React state (NOT window) to avoid stale reference bug
   const[colIdx,setColIdx]=useState({});
 
-  // Only IFB vendor products for logistics
   const allIFBProducts = products.filter(p=>isIFBVendor(p.vendorName));
 
-  function getLog(productId) { return logistics.find(l=>l.productId===productId&&l.branch===branch)||null; }
-  function getOrDefault(productId) {
-    return getLog(productId)||{productId,branch,area:"NORD",ubicazione:"MTO",pltPerContainer:20,hasCert:false,hasAlcTax:false,alcTax:0,convFactor:1,carriage:0};
+  function getLog(productId) { 
+    return logistics.find(l=>l.productId===productId && l.branch===branch) || null; 
   }
-  function update(productId,field,rawVal) {
-    const val=["ubicazione","area"].includes(field)?rawVal:["hasCert","hasAlcTax"].includes(field)?rawVal==="true":parseFloat(rawVal)||0;
-    const existing=getLog(productId);
-    let next;
-    if(existing){next=logistics.map(l=>l.productId===productId&&l.branch===branch?{...l,[field]:val}:l);}
-    else{next=[...logistics,{...getOrDefault(productId),[field]:val}];}
-    setLogistics(next);LS.set("ifb_logistics",next);
+  
+  function getOrDefault(productId) {
+    return getLog(productId) || {productId, branch, area:"NORD", ubicazione:"MTO", pltPerContainer:20, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0};
+  }
+  
+  function update(productId, field, rawVal) {
+    const existing = getLog(productId);
+    if(existing) {
+      showToast(`❌ ${field} non modificabile: dato importato da Work_tab`, T.red);
+      return;
+    }
+    const val = ["ubicazione","area"].includes(field) ? rawVal : 
+                ["hasCert","hasAlcTax"].includes(field) ? (rawVal === "true") : 
+                (parseFloat(rawVal) || 0);
+    const next = [...logistics, {...getOrDefault(productId), [field]: val}];
+    setLogistics(next);
+    LS.set("ifb_logistics", next);
   }
 
   function parseLogFile(e) {
-    const file=e.target.files?.[0]; if(!file) return;
-    const reader=new FileReader();
-    reader.onload=ev=>{
-      try{
-        const wb=XLSX.read(ev.target.result,{type:"binary"});
-        const ws=wb.Sheets[wb.SheetNames[0]];
-        const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:""});
-        let headerRowIdx=raw.findIndex(r=>r.some(c=>String(c||"").toLowerCase().includes("ubicazione")));
-        if(headerRowIdx<0) headerRowIdx=0;
-        const hdrs=raw[headerRowIdx].map(h=>String(h||"").trim());
-        const dataRows=raw.slice(headerRowIdx+1).filter(r=>r.some(c=>c!==""));
-        const fi=aliases=>hdrs.findIndex(h=>aliases.some(a=>h.toLowerCase().replace(/[\s_°]/g,"").includes(a.replace(/[\s_°]/g,""))));
-        const idx={
-          iNHK:    fi(["nhk","n hk","gc"]),
-          iIFB:    fi(["no_(ifb)","noifb","ifb","no_"]),
-          iUb:     fi(["ubicazione","location","wh"]),
-          iArea:   fi(["area"]),
-          iPlt:    fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt"]),
-          iCert:   fi(["healthcertificate","health certificate","cert"]),
-          iTemp:   fi(["rettificata","temperature","temp","trettificata"]),
-          iCarriage:fi(["pltcostmedio","plt cost medio","pltcost","carriage"]),
+    const file = e.target.files?.[0]; 
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read(ev.target.result, {type:"binary"});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const raw = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        
+        let headerRowIdx = raw.findIndex(r => r.some(c => String(c||"").toLowerCase().includes("ubicazione")));
+        if(headerRowIdx < 0) headerRowIdx = 0;
+        
+        const hdrs = raw[headerRowIdx].map(h => String(h||"").trim());
+        const dataRows = raw.slice(headerRowIdx+1).filter(r => r.some(c => c !== ""));
+        
+        const fi = aliases => hdrs.findIndex(h => aliases.some(a => h.toLowerCase().replace(/[\s_°]/g,"").includes(a.replace(/[\s_°]/g,""))));
+        
+        const idx = {
+          iNHK: fi(["nhk","n hk","gc"]),
+          iIFB: fi(["no_(ifb)","noifb","ifb","no_"]),
+          iUb: fi(["ubicazione","location","wh"]),
+          iArea: fi(["area"]),
+          iPlt: fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt"]),
+          iCert: fi(["healthcertificate","health certificate","cert"]),
+          iTemp: fi(["rettificata","temperature","temp","trettificata"]),
+          iCarriage: fi(["pltcostmedio","plt cost medio","pltcost","carriage"]),
           iAirSea: fi(["air/sea","airsea","air","sea"]),
           iAlcTax: fi(["tassa alcolica","tassaalcolica","alcolica","alctax","alc tax"]),
         };
         setColIdx(idx);
-        setLogHeaders(hdrs);setLogRawRows(dataRows);
+        setLogHeaders(hdrs);
+        setLogRawRows(dataRows);
         setMapStep("ready");
-        showToast(`File caricato: ${dataRows.length} righe`,T.gold);
-      }catch(err){showToast("Errore: "+err.message,T.red);}
+        showToast(`File caricato: ${dataRows.length} righe`, T.gold);
+      } catch(err) { 
+        showToast("Errore: "+err.message, T.red); 
+      }
     };
     reader.readAsBinaryString(file);
-    e.target.value="";
+    e.target.value = "";
   }
 
   function applyLogFile() {
@@ -1287,12 +1481,12 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
     let next = [...logistics];
     let countLog = 0;
     let countAir = 0;
-  
+    const currentBranch = branch;
+
     logRawRows.forEach(row => {
       const nHK = String(row[iNHK >= 0 ? iNHK : 99] || "").trim();
       const ifbNo = String(row[iIFB >= 0 ? iIFB : 99] || "").trim();
       
-      // SKIP: non sono prodotti IFB (filtro per branch)
       if (!nHK && !ifbNo) return;
       
       const prod = products.find(p => 
@@ -1300,18 +1494,16 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
         (ifbNo && (p.code === ifbNo || p.id === ifbNo))
       );
       if (!prod) return;
-      
-      // SKIP: solo prodotti con vendor INALCA FOOD & BEVERAGE
       if (!isIFBVendor(prod.vendorName)) return;
-  
+
       const ub = String(row[iUb >= 0 ? iUb : 99] || "").trim().toUpperCase();
+      if (!["MTO", "MTS", "FOR"].includes(ub)) return;
+      
       const area = String(row[iArea >= 0 ? iArea : 99] || "NORD").trim().toUpperCase();
       
-      // Temperatura da colonna "T° RETTIFICATA"
       const tempRaw = String(row[iTemp >= 0 ? iTemp : 99] || "").trim().toUpperCase();
       const temp = tempRaw === "FRESH" ? "FRESH" : tempRaw === "FROZEN" ? "FROZEN" : "DRY";
       
-      // PLT per container: se 0 usa formula
       const pltRaw = parseFloat(row[iPlt >= 0 ? iPlt : 99]) || 0;
       const plt = pltRaw > 0 ? pltRaw : (temp === "DRY" ? 25 : (temp === "FRESH" || temp === "FROZEN") ? 23 : 20);
       
@@ -1322,16 +1514,14 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
       const alcRaw = String(row[iAlcTax >= 0 ? iAlcTax : 99] || "").trim().toUpperCase();
       const hasAlcTax = alcRaw === "SI" || alcRaw === "YES" || alcRaw === "TRUE";
       
-      if (airSea === "AIR") { countAir++; }
-      if (!["MTO", "MTS", "FOR"].includes(ub)) return;
+      if (airSea === "AIR") countAir++;
       
       const areaFixed = ["NORD", "CENTRO", "SUD"].includes(area) ? area : "NORD";
       
-      // IMPORTANTE: filtro per branch corrente
-      const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === branch);
+      const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
       const entry = {
         productId: prod.id,
-        branch,  // <-- assegna il branch corrente
+        branch: currentBranch,
         area: areaFixed,
         ubicazione: ub,
         pltPerContainer: plt,
@@ -1349,257 +1539,262 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
       }
       countLog++;
     });
-    
 
-    function applyLogFile() {
-      const idx = colIdx;
-      const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iAlcTax } = idx;
-      let next = [...logistics];
-      let countLog = 0;
-      let countAir = 0;
-      
-      // DEBUG: controlla branch
-      console.log("=== DEBUG applyLogFile ===");
-      console.log("Branch corrente:", branch);
-      console.log("Prodotti IFB disponibili:", products.filter(p => isIFBVendor(p.vendorName)).length);
-      console.log("Righe file:", logRawRows.length);
-    
-      logRawRows.forEach((row, idxRow) => {
-        const nHK = String(row[iNHK >= 0 ? iNHK : 99] || "").trim();
-        const ifbNo = String(row[iIFB >= 0 ? iIFB : 99] || "").trim();
-        
-        console.log(`Riga ${idxRow}: nHK="${nHK}", ifbNo="${ifbNo}"`);
-        
-        if (!nHK && !ifbNo) {
-          console.log(`  → SKIP: nessun codice`);
-          return;
-        }
-        
-        const prod = products.find(p => 
-          (nHK && (p.nHK === nHK || p.code === nHK)) || 
-          (ifbNo && (p.code === ifbNo || p.id === ifbNo))
-        );
-        
-        if (!prod) {
-          console.log(`  → SKIP: prodotto non trovato per ${nHK || ifbNo}`);
-          return;
-        }
-        
-        console.log(`  → TROVATO: ${prod.code} - ${prod.description}`);
-        
-        // SKIP: solo prodotti con vendor INALCA FOOD & BEVERAGE
-        if (!isIFBVendor(prod.vendorName)) {
-          console.log(`  → SKIP: vendor non IFB (${prod.vendorName})`);
-          return;
-        }
-    
-        const ub = String(row[iUb >= 0 ? iUb : 99] || "").trim().toUpperCase();
-        console.log(`  → Ubicazione: ${ub}`);
-        
-        if (!["MTO", "MTS", "FOR"].includes(ub)) {
-          console.log(`  → SKIP: ubicazione non valida (${ub})`);
-          return;
-        }
-        
-        const area = String(row[iArea >= 0 ? iArea : 99] || "NORD").trim().toUpperCase();
-        
-        // Temperatura da colonna "T° RETTIFICATA"
-        const tempRaw = String(row[iTemp >= 0 ? iTemp : 99] || "").trim().toUpperCase();
-        const temp = tempRaw === "FRESH" ? "FRESH" : tempRaw === "FROZEN" ? "FROZEN" : "DRY";
-        
-        // PLT per container: se 0 usa formula
-        const pltRaw = parseFloat(row[iPlt >= 0 ? iPlt : 99]) || 0;
-        const plt = pltRaw > 0 ? pltRaw : (temp === "DRY" ? 25 : (temp === "FRESH" || temp === "FROZEN") ? 23 : 20);
-        
-        const certRaw = String(row[iCert >= 0 ? iCert : 99] || "").trim().toUpperCase();
-        const hasCert = certRaw === "SI" || certRaw === "YES" || certRaw === "TRUE";
-        const carriage = parseFloat(row[iCarriage >= 0 ? iCarriage : 99]) || 0;
-        const airSea = String(row[iAirSea >= 0 ? iAirSea : 99] || "").trim().toUpperCase();
-        const alcRaw = String(row[iAlcTax >= 0 ? iAlcTax : 99] || "").trim().toUpperCase();
-        const hasAlcTax = alcRaw === "SI" || alcRaw === "YES" || alcRaw === "TRUE";
-        
-        if (airSea === "AIR") { 
-          countAir++; 
-        }
-        
-        const areaFixed = ["NORD", "CENTRO", "SUD"].includes(area) ? area : "NORD";
-        
-        const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === branch);
-        console.log(`  → existIdx: ${existIdx}, branch: ${branch}`);
-        
-        const entry = {
-          productId: prod.id,
-          branch,
-          area: areaFixed,
-          ubicazione: ub,
-          pltPerContainer: plt,
-          hasCert,
-          hasAlcTax,
-          alcTax: 0,
-          convFactor: 1,
-          carriage
-        };
-        
-        console.log(`  → ENTRY CREATA:`, entry);
-        
-        if (existIdx >= 0) {
-          next[existIdx] = { ...next[existIdx], ...entry };
-        } else {
-          next.push(entry);
-        }
-        countLog++;
-      });
-      
-      console.log("=== RISULTATO FINALE ===");
-      console.log("countLog:", countLog);
-      console.log("next length:", next.length);
-      console.log("next per questo branch:", next.filter(l => l.branch === branch).length);
-      
-      setLogistics(next);
-      LS.set("ifb_logistics", next);
-      if (countAir > 0) showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
-      bumpImportTs();
-      showToast(`Logistica aggiornata: ${countLog} prodotti ✓`, T.gold);
-      setMapStep("idle");
-      setLogHeaders([]);
-      setLogRawRows([]);
-    }
     setLogistics(next);
     LS.set("ifb_logistics", next);
     if (countAir > 0) showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
     bumpImportTs();
-    showToast(`Logistica aggiornata: ${countLog} prodotti ✓`, T.gold);
+    showToast(`Logistica aggiornata: ${countLog} prodotti per ${currentBranch} ✓`, T.gold);
     setMapStep("idle");
     setLogHeaders([]);
     setLogRawRows([]);
   }
 
-  const allProds=allIFBProducts.filter(p=>!search||p.description?.toLowerCase().includes(search.toLowerCase())||p.code?.includes(search));
-  // MOSTRA solo prodotti che hanno logistica per QUESTO branch (quando showOnlyMissing è false)
-  const displayed=showOnlyMissing 
-    ? allProds.filter(p=>!getLog(p.id))   // solo quelli SENZA logistica
-    : allProds.filter(p=>getLog(p.id) !== null);  // solo quelli CON logistica per questo branch
-  const missingCount=allIFBProducts.filter(p=>!getLog(p.id)).length;
-  const withCount=allIFBProducts.filter(p=>getLog(p.id) !== null).length;
+  const allProds = allIFBProducts.filter(p => !search || p.description?.toLowerCase().includes(search.toLowerCase()) || p.code?.includes(search));
+  const displayed = showOnlyMissing 
+    ? allProds.filter(p => !getLog(p.id))
+    : allProds;
+  const missingCount = allIFBProducts.filter(p => !getLog(p.id)).length;
+  const withCount = allIFBProducts.filter(p => getLog(p.id) !== null).length;
 
   return(
     <div>
-      <PageHeader title={`Logistica · ${branch}`} sub={`${withCount} con logistica · ${missingCount} senza logistica (totale ${allIFBProducts.length} IFB)`}/>
-      {mapStep==="idle"?(
-        <div style={{marginBottom:"16px",display:"flex",gap:"10px",alignItems:"center"}}>
-          <label style={{display:"inline-block",padding:"8px 16px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.text}}>
+      <PageHeader title={`Logistica · ${branch}`} sub={`${withCount} con logistica (read-only) · ${missingCount} senza logistica (modificabili) — totale ${allIFBProducts.length} IFB`}/>
+      
+      <div style={{fontSize:"11px",color:T.muted,marginBottom:"10px",padding:"6px 10px",
+        background:`${T.gold}08`,borderRadius:"6px",border:`1px solid ${T.gold}22`}}>
+        🔒 Righe <strong style={{color:T.gold}}>dorate</strong> = importate da Work_tab (sola lettura) &nbsp;·&nbsp;
+        🟠 Righe arancioni = senza logistica (modificabili)
+      </div>
+
+      {mapStep === "idle" ? (
+        <div style={{marginBottom:"16px", display:"flex", gap:"10px", alignItems:"center", flexWrap:"wrap"}}>
+          <label style={{display:"inline-block", padding:"8px 16px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", color:T.text}}>
             📂 Carica Work_tab (08_Work_Tab.xlsx)
             <input type="file" accept=".xlsx,.xls,.csv" onChange={parseLogFile} style={{display:"none"}}/>
           </label>
-          <span style={{fontSize:"11px",color:T.muted}}>Colonne: N HK / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
+          <span style={{fontSize:"11px", color:T.muted}}>Colonne: N HK / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
         </div>
-      ):mapStep==="ready"?(
-        <div style={{background:T.card,border:`1px solid ${T.green}`,borderRadius:"8px",padding:"16px",marginBottom:"16px"}}>
-          <div style={{color:T.green,fontWeight:"bold",fontSize:"13px",marginBottom:"8px"}}>✓ File rilevato · {logRawRows.length} righe</div>
-          <div style={{fontSize:"12px",color:T.muted,marginBottom:"12px",lineHeight:"1.8"}}>
-            Verranno importati: <strong style={{color:T.text}}>Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica</strong>
+      ) : mapStep === "ready" ? (
+        <div style={{background:T.card, border:`1px solid ${T.green}`, borderRadius:"8px", padding:"16px", marginBottom:"16px"}}>
+          <div style={{color:T.green, fontWeight:"bold", fontSize:"13px", marginBottom:"8px"}}>✓ File rilevato · {logRawRows.length} righe</div>
+          <div style={{fontSize:"12px", color:T.muted, marginBottom:"12px", lineHeight:"1.8"}}>
+            Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica
           </div>
-          <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="← Annulla" onClick={()=>setMapStep("idle")}/>
-            <ActionBtn label={`✓ Importa logistica (${logRawRows.length} righe)`} onClick={applyLogFile} primary/>
+          <div style={{display:"flex", gap:"10px"}}>
+            <ActionBtn label="← Annulla" onClick={() => setMapStep("idle")}/>
+            <ActionBtn label={`✓ Importa logistica per ${branch} (${logRawRows.length} righe)`} onClick={applyLogFile} primary/>
           </div>
         </div>
-      ):null}
+      ) : null}
 
-      <div style={{display:"flex",gap:"10px",marginBottom:"12px",alignItems:"center"}}>
+      <div style={{display:"flex", gap:"10px", marginBottom:"12px", alignItems:"center", flexWrap:"wrap"}}>
         <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto IFB…"/>
-        <button onClick={()=>setShowOnlyMissing(v=>!v)}
-          style={{padding:"6px 14px",background:showOnlyMissing?T.orange:T.surface,color:showOnlyMissing?"#000":T.orange,border:`1px solid ${T.orange}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",whiteSpace:"nowrap"}}>
-          ⚠ Solo senza logistica ({missingCount})
+        <button onClick={() => setShowOnlyMissing(v => !v)}
+          style={{padding:"6px 14px", background:showOnlyMissing ? T.orange : T.surface, color:showOnlyMissing ? "#000" : T.orange, border:`1px solid ${T.orange}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap", fontWeight:showOnlyMissing ? "bold" : "normal"}}>
+          {showOnlyMissing ? `✓ Mostra tutti (${displayed.length})` : `⚠ Solo senza logistica (${missingCount})`}
         </button>
+        <span style={{fontSize:"11px", color:T.muted}}>
+          {showOnlyMissing ? `Mostrando ${displayed.length} prodotti SENZA logistica` : `Mostrando TUTTI i ${displayed.length} prodotti IFB`}
+        </span>
       </div>
 
-      {missingCount>0&&<div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
-        ⚠ {missingCount} prodotti IFB senza parametri logistici → Standard Cost non calcolabile. Carica Work_tab o imposta manualmente.
-      </div>}
+      {missingCount > 0 && !showOnlyMissing && (
+        <div style={{background:`${T.orange}15`, border:`1px solid ${T.orange}44`, borderRadius:"6px", padding:"10px 14px", marginBottom:"14px", fontSize:"12px", color:T.orange}}>
+          ⚠ {missingCount} prodotti IFB senza parametri logistici per {branch} → Standard Cost non calcolabile.
+        </div>
+      )}
 
-      <div style={{overflowX:"auto"}}>
-        <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
-          <THead cols={["IFB No","N HK","Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."]}/>
-          <tbody>{displayed.map((prod,i)=>{
-            const l=getOrDefault(prod.id);
-            const hasEntry=!!getLog(prod.id);
-            return<tr key={prod.id} style={{borderBottom:`1px solid ${T.border}`,background:!hasEntry?`${T.orange}08`:i%2===0?T.bg:T.surface}}>
-              <TD mono><span style={{color:T.gold}}>{prod.code}</span></TD>
-              <TD mono><span style={{color:T.muted}}>{prod.nHK||"—"}</span></TD>
-              <TD>{prod.description}{!hasEntry&&<span style={{marginLeft:"6px",fontSize:"9px",color:T.orange}}>⚠ nuovo</span>}</TD>
-              <td style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}>
-                <select value={l.ubicazione||"MTO"} onChange={e=>update(prod.id,"ubicazione",e.target.value)}
-                  style={{background:T.card,color:T.gold,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px"}}>
-                  {["MTO","MTS","FOR"].map(v=><option key={v} value={v}>{v}</option>)}
-                </select>
-              </td>
-              <td style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}>
-                <select value={l.area||"NORD"} onChange={e=>update(prod.id,"area",e.target.value)}
-                  style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px"}}>
-                  {["NORD","CENTRO","SUD"].map(v=><option key={v} value={v}>{v}</option>)}
-                </select>
-              </td>
-              {[["pltPerContainer",l.pltPerContainer],["hasCert",l.hasCert,"bool"],["hasAlcTax",l.hasAlcTax,"bool"],["carriage",l.carriage],["convFactor",l.convFactor]].map(([field,val,type])=>(
-                <td key={field} style={{padding:"4px 8px",borderBottom:`1px solid ${T.border}`}}>
-                  {type==="bool"?(
-                    <select value={String(val||false)} onChange={e=>update(prod.id,field,e.target.value)}
-                      style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px"}}>
-                      <option value="false">No</option><option value="true">Sì</option>
-                    </select>
-                  ):(
-                    <input type="number" defaultValue={val||0} key={prod.id+field+(val||0)}
-                      onBlur={e=>update(prod.id,field,e.target.value)}
-                      style={{width:"60px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"12px"}}/>
-                  )}
-                </td>
-              ))}
-            </tr>;
-          })}</tbody>
-        </table>
-      </div>
+      {displayed.length === 0 && showOnlyMissing && (
+        <div style={{padding:"32px", textAlign:"center", background:`${T.green}11`, borderRadius:"8px", color:T.green, fontSize:"13px"}}>
+          ✅ PERFETTO! Tutti i {allIFBProducts.length} prodotti IFB hanno parametri logistici per {branch}!
+        </div>
+      )}
+
+      {displayed.length > 0 && (
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
+            <thead>
+              <tr>
+                {["IFB No","N HK","Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."].map(c => (
+                  <th key={c} style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.map((prod, i) => {
+                const l = getOrDefault(prod.id);
+                const hasEntry = !!getLog(prod.id);
+                return (
+                  <tr key={prod.id} style={{borderBottom:`1px solid ${T.border}`, background:!hasEntry ? `${T.orange}08` : (i%2===0 ? T.bg : T.surface)}}>
+                    <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.gold}}>{prod.code}</span></td>
+                    <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.muted}}>{prod.nHK||"—"}</span></td>
+                    <td style={{padding:"7px 12px", fontSize:"12px"}}>
+                      {prod.description}
+                      {!hasEntry && <span style={{marginLeft:"6px", fontSize:"9px", color:T.orange, fontWeight:"bold"}}>⚠ MANCANTE</span>}
+                    </td>
+
+                    {hasEntry ? (
+                      <>
+                        <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"—"}</td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.gold}}>{l.pltPerContainer||"—"}</td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasCert?"Sì":"No"}</td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.dim}}>{l.convFactor||1}</td>
+                      </>
+                    ) : (
+                      <>
+                        <td style={{padding:"7px 12px"}}>
+                          <select value={l.ubicazione||"MTO"} onChange={e=>update(prod.id,"ubicazione",e.target.value)}
+                            style={{background:T.card,color:T.gold,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"70px"}}>
+                            {["MTO","MTS","FOR"].map(v=><option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </td>
+                        <td style={{padding:"7px 12px"}}>
+                          <select value={l.area||"NORD"} onChange={e=>update(prod.id,"area",e.target.value)}
+                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
+                            {["NORD","CENTRO","SUD"].map(v=><option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </td>
+                        <td style={{padding:"7px 12px"}}>
+                          <input type="number" defaultValue={l.pltPerContainer||20}
+                            onBlur={e=>update(prod.id,"pltPerContainer",e.target.value)}
+                            style={{width:"55px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"12px",borderBottom:`1px solid ${T.border}`}}/>
+                        </td>
+                        <td style={{padding:"7px 12px"}}>
+                          <select value={String(l.hasCert||false)} onChange={e=>update(prod.id,"hasCert",e.target.value)}
+                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
+                            <option value="false">No</option><option value="true">Sì</option>
+                          </select>
+                        </td>
+                        <td style={{padding:"7px 12px"}}>
+                          <select value={String(l.hasAlcTax||false)} onChange={e=>update(prod.id,"hasAlcTax",e.target.value)}
+                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
+                            <option value="false">No</option><option value="true">Sì</option>
+                          </select>
+                        </td>
+                        <td style={{padding:"7px 12px"}}>
+                          <input type="number" defaultValue={l.carriage||0}
+                            onBlur={e=>update(prod.id,"carriage",e.target.value)}
+                            style={{width:"55px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"12px",borderBottom:`1px solid ${T.border}`}}/>
+                        </td>
+                        <td style={{padding:"7px 12px"}}>
+                          <input type="number" defaultValue={l.convFactor||1} step="0.01"
+                            onBlur={e=>update(prod.id,"convFactor",e.target.value)}
+                            style={{width:"50px",background:"transparent",color:T.muted,border:"none",textAlign:"right",fontSize:"11px",borderBottom:`1px solid ${T.border}`}}/>
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
 // ─── PRICES ───────────────────────────────────────────────────────────────────
-function Prices({prices,products,branch,month}) {
+// ─── PRICES (con filtro Sales Invoice) ─────────────────────────────────────────────
+function Prices({prices, products, branch, month, setPrices, salesRows=[], xrefs=[]}) {
   const[search,setSearch]=useState("");
-  const filtered=prices.filter(p=>p.branch===branch&&p.month===month);
-  const displayed=filtered.filter(p=>{
-    if(!search) return true;
-    const prod=products.find(pr=>pr.id===p.productId);
-    return prod?.description?.toLowerCase().includes(search.toLowerCase())||prod?.code?.includes(search)||prod?.nHK?.includes(search);
+  const[invoiceOnly,setInvoiceOnly]=useState(false);
+
+  const invoiceProductIds = useMemo(()=>{
+    const s=new Set();
+    (salesRows||[]).forEach(r=>{
+      const prod=findProduct(r.itemCode, products, xrefs);
+      if(prod) s.add(prod.id);
+    });
+    return s;
+  },[salesRows, products, xrefs]);
+
+  const filtered=prices.filter(p=>{
+    if(p.branch!==branch||p.month!==month) return false;
+    if(/^P_BC_/i.test(p.productId)) return false;
+    if(invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
+    return true;
   });
+
+  const displayed=filtered.filter(p=>{
+    const prod=products.find(pr=>pr.id===p.productId);
+    if(!search) return true;
+    const q=search.toLowerCase();
+    return prod?.description?.toLowerCase().includes(q)||
+      prod?.code?.toLowerCase().includes(q)||
+      prod?.nHK?.toLowerCase().includes(q)||
+      String(p.productId).toLowerCase().includes(q);
+  });
+
+  const COLS=["fcaPrice","fcaDiscounted","dapPrice","mtsPrice","dapFinal"];
+  const LABELS=["FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Final"];
+
+  if(filtered.length===0&&!invoiceOnly) return(
+    <div>
+      <PageHeader title={`Listini · ${branch} · ${month}`} sub="Nessun prezzo caricato"/>
+      <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
+        Nessun prezzo per {branch} · {month}. Usa "Import Listini".
+      </div>
+    </div>
+  );
+
   return(
     <div>
       <PageHeader title={`Listini · ${branch} · ${month}`} sub={`${filtered.length} prezzi caricati`}/>
-      {filtered.length===0?<div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>Nessun prezzo per {branch} · {month}. Usa "Import Listini".</div>:(
-        <>
-          <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto…"/>
-          <Section title={`${displayed.length} / ${filtered.length} prezzi`}>
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <THead cols={["N HK","IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","DAP Disc.","MTS Price","DAP Final"]}/>
-                <tbody>{displayed.map((p,i)=>{
-                  const prod=products.find(pr=>pr.id===p.productId);
-                  return<tr key={p.productId} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+      <div style={{display:"flex",gap:"10px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto…"/>
+        <button onClick={()=>setInvoiceOnly(v=>!v)}
+          style={{padding:"5px 12px", background:invoiceOnly?`${T.gold}20`:T.surface, color:invoiceOnly?T.gold:T.muted,
+            border:`1px solid ${invoiceOnly?T.gold:T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"11px", whiteSpace:"nowrap"}}>
+          {invoiceOnly ? `✓ Solo fatturati (${displayed.length})` : `📋 Solo Sales Invoice (${invoiceProductIds.size} prod.)`}
+        </button>
+        {setPrices&&(
+          <button onClick={()=>{if(window.confirm(`Eliminare tutti i prezzi ${branch}/${month}?`))
+            setPrices(prices.filter(p=>!(p.branch===branch&&p.month===month)));}}
+            style={{padding:"5px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",
+              color:T.red,cursor:"pointer",fontSize:"11px"}}>✕ Svuota {branch}/{month}
+          </button>
+        )}
+      </div>
+      <Section title={`${displayed.length} prezzi${invoiceOnly?" (solo Sales Invoice)":""}`}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <THead cols={["N HK","IFB No","Descrizione",...LABELS]}/>
+            <tbody>
+              {displayed.slice(0,300).map((p,i)=>{
+                const prod=products.find(pr=>pr.id===p.productId);
+                const inInvoice=invoiceProductIds.has(p.productId);
+                return(
+                  <tr key={p.productId} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
                     <TD mono><span style={{color:T.muted}}>{prod?.nHK||"—"}</span></TD>
-                    <TD mono><span style={{color:T.gold}}>{prod?.code||p.productId}</span></TD>
-                    <TD>{prod?.description||p.productId}</TD>
-                    {["fcaPrice","fcaDiscounted","dapPrice","dapDiscounted","mtsPrice","dapFinal"].map(f=>(
-                      <TD key={f} mono><span style={{color:(p[f]||0)>0?T.text:T.dim}}>{(p[f]||0)>0?`€ ${roundN(p[f]).toFixed(2)}`:"—"}</span></TD>
+                    <TD mono>
+                      <span style={{color:T.gold}}>{prod?.code||p.productId}</span>
+                      {inInvoice&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.blue}}>📋</span>}
+                    </TD>
+                    <TD>{prod?.description||<span style={{color:T.orange,fontSize:"11px"}}>⚠ {p.productId}</span>}</TD>
+                    {COLS.map(f=>(
+                      <TD key={f} mono>
+                        <span style={{color:(p[f]||0)>0?T.text:T.dim}}>
+                          {(p[f]||0)>0?`€ ${roundN(p[f]).toFixed(2)}`:"—"}
+                        </span>
+                      </TD>
                     ))}
-                  </tr>;
-                })}</tbody>
-              </table>
-            </div>
-          </Section>
-        </>
-      )}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        {displayed.length>300&&<div style={{padding:"12px",textAlign:"center",color:T.muted,fontSize:"11px"}}>Mostrati 300/{displayed.length}</div>}
+      </Section>
     </div>
   );
 }
+
 
 // ─── FX RATES ─────────────────────────────────────────────────────────────────
 function FxRates({fx,setFx,branch,month}) {
@@ -1642,10 +1837,27 @@ function FxRates({fx,setFx,branch,month}) {
 }
 
 // ─── COST TABLE ───────────────────────────────────────────────────────────────
-function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,setCostHistory}) {
+// ─── COST TABLE (con ultimo ordine e KEEP OLD) ──────────────────────────────────────
+function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,setCostHistory,initFilter, salesRows=[], products=[], xrefs=[]}) {
   const[search,setSearch]=useState("");
   const[showDetail,setShowDetail]=useState(null);
   const needsRecalc=lastImportTs>lastCalcTs;
+
+  // Calcola data ultimo ordine per ogni prodotto
+  const lastOrderDate = useMemo(()=>{
+    const map={};
+    (salesRows||[]).forEach(row=>{
+      const prod=findProduct(row.itemCode, products, xrefs);
+      if(!prod) return;
+      const d=row.date?new Date(row.date):null;
+      if(!d||isNaN(d)) return;
+      if(!map[prod.id]||d>map[prod.id]) map[prod.id]=d;
+    });
+    return map;
+  }, [salesRows, products, xrefs]);
+
+  const sixMonthsAgo=new Date();
+  sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
 
   function saveSnapshot(){
     const ts=Date.now();
@@ -1654,7 +1866,14 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
     setLastCalcTs(ts);LS.set("ifb_last_calc_ts",ts);
   }
 
-  const filtered=costRows.filter(r=>!search||r.description?.toLowerCase().includes(search.toLowerCase())||r.code?.includes(search)||r.nHK?.includes(search));
+  let filtered = costRows.filter(r=>!search||r.description?.toLowerCase().includes(search.toLowerCase())||r.code?.includes(search)||r.nHK?.includes(search));
+  
+  if(initFilter==="flagged"){
+    filtered = filtered.filter(r=>r.flagged===true);
+  } else if(initFilter==="errors"){
+    filtered = filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
+  }
+
   const calc=filtered.filter(r=>r.cost?.step2Hkd!=null);
   const noPrice=filtered.filter(r=>!r.cost&&!r.isAir&&(r.skipReason?.includes("NO PREZZO")||r.skipReason?.includes("PREZZO=0")));
   const noLog  =filtered.filter(r=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
@@ -1680,22 +1899,32 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
       <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…"/>
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <THead cols={["N HK","IFB No","Descrizione","Prezzo €","Ubicaz.","Step1 HKD","Costo HKD","Δ% vs prec",""]}/>
+          <THead cols={["N HK","IFB No","Descrizione","Prezzo €","Ubicaz.","Step1 HKD","Costo HKD","Δ% vs prec","Ultimo ordine",""]}/>
           <tbody>{filtered.map((r,i)=>{
             const hkd=r.cost?.step2Hkd??null;
             const prevHkd=r.prevCost?.step2Hkd??null;
             const pct=hkd!=null&&prevHkd!=null&&prevHkd>0?(hkd-prevHkd)/prevHkd*100:null;
-            return<tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface,opacity:r.isAir?0.4:1}}>
-              <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
-              <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
-              <TD>{r.description}{r.isAir&&<span style={{marginLeft:"6px",color:T.orange,fontSize:"10px"}}>✈ AIR</span>}</TD>
-              <TD mono>{r.priceInput!=null?`€ ${roundN(r.priceInput).toFixed(2)}`:"—"}</TD>
-              <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
-              <TD mono>{r.cost?.step1Hkd!=null?roundN(r.cost.step1Hkd).toFixed(2):"—"}</TD>
-              <TD mono><span style={{color:hkd!=null?T.gold:T.dim,fontWeight:"bold"}}>{hkd!=null?hkd.toFixed(2):r.skipReason||"—"}</span></TD>
-              <TD><span style={{color:pct==null?T.dim:pct>3?T.red:pct<-3?T.green:T.text}}>{pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}</span></TD>
-              <TD>{r.cost&&<MiniBtn label="+" onClick={()=>setShowDetail(showDetail===r.id?null:r.id)}/>}</TD>
-            </tr>;
+            const lastD=lastOrderDate[r.id];
+            const isOld=lastD && lastD<sixMonthsAgo;
+            return(
+              <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface,opacity:r.isAir?0.4:1}}>
+                <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
+                <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
+                <TD>{r.description}{r.isAir&&<span style={{marginLeft:"6px",color:T.orange,fontSize:"10px"}}>✈ AIR</span>}</TD>
+                <TD mono>{r.priceInput!=null?`€ ${roundN(r.priceInput).toFixed(2)}`:"—"}</TD>
+                <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
+                <TD mono>{r.cost?.step1Hkd!=null?roundN(r.cost.step1Hkd).toFixed(2):"—"}</TD>
+                <TD mono><span style={{color:hkd!=null?T.gold:T.dim,fontWeight:"bold"}}>{hkd!=null?hkd.toFixed(2):r.skipReason||"—"}</span></TD>
+                <TD><span style={{color:pct==null?T.dim:pct>3?T.red:pct<-3?T.green:T.text}}>{pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}</span></TD>
+                <TD>
+                  {!lastD ? <span style={{color:T.dim,fontSize:"11px"}}>—</span> : 
+                    isOld ? <div><span style={{color:T.orange,fontWeight:"bold",fontSize:"10px"}}>⚠ KEEP OLD</span><div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div></div>
+                    : <span style={{color:T.muted,fontSize:"11px"}}>{lastD.toLocaleDateString("it-IT")}</span>
+                  }
+                </TD>
+                <TD>{r.cost&&<MiniBtn label="+" onClick={()=>setShowDetail(showDetail===r.id?null:r.id)}/>}</TD>
+              </tr>
+            );
           })}</tbody>
         </table>
       </div>
@@ -1722,6 +1951,79 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
           </Section>
         );
       })()}
+    </div>
+  );
+}
+
+
+
+// ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
+function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
+  // Filtra fatture: data da 1 mese fa ad oggi
+  const today = new Date();
+  const oneMonthAgo = new Date(today);
+  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+
+  // Raccoglie productId unici dalle Sales Invoice degli ultimi 30 giorni
+  const recentProductIds = new Set(
+    salesRows
+      .filter(r => {
+        const d = r.date ? new Date(r.date) : null;
+        return d && d >= oneMonthAgo && d <= today;
+      })
+      .map(r => {
+        const prod = findProduct(r.itemCode, products, xrefs);
+        return prod?.id || null;
+      })
+      .filter(Boolean)
+  );
+
+  // Associa con i costRows calcolati
+  const rows = costRows.filter(r => recentProductIds.has(r.id));
+  const missing = [...recentProductIds].filter(id => !costRows.find(r=>r.id===id&&r.cost));
+
+  return (
+    <div>
+      <PageHeader
+        title={`Costi su Fatture · ${branch} · ${month}`}
+        sub={`Prodotti ordinati negli ultimi 30gg · ${rows.length} trovati · ${missing.length} senza costo`}
+      />
+      {missing.length > 0 && (
+        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
+          ⚠ {missing.length} prodotti ordinati recentemente NON hanno ancora uno Standard Cost calcolato — verifica listino e logistica.
+        </div>
+      )}
+      <Section title={`${rows.length} prodotti con fattura recente`}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <THead cols={["N HK","IFB No","Descrizione","Ubicaz.","Old HKD","New HKD","Δ%","Note"]}/>
+            <tbody>
+              {rows.map((r,i) => {
+                const newHkd = r.cost?.step2Hkd ?? null;
+                const oldHkd = r.prevCost?.step2Hkd ?? null;
+                const pct = newHkd!=null && oldHkd!=null && oldHkd>0
+                  ? (newHkd-oldHkd)/oldHkd*100 : null;
+                return (
+                  <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                    <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
+                    <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
+                    <TD>{r.description}</TD>
+                    <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
+                    <TD mono><span style={{color:T.muted}}>{oldHkd!=null ? oldHkd.toFixed(2) : "—"}</span></TD>
+                    <TD mono><span style={{color:newHkd!=null?T.gold:T.red,fontWeight:"bold"}}>{newHkd!=null ? newHkd.toFixed(2) : "MANCANTE"}</span></TD>
+                    <TD>
+                      {pct!=null
+                        ? <span style={{color:pct>3?T.red:pct<-3?T.green:T.text,fontWeight:"bold"}}>{pct>0?"+":""}{pct.toFixed(1)}%</span>
+                        : <span style={{color:T.dim}}>{r.isNew?"🆕 Nuovo":"—"}</span>}
+                    </TD>
+                    <TD><span style={{fontSize:"11px",color:T.dim}}>{r.skipReason||""}</span></TD>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </Section>
     </div>
   );
 }
@@ -1753,9 +2055,27 @@ function MailGen({costRows,branch,month}) {
 
 // ─── SALES INVOICE ────────────────────────────────────────────────────────────
 function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
-  const[step,setStep]=useState(rows.length?"view":"upload");
+  // Carica da LS direttamente se il prop è vuoto (es. dopo refresh)
+  const[localRows,setLocalRows]=useState(()=>{
+    if(rows&&rows.length>0) return rows;
+    return LS.get("ifb_sales_invoice",[]);
+  });
+  const[step,setStep]=useState(localRows.length?"view":"upload");
   const[preview,setPreview]=useState([]);
   const[filter,setFilter]=useState("all");
+
+  // Sincronizza se il parent riceve dati dopo il mount
+  useEffect(()=>{
+    if(rows.length>0&&localRows.length===0){
+      setLocalRows(rows); setStep("view");
+    }
+  },[rows]);
+
+  function saveRows(data){
+    setLocalRows(data);
+    setRows(data);
+    LS.set("ifb_sales_invoice",data);
+  }
 
   function parseFile(e) {
     const file=e.target.files?.[0]; if(!file) return;
@@ -1766,36 +2086,49 @@ function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshot
         const ws=wb.Sheets[wb.SheetNames[0]];
         const data=XLSX.utils.sheet_to_json(ws,{defval:""});
         if(!data.length){showToast("File vuoto",T.red);return;}
-        const norm=s=>String(s||"").toLowerCase().replace(/[\s_]/g,"");
+        const norm=s=>String(s||"").toLowerCase().replace(/[\s_()\-\.]/g,"");
         const firstRow=data[0];
         const km={};
+
         for(const k of Object.keys(firstRow)){
           const n=norm(k);
-          if(n.includes("description")||n.includes("descrizione")) km.description=k;
-          else if(n.includes("amount")||n.includes("importo"))     km.amount=k;
-          else if(n.includes("location")||n.includes("ubicazione"))km.location=k;
-          else if((n.includes("no")||n.includes("code")||n.includes("item"))&&!km.itemCode) km.itemCode=k;
-          else if(n.includes("date")||n.includes("data"))          km.date=k;
+          if(!km.description&&(n.includes("description")||n.includes("descrizione"))) km.description=k;
+          else if(!km.amount&&(
+            n==="amount"||n==="importo"||
+            n.includes("netamount")||n.includes("importonetto")||
+            n.includes("lineamount")||n.includes("lineamt")||
+            n.includes("amountlcy")||n.includes("saleslcy")||
+            n.includes("imponibile")||n.includes("totalrow")||
+            n.includes("nettovalore")||n.includes("valore")||
+            (n.includes("amount")&&!n.includes("vat")&&!n.includes("tax"))
+          )) km.amount=k;
+          else if(!km.location&&(n.includes("location")||n.includes("ubicazione")||n.includes("warehouse")||n.includes("magazzino"))) km.location=k;
+          else if(!km.itemCode&&(n==="no"||n==="no_"||n.includes("itemno")||n.includes("codice")||n.includes("code"))) km.itemCode=k;
+          else if(!km.date&&(n.includes("date")||n.includes("data")||n.includes("postingdate")||n.includes("invoicedate"))) km.date=k;
+          else if(!km.qty&&(n==="qty"||n==="quantity"||n.includes("qtà")||n.includes("quantita"))) km.qty=k;
+          else if(!km.unitPrice&&(n.includes("unitprice")||n.includes("prezzounit")||n.includes("unitamount"))) km.unitPrice=k;
         }
+
         const parsed=data.map(r=>{
           const code=String(r[km.itemCode]||"");
           const prod=findProduct(code,products,xrefs);
-          // Lookup N HK via xref or product
+          let amount=parseFloat(r[km.amount])||0;
+          if(amount===0&&km.qty&&km.unitPrice){
+            amount=roundN((parseFloat(r[km.qty])||0)*(parseFloat(r[km.unitPrice])||0));
+          }
           const nHK=prod?.nHK||(xrefs.find(x=>x.ifbNo===code)?.nHK)||"";
-          // Lookup AIR transport from airList
-          const airEntry=prod?airList.find(a=>a.productId===prod.id):null;
-          const transport=airEntry?airEntry.transportation:"";
+          const isAirProduct=prod&&airList.some(a=>a.productId===prod.id);
+          const transport=isAirProduct?"AIR":"SEA";
           return{
             description:String(r[km.description]||""),
-            amount:parseFloat(r[km.amount])||0,
+            amount,
             location:String(r[km.location]||""),
-            itemCode:code,
-            nHK,
-            transport,
+            itemCode:code, nHK, transport,
             date:String(r[km.date]||""),
           };
         }).filter(r=>!isExcludedDesc(r.description));
-        setPreview(parsed);setStep("preview");
+
+        setPreview(parsed); setStep("preview");
       }catch(err){showToast("Errore: "+err.message,T.red);}
     };
     reader.readAsBinaryString(file);
@@ -1804,14 +2137,16 @@ function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshot
 
   function executeImport(){
     const now=Date.now();
-    setRows(preview);LS.set("ifb_sales_invoice",preview);
+    saveRows(preview);
     const log={id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch:"HK"};
-    const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
-    const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    bumpImportTs();showToast(`Fattura: ${preview.length} righe importate ✓`,T.gold);setStep("view");
+    const newLogs=[log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
+    const newSnaps=[log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
+    bumpImportTs();
+    showToast(`Fattura: ${preview.length} righe importate ✓`,T.gold);
+    setStep("view");
   }
 
-  const activeRows=step==="view"?rows:preview;
+  const activeRows=step==="view"?localRows:preview;
   const airMismatches=activeRows.filter(r=>{
     const prod=findProduct(r.itemCode,products,xrefs);
     if(!prod) return false;
@@ -1845,7 +2180,7 @@ function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshot
     <div>
       <PageHeader title="Preview Sales Invoice" sub={`${preview.length} righe`}/>
       <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
-        <ActionBtn label="← Annulla" onClick={()=>setStep(rows.length?"view":"upload")}/>
+        <ActionBtn label="← Annulla" onClick={()=>setStep(localRows.length?"view":"upload")}/>
         <ActionBtn label={`✓ Importa ${preview.length} righe`} onClick={executeImport} primary/>
       </div>
       <TableRows data={preview}/>
@@ -1854,7 +2189,7 @@ function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshot
 
   return(
     <div>
-      <PageHeader title="Sales Invoice" sub={rows.length?`${rows.length} righe caricate`:"Nessun file caricato"}/>
+      <PageHeader title="Sales Invoice" sub={localRows.length?`${localRows.length} righe caricate`:"Nessun file caricato"}/>
       {airMismatches.length>0&&(
         <div style={{background:"#2a1000",border:`1px solid ${T.orange}`,borderRadius:"6px",padding:"12px 16px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"12px"}}>
           <span style={{color:T.orange,fontWeight:"bold"}}>⚠ {airMismatches.length} righe: trasporto AIR ma location ≠ NCJ</span>
@@ -1864,13 +2199,23 @@ function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshot
           </button>
         </div>
       )}
-      <div style={{marginBottom:"16px"}}>
+      <div style={{marginBottom:"16px",display:"flex",gap:"10px",alignItems:"center"}}>
         <label style={{display:"inline-block",padding:"8px 16px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold",fontSize:"12px"}}>
-          📂 {rows.length?"Ricarica fattura":"Carica fattura"}
+          📂 {localRows.length?"Ricarica fattura":"Carica fattura"}
           <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
         </label>
+        {localRows.length>0&&(
+          <button onClick={()=>{if(confirm("Eliminare i dati fattura?"))saveRows([]);setStep("upload");}}
+            style={{padding:"6px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
+            ✕ Svuota
+          </button>
+        )}
       </div>
-      {rows.length>0&&<Section title={`${displayedRows.length} righe${filter==="air"?" (AIR mismatch)":""}`}><TableRows data={displayedRows}/></Section>}
+      {localRows.length>0&&(
+        <Section title={`${displayedRows.length} righe${filter==="air"?" (AIR mismatch)":""}`}>
+          <TableRows data={displayedRows}/>
+        </Section>
+      )}
     </div>
   );
 }
