@@ -354,6 +354,7 @@ export default function App() {
 
   const needsRecalc = lastImportTs > lastCalcTs;
   const cfg = BRANCH_CFG[branch] || BRANCH_CFG.HK;
+  const costSnaps = snapshots.filter((s:any) => s.type === "cost");
 
   const pages = {
     dashboard:   <Dashboard costRows={costRows} branch={branch} month={month} navigate={navigate}/>,
@@ -368,7 +369,7 @@ export default function App() {
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     costsInvoice: <CostsOnInvoice costRows={costRows} salesRows={salesRows} products={products} xrefs={xrefs} branch={branch} month={month}/>,
     sales:       <SalesInvoice rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    storico:     <Storico snapshots={snapshots} setSnapshots={setSnapshots} costHistory={costHistory} branch={branch}/>,
+    storico: <StoricoPage costSnaps={costSnaps} snapshots={snapshots} branch={branch} products={products} xrefs={xrefs} showToast={showToast}/>,
     mail:        <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
   };
