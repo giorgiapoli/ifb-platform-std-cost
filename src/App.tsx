@@ -2387,44 +2387,50 @@ function SalesInvoice({rows,setRows,airList,products,xrefs,snapshots,setSnapshot
 
 // ─── STORICO ──────────────────────────────────────────────────────────────────
 function Storico({snapshots,setSnapshots,costHistory,branch}) {
-  const[sel,setSel]=useState(null);
+  const[sel,setSel]=useState<any>(null);
   const[sortDir,setSortDir]=useState("asc");
   const[deltaFilter,setDeltaFilter]=useState("all");
   const[showModified,setShowModified]=useState(false);
   const[showNew,setShowNew]=useState(false);
-  const[selCostSnap,setSelCostSnap]=useState(null);
-  const costSnaps=(costHistory||[]).filter(s=>!branch||s.branch===branch);
+  const[selCostSnap,setSelCostSnap]=useState<any>(null);
 
-  // Helper: get import date string from snapshot
-  const snapDate = s => new Date(s.date||s.id).toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric"});
+  const costSnaps=(costHistory||[]).filter((s:any)=>!branch||s.branch===branch);
+  const snapDate=(s:any)=>new Date(s.date||s.id).toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric"});
 
-  function deleteSnap(id){
-    const next=snapshots.filter(s=>s.id!==id);
+  function deleteSnap(id:any){
+    const next=snapshots.filter((s:any)=>s.id!==id);
     setSnapshots(next);LS.set("ifb_snapshots",next);
     if(sel?.id===id) setSel(null);
   }
 
+  const ICON:any={prices:"💶",anagrafica:"◈",xref:"⇄",air:"✈",sales:"📋"};
+  const LABEL:any={prices:"Import Listini",anagrafica:"Import Anagrafica",xref:"Import XRef",air:"Import AIR",sales:"Sales Invoice"};
+
   return(
     <div>
       <PageHeader title="Storico & Diff" sub="Snapshot import e Standard Cost"/>
-      {/* COST HISTORY */}
+
+      {/* ── COST HISTORY ── */}
       {costSnaps.length>0&&(
-        <div style={{marginBottom:"32px"}}>
-          <div style={{fontWeight:"bold",color:T.gold,fontSize:"11px",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"10px",borderBottom:`1px solid ${T.gold}44`,paddingBottom:"6px"}}>📊 Storico Standard Cost · {branch}</div>
+        <Section title={`📊 Storico Standard Cost · ${branch}`} accent={T.gold}>
           <div style={{fontSize:"12px",color:T.muted,marginBottom:"10px"}}>Clicca una data per vedere i costi salvati in quel momento</div>
           <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
-            {costSnaps.map(s=>(
+            {costSnaps.map((s:any)=>(
               <button key={s.ts} onClick={()=>setSelCostSnap(selCostSnap?.ts===s.ts?null:s)}
-                style={{padding:"6px 12px",background:selCostSnap?.ts===s.ts?T.gold:T.card,color:selCostSnap?.ts===s.ts?"#000":T.text,border:`1px solid ${selCostSnap?.ts===s.ts?T.gold:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>
+                style={{padding:"6px 12px",
+                  background:selCostSnap?.ts===s.ts?T.gold:T.card,
+                  color:selCostSnap?.ts===s.ts?"#000":T.text,
+                  border:`1px solid ${selCostSnap?.ts===s.ts?T.gold:T.border}`,
+                  borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>
                 {s.month||"?"} · {new Date(s.ts).toLocaleDateString("it-IT")}
               </button>
             ))}
           </div>
           {selCostSnap&&(
-            <div style={{overflowX:"auto",marginBottom:"16px"}}>
+            <div style={{overflowX:"auto"}}>
               <table style={{width:"100%",borderCollapse:"collapse"}}>
                 <THead cols={["N HK","IFB No","Descrizione","Costo HKD","Note"]}/>
-                <tbody>{(selCostSnap.rows||[]).map((r,i)=>(
+                <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>(
                   <tr key={r.id||i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
                     <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
                     <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
@@ -2436,134 +2442,169 @@ function Storico({snapshots,setSnapshots,costHistory,branch}) {
               </table>
             </div>
           )}
-        </div>
+        </Section>
       )}
 
-      {/* IMPORT SNAPSHOTS */}
-      <div style={{fontWeight:"bold",color:T.gold,fontSize:"11px",letterSpacing:"0.08em",textTransform:"uppercase",marginBottom:"10px",borderBottom:`1px solid ${T.border}`,paddingBottom:"6px"}}>📥 Storico Import</div>
-      {snapshots.length===0?<div style={{padding:"24px",textAlign:"center",color:T.dim,fontSize:"13px"}}>Nessuno snapshot ancora.</div>:(
-        <div style={{display:"flex",flexDirection:"column",gap:"6px",marginBottom:"16px",maxHeight:"300px",overflowY:"auto"}}>
-          {snapshots.map(s=>(
-            <div key={s.id} style={{display:"flex",alignItems:"center",gap:"8px",padding:"8px 12px",background:sel?.id===s.id?`${T.gold}15`:T.card,border:`1px solid ${sel?.id===s.id?T.gold:T.border}`,borderRadius:"6px",cursor:"pointer"}}
-              onClick={()=>{setSel(sel?.id===s.id?null:s);setShowModified(false);setShowNew(false);}}>
-              <span style={{fontSize:"16px"}}>{s.type==="prices"?"💶":s.type==="anagrafica"?"◈":s.type==="xref"?"⇄":s.type==="air"?"✈":s.type==="sales"?"📋":"📥"}</span>
-              <div style={{flex:1,minWidth:0}}>
-                <div style={{fontSize:"12px",color:sel?.id===s.id?T.gold:T.text,fontWeight:"bold"}}>
-                  {s.type==="prices"?"Import Listini":s.type==="anagrafica"?"Import Anagrafica":s.type==="xref"?"Import XRef":s.type==="air"?"Import AIR":s.type==="sales"?"Sales Invoice":"Import"}
-                  {s.branch&&s.branch!=="ALL"&&<span style={{marginLeft:"6px",color:T.muted,fontWeight:"normal"}}>· {s.branch}</span>}
-                  {s.month&&<span style={{marginLeft:"6px",color:T.gold,fontWeight:"normal",fontSize:"11px"}}>· {s.month}</span>}
+      {/* ── IMPORT SNAPSHOTS LIST ── */}
+      <Section title="📥 Storico Import">
+        {snapshots.length===0
+          ? <div style={{padding:"24px",textAlign:"center",color:T.dim,fontSize:"13px"}}>Nessuno snapshot ancora.</div>
+          : <div style={{display:"flex",flexDirection:"column",gap:"6px",maxHeight:"320px",overflowY:"auto"}}>
+              {snapshots.map((s:any)=>(
+                <div key={s.id}
+                  style={{display:"flex",alignItems:"center",gap:"8px",padding:"8px 12px",
+                    background:sel?.id===s.id?`${T.gold}15`:T.card,
+                    border:`1px solid ${sel?.id===s.id?T.gold:T.border}`,
+                    borderRadius:"6px",cursor:"pointer"}}
+                  onClick={()=>{setSel(sel?.id===s.id?null:s);setShowModified(false);setShowNew(false);}}>
+                  <span style={{fontSize:"16px"}}>{ICON[s.type]||"📥"}</span>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div style={{fontSize:"12px",color:sel?.id===s.id?T.gold:T.text,fontWeight:"bold"}}>
+                      {LABEL[s.type]||"Import"}
+                      {s.branch&&s.branch!=="ALL"&&<span style={{marginLeft:"6px",color:T.muted,fontWeight:"normal"}}>· {s.branch}</span>}
+                      {s.month&&<span style={{marginLeft:"6px",color:T.gold,fontWeight:"normal",fontSize:"11px"}}>· {s.month}</span>}
+                    </div>
+                    <div style={{fontSize:"11px",color:T.muted,marginTop:"2px"}}>
+                      {snapDate(s)} alle {new Date(s.date||s.id).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}
+                      {" · "}{s.count} voci
+                      {s.diffs?.length>0&&(
+                        <span style={{color:T.orange}}>
+                          {" · "}{s.diffs.filter((d:any)=>d.isNew).length} nuovi
+                          {" · "}{s.diffs.filter((d:any)=>!d.isNew&&d.fields?.length>0).length} modif.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <button onClick={e=>{e.stopPropagation();deleteSnap(s.id);}}
+                    style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"13px",padding:"2px 6px"}}>✕</button>
                 </div>
-                <div style={{fontSize:"11px",color:T.muted,marginTop:"2px"}}>
-                  {snapDate(s)} alle {new Date(s.date||s.id).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}
-                  {" · "}{s.count} voci
-                  {s.diffs&&s.diffs.length>0&&<span style={{color:T.orange}}> · {s.diffs.filter(d=>d.isNew).length} nuovi · {s.diffs.filter(d=>!d.isNew&&d.fields?.length>0).length} modif.</span>}
-                </div>
-              </div>
-              <button onClick={e=>{e.stopPropagation();deleteSnap(s.id);}}
-                style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"13px",padding:"2px 6px"}} title="Elimina">✕</button>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+        }
+      </Section>
 
+      {/* ── DETAIL PANEL ── */}
       {sel&&(()=>{
-        const diffs=sel.diffs||[];
-        const newItems=diffs.filter(d=>d.isNew);
-        const allModified=diffs.filter(d=>!d.isNew&&d.fields&&d.fields.length>0);
+        const diffs:any[]=sel.diffs||[];
+        const newItems=diffs.filter((d:any)=>d.isNew);
         const priceFields=["fcaPrice","fcaDiscounted","dapPrice","dapDiscounted","mtsPrice","dapFinal"];
 
-        const realModified=allModified.map(d=>({
-          ...d,
-          fields:d.fields.filter(f=>{
+        const realModified=diffs
+          .filter((d:any)=>!d.isNew&&d.fields?.length>0)
+          .map((d:any)=>({...d,fields:d.fields.filter((f:any)=>{
             if(!priceFields.includes(f.field)) return true;
             return Math.abs(roundN(f.new||0)-roundN(f.old||0))>=0.005;
-          })
-        })).filter(d=>d.fields.length>0);
+          })}))
+          .filter((d:any)=>d.fields.length>0);
 
-        const getPct=d=>{
-          const pf=d.fields.find(f=>f.field==="dapFinal")||d.fields[0];
+        const getPct=(d:any)=>{
+          const pf=d.fields.find((f:any)=>f.field==="dapFinal")||d.fields[0];
           if(!pf||!pf.old||pf.old===0) return 0;
           return(roundN(pf.new)-roundN(pf.old))/Math.abs(pf.old)*100;
         };
 
         let shownDiffs=realModified;
-        if(deltaFilter==="minus") shownDiffs=realModified.filter(d=>getPct(d)<-3);
-        else if(deltaFilter==="plus") shownDiffs=realModified.filter(d=>getPct(d)>3);
+        if(deltaFilter==="minus") shownDiffs=realModified.filter((d:any)=>getPct(d)<-3);
+        else if(deltaFilter==="plus") shownDiffs=realModified.filter((d:any)=>getPct(d)>3);
         shownDiffs=[...shownDiffs].sort((a,b)=>sortDir==="asc"?getPct(a)-getPct(b):getPct(b)-getPct(a));
 
-        // Dates for "vecchio" and "nuovo" labels
-        const thisDate = snapDate(sel);
-        // Find previous snapshot of same type+branch+month
-        const prevSnap = snapshots.find(s=>s.id!==sel.id&&s.type===sel.type&&s.branch===sel.branch&&s.month===sel.month);
-        const prevDate = prevSnap ? snapDate(prevSnap) : "—";
+        const thisDate=snapDate(sel);
+        const prevSnap=snapshots.find((s:any)=>s.id!==sel.id&&s.type===sel.type&&s.branch===sel.branch&&s.month===sel.month);
+        const prevDate=prevSnap?snapDate(prevSnap):"—";
 
         return(
-          <div style={{background:T.card,borderRadius:"8px",padding:"16px",border:`1px solid ${T.border}`}}>
-            <h3 style={{color:T.gold,marginTop:0,marginBottom:"12px"}}>{sel.type} · {thisDate} · {sel.branch||"ALL"} · {sel.count} voci</h3>
+          <div style={{background:T.card,borderRadius:"8px",padding:"16px",border:`1px solid ${T.border}`,marginTop:"16px"}}>
+            <h3 style={{color:T.gold,marginTop:0,marginBottom:"12px",fontSize:"13px"}}>
+              {LABEL[sel.type]||sel.type} · {thisDate} · {sel.branch||"ALL"} · {sel.count} voci
+            </h3>
+
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",alignItems:"center",marginBottom:"14px"}}>
               <button onClick={()=>{setShowNew(v=>!v);setShowModified(false);}}
-                style={{padding:"6px 14px",background:showNew?T.green:T.surface,color:showNew?"#000":T.green,border:`1px solid ${T.green}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
+                style={{padding:"6px 14px",background:showNew?T.green:T.surface,
+                  color:showNew?"#000":T.green,border:`1px solid ${T.green}`,
+                  borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
                 🆕 {newItems.length} nuovi
               </button>
               <button onClick={()=>{setShowModified(v=>!v);setShowNew(false);}}
-                style={{padding:"6px 14px",background:showModified?T.orange:T.surface,color:showModified?"#000":T.orange,border:`1px solid ${T.orange}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
-                ✏️ {realModified.length} modificati (reali)
+                style={{padding:"6px 14px",background:showModified?T.orange:T.surface,
+                  color:showModified?"#000":T.orange,border:`1px solid ${T.orange}`,
+                  borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
+                ✏️ {realModified.length} modificati
               </button>
-              {showModified&&(
-                <>
-                  <button onClick={()=>setDeltaFilter(f=>f==="minus"?"all":"minus")}
-                    style={{padding:"4px 10px",background:deltaFilter==="minus"?T.red:T.surface,color:deltaFilter==="minus"?"#fff":T.red,border:`1px solid ${T.red}`,borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>{"< -3%"}</button>
-                  <button onClick={()=>setDeltaFilter(f=>f==="plus"?"all":"plus")}
-                    style={{padding:"4px 10px",background:deltaFilter==="plus"?T.green:T.surface,color:deltaFilter==="plus"?"#fff":T.green,border:`1px solid ${T.green}`,borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>{">"} +3%</button>
-                  <button onClick={()=>setSortDir(d=>d==="asc"?"desc":"asc")}
-                    style={{padding:"4px 10px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>
-                    Δ {sortDir==="asc"?"↑ crescente":"↓ decrescente"}
-                  </button>
-                  {deltaFilter!=="all"&&<span style={{fontSize:"11px",color:T.muted}}>({shownDiffs.length} su {realModified.length})</span>}
-                </>
-              )}
+              {showModified&&<>
+                <button onClick={()=>setDeltaFilter(f=>f==="minus"?"all":"minus")}
+                  style={{padding:"4px 10px",background:deltaFilter==="minus"?T.red:T.surface,
+                    color:deltaFilter==="minus"?"#fff":T.red,border:`1px solid ${T.red}`,
+                    borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>{"< −3%"}</button>
+                <button onClick={()=>setDeltaFilter(f=>f==="plus"?"all":"plus")}
+                  style={{padding:"4px 10px",background:deltaFilter==="plus"?T.green:T.surface,
+                    color:deltaFilter==="plus"?"#fff":T.green,border:`1px solid ${T.green}`,
+                    borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>{">"} +3%</button>
+                <button onClick={()=>setSortDir(d=>d==="asc"?"desc":"asc")}
+                  style={{padding:"4px 10px",background:T.surface,color:T.muted,
+                    border:`1px solid ${T.border}`,borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>
+                  Δ {sortDir==="asc"?"↑":"↓"}
+                </button>
+                {deltaFilter!=="all"&&<span style={{fontSize:"11px",color:T.muted}}>({shownDiffs.length}/{realModified.length})</span>}
+              </>}
             </div>
 
             {showNew&&(
               <div style={{marginBottom:"14px"}}>
-                <div style={{color:T.green,fontSize:"12px",fontWeight:"bold",marginBottom:"8px"}}>Articoli nuovi ({newItems.length})</div>
-                {newItems.length===0?<div style={{color:T.dim,fontSize:"12px"}}>Nessun articolo nuovo.</div>:(
-                  <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    <THead cols={["IFB No","Descrizione"]}/>
-                    <tbody>{newItems.map((d,i)=>(
-                      <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
-                        <TD mono><span style={{color:T.gold}}>{d.id||d.productId}</span></TD>
-                        <TD>{d.description}</TD>
-                      </tr>
-                    ))}</tbody>
-                  </table>
-                )}
+                <div style={{color:T.green,fontSize:"12px",fontWeight:"bold",marginBottom:"8px"}}>Nuovi ({newItems.length})</div>
+                {newItems.length===0
+                  ? <div style={{color:T.dim,fontSize:"12px"}}>Nessuno.</div>
+                  : <table style={{width:"100%",borderCollapse:"collapse"}}>
+                      <THead cols={["IFB No","Descrizione"]}/>
+                      <tbody>{newItems.map((d:any,i:number)=>(
+                        <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
+                          <TD mono><span style={{color:T.gold}}>{d.id||d.productId}</span></TD>
+                          <TD>{d.description}</TD>
+                        </tr>
+                      ))}</tbody>
+                    </table>
+                }
               </div>
             )}
 
             {showModified&&(
               <div>
-                <div style={{color:T.orange,fontSize:"12px",fontWeight:"bold",marginBottom:"8px"}}>Modifiche reali ({shownDiffs.length})</div>
-                {shownDiffs.length===0?<div style={{color:T.dim,fontSize:"12px"}}>Nessuna variazione reale.</div>:(
-                  <table style={{width:"100%",borderCollapse:"collapse"}}>
-                    {/* Show date of previous vs current import in header */}
-                    <THead cols={["IFB No / N HK","Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]}/>
-                    <tbody>{shownDiffs.map((d,i)=>d.fields.map((f,j)=>{
-                      const oldR=roundN(f.old||0),newR=roundN(f.new||0);
-                      const pct=oldR!==0?(newR-oldR)/Math.abs(oldR)*100:null;
-                      return<tr key={`${i}-${j}`} style={{borderBottom:j===d.fields.length-1?`1px solid ${T.border}`:`1px solid ${T.border}44`,background:i%2===0?T.bg:T.surface}}>
-                        {j===0&&<>
-                          <td rowSpan={d.fields.length} style={{padding:"6px 12px",borderBottom:`1px solid ${T.border}`,verticalAlign:"top",fontFamily:"monospace",fontSize:"12px",color:T.gold}}>{d.ifbNo||d.id}<br/><span style={{color:T.muted,fontSize:"10px"}}>{d.nHK||""}</span></td>
-                          <td rowSpan={d.fields.length} style={{padding:"6px 12px",borderBottom:`1px solid ${T.border}`,verticalAlign:"top",fontSize:"12px",color:T.text}}>{d.description}</td>
-                        </>}
-                        <TD><span style={{color:T.muted,fontSize:"11px"}}>{f.field}</span></TD>
-                        <TD mono>{oldR.toFixed(2)}</TD>
-                        <TD mono>{newR.toFixed(2)}</TD>
-                        <TD><span style={{color:pct==null?T.dim:pct>0?T.red:T.green,fontWeight:"bold"}}>{pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}</span></TD>
-                      </tr>;
-                    }))}</tbody>
-                  </table>
-                )}
+                <div style={{color:T.orange,fontSize:"12px",fontWeight:"bold",marginBottom:"8px"}}>Modifiche ({shownDiffs.length})</div>
+                {shownDiffs.length===0
+                  ? <div style={{color:T.dim,fontSize:"12px"}}>Nessuna variazione reale.</div>
+                  : <div style={{overflowX:"auto"}}>
+                      <table style={{width:"100%",borderCollapse:"collapse"}}>
+                        <THead cols={["IFB No / N HK","Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]}/>
+                        <tbody>{shownDiffs.map((d:any,i:number)=>
+                          d.fields.map((f:any,j:number)=>{
+                            const oldR=roundN(f.old||0),newR=roundN(f.new||0);
+                            const pct=oldR!==0?(newR-oldR)/Math.abs(oldR)*100:null;
+                            return(
+                              <tr key={`${i}-${j}`} style={{
+                                borderBottom:j===d.fields.length-1?`1px solid ${T.border}`:`1px solid ${T.border}44`,
+                                background:i%2===0?T.bg:T.surface}}>
+                                {j===0&&<>
+                                  <td rowSpan={d.fields.length} style={{padding:"6px 12px",borderBottom:`1px solid ${T.border}`,verticalAlign:"top",fontFamily:"monospace",fontSize:"12px",color:T.gold}}>
+                                    {d.ifbNo||d.id}<br/>
+                                    <span style={{color:T.muted,fontSize:"10px"}}>{d.nHK||""}</span>
+                                  </td>
+                                  <td rowSpan={d.fields.length} style={{padding:"6px 12px",borderBottom:`1px solid ${T.border}`,verticalAlign:"top",fontSize:"12px",color:T.text}}>
+                                    {d.description}
+                                  </td>
+                                </>}
+                                <TD><span style={{color:T.muted,fontSize:"11px"}}>{f.field}</span></TD>
+                                <TD mono>{oldR.toFixed(2)}</TD>
+                                <TD mono>{newR.toFixed(2)}</TD>
+                                <TD><span style={{color:pct==null?T.dim:pct>0?T.red:T.green,fontWeight:"bold"}}>
+                                  {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
+                                </span></TD>
+                              </tr>
+                            );
+                          })
+                        )}</tbody>
+                      </table>
+                    </div>
+                }
               </div>
             )}
           </div>
@@ -2572,6 +2613,63 @@ function Storico({snapshots,setSnapshots,costHistory,branch}) {
     </div>
   );
 }
+
+// ─── PRODUCTS ─────────────────────────────────────────────────────────────────
+function Products({products}:any) {
+  const[search,setSearch]=useState("");
+  const[onlyIFB,setOnlyIFB]=useState(true);
+
+  const base=onlyIFB?products.filter((p:any)=>isIFBVendor(p.vendorName)):products;
+  const filtered=base.filter((p:any)=>!search
+    ||p.description?.toLowerCase().includes(search.toLowerCase())
+    ||p.code?.includes(search)
+    ||p.nHK?.includes(search));
+
+  return(
+    <div>
+      <PageHeader title="Anagrafica Articoli"
+        sub={`${products.length} articoli · ${products.filter((p:any)=>isIFBVendor(p.vendorName)).length} INALCA F&B`}/>
+      <div style={{display:"flex",gap:"10px",marginBottom:"14px",alignItems:"center"}}>
+        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…"/>
+        <button onClick={()=>setOnlyIFB((v:boolean)=>!v)}
+          style={{padding:"5px 12px",background:onlyIFB?`${T.gold}20`:T.surface,
+            color:onlyIFB?T.gold:T.muted,border:`1px solid ${onlyIFB?T.gold:T.border}`,
+            borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
+          {onlyIFB?`✓ Solo INALCA F&B (${base.length})`:`Mostra tutti (${products.length})`}
+        </button>
+      </div>
+      <Section title={`${filtered.length} articoli`}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <THead cols={["N HK","IFB No","Descrizione","Vendor","Categoria","UOM","Qty/Box","Box/Plt","Kg/Box","Kg/Plt","Temp","Attivo"]}/>
+            <tbody>{filtered.map((p:any,i:number)=>{
+              const kgxplt=p.kgxplt||roundN((parseFloat(p.kgPerBox)||0)*(parseFloat(p.boxPerPallet)||0));
+              return(
+                <tr key={p.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                  <TD mono><span style={{color:T.muted}}>{p.nHK||"—"}</span></TD>
+                  <TD mono><span style={{color:T.gold}}>{p.code}</span></TD>
+                  <TD>{p.description}</TD>
+                  <TD><span style={{fontSize:"11px",color:isIFBVendor(p.vendorName)?T.gold:T.muted}}>{p.vendorName||"—"}</span></TD>
+                  <TD><Chip label={p.category||"—"} color={p.category==="WINE"?T.purple:p.category==="MEAT"?T.red:T.blue}/></TD>
+                  <TD><Chip label={p.uom||"—"} color={T.muted}/></TD>
+                  <TD mono>{p.qtyPerBox||"—"}</TD>
+                  <TD mono>{p.boxPerPallet||"—"}</TD>
+                  <TD mono>{p.kgPerBox||"—"}</TD>
+                  <TD mono><span style={{color:kgxplt>0?T.text:T.dim}}>{kgxplt>0?kgxplt:"—"}</span></TD>
+                  <TD><Chip label={p.temperature||"—"}
+                    color={p.temperature==="FROZEN"?T.blue:p.temperature==="FRESH"?T.green:T.muted}/></TD>
+                  <TD><Chip label={p.active?"Sì":"No"} color={p.active?T.green:T.red}/></TD>
+                </tr>
+              );
+            })}</tbody>
+          </table>
+        </div>
+      </Section>
+    </div>
+  );
+}
+
+// ─── SHARED HELPERS ───────────────────────────────────────────────────────────
 
 // ─── SHARED HELPERS ───────────────────────────────────────────────────────────
 const inputStyle = () => ({
