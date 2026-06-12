@@ -2700,19 +2700,20 @@ function FxRates({fx,setFx,branch,month}) {
 function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,
   setCostHistory,initFilter,salesRows=[],products=[],xrefs=[]}: any) {
 
-  const[search,setSearch]     = useState("");
-  const[showDetail,setShowDetail] = useState<string|null>(null);
-  const[invoiceOnly,setInvoiceOnly] = useState(false);
-  
-// AGGIUNGI QUESTI STATI PER I FILTRI MULTIPLI
-const [filterFlags, setFilterFlags] = useState({
-  flagged: false,
-  air: false,
-  noPrice: false,
-  noLog: false,
-  calcZero: false,
-  keepOld: false
-});
+    const[search,setSearch]     = useState("");
+    const[showDetail,setShowDetail] = useState<string|null>(null);
+    const[invoiceOnly,setInvoiceOnly] = useState(false);
+      
+    // AGGIUNGI QUESTI STATI PER I FILTRI MULTIPLI
+    const [filterFlags, setFilterFlags] = useState({
+      flagged: false,
+      air: false,
+      noPrice: false,
+      noLog: false,
+      calcZero: false,
+      keepOld: false,
+      costCalculated: false   // ← NUOVO FILTRO
+    });
   const needsRecalc = lastImportTs > lastCalcTs;
   
   // AGGIUNGI QUESTI REF PER LO SCROLL
@@ -2777,6 +2778,9 @@ const [filterFlags, setFilterFlags] = useState({
   r.code?.includes(search)||r.nHK?.includes(search));
 
 // APPLICA FILTRI MULTIPLI
+if (filterFlags.costCalculated) {
+  filtered = filtered.filter((r:any) => r.cost?.step2Hkd != null);
+}
 if (filterFlags.flagged) {
   filtered = filtered.filter((r:any) => r.flagged === true);
 }
@@ -2911,8 +2915,17 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 )}
 
 {/* FILTRI MULTIPLI */}
+{/* FILTRI MULTIPLI */}
 <div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap",alignItems:"center",borderTop:`1px solid ${T.border}`,paddingTop:"10px"}}>
   <span style={{fontSize:"11px",color:T.muted}}>🔍 Filtri rapidi:</span>
+  
+  {/* ✅ NUOVO BOTTONE - Costi calcolati */}
+  <button onClick={() => setFilterFlags(f => ({...f, costCalculated: !f.costCalculated}))}
+    style={{padding:"4px 12px",background: filterFlags.costCalculated ? T.gold : T.surface,
+      color: filterFlags.costCalculated ? "#000" : T.gold, border: `1px solid ${T.gold}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.costCalculated ? "bold" : "normal"}}>
+    {filterFlags.costCalculated ? "✓" : "⬚"} ✅ Costi calcolati
+  </button>
   
   <button onClick={() => setFilterFlags(f => ({...f, flagged: !f.flagged}))}
     style={{padding:"4px 12px",background: filterFlags.flagged ? T.orange : T.surface,
@@ -2957,7 +2970,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
   </button>
   
   <button onClick={() => setFilterFlags({
-    flagged: false, air: false, noPrice: false, noLog: false, calcZero: false, keepOld: false
+    flagged: false, air: false, noPrice: false, noLog: false, calcZero: false, keepOld: false, costCalculated: false
   })}
     style={{padding:"4px 10px",background: T.surface, color: T.muted, border: `1px solid ${T.border}`,
       borderRadius:"6px",cursor:"pointer",fontSize:"10px"}}>
