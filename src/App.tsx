@@ -78,11 +78,11 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, temperature } = product;
   const { area, pltPerContainer, hasCert, hasAlcTax, alcTax, convFactor=1 } = logistic;
 
-  // ── Units per pallet (corrisponde a col AB "Quantity x PLT") ──
+  // ── Units per pallet ──
   let unitsPerPlt: number;
   if      (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
   else if (uom==="KG")  unitsPerPlt = Number(kgPerBox||qtyPerBox) * Number(boxPerPallet);
-  else                  unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet);   // PCS
+  else                  unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet);
 
   // ── Divisore collo per MTS picking ──
   const divisoreCollo =
@@ -90,13 +90,18 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
     uom==="KG"  ? Number(kgPerBox||qtyPerBox) :
                   Number(qtyPerBox);
 
-  // ── Total units per container (AB * AC nel modello) ──
+  // ── Total units per container ──
   const totalUnits = unitsPerPlt * Number(pltPerContainer);
   if (!totalUnits) return null;
 
   const priceEur = Number(priceInput||0) * Number(convFactor);
 
-  // ── FOB = COSTS[temp][area] / (unitsPerPlt * pltPerContainer) ──
+  // ✅ SE IL PREZZO È ZERO O NON VALIDO, NON CALCOLARE IL COSTO
+  if (priceEur === 0 || !priceInput) {
+    return null;
+  }
+
+  // ── FOB ──
   const fob = (COSTS.FOB[temperature]?.[area] ?? 0) / totalUnits;
 
   // ── LIC = (4100+3800 HKD) / rate / totalUnits ──
@@ -108,26 +113,24 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   // ── HC = 80 / totalUnits (solo se certificato) ──
   const hc = hasCert ? COSTS.HC / totalUnits : 0;
 
-  // ── Pallet = 30 / unitsPerPlt (non totalUnits!) ──
+  // ── Pallet = 30 / unitsPerPlt ──
   const plt = COSTS.PLT / unitsPerPlt;
 
-  // ── Tassa alcolica (valore per unità già dalla Work_tab) ──
+  // ── Tassa alcolica ──
   const alc = hasAlcTax ? (Number(alcTax)||0) : 0;
 
-  // ── Step 1: NO carriageUnit — DAP Final lo include già ──
+  // ── Step 1 ──
   const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc;
 
   // ── Warehouse ──
   let wh = 0;
   if (ubicazione==="MTO") {
-    // MTO = COSTS_MTO[temp] / unitsPerPlt  (col D/E/F 49 del modello)
     wh = (COSTS.MTO[temperature] ?? 0) / unitsPerPlt;
   } else if (ubicazione==="MTS") {
-    wh = (COSTS.MTS_D[temperature] ?? 0) / unitsPerPlt      // Deposito
-       + (COSTS.MTS_I[temperature] ?? 0) / unitsPerPlt      // Inbound
-       + (COSTS.MTS_P[temperature] ?? 0) / divisoreCollo;   // Picking
+    wh = (COSTS.MTS_D[temperature] ?? 0) / unitsPerPlt
+       + (COSTS.MTS_I[temperature] ?? 0) / unitsPerPlt
+       + (COSTS.MTS_P[temperature] ?? 0) / divisoreCollo;
   }
-  // FOR → wh = 0
 
   const step2Eur = step1Eur + wh;
 
@@ -304,7 +307,7 @@ export default function App() {
       const effectiveProd = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
       const cost = calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
       if(!cost) return { ...prod, cost:null, prevCost:null, priceInput:pi,
-        skipReason:`CALC=0 (qty=${prod.qtyPerBox} box/plt=${prod.boxPerPallet} plt=${plt} uom=${prod.uom})` };
+        skipReason: !pi || pi === 0 ? "PREZZO ZERO" : `CALC=0 (qty=${prod.qtyPerBox} box/plt=${prod.boxPerPallet} plt=${plt} uom=${prod.uom})` };
 
       const prevCost = piP!=null ? calcHK({ priceInput:piP, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate }) : null;
       
@@ -2805,6 +2808,9 @@ if (filterFlags.keepOld) {
 if (invoiceOnly) {
   filtered = filtered.filter((r:any) => invoiceIds.has(r.id));
 }
+
+filtered = filtered.filter((r: any) => r.priceInput !== 0 && r.priceInput != null);
+
 if(initFilter==="flagged") filtered=filtered.filter((r:any)=>r.flagged===true);
 else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
 
@@ -3173,6 +3179,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 
 // ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
+// ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
 function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   const [showMissingOnly, setShowMissingOnly] = useState(false);
 
@@ -3181,35 +3188,47 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
   const lastInvoiceDate = useMemo(() => {
-    const map: Record<string,Date> = {};
-    salesRows.forEach((r:any) => {
+    const map: Record<string, Date> = {};
+    salesRows.forEach((r: any) => {
       const d = r.date ? new Date(r.date) : null;
-      if(!d || isNaN(d.getTime())) return;
+      if (!d || isNaN(d.getTime())) return;
       const prod = findProduct(r.itemCode, products, xrefs);
-      if(!prod) return;
-      if(!map[prod.id] || d > map[prod.id]) map[prod.id] = d;
+      if (!prod) return;
+      if (!map[prod.id] || d > map[prod.id]) map[prod.id] = d;
     });
     return map;
   }, [salesRows, products, xrefs]);
 
   const recentProductIds = new Set(
     salesRows
-      .filter((r:any) => { const d = r.date ? new Date(r.date) : null; return d && d >= oneMonthAgo && d <= today; })
-      .map((r:any) => { const prod = findProduct(r.itemCode, products, xrefs); return prod?.id || null; })
+      .filter((r: any) => {
+        const d = r.date ? new Date(r.date) : null;
+        return d && d >= oneMonthAgo && d <= today;
+      })
+      .map((r: any) => {
+        const prod = findProduct(r.itemCode, products, xrefs);
+        return prod?.id || null;
+      })
       .filter(Boolean)
   );
 
   const allRows = costRows
-    .filter((r:any) => recentProductIds.has(r.id))
-    .sort((a:any, b:any) => {
+    .filter((r: any) => recentProductIds.has(r.id))
+    .sort((a: any, b: any) => {
       const da = lastInvoiceDate[a.id], db = lastInvoiceDate[b.id];
-      if(!da && !db) return 0; if(!da) return 1; if(!db) return -1;
+      if (!da && !db) return 0;
+      if (!da) return 1;
+      if (!db) return -1;
       return db.getTime() - da.getTime();
     });
 
-  const rows = showMissingOnly ? allRows.filter((r:any) => !r.cost && !r.isAir) : allRows;
-  const missingCount = allRows.filter((r:any) => !r.cost && !r.isAir).length;
-  const airCount     = allRows.filter((r:any) => r.isAir).length;
+  // ✅ FILTRO: mostra solo quelli SENZA costo se showMissingOnly è true
+  const rows = showMissingOnly 
+    ? allRows.filter((r: any) => !r.cost && !r.isAir)  // solo senza costo
+    : allRows;                                          // tutti
+  
+  const missingCount = allRows.filter((r: any) => !r.cost && !r.isAir).length;
+  const airCount = allRows.filter((r: any) => r.isAir).length;
 
   return (
     <div>
@@ -3218,92 +3237,174 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
         sub={`Prodotti ordinati negli ultimi 30gg · ${allRows.length} trovati`}
       />
 
-<div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
-        <button onClick={()=>exportXLSX(
-          rows.map((r:any)=>{
-            const lastD=lastInvoiceDate[r.id];
-            const newHkd=r.cost?.step2Hkd??null;
-            const oldHkd=r.prevCost?.step2Hkd??null;
-            const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
-            return {
-              "Data Fattura":lastD?lastD.toLocaleDateString("it-IT"):"",
-              "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
-              "Ubicazione":r.isAir?"AIR":r.ubicazione||"",
-              "Old HKD":oldHkd!=null?roundN(oldHkd):"","New HKD":r.isAir?"AIR":newHkd!=null?roundN(newHkd):"MANCANTE",
-              "Δ%":pct!=null?roundN(pct,1):"","Note":r.skipReason||"",
-            };
-          }),
-          "Costi su Fatture",`CostiFatture_${branch}_${month}.xlsx`
-        )}
-          style={{padding:"5px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,
-            borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
+      <div style={{ display: "flex", gap: "8px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
+        <button
+          onClick={() =>
+            exportXLSX(
+              rows.map((r: any) => {
+                const lastD = lastInvoiceDate[r.id];
+                const newHkd = r.cost?.step2Hkd ?? null;
+                const oldHkd = r.prevCost?.step2Hkd ?? null;
+                const pct = newHkd != null && oldHkd != null && oldHkd > 0 ? (newHkd - oldHkd) / oldHkd * 100 : null;
+                return {
+                  "Data Fattura": lastD ? lastD.toLocaleDateString("it-IT") : "",
+                  "N HK": r.nHK || "",
+                  "IFB No": r.code || "",
+                  "Descrizione": r.description || "",
+                  "Ubicazione": r.isAir ? "AIR" : r.ubicazione || "",
+                  "Old HKD": oldHkd != null ? roundN(oldHkd) : "",
+                  "New HKD": r.isAir ? "AIR" : newHkd != null ? roundN(newHkd) : "MANCANTE",
+                  "Δ%": pct != null ? roundN(pct, 1) : "",
+                  "Note": r.skipReason || "",
+                };
+              }),
+              "Costi su Fatture",
+              `CostiFatture_${branch}_${month}.xlsx`
+            )
+          }
+          style={{
+            padding: "5px 14px",
+            background: `${T.green}20`,
+            border: `1px solid ${T.green}44`,
+            borderRadius: "6px",
+            color: T.green,
+            cursor: "pointer",
+            fontSize: "11px",
+          }}
+        >
           ⬇ Export Excel
         </button>
-        <button onClick={()=>setShowMissingOnly(v=>!v)}
-          style={{padding:"5px 14px",
-            background:showMissingOnly?`${T.red}20`:T.surface,
-            color:showMissingOnly?T.red:T.muted,
-            border:`1px solid ${showMissingOnly?T.red:T.border}`,
-            borderRadius:"6px",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap",fontWeight:showMissingOnly?"bold":"normal"}}>
+
+        {/* ✅ BOTTONE SENZA COSTO - FUNZIONANTE */}
+        <button
+          onClick={() => setShowMissingOnly(v => !v)}
+          style={{
+            padding: "5px 14px",
+            background: showMissingOnly ? `${T.red}20` : T.surface,
+            color: showMissingOnly ? T.red : T.muted,
+            border: `1px solid ${showMissingOnly ? T.red : T.border}`,
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "11px",
+            whiteSpace: "nowrap",
+            fontWeight: showMissingOnly ? "bold" : "normal",
+          }}
+        >
           {showMissingOnly
             ? `⚠ Senza costo (${rows.length})`
             : `⚠ Mostra senza costo standard (${missingCount})`}
         </button>
+
         {airCount > 0 && (
-          <span style={{fontSize:"11px",color:T.orange}}>
+          <span style={{ fontSize: "11px", color: T.orange }}>
             ✈ {airCount} articoli AIR esclusi dal costo standard
           </span>
         )}
       </div>
 
       {missingCount > 0 && !showMissingOnly && (
-        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
+        <div
+          style={{
+            background: `${T.orange}15`,
+            border: `1px solid ${T.orange}44`,
+            borderRadius: "6px",
+            padding: "10px 14px",
+            marginBottom: "14px",
+            fontSize: "12px",
+            color: T.orange,
+          }}
+        >
           ⚠ {missingCount} prodotti ordinati recentemente NON hanno Standard Cost — verifica listino e logistica.
         </div>
       )}
 
-      <Section title={`${rows.length} prodotti${showMissingOnly?" senza costo standard":""} · data più recente prima`}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["Data Fattura","N HK","IFB No","Descrizione","Ubicaz.","Old HKD","New HKD","Δ%","Note"]} sticky />
+      <Section
+        title={`${rows.length} prodotti${showMissingOnly ? " senza costo standard" : ""} · data più recente prima`}
+      >
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <THead
+              cols={["Data Fattura", "N HK", "IFB No", "Descrizione", "Ubicaz.", "Old HKD", "New HKD", "Δ%", "Note"]}
+              sticky
+            />
             <tbody>
-              {rows.map((r:any,i:number) => {
+              {rows.map((r: any, i: number) => {
                 const newHkd = r.cost?.step2Hkd ?? null;
                 const oldHkd = r.prevCost?.step2Hkd ?? null;
-                const pct = newHkd!=null && oldHkd!=null && oldHkd>0 ? (newHkd-oldHkd)/oldHkd*100 : null;
+                const pct = newHkd != null && oldHkd != null && oldHkd > 0 ? (newHkd - oldHkd) / oldHkd * 100 : null;
                 const lastD = lastInvoiceDate[r.id];
                 return (
-                  <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                  <tr
+                    key={r.id}
+                    style={{
+                      borderBottom: `1px solid ${T.border}`,
+                      background: i % 2 === 0 ? T.bg : T.surface,
+                    }}
+                  >
                     <TD mono>
-                      <span style={{color:T.gold,fontWeight:"bold"}}>
+                      <span style={{ color: T.gold, fontWeight: "bold" }}>
                         {lastD ? lastD.toLocaleDateString("it-IT") : "—"}
                       </span>
                     </TD>
-                    <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
-                    <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
+                    <TD mono>
+                      <span style={{ color: T.muted }}>{r.nHK || "—"}</span>
+                    </TD>
+                    <TD mono>
+                      <span style={{ color: T.gold }}>{r.code}</span>
+                    </TD>
                     <TD>{r.description}</TD>
                     <TD>
-                      {r.isAir
-                        ? <Chip label="✈ AIR" color={T.orange}/>
-                        : <Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>}
+                      {r.isAir ? (
+                        <Chip label="✈ AIR" color={T.orange} />
+                      ) : (
+                        <Chip
+                          label={r.ubicazione || "—"}
+                          color={
+                            r.ubicazione === "FOR"
+                              ? T.purple
+                              : r.ubicazione === "MTS"
+                              ? T.blue
+                              : T.green
+                          }
+                        />
+                      )}
                     </TD>
-                    <TD mono><span style={{color:T.muted}}>{oldHkd!=null ? oldHkd.toFixed(2) : "—"}</span></TD>
                     <TD mono>
-                      <span style={{color:newHkd!=null?T.gold:r.isAir?T.orange:T.red,fontWeight:"bold"}}>
-                        {r.isAir ? "AIR" : newHkd!=null ? newHkd.toFixed(2) : "MANCANTE"}
+                      <span style={{ color: T.muted }}>{oldHkd != null ? oldHkd.toFixed(2) : "—"}</span>
+                    </TD>
+                    <TD mono>
+                      <span
+                        style={{
+                          color: newHkd != null ? T.gold : r.isAir ? T.orange : T.red,
+                          fontWeight: "bold",
+                        }}
+                      >
+                        {r.isAir ? "AIR" : newHkd != null ? newHkd.toFixed(2) : "MANCANTE"}
                       </span>
                     </TD>
                     <TD>
-                      {r.isAir
-                        ? <span style={{color:T.dim}}>—</span>
-                        : pct!=null
-                          ? <span style={{color:pct>3?T.red:pct<-3?T.green:T.text,fontWeight:"bold"}}>{pct>0?"+":""}{pct.toFixed(1)}%</span>
-                          : <span style={{color:T.dim}}>{r.isNew?"🆕 Nuovo":"—"}</span>}
+                      {r.isAir ? (
+                        <span style={{ color: T.dim }}>—</span>
+                      ) : pct != null ? (
+                        <span
+                          style={{
+                            color: pct > 3 ? T.red : pct < -3 ? T.green : T.text,
+                            fontWeight: "bold",
+                          }}
+                        >
+                          {pct > 0 ? "+" : ""}
+                          {pct.toFixed(1)}%
+                        </span>
+                      ) : (
+                        <span style={{ color: T.dim }}>{r.isNew ? "🆕 Nuovo" : "—"}</span>
+                      )}
                     </TD>
                     <TD>
-                      {r.isAir
-                        ? <Chip label="✈ AIR" color={T.orange}/>
-                        : <span style={{fontSize:"11px",color:T.dim}}>{r.skipReason||""}</span>}
+                      {r.isAir ? (
+                        <Chip label="✈ AIR" color={T.orange} />
+                      ) : (
+                        <span style={{ fontSize: "11px", color: T.dim }}>{r.skipReason || ""}</span>
+                      )}
                     </TD>
                   </tr>
                 );
