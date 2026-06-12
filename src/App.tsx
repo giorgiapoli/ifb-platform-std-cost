@@ -379,7 +379,7 @@ export default function App() {
       showToast={showToast}
       bumpImportTs={bumpImportTs}
     />,
-    logistics:   <Logistics logistics={logistics} setLogistics={setLogistics} products={products} branch={branch} showToast={showToast} bumpImportTs={bumpImportTs} initFilter={pageFilter}/>,
+    logistics:   <Logistics logistics={logistics} setLogistics={setLogistics} products={products} branch={branch} showToast={showToast} bumpImportTs={bumpImportTs} initFilter={pageFilter} importLogs={importLogs} setImportLogs={setImportLogs}/>,
     prices: <Prices 
   prices={prices} 
   setPrices={setPrices} 
@@ -1284,7 +1284,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
         if(fields.length) diffs.push({id:p.id,isNew:false,description:p.description,fields});
       }
     }
-    const snap={id:now,type:"anagrafica",date:new Date(now).toISOString(),count:newProds.length,diffs,branch:"ALL"};
+    const snap={id:now,type:"anagrafica",date:new Date(now).toISOString(),count:newProds.length,diffs,products:newProds,branch:"ALL"};
     const newSnaps=[snap,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
     setProducts(newProds);LS.set(`ifb_products_${branch}`,newProds);
     const log={id:now,type:"anagrafica",date:new Date(now).toISOString(),msg:`Importati ${newProds.length} articoli`};
@@ -1434,7 +1434,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
     }))];
     setAirList(next); LS.set(`ifb_airlist_${branch}`, next);
     const now = Date.now();
-    const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch};
+    const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch,items:next.filter((a:any)=>a.branch===branch)};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
     bumpImportTs(); showToast(`AIR ${branch}: lista sostituita con ${valid.length} articoli ✓`, T.gold);
@@ -1542,11 +1542,29 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       {step==="main"&&(
          <>
          <div style={{marginBottom:"20px",display:"flex",gap:"10px",alignItems:"center",flexWrap:"wrap"}}>
- <label style={{display:"inline-block",padding:"10px 20px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold"}}>
-   📂 Carica lista AIR
-   <input type="file" accept=".xlsx,.xls,.csv"
-     onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
- </label>
+         <label style={{display:"inline-block",padding:"10px 20px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold"}}>
+          📂 Carica lista AIR
+          <input type="file" accept=".xlsx,.xls,.csv"
+            onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
+        </label>
+        {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).length>0&&(
+          <select onChange={e=>{
+            if(!e.target.value) return;
+            const snap=JSON.parse(e.target.value);
+            if(window.confirm(`Ripristinare lista AIR del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} articoli)?`)){
+              const kept=airList.filter((a:any)=>a.branch&&a.branch!==branch);
+              const next=[...kept,...(snap.items||[])];
+              setAirList(next);LS.set(`ifb_airlist_${branch}`,next);
+              showToast(`Lista AIR ripristinata: ${snap.count} articoli ✓`,T.gold);
+            }
+            e.target.value="";
+          }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
+            <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).length})</option>
+            {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).map((s:any)=>(
+              <option key={s.id} value={JSON.stringify(s)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli</option>
+            ))}
+          </select>
+        )}
  
 {/* Bottone Mostra lista - stile coerente con il tema */}
 <button
@@ -1739,7 +1757,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
 // ─── LOGISTICS ────────────────────────────────────────────────────────────────
 
-function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportTs, initFilter}) {
+function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportTs,initFilter,importLogs,setImportLogs}) {
   const[search,setSearch]=useState("");
   const[showOnlyMissing,setShowOnlyMissing]=useState(initFilter==="missing");
   const[mapStep,setMapStep]=useState("idle");
@@ -3137,13 +3155,8 @@ function buildPreview() {
       const prod = findProduct(code, products, xrefs);
       const nHK = prod?.nHK || (xrefs.find((x:any) => x.ifbNo === code)?.nHK) || "";
       const location = String(get(r, "location") || "").trim();
-      const isAirLocation = location.toUpperCase() === "NCJ";
       const isAirProd = prod && airList.some((a:any) => a.productId === prod.id);
-
-      // Il trasporto è AIR se:
-      // 1. Il prodotto è nella lista AIR, OPPURE
-      // 2. La location è NCJ (New Cargo Jet - corriere aereo)
-      const isAir = isAirProd || isAirLocation;
+      const isAir = isAirProd;
 
       return {
         itemCode: code,
@@ -3168,7 +3181,7 @@ function buildPreview() {
   function executeImport() {
     const now = Date.now();
     saveRows(preview.map((r:any) => ({...r, branch})));
-    const log = {id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch:"HK"};
+    const log = {id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch,rows:preview.map((r:any)=>({...r,branch}))};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
     bumpImportTs();
@@ -3363,10 +3376,26 @@ function buildPreview() {
         </button>
 
         <div style={{marginLeft:"auto",display:"flex",gap:"8px"}}>
-          <label style={{display:"inline-block",padding:"6px 14px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.text}}>
+        <label style={{display:"inline-block",padding:"6px 14px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.text}}>
             📂 Ricarica
             <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
           </label>
+          {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).length>0&&(
+            <select onChange={e=>{
+              if(!e.target.value) return;
+              const snap=JSON.parse(e.target.value);
+              if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)){
+                saveRows(snap.rows);
+                showToast(`Sales Invoice ripristinata: ${snap.count} righe ✓`,T.gold);
+              }
+              e.target.value="";
+            }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
+              <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).length})</option>
+              {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).map((s:any)=>(
+                <option key={s.id} value={JSON.stringify(s)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
+              ))}
+            </select>
+          )}
           <button onClick={()=>{if(window.confirm(`Eliminare i dati fattura (${activeRows.length} righe)?`)){saveRows([]);setStep("upload");}}}
             style={{padding:"6px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
             ✕ Svuota
@@ -3720,7 +3749,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
   );
 }
 
-// ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
+
 // ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
 function Products({ products, setProducts, branch, importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
   const [search, setSearch] = useState("");
@@ -3837,28 +3866,28 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
     }));
-
+  
     setProducts(newProds);
     LS.set(`ifb_products_${branch}`, newProds);
-
-    // Salva l'array completo nello snapshot
+  
+    // ✅ CORRETTO: SALVA L'ARRAY COMPLETO NELLO SNAPSHOT
     const log = {
       id: now,
       type: "anagrafica",
       date: new Date(now).toISOString(),
       count: newProds.length,
-      products: newProds,
+      products: newProds,  // ← QUESTA RIGA È FONDAMENTALE!
       branch: "ALL"
     };
-
+  
     const newLogs = [log, ...importLogs];
     setImportLogs(newLogs);
     LS.set("ifb_importlogs", newLogs);
-
+  
     const newSnaps = [log, ...snapshots].slice(0, 50);
     setSnapshots(newSnaps);
     LS.set("ifb_snapshots", newSnaps);
-
+  
     bumpImportTs();
     showToast(`Importati ${newProds.length} articoli`, T.gold);
     setImportStep("idle");
@@ -3868,12 +3897,12 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
   function loadFromSnapshot(snap: any) {
     const snapshotProducts = snap.products || [];
-
+  
     if (snapshotProducts.length === 0) {
       showToast(`Nessun prodotto trovato nello snapshot`, T.orange);
       return;
     }
-
+  
     if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
       setProducts(snapshotProducts);
       LS.set(`ifb_products_${branch}`, snapshotProducts);
