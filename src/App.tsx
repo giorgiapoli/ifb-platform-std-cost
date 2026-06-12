@@ -20,8 +20,11 @@ const NOW = () => new Date().toISOString().slice(0,7);
 const roundN = (n, d=2) => Math.round((n||0)*Math.pow(10,d))/Math.pow(10,d);
 const EXCLUDED_INVOICE_DESC = ["health certificate costs","late payment interest","interest on intercompany","handling costs","freight cost"];
 const isExcludedDesc = d => EXCLUDED_INVOICE_DESC.some(ex=>String(d||"").toLowerCase().includes(ex));
-const AIR_TYPES = ["air","ch air","fr air","dr air","chilled air","frozen air","dry air"];
-const isAirTransport = t => AIR_TYPES.some(a=>String(t||"").toLowerCase().trim()===a);
+const AIR_TYPES = ["air","sea"];
+const isAirTransport = t => {
+  const val = String(t||"").toLowerCase().trim();
+  return val === "air";
+};
 const isIFBVendor = v => String(v||"").toUpperCase().includes("INALCA FOOD");
 
 function findProduct(code, products, xrefs=[]) {
@@ -102,7 +105,8 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   }
 
   // ── FOB ──
-  const fob = (COSTS.FOB[temperature]?.[area] ?? 0) / totalUnits;
+  const fobContainer = COSTS.FOB[temperature]?.[area] ?? 0;
+  const fob = (fobContainer / pltPerContainer) / unitsPerPlt;
 
   // ── LIC = (4100+3800 HKD) / rate / totalUnits ──
   const lic = (COSTS.LIC_HKD / eurToHkd) / totalUnits;
@@ -1880,8 +1884,9 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
       if (!prod) return;
   
       // Controlla se è AIR (salta)
+      // Controlla se è AIR (salta)
       const airSeaRaw = iAirSea >= 0 ? String(row[iAirSea] || "").trim().toUpperCase() : "";
-      if (["AIR", "CH AIR", "FR AIR", "DR AIR"].includes(airSeaRaw)) {
+      if (airSeaRaw === "AIR") {
         countAir++;
         return;
       }
