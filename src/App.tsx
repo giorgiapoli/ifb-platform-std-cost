@@ -308,17 +308,15 @@ export default function App() {
 
   const NAV = [
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
-    {id:"products",   icon:"◈", label:"Anagrafica"},
-    {id:"importAnag", icon:"⇪", label:"Import Anagrafica", badge:"BC"},
+    {id:"products",   icon:"◈", label:"Anagrafica", badge:"⇪"},
     {id:"xref",       icon:"⇄", label:"XRef N / IFB"},
     {id:"logistics",  icon:"◎", label:"Logistica"},
-    {id:"prices",     icon:"◉", label:"Listini"},
-    {id:"importPrice",icon:"💶", label:"Import Listini",  badge:"BC"},
+    {id:"prices",     icon:"◉", label:"Listini", badge:"💶"},
     {id:"fx",         icon:"◌", label:"Cambi"},
     {id:"air",        icon:"✈", label:"AIR Transport"},
     {id:"costs",      icon:"◆", label:"Standard Cost"},
     {id:"costsInvoice", icon:"📋", label:"Costi su Fatture"},
-    {id:"sales",      icon:"📋", label:"Sales Invoice"},
+    {id:"sales",      icon:"📋", label:"Sales Invoice", badge:"⇪"},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
     {id:"mail",       icon:"◻", label:"Mail Mensile"},
     {id:"notes",      icon:"📝", label:"Note & Ambiguità"},
@@ -359,17 +357,7 @@ export default function App() {
   const pages = {
     dashboard:   <Dashboard costRows={costRows} branch={branch} month={month} navigate={navigate}/>,
     products:    <Products products={products}/>,
-    importAnag:  <ImportBC 
-      products={products} 
-      setProducts={setProducts} 
-      branch={branch} 
-      importLogs={importLogs}
-      setImportLogs={setImportLogs}
-      snapshots={snapshots}
-      setSnapshots={setSnapshots}
-      showToast={showToast}
-      bumpImportTs={bumpImportTs}
-    />,
+  
     xref:        <XRefPage 
       xrefs={xrefs} 
       setXrefs={setXrefs} 
@@ -382,8 +370,23 @@ export default function App() {
       bumpImportTs={bumpImportTs}
     />,
     logistics:   <Logistics logistics={logistics} setLogistics={setLogistics} products={products} branch={branch} showToast={showToast} bumpImportTs={bumpImportTs} initFilter={pageFilter}/>,
-    prices:      <Prices prices={prices} products={products} branch={branch} month={month} setPrices={setPrices} salesRows={salesRows} xrefs={xrefs}/>,
-    importPrice: <ImportPrices prices={prices} setPrices={setPrices} products={products} xrefs={xrefs} branch={branch} month={month} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    prices: <Prices 
+  prices={prices} 
+  setPrices={setPrices} 
+  products={products} 
+  branch={branch} 
+  month={month} 
+  setPrices={setPrices}
+  salesRows={salesRows} 
+  xrefs={xrefs}
+  importLogs={importLogs}
+  setImportLogs={setImportLogs}
+  snapshots={snapshots}
+  setSnapshots={setSnapshots}
+  showToast={showToast}
+  bumpImportTs={bumpImportTs}
+/>,
+    
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
@@ -1880,100 +1883,466 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
   );
 }
 
-// ─── PRICES (con filtro Sales Invoice) ─────────────────────────────────────────────
-function Prices({prices, products, branch, month, setPrices, salesRows=[], xrefs=[]}) {
-  const[search,setSearch]=useState("");
-  const[invoiceOnly,setInvoiceOnly]=useState(false);
+// ─── PRICES (con import integrato e storico) ─────────────────────────────────
+function Prices({ prices, setPrices, products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [], 
+  importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
+const [search, setSearch] = useState("");
+const [invoiceOnly, setInvoiceOnly] = useState(false);
+const [importStep, setImportStep] = useState<"idle"|"map"|"preview"|"done">("idle");
+const [headers, setHeaders] = useState<string[]>([]);
+const [rawRows, setRawRows] = useState<any[]>([]);
+const [mapping, setMapping] = useState<any>({});
+const [preview, setPreview] = useState<any[]>([]);
+const [fileName, setFileName] = useState("");
+const [importMonth, setImportMonth] = useState(month);
+const [doneInfo, setDoneInfo] = useState<any>(null);
 
-  const invoiceProductIds = useMemo(()=>{
-    const s=new Set();
-    (salesRows||[]).forEach(r=>{
-      const prod=findProduct(r.itemCode, products, xrefs);
-      if(prod) s.add(prod.id);
-    });
-    return s;
-  },[salesRows, products, xrefs]);
+// Storico import listini
+const priceSnaps = snapshots.filter((s: any) => s.type === "prices" && s.branch === branch);
 
-  const filtered=prices.filter(p=>{
-    if(p.branch!==branch||p.month!==month) return false;
-    if(/^P_BC_/i.test(p.productId)) return false;
-    if(invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
-    return true;
-  });
+// Funzione per verificare se un codice è valido (NON Power BI)
+function isValidCode(code: string) {
+if (!code) return false;
+const str = String(code).trim();
+if (/^P_/i.test(str)) return false;
+if (/^\d{7,}$/.test(str.replace(/[^0-9]/g, ""))) return false;
+if (str.includes("P_BC_")) return false;
+return true;
+}
 
-  const displayed=filtered.filter(p=>{
-    const prod=products.find(pr=>pr.id===p.productId);
-    if(!search) return true;
-    const q=search.toLowerCase();
-    return prod?.description?.toLowerCase().includes(q)||
-      prod?.code?.toLowerCase().includes(q)||
-      prod?.nHK?.toLowerCase().includes(q)||
-      String(p.productId).toLowerCase().includes(q);
-  });
+function parseFile(file: File) {
+setFileName(file.name);
+const reader = new FileReader();
+reader.onload = e => {
+try {
+const wb = XLSX.read(e.target.result, { type: "binary" });
+const ws = wb.Sheets[wb.SheetNames[0]];
+const data = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+if (data.length < 2) { showToast("File vuoto", T.red); return; }
 
-  const COLS=["fcaPrice","fcaDiscounted","dapPrice","mtsPrice","dapFinal"];
-  const LABELS=["FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Final"];
+const hdrs = data[0].map((h: any) => String(h || "").trim());
+const rows = data.slice(1).filter((r: any[]) => r.some(c => c !== ""));
+setHeaders(hdrs);
+setRawRows(rows);
 
-  if(filtered.length===0&&!invoiceOnly) return(
-    <div>
-      <PageHeader title={`Listini · ${branch} · ${month}`} sub="Nessun prezzo caricato"/>
-      <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
-        Nessun prezzo per {branch} · {month}. Usa "Import Listini".
-      </div>
-    </div>
-  );
+// Auto-mapping dei campi
+const am: any = {};
+const codeAliases = ["no_", "no.", "no", "item no.", "codice", "code", "n hk", "ifb item", "ifb no", "ifb n"];
+for (const h of hdrs) {
+const hl = h.toLowerCase().trim();
+if (codeAliases.some(a => hl === a || hl.includes(a))) {
+am["code"] = h;
+break;
+}
+}
 
-  return(
-    <div>
-      <PageHeader title={`Listini · ${branch} · ${month}`} sub={`${filtered.length} prezzi caricati`}/>
-      <div style={{display:"flex",gap:"10px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
-        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto…"/>
-        <button onClick={()=>setInvoiceOnly(v=>!v)}
-          style={{padding:"5px 12px", background:invoiceOnly?`${T.gold}20`:T.surface, color:invoiceOnly?T.gold:T.muted,
-            border:`1px solid ${invoiceOnly?T.gold:T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"11px", whiteSpace:"nowrap"}}>
-          {invoiceOnly ? `✓ Solo fatturati (${displayed.length})` : `📋 Solo Sales Invoice (${invoiceProductIds.size} prod.)`}
-        </button>
-        {setPrices&&(
-          <button onClick={()=>{if(window.confirm(`Eliminare tutti i prezzi ${branch}/${month}?`))
-            setPrices(prices.filter(p=>!(p.branch===branch&&p.month===month)));}}
-            style={{padding:"5px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",
-              color:T.red,cursor:"pointer",fontSize:"11px"}}>✕ Svuota {branch}/{month}
-          </button>
-        )}
-      </div>
-      <Section title={`${displayed.length} prezzi${invoiceOnly?" (solo Sales Invoice)":""}`}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["N HK","IFB No","Descrizione",...LABELS]}/>
-            <tbody>
-              {displayed.slice(0,300).map((p,i)=>{
-                const prod=products.find(pr=>pr.id===p.productId);
-                const inInvoice=invoiceProductIds.has(p.productId);
-                return(
-                  <tr key={p.productId} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                    <TD mono><span style={{color:T.muted}}>{prod?.nHK||"—"}</span></TD>
-                    <TD mono>
-                      <span style={{color:T.gold}}>{prod?.code||p.productId}</span>
-                      {inInvoice&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.blue}}>📋</span>}
-                    </TD>
-                    <TD>{prod?.description||<span style={{color:T.orange,fontSize:"11px"}}>⚠ {p.productId}</span>}</TD>
-                    {COLS.map(f=>(
-                      <TD key={f} mono>
-                        <span style={{color:(p[f]||0)>0?T.text:T.dim}}>
-                          {(p[f]||0)>0?`€ ${roundN(p[f]).toFixed(2)}`:"—"}
-                        </span>
-                      </TD>
-                    ))}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-        {displayed.length>300&&<div style={{padding:"12px",textAlign:"center",color:T.muted,fontSize:"11px"}}>Mostrati 300/{displayed.length}</div>}
-      </Section>
-    </div>
-  );
+const descAliases = ["description", "descrizione", "desc", "item description"];
+for (const h of hdrs) {
+const hl = h.toLowerCase().trim();
+if (descAliases.some(a => hl === a || hl.includes(a))) {
+am["description"] = h;
+break;
+}
+}
+
+const priceFields = ["mtsPrice", "fcaPrice", "fcaDiscount", "fcaDiscounted", "dapPrice", "dapDiscount", "dapDiscounted", "dapFinalDirect"];
+priceFields.forEach(field => {
+const aliases = PRICE_FIELD_ALIASES[field] || [];
+for (const h of hdrs) {
+const hl = h.toLowerCase().trim();
+if (aliases.some(a => hl === a || (a.length > 3 && hl.includes(a)))) {
+am[field] = h;
+break;
+}
+}
+});
+
+setMapping(am);
+setImportStep("map");
+} catch (err: any) {
+showToast("Errore: " + err.message, T.red);
+}
+};
+reader.readAsBinaryString(file);
+}
+
+function buildPreview() {
+const get = (row: any, field: string) => {
+const col = mapping[field];
+if (!col) return null;
+const i = headers.indexOf(col);
+return i >= 0 ? row[i] : null;
+};
+
+const mapped = rawRows.map((row, idx) => {
+const rawCode = String(get(row, "code") || "").trim();
+const rawDescription = String(get(row, "description") || get(row, "code") || "").trim();
+
+if (!rawCode) return null;
+if (!isValidCode(rawCode)) return null;
+
+const prod = findProduct(rawCode, products, xrefs);
+
+const mtsPrice = parseFloat(get(row, "mtsPrice")) || 0;
+const fcaPrice = parseFloat(get(row, "fcaPrice")) || 0;
+const fcaDiscount = parseFloat(get(row, "fcaDiscount")) || 0;
+const fcaDiscounted = parseFloat(get(row, "fcaDiscounted")) || (fcaPrice - (fcaDiscount * fcaPrice / 100)) || 0;
+const dapPrice = parseFloat(get(row, "dapPrice")) || 0;
+const dapDiscount = parseFloat(get(row, "dapDiscount")) || 0;
+const dapDiscounted = parseFloat(get(row, "dapDiscounted")) || (dapPrice - (dapDiscount * dapPrice / 100)) || 0;
+const dapFinalDirect = parseFloat(get(row, "dapFinalDirect")) || 0;
+
+let dapFinal = 0;
+let dapNote = "";
+if (dapFinalDirect !== 0) {
+dapFinal = dapFinalDirect;
+dapNote = "da file";
+} else if (prod) {
+dapFinal = dapDiscounted || 0;
+dapNote = dapDiscounted ? "da DAP Disc." : "";
+}
+
+const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === importMonth) : null;
+
+return {
+_idx: idx,
+rawCode,
+ifbNo_from_file: rawCode,
+description_from_file: rawDescription,
+productId: prod?.id || null,
+nHK_from_anag: prod?.nHK || "",
+ifbNo_from_anag: prod?.code || "",
+description_from_anag: prod?.description || "",
+dapFinal: roundN(dapFinal),
+mtsPrice: roundN(mtsPrice),
+fcaDiscounted: roundN(fcaDiscounted),
+dapPrice: roundN(dapPrice),
+fcaPrice: roundN(fcaPrice),
+dapNote,
+_hasProduct: !!prod,
+_existing: !!existing
+};
+}).filter(Boolean);
+
+setPreview(mapped);
+setImportStep("preview");
+}
+
+function executeImport() {
+const snId = Date.now();
+const updated = [...prices];
+const diffs = [];
+let count = 0, newCount = 0, changed = 0;
+
+preview.forEach(r => {
+if (!r._hasProduct) return;
+
+const idx = updated.findIndex(p => p.productId === r.productId && p.branch === branch && p.month === importMonth);
+const entry = {
+productId: r.productId,
+branch,
+month: importMonth,
+dapFinal: r.dapFinal,
+mtsPrice: r.mtsPrice,
+fcaDiscounted: r.fcaDiscounted,
+dapPrice: r.dapPrice,
+fcaPrice: r.fcaPrice
+};
+const prev = idx >= 0 ? updated[idx] : null;
+const diffFields = [];
+
+["dapFinal", "mtsPrice", "fcaDiscounted", "dapPrice", "fcaPrice"].forEach(f => {
+const oldR = roundN(prev?.[f] || 0);
+const newR = roundN(entry[f] || 0);
+if (Math.abs(oldR - newR) >= 0.005) {
+diffFields.push({ field: f, old: oldR, new: newR, delta: oldR > 0 ? ((newR - oldR) / oldR * 100) : null });
+}
+});
+
+if (!prev) newCount++;
+else if (diffFields.length > 0) changed++;
+
+if (diffFields.length > 0 || !prev) {
+diffs.push({
+productId: r.productId,
+nHK: r.nHK_from_anag,
+ifbNo: r.ifbNo_from_anag,
+description: r.description_from_anag,
+isNew: !prev,
+fields: diffFields
+});
+}
+
+if (idx >= 0) updated[idx] = entry;
+else updated.push(entry);
+count++;
+});
+
+setPrices(updated);
+LS.set("ifb_prices", updated);
+
+const log = {
+id: snId,
+type: "prices",
+fileName,
+branch,
+month: importMonth,
+date: new Date(snId).toISOString(),
+count,
+newCount,
+updateCount: changed,
+diffs
+};
+
+const newLogs = [log, ...importLogs];
+setImportLogs(newLogs);
+LS.set("ifb_importlogs", newLogs);
+
+const newSnaps = [log, ...snapshots].slice(0, 50);
+setSnapshots(newSnaps);
+LS.set("ifb_snapshots", newSnaps);
+
+setDoneInfo({ count, newCount, changed, unchanged: count - newCount - changed });
+bumpImportTs();
+setImportStep("done");
+}
+
+function loadFromSnapshot(snap: any) {
+if (window.confirm(`Caricare i listini del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.month})? Sostituirà i dati attuali.`)) {
+// Ricostruisce i prezzi dallo snapshot
+const snapshotPrices = snap.diffs?.map((d: any) => ({
+productId: d.productId,
+branch: snap.branch,
+month: snap.month,
+dapFinal: d.fields?.find((f: any) => f.field === "dapFinal")?.new || 0,
+mtsPrice: d.fields?.find((f: any) => f.field === "mtsPrice")?.new || 0,
+fcaDiscounted: d.fields?.find((f: any) => f.field === "fcaDiscounted")?.new || 0,
+dapPrice: d.fields?.find((f: any) => f.field === "dapPrice")?.new || 0,
+fcaPrice: d.fields?.find((f: any) => f.field === "fcaPrice")?.new || 0,
+})) || [];
+
+const existingPrices = prices.filter((p: any) => !(p.branch === snap.branch && p.month === snap.month));
+const newPrices = [...existingPrices, ...snapshotPrices];
+setPrices(newPrices);
+LS.set("ifb_prices", newPrices);
+showToast(`Listini ripristinati da snapshot (${snap.month})`, T.gold);
+}
+}
+
+const resetImport = () => {
+setImportStep("idle");
+setRawRows([]);
+setHeaders([]);
+setFileName("");
+setMapping({});
+setPreview([]);
+setDoneInfo(null);
+};
+
+const invoiceProductIds = useMemo(() => {
+const s = new Set();
+(salesRows || []).forEach(r => {
+const prod = findProduct(r.itemCode, products, xrefs);
+if (prod) s.add(prod.id);
+});
+return s;
+}, [salesRows, products, xrefs]);
+
+const filtered = prices.filter(p => {
+if (p.branch !== branch || p.month !== month) return false;
+if (/^P_BC_/i.test(p.productId)) return false;
+if (invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
+return true;
+});
+
+const displayed = filtered.filter(p => {
+const prod = products.find(pr => pr.id === p.productId);
+if (!search) return true;
+const q = search.toLowerCase();
+return prod?.description?.toLowerCase().includes(q) ||
+prod?.code?.toLowerCase().includes(q) ||
+prod?.nHK?.toLowerCase().includes(q) ||
+String(p.productId).toLowerCase().includes(q);
+});
+
+const COLS = ["fcaPrice", "fcaDiscounted", "dapPrice", "mtsPrice", "dapFinal"];
+const LABELS = ["FCA Price", "FCA Disc.", "DAP Price", "MTS Price", "DAP Final"];
+
+// Schermata import completato
+if (importStep === "done" && doneInfo) {
+return (
+<div>
+<PageHeader title="✓ Import Listini completato" sub={fileName} />
+<div style={{ padding: "20px", background: `${T.green}11`, border: `1px solid ${T.green}33`, borderRadius: "8px", marginBottom: "16px", fontSize: "13px", color: T.muted, lineHeight: "2" }}>
+Mese: <strong style={{ color: T.gold }}>{importMonth}</strong> · Filiale: <strong style={{ color: T.text }}>{branch}</strong><br />
+Prezzi totali: <strong style={{ color: T.text }}>{doneInfo.count}</strong> &nbsp;·&nbsp;
+<span style={{ color: T.green }}>🆕 {doneInfo.newCount} nuovi</span> &nbsp;·&nbsp;
+<span style={{ color: T.orange }}>✏️ {doneInfo.changed} modificati</span> &nbsp;·&nbsp;
+<span style={{ color: T.dim }}>{doneInfo.unchanged} invariati</span>
+</div>
+<ActionBtn label="← Torna ai listini" onClick={resetImport} />
+</div>
+);
+}
+
+// Schermata vuota (nessun prezzo)
+if (filtered.length === 0 && !invoiceOnly && importStep === "idle") {
+return (
+<div>
+<PageHeader title={`Listini · ${branch} · ${month}`} sub="Nessun prezzo caricato" />
+<div style={{ padding: "32px", textAlign: "center", color: T.muted, fontSize: "13px" }}>
+Nessun prezzo per {branch} · {month}.
+</div>
+<div style={{ marginTop: "16px" }}>
+<label style={{ display: "inline-block", padding: "10px 20px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+📂 Carica listini (PBI / CURRENT PRICELIST)
+<input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
+</label>
+</div>
+</div>
+);
+}
+
+return (
+<div>
+<PageHeader title={`Listini · ${branch} · ${month}`} sub={`${filtered.length} prezzi caricati`} />
+
+{/* Toolbar import */}
+<div style={{ display: "flex", gap: "10px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
+<label style={{ display: "inline-block", padding: "6px 14px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>
+📂 Carica listini
+<input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
+</label>
+
+{priceSnaps.length > 0 && (
+<select onChange={e => { if (e.target.value) loadFromSnapshot(JSON.parse(e.target.value)); e.target.value = ""; }} style={{ ...inputStyle(), width: "auto", fontSize: "12px" }} defaultValue="">
+<option value="">📜 Carica da storico ({priceSnaps.length})</option>
+{priceSnaps.map((s: any) => (
+<option key={s.id} value={JSON.stringify(s)}>
+{new Date(s.id).toLocaleDateString("it-IT")} · {s.month} · {s.count} prezzi
+</option>
+))}
+</select>
+)}
+
+<div style={{ flex: 1 }} />
+
+<SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto…" style={{ marginBottom: 0, maxWidth: "250px" }} />
+
+<button onClick={() => setInvoiceOnly(v => !v)} style={{ padding: "5px 12px", background: invoiceOnly ? `${T.gold}20` : T.surface, color: invoiceOnly ? T.gold : T.muted, border: `1px solid ${invoiceOnly ? T.gold : T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px", whiteSpace: "nowrap" }}>
+{invoiceOnly ? `✓ Solo fatturati (${displayed.length})` : `📋 Solo Sales Invoice (${invoiceProductIds.size} prod.)`}
+</button>
+
+{setPricesParent && (
+<button onClick={() => { if (window.confirm(`Eliminare tutti i prezzi ${branch}/${month}?`)) setPricesParent(prices.filter(p => !(p.branch === branch && p.month === month))); }} style={{ padding: "5px 12px", background: "none", border: `1px solid ${T.red}44`, borderRadius: "6px", color: T.red, cursor: "pointer", fontSize: "11px" }}>
+✕ Svuota {branch}/{month}
+</button>
+)}
+</div>
+
+{/* Step di import - Mappa */}
+{importStep === "map" && (
+<div style={{ background: T.card, border: `1px solid ${T.gold}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
+<div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne · {fileName}</div>
+<div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", marginBottom: "16px" }}>
+<div>
+<label style={{ fontSize: "11px", color: T.gold }}>📌 Codice *</label>
+<select value={mapping["code"] || ""} onChange={e => setMapping((m: any) => ({ ...m, code: e.target.value }))} style={{ ...inputStyle(), fontSize: "12px" }}>
+<option value="">— seleziona —</option>
+{headers.map(h => <option key={h} value={h}>{h}</option>)}
+</select>
+</div>
+<div>
+<label style={{ fontSize: "11px", color: T.muted }}>📝 Descrizione</label>
+<select value={mapping["description"] || ""} onChange={e => setMapping((m: any) => ({ ...m, description: e.target.value }))} style={{ ...inputStyle(), fontSize: "12px" }}>
+<option value="">— non mappato —</option>
+{headers.map(h => <option key={h} value={h}>{h}</option>)}
+</select>
+</div>
+<div>
+<label style={{ fontSize: "11px", color: T.muted }}>📅 Mese listino</label>
+<input type="month" value={importMonth} onChange={e => setImportMonth(e.target.value)} style={{ ...inputStyle(), fontSize: "12px" }} />
+</div>
+</div>
+<div style={{ display: "flex", gap: "10px" }}>
+<ActionBtn label="Annulla" onClick={resetImport} />
+<ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"]} />
+</div>
+</div>
+)}
+
+{/* Step di import - Preview */}
+{importStep === "preview" && (
+<div style={{ background: T.card, border: `1px solid ${T.green}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
+<div style={{ color: T.green, fontWeight: "bold", marginBottom: "12px" }}>Preview import · {preview.length} righe valide</div>
+<div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
+{[
+[preview.filter(r => r._hasProduct).length, "✅ Trovati in anagrafica", T.green],
+[preview.filter(r => !r._hasProduct).length, "❌ NON trovati", T.red],
+[preview.filter(r => r._existing).length, "✏️ Aggiornamenti", T.orange],
+[preview.filter(r => !r._existing && r._hasProduct).length, "🆕 Nuovi", T.gold]
+].map(([n, l, c]) => (
+<div key={l as string} style={{ padding: "8px 12px", background: T.surface, border: `1px solid ${c}44`, borderRadius: "6px" }}>
+<div style={{ fontSize: "18px", fontWeight: "bold", color: c as string }}>{n as number}</div>
+<div style={{ fontSize: "10px", color: T.dim }}>{l as string}</div>
+</div>
+))}
+</div>
+<div style={{ maxHeight: "200px", overflow: "auto", marginBottom: "12px", fontSize: "11px" }}>
+<table style={{ width: "100%", borderCollapse: "collapse" }}>
+<thead><tr><th>Codice</th><th>Descrizione</th><th>Match</th><th>DAP Final</th><th>Stato</th></tr></thead>
+<tbody>{preview.slice(0, 20).map(r => (
+<tr key={r._idx} style={{ borderBottom: `1px solid ${T.border}` }}>
+  <td style={{ fontFamily: "monospace", color: T.gold }}>{r.ifbNo_from_file}</td>
+  <td>{r.description_from_file}</td>
+  <td>{r._hasProduct ? <span style={{ color: T.green }}>✓ {r.ifbNo_from_anag}</span> : <span style={{ color: T.red }}>✗</span>}</td>
+  <td style={{ fontFamily: "monospace" }}>{r.dapFinal > 0 ? `€ ${r.dapFinal.toFixed(2)}` : "—"}</td>
+  <td>{r._hasProduct ? (r._existing ? <span style={{ color: T.orange }}>aggiornamento</span> : <span style={{ color: T.green }}>nuovo</span>) : <span style={{ color: T.red }}>ignorato</span>}</td>
+</tr>
+))}</tbody>
+</table>
+</div>
+<div style={{ display: "flex", gap: "10px" }}>
+<ActionBtn label="← Indietro" onClick={() => setImportStep("map")} />
+<ActionBtn label={`✓ Importa ${preview.filter(r => r._hasProduct).length} prezzi per ${importMonth}`} onClick={executeImport} primary />
+</div>
+</div>
+)}
+
+{/* Tabella listini */}
+<Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
+<div style={{ overflowX: "auto" }}>
+<table style={{ width: "100%", borderCollapse: "collapse" }}>
+<THead cols={["N HK", "IFB No", "Descrizione", ...LABELS]} />
+<tbody>
+{displayed.slice(0, 300).map((p, i) => {
+const prod = products.find(pr => pr.id === p.productId);
+const inInvoice = invoiceProductIds.has(p.productId);
+return (
+  <tr key={p.productId} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
+    <TD mono><span style={{ color: T.muted }}>{prod?.nHK || "—"}</span></TD>
+    <TD mono>
+      <span style={{ color: T.gold }}>{prod?.code || p.productId}</span>
+      {inInvoice && <span style={{ marginLeft: "5px", fontSize: "9px", color: T.blue }}>📋</span>}
+    </TD>
+    <TD>{prod?.description || <span style={{ color: T.orange, fontSize: "11px" }}>⚠ {p.productId}</span>}</TD>
+    {COLS.map(f => (
+      <TD key={f} mono>
+        <span style={{ color: (p[f] || 0) > 0 ? T.text : T.dim }}>
+          {(p[f] || 0) > 0 ? `€ ${roundN(p[f]).toFixed(2)}` : "—"}
+        </span>
+      </TD>
+    ))}
+  </tr>
+);
+})}
+</tbody>
+</table>
+</div>
+{displayed.length > 300 && <div style={{ padding: "12px", textAlign: "center", color: T.muted, fontSize: "11px" }}>Mostrati 300/{displayed.length}</div>}
+</Section>
+</div>
+);
 }
 
 
@@ -3154,54 +3523,228 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
 }
 
 // ─── PRODUCTS ─────────────────────────────────────────────────────────────────
-function Products({products}:any) {
-  const[search,setSearch]=useState("");
-  const[onlyIFB,setOnlyIFB]=useState(true);
+// ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
+function Products({products, setProducts, branch, importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs}) {
+  const [search, setSearch] = useState("");
+  const [onlyIFB, setOnlyIFB] = useState(true);
+  const [importStep, setImportStep] = useState<"idle"|"map"|"preview">("idle");
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<any[]>([]);
+  const [map, setMap] = useState<any>({});
+  const [preview, setPreview] = useState<any[]>([]);
+  const [fileName, setFileName] = useState("");
 
-  const base=onlyIFB?products.filter((p:any)=>isIFBVendor(p.vendorName)):products;
-  const q = search.toLowerCase();
-  const filtered = base.filter((p:any) =>
-    !search
-    || p.description?.toLowerCase().includes(q)
-    || p.code?.toLowerCase().includes(q)
-    || p.nHK?.toLowerCase().includes(q)
-  );
+  // Storico import anagrafica
+  const anagSnaps = snapshots.filter((s:any) => s.type === "anagrafica" && (!s.branch || s.branch === "ALL" || s.branch === branch));
 
+  const FIELDS = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","temperature","active","vendorName","vendorName2"];
+  const FLABELS = {nHK:"N HK (No_)",code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone",temperature:"Product Type",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
 
-  return(
+  const LOCAL_ALIASES = {
+    nHK: ["no","no_"], code: ["ifbitem","ifb item","ifb no","ifb n"],
+    description: ["description"], category: ["sectiondescription","section description","section"],
+    uom: ["salesunitofmeasure","sales unit of measure"], qtyPerBox: ["quantityxpackaging","quantity x packaging"],
+    boxPerPallet: ["packagingxpallet","packaging x pallet"], kgPerBox: ["netweight","net weight"],
+    temperature: ["producttype","product type","product type rettificato"], active: ["blocked"],
+    vendorName: ["vendorname","vendor name"], vendorName2: ["vendorname2","vendor name 2"],
+  };
+
+  function autoMap(hdrs: string[]) {
+    const m: any = {};
+    for (const field of FIELDS) {
+      const aliases = LOCAL_ALIASES[field] || [];
+      const h = hdrs.find(h => aliases.some(a => h.toLowerCase().replace(/[\s_]/g, "") === a.replace(/[\s_]/g, "")));
+      if (h) { m[field] = h; continue; }
+      const h2 = hdrs.find(h => aliases.some(a => h.toLowerCase().replace(/[\s_]/g, "").includes(a.replace(/[\s_]/g, "")) && a.length > 3));
+      if (h2) m[field] = h2;
+    }
+    return m;
+  }
+
+  function parseFile(file: File) {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read((ev.target as any).result, { type: "binary" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        if (!data.length) { showToast("File vuoto", T.red); return; }
+        
+        let hi = 0;
+        for (let i = 0; i < Math.min(5, data.length); i++) {
+          const rNorm = data[i].map((c: any) => String(c || "").toLowerCase().replace(/[\s_]/g, ""));
+          if (rNorm.some((c: string) => ["no", "ifbitem", "vendorname", "description"].includes(c))) { hi = i; break; }
+        }
+        const hdrs = data[hi].map((h: any) => String(h || "").trim());
+        setHeaders(hdrs);
+        setRawRows(data.slice(hi + 1).filter((r: any[]) => r.some((c: any) => c !== "")));
+        setMap(autoMap(hdrs));
+        setImportStep("map");
+      } catch (err: any) { showToast("Errore lettura file", T.red); }
+    };
+    reader.readAsBinaryString(file);
+  }
+
+  function buildPreview() {
+    const mapped = rawRows.map(r => {
+      const obj: any = {};
+      for (const field of FIELDS) {
+        const col = map[field];
+        if (col) {
+          const idx = headers.indexOf(col);
+          obj[field] = idx >= 0 ? String(r[idx] || "").trim() : "";
+        } else obj[field] = "";
+      }
+      return obj;
+    }).filter(r => r.code || r.nHK);
+    setPreview(mapped);
+    setImportStep("preview");
+  }
+
+  function executeImport() {
+    const now = Date.now();
+    const newProds = preview.map((r: any) => ({
+      id: r.code || r.nHK, code: r.code, nHK: r.nHK, description: r.description,
+      category: mapBCVal("category", r.category), uom: mapBCVal("uom", r.uom),
+      qtyPerBox: parseFloat(r.qtyPerBox) || 0, boxPerPallet: parseFloat(r.boxPerPallet) || 0,
+      kgPerBox: parseFloat(r.kgPerBox) || 0, temperature: mapBCVal("temperature", r.temperature),
+      kgxplt: parseFloat(r.kgxplt) || roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.boxPerPallet) || 0)),
+      active: !["true", "1", "yes"].includes(String(r.active || "").toLowerCase()),
+      vendorName: r.vendorName || "", vendorName2: r.vendorName2 || "",
+    }));
+    
+    setProducts(newProds);
+    LS.set(`ifb_products_${branch}`, newProds);
+    
+    const log = { id: now, type: "anagrafica", date: new Date(now).toISOString(), count: newProds.length, diffs: [], branch: "ALL" };
+    const newLogs = [log, ...importLogs];
+    setImportLogs(newLogs);
+    LS.set("ifb_importlogs", newLogs);
+    const newSnaps = [log, ...snapshots].slice(0, 50);
+    setSnapshots(newSnaps);
+    LS.set("ifb_snapshots", newSnaps);
+    bumpImportTs();
+    showToast(`Importati ${newProds.length} articoli`, T.gold);
+    setImportStep("idle");
+    setPreview([]);
+    setRawRows([]);
+  }
+
+  function loadFromSnapshot(snap: any) {
+    if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")}? Sostituirà i dati attuali.`)) {
+      setProducts(snap.products || []);
+      LS.set(`ifb_products_${branch}`, snap.products || []);
+      showToast(`Anagrafica ripristinata da snapshot`, T.gold);
+    }
+  }
+
+  const mapBCVal = (field: string, raw: string) => {
+    const maps: any = {
+      category: { "food": "FOOD", "beverage": "WINE", "wine": "WINE", "spirits": "SPIRITS", "meat": "MEAT" },
+      uom: { "pcs": "PCS", "box": "BOX", "kg": "KG" },
+      temperature: { "dry": "DRY", "fresh": "FRESH", "frozen": "FROZEN" },
+    };
+    if (!maps[field]) return raw;
+    return maps[field][String(raw || "").toLowerCase().trim()] || raw;
+  };
+
+  const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
+  const filtered = base.filter((p: any) => !search || p.description?.toLowerCase().includes(search.toLowerCase()) || p.code?.toLowerCase().includes(search.toLowerCase()) || p.nHK?.toLowerCase().includes(search.toLowerCase()));
+
+  return (
     <div>
-      <PageHeader title="Anagrafica Articoli"
-        sub={`${products.length} articoli · ${products.filter((p:any)=>isIFBVendor(p.vendorName)).length} INALCA F&B`}/>
-      <div style={{display:"flex",gap:"10px",marginBottom:"14px",alignItems:"center"}}>
-        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…"/>
-        <button onClick={()=>setOnlyIFB((v:boolean)=>!v)}
-          style={{padding:"5px 12px",background:onlyIFB?`${T.gold}20`:T.surface,
-            color:onlyIFB?T.gold:T.muted,border:`1px solid ${onlyIFB?T.gold:T.border}`,
-            borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
-          {onlyIFB?`✓ Solo INALCA F&B (${base.length})`:`Mostra tutti (${products.length})`}
+      <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli · ${products.filter((p: any) => isIFBVendor(p.vendorName)).length} INALCA F&B`} />
+
+      {/* Toolbar import */}
+      <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center", flexWrap: "wrap" }}>
+        <label style={{ display: "inline-block", padding: "8px 16px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>
+          📂 Carica anagrafica (BC export)
+          <input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
+        </label>
+        
+        {anagSnaps.length > 0 && (
+          <select onChange={e => { if (e.target.value) loadFromSnapshot(JSON.parse(e.target.value)); e.target.value = ""; }} style={{ ...inputStyle(), width: "auto", fontSize: "12px" }} defaultValue="">
+            <option value="">📜 Carica da storico ({anagSnaps.length})</option>
+            {anagSnaps.map((s: any) => (
+              <option key={s.id} value={JSON.stringify(s)}>
+                {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli
+              </option>
+            ))}
+          </select>
+        )}
+        
+        <div style={{ flex: 1 }} />
+        
+        <button onClick={() => setOnlyIFB((v: boolean) => !v)} style={{ padding: "5px 12px", background: onlyIFB ? `${T.gold}20` : T.surface, color: onlyIFB ? T.gold : T.muted, border: `1px solid ${onlyIFB ? T.gold : T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px" }}>
+          {onlyIFB ? `✓ Solo INALCA F&B (${base.length})` : `Mostra tutti (${products.length})`}
         </button>
       </div>
+
+      {/* Step di import */}
+      {importStep === "map" && (
+        <div style={{ background: T.card, border: `1px solid ${T.gold}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
+          <div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne · {fileName}</div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px", marginBottom: "16px" }}>
+            {FIELDS.slice(0, 9).map(f => (
+              <div key={f}>
+                <label style={{ fontSize: "10px", color: T.muted }}>{FLABELS[f]}</label>
+                <select value={map[f] || ""} onChange={e => setMap((m: any) => ({ ...m, [f]: e.target.value }))} style={{ ...inputStyle(), fontSize: "11px", padding: "4px 6px" }}>
+                  <option value="">—</option>
+                  {headers.map(h => <option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <ActionBtn label="Annulla" onClick={() => setImportStep("idle")} />
+            <ActionBtn label="Preview →" onClick={buildPreview} primary />
+          </div>
+        </div>
+      )}
+
+      {importStep === "preview" && (
+        <div style={{ background: T.card, border: `1px solid ${T.green}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
+          <div style={{ color: T.green, fontWeight: "bold", marginBottom: "12px" }}>Preview · {preview.length} articoli</div>
+          <div style={{ maxHeight: "200px", overflow: "auto", marginBottom: "12px", fontSize: "11px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+              <thead><tr>{["N HK", "IFB No", "Descrizione"].map(c => <th key={c} style={{ textAlign: "left", padding: "4px" }}>{c}</th>)}</tr></thead>
+              <tbody>{preview.slice(0, 20).map((r, i) => (
+                <tr key={i}><td style={{ padding: "2px 4px" }}>{r.nHK}</td><td style={{ padding: "2px 4px", color: T.gold }}>{r.code}</td><td style={{ padding: "2px 4px" }}>{r.description}</td></tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div style={{ display: "flex", gap: "10px" }}>
+            <ActionBtn label="← Indietro" onClick={() => setImportStep("map")} />
+            <ActionBtn label={`✓ Importa ${preview.length} articoli`} onClick={executeImport} primary />
+          </div>
+        </div>
+      )}
+
+      {/* Barra di ricerca */}
+      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…" />
+
+      {/* Tabella */}
       <Section title={`${filtered.length} articoli`}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["N HK","IFB No","Descrizione","Vendor","Categoria","UOM","Qty/Box","Box/Plt","Kg/Box","Kg/Plt","Temp","Attivo"]}/>
-            <tbody>{filtered.map((p:any,i:number)=>{
-              const kgxplt=p.kgxplt||roundN((parseFloat(p.kgPerBox)||0)*(parseFloat(p.boxPerPallet)||0));
-              return(
-                <tr key={p.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                  <TD mono><span style={{color:T.muted}}>{p.nHK||"—"}</span></TD>
-                  <TD mono><span style={{color:T.gold}}>{p.code}</span></TD>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <THead cols={["N HK", "IFB No", "Descrizione", "Vendor", "Categoria", "UOM", "Qty/Box", "Box/Plt", "Kg/Box", "Kg/Plt", "Temp", "Attivo"]} />
+            <tbody>{filtered.map((p: any, i: number) => {
+              const kgxplt = p.kgxplt || roundN((parseFloat(p.kgPerBox) || 0) * (parseFloat(p.boxPerPallet) || 0));
+              return (
+                <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
+                  <TD mono><span style={{ color: T.muted }}>{p.nHK || "—"}</span></TD>
+                  <TD mono><span style={{ color: T.gold }}>{p.code}</span></TD>
                   <TD>{p.description}</TD>
-                  <TD><span style={{fontSize:"11px",color:isIFBVendor(p.vendorName)?T.gold:T.muted}}>{p.vendorName||"—"}</span></TD>
-                  <TD><Chip label={p.category||"—"} color={p.category==="WINE"?T.purple:p.category==="MEAT"?T.red:T.blue}/></TD>
-                  <TD><Chip label={p.uom||"—"} color={T.muted}/></TD>
-                  <TD mono>{p.qtyPerBox||"—"}</TD>
-                  <TD mono>{p.boxPerPallet||"—"}</TD>
-                  <TD mono>{p.kgPerBox||"—"}</TD>
-                  <TD mono><span style={{color:kgxplt>0?T.text:T.dim}}>{kgxplt>0?kgxplt:"—"}</span></TD>
-                  <TD><Chip label={p.temperature||"—"}
-                    color={p.temperature==="FROZEN"?T.blue:p.temperature==="FRESH"?T.green:T.muted}/></TD>
-                  <TD><Chip label={p.active?"Sì":"No"} color={p.active?T.green:T.red}/></TD>
+                  <TD><span style={{ fontSize: "11px", color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>{p.vendorName || "—"}</span></TD>
+                  <TD><Chip label={p.category || "—"} color={p.category === "WINE" ? T.purple : p.category === "MEAT" ? T.red : T.blue} /></TD>
+                  <TD><Chip label={p.uom || "—"} color={T.muted} /></TD>
+                  <TD mono>{p.qtyPerBox || "—"}</TD>
+                  <TD mono>{p.boxPerPallet || "—"}</TD>
+                  <TD mono>{p.kgPerBox || "—"}</TD>
+                  <TD mono><span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span></TD>
+                  <TD><Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></TD>
+                  <TD><Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} /></TD>
                 </tr>
               );
             })}</tbody>
@@ -3212,7 +3755,7 @@ function Products({products}:any) {
   );
 }
 
-// ─── SHARED HELPERS ───────────────────────────────────────────────────────────
+
 
 // ─── SHARED HELPERS ───────────────────────────────────────────────────────────
 const inputStyle = () => ({
