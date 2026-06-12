@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 
 const T = {
@@ -3645,15 +3645,18 @@ function buildPreview() {
     <div>
       <PageHeader title="📋 Sales Invoice" sub={`${activeRows.length} righe · ${fileName||"dati caricati"}`}/>
 
-      {airMismatches.length>0 && (
-        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}`,borderRadius:"6px",padding:"10px 16px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"12px",flexWrap:"wrap"}}>
-          <span style={{color:T.orange,fontWeight:"bold"}}>⚠ {airMismatches.length} righe: trasporto AIR ma location ≠ NCJ</span>
-          <button onClick={()=>setFilterTransport(v=>v==="air"?"all":"air")}
-            style={{padding:"4px 12px",background:T.orange,color:"#000",border:"none",borderRadius:"4px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
-            {filterTransport==="air"?"Mostra tutte":"Mostra AIR mismatch"}
-          </button>
-        </div>
-      )}
+      {transportMismatches.length > 0 && (
+  <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}`,borderRadius:"6px",padding:"10px 16px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"12px",flexWrap:"wrap"}}>
+    <span style={{color:T.orange,fontWeight:"bold"}}>
+      ⚠ {transportMismatches.filter(r => r.transport === "AIR" && !String(r.location || "").toUpperCase().includes("NCJ")).length} righe: AIR senza NCJ · 
+      {transportMismatches.filter(r => r.transport !== "AIR" && String(r.location || "").toUpperCase().includes("NCJ")).length} righe: NCJ ma SEA
+    </span>
+    <button onClick={()=>setFilterTransport(v=>v==="mismatch"?"all":"mismatch")}
+      style={{padding:"4px 12px",background:filterTransport==="mismatch"?T.purple:T.surface,color:filterTransport==="mismatch"?"#fff":T.purple,border:`1px solid ${T.purple}`,borderRadius:"4px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
+      {filterTransport==="mismatch"?"Mostra tutte":"Mostra mismatch"}
+    </button>
+  </div>
+)}
 
       {/* Stats bar */}
       <div style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"center"}}>
