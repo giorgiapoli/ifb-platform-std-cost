@@ -1450,7 +1450,8 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
     }));
     setAirList(next); LS.set(`ifb_airlist_${branch}`, next);
     const now = Date.now();
-    const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch,items:next};
+    LS.set(`ifb_air_data_${now}`, next);
+    const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
     bumpImportTs(); showToast(`AIR ${branch}: lista sostituita con ${valid.length} articoli ✓`, T.gold);
@@ -1569,7 +1570,8 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
             const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
             if(!snap) return;
             if(window.confirm(`Ripristinare la lista AIR del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} articoli)?`)){
-              const next=(snap.items||[]);
+              const next=LS.get(`ifb_air_data_${snap.id}`,[]);
+              if(!next.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
               setAirList(next);LS.set(`ifb_airlist_${branch}`,next);
               showToast(`Lista AIR ripristinata: ${snap.count} articoli ✓`,T.gold);
             }
@@ -1848,35 +1850,72 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
   }
 
   function applyLogFile() {
-    const idx = colIdx;
-    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iAlcTax } = idx;
+    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iAlcTax } = colIdx;
     let next = [...logistics];
-    let countLog = 0;
-    let countAir = 0;
+    let countLog = 0, countAir = 0;
     const currentBranch = branch;
-  
+
     logRawRows.forEach(row => {
-      // ... tutto il codice esistente ...
+      const nhkRaw = iNHK>=0 ? String(row[iNHK]||"").trim() : "";
+      const ifbRaw = iIFB>=0 ? String(row[iIFB]||"").trim() : "";
+      if(!nhkRaw && !ifbRaw) return;
+
+      const prod = findProduct(nhkRaw, products, xrefs) || findProduct(ifbRaw, products, xrefs);
+      if(!prod) return;
+
+      // AIR/SEA — skip AIR
+      const airSeaRaw = iAirSea>=0 ? String(row[iAirSea]||"").trim().toUpperCase() : "";
+      if(airSeaRaw==="AIR"||airSeaRaw==="CH AIR"||airSeaRaw==="FR AIR"||airSeaRaw==="DR AIR") { countAir++; return; }
+
+      // Ubicazione
+      const ubRaw = iUb>=0 ? String(row[iUb]||"").trim().toUpperCase() : "";
+      const ub = ubRaw.includes("MTS")?"MTS":ubRaw.includes("FOR")?"FOR":"MTO";
+
+      // Area
+      const areaRaw = iArea>=0 ? String(row[iArea]||"").trim().toUpperCase() : "";
+      const areaFixed = areaRaw.includes("SUD")?"SUD":areaRaw.includes("CENTRO")||areaRaw.includes("CENTER")?"CENTRO":"NORD";
+
+      // Pallet per container
+      const pltRaw = iPlt>=0 ? parseFloat(String(row[iPlt]||"0")) : 0;
+      const plt = isNaN(pltRaw) ? 0 : pltRaw;
+
+      // Health Certificate
+      const certRaw = iCert>=0 ? String(row[iCert]||"").trim().toUpperCase() : "";
+      const hasCert = ["SI","YES","1","TRUE","SÌ","S"].includes(certRaw);
+
+      // Temperatura rettificata
+      const tempRaw = iTemp>=0 ? String(row[iTemp]||"").trim().toUpperCase() : "";
+      const tempMap: any = {DRY:"DRY",FRESH:"FRESH",FROZEN:"FROZEN",SECCO:"DRY",FRESCO:"FRESH",SURGELATO:"FROZEN"};
+      const temperatureOverride = tempMap[tempRaw] || null;
+
+      // Carriage (PLT cost medio)
+      const carriageRaw = iCarriage>=0 ? parseFloat(String(row[iCarriage]||"0")) : 0;
+      const carriage = isNaN(carriageRaw) ? 0 : carriageRaw;
+
+      // Alc tax
+      const alcRaw = iAlcTax>=0 ? parseFloat(String(row[iAlcTax]||"0")) : 0;
+      const alcTax = isNaN(alcRaw) ? 0 : alcRaw;
+      const hasAlcTax = alcTax > 0;
+
+      const entry = { productId:prod.id, branch:currentBranch, area:areaFixed, ubicazione:ub,
+        pltPerContainer:plt, hasCert, hasAlcTax, alcTax, convFactor:1, carriage, temperatureOverride };
+
+      const idx2 = next.findIndex(l=>l.productId===prod.id&&l.branch===currentBranch);
+      if(idx2>=0) next[idx2]=entry; else next.push(entry);
+      countLog++;
     });
-  
+
     setLogistics(next);
     LS.set("ifb_logistics", next);
-    if (countAir > 0) showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
+    if(countAir>0) showToast(`⚠ ${countAir} AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
     bumpImportTs();
     showToast(`Logistica aggiornata: ${countLog} prodotti per ${currentBranch} ✓`, T.gold);
-    
+
+
     // ✅ AGGIUNGI QUESTA PARTE - Salva lo snapshot
     const now = Date.now();
-    const log = {
-      id: now,
-      type: "logistics",
-      date: new Date(now).toISOString(),
-      branch: currentBranch,
-      count: countLog,
-      rawData: logRawRows,      // SALVA I DATI RAW
-      headers: logHeaders,      // SALVA GLI HEADER
-      colIdx: colIdx            // SALVA IL MAPPING
-    };
+    LS.set(`ifb_log_data_${now}`, {rawData:logRawRows, headers:logHeaders, colIdx});
+    const log = { id:now, type:"logistics", date:new Date(now).toISOString(), branch:currentBranch, count:countLog };
     const newLogs = [log, ...importLogs];
     setImportLogs(newLogs);
     LS.set("ifb_importlogs", newLogs);
@@ -1921,10 +1960,11 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
             const snap = importLogs.find((l:any)=>String(l.id)===e.target.value);
             if(!snap) return;
             if (window.confirm(`...`)) {
-              if(!snap.rawData?.length){ showToast("Snapshot senza dati raw — ricarica il file", T.orange); return; }
-              setLogRawRows(snap.rawData||[]);
-              setLogHeaders(snap.headers||[]);
-              setColIdx(snap.colIdx||{});
+              const snapData = LS.get(`ifb_log_data_${snap.id}`, null);
+              if(!snapData?.rawData?.length){ showToast("Snapshot non disponibile — ricarica il file", T.orange); return; }
+              setLogRawRows(snapData.rawData);
+              setLogHeaders(snapData.headers);
+              setColIdx(snapData.colIdx||{});
               setMapStep("ready");
               showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
             }
@@ -3277,7 +3317,7 @@ function buildPreview() {
   const TableRows = ({data}:{data:any[]}) => (
     <div style={{overflowX:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["Data","Codice","N HK","Descrizione","Qty","Prezzo unit.","Location","Transport"]}/>
+      <THead cols={["Data","Codice","N HK","Descrizione","Qty","Prezzo unit.","Location","Transport"]} sticky/>
         <tbody>
           {data.slice(0,500).map((r:any,i:number) => {
             const isMismatch = airMismatches.includes(r);
@@ -3920,22 +3960,12 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     LS.set(`ifb_products_${branch}`, newProds);
   
     // ✅ CORRETTO: SALVA L'ARRAY COMPLETO NELLO SNAPSHOT
-    const log = {
-      id: now,
-      type: "anagrafica",
-      date: new Date(now).toISOString(),
-      count: newProds.length,
-      products: newProds,  // ← QUESTA RIGA È FONDAMENTALE!
-      branch: "ALL"
-    };
-  
-    const newLogs = [log, ...importLogs];
-    setImportLogs(newLogs);
-    LS.set("ifb_importlogs", newLogs);
-  
-    const newSnaps = [log, ...snapshots].slice(0, 50);
-    setSnapshots(newSnaps);
-    LS.set("ifb_snapshots", newSnaps);
+    LS.set(`ifb_anag_data_${now}`, newProds);   // dati grandi: chiave separata
+    const log = { id:now, type:"anagrafica", date:new Date(now).toISOString(), count:newProds.length, branch:"ALL" };
+    const newLogs = [log,...importLogs];
+    setImportLogs(newLogs); LS.set("ifb_importlogs", newLogs);
+    const newSnaps = [log,...snapshots].slice(0,50);
+    setSnapshots(newSnaps); LS.set("ifb_snapshots", newSnaps);
   
     bumpImportTs();
     showToast(`Importati ${newProds.length} articoli`, T.gold);
@@ -3945,10 +3975,9 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   }
 
   function loadFromSnapshot(snap: any) {
-    const snapshotProducts = snap.products || [];
-  
+    const snapshotProducts = LS.get(`ifb_anag_data_${snap.id}`, []);
     if (snapshotProducts.length === 0) {
-      showToast(`Nessun prodotto trovato nello snapshot`, T.orange);
+      showToast(`Snapshot non disponibile — reimporta il file`, T.orange);
       return;
     }
   
