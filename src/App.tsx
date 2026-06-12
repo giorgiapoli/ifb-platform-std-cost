@@ -3183,10 +3183,11 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 
 
-// ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
+
 // ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
 function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   const [showMissingOnly, setShowMissingOnly] = useState(false);
+  const [showAirOnly, setShowAirOnly] = useState(false);
 
   const today = new Date();
   const oneMonthAgo = new Date(today);
@@ -3228,9 +3229,12 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
     });
 
   // ✅ FILTRO: mostra solo quelli SENZA costo se showMissingOnly è true
-  const rows = showMissingOnly 
-    ? allRows.filter((r: any) => !r.cost && !r.isAir)  // solo senza costo
-    : allRows;                                          // tutti
+  let rows = showMissingOnly ? allRows.filter((r: any) => !r.cost && !r.isAir) : allRows;
+
+  // ✅ APPLICA FILTRO AIR se attivo
+  if (showAirOnly) {
+    rows = rows.filter((r: any) => r.isAir === true);
+  }                                      // tutti
   
   const missingCount = allRows.filter((r: any) => !r.cost && !r.isAir).length;
   const airCount = allRows.filter((r: any) => r.isAir).length;
@@ -3242,70 +3246,62 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
         sub={`Prodotti ordinati negli ultimi 30gg · ${allRows.length} trovati`}
       />
 
-      <div style={{ display: "flex", gap: "8px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          onClick={() =>
-            exportXLSX(
-              rows.map((r: any) => {
-                const lastD = lastInvoiceDate[r.id];
-                const newHkd = r.cost?.step2Hkd ?? null;
-                const oldHkd = r.prevCost?.step2Hkd ?? null;
-                const pct = newHkd != null && oldHkd != null && oldHkd > 0 ? (newHkd - oldHkd) / oldHkd * 100 : null;
-                return {
-                  "Data Fattura": lastD ? lastD.toLocaleDateString("it-IT") : "",
-                  "N HK": r.nHK || "",
-                  "IFB No": r.code || "",
-                  "Descrizione": r.description || "",
-                  "Ubicazione": r.isAir ? "AIR" : r.ubicazione || "",
-                  "Old HKD": oldHkd != null ? roundN(oldHkd) : "",
-                  "New HKD": r.isAir ? "AIR" : newHkd != null ? roundN(newHkd) : "MANCANTE",
-                  "Δ%": pct != null ? roundN(pct, 1) : "",
-                  "Note": r.skipReason || "",
-                };
-              }),
-              "Costi su Fatture",
-              `CostiFatture_${branch}_${month}.xlsx`
-            )
-          }
-          style={{
-            padding: "5px 14px",
-            background: `${T.green}20`,
-            border: `1px solid ${T.green}44`,
-            borderRadius: "6px",
-            color: T.green,
-            cursor: "pointer",
-            fontSize: "11px",
-          }}
-        >
-          ⬇ Export Excel
-        </button>
-
-        {/* ✅ BOTTONE SENZA COSTO - FUNZIONANTE */}
-        <button
-          onClick={() => setShowMissingOnly(v => !v)}
-          style={{
-            padding: "5px 14px",
-            background: showMissingOnly ? `${T.red}20` : T.surface,
-            color: showMissingOnly ? T.red : T.muted,
-            border: `1px solid ${showMissingOnly ? T.red : T.border}`,
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "11px",
-            whiteSpace: "nowrap",
-            fontWeight: showMissingOnly ? "bold" : "normal",
-          }}
-        >
-          {showMissingOnly
-            ? `⚠ Senza costo (${rows.length})`
-            : `⚠ Mostra senza costo standard (${missingCount})`}
-        </button>
-
-        {airCount > 0 && (
-          <span style={{ fontSize: "11px", color: T.orange }}>
-            ✈ {airCount} articoli AIR esclusi dal costo standard
-          </span>
-        )}
-      </div>
+<div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+  <button onClick={()=>exportXLSX(
+    rows.map((r:any)=>{
+      const lastD=lastInvoiceDate[r.id];
+      const newHkd=r.cost?.step2Hkd??null;
+      const oldHkd=r.prevCost?.step2Hkd??null;
+      const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
+      return {
+        "Data Fattura":lastD?lastD.toLocaleDateString("it-IT"):"",
+        "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
+        "Ubicazione":r.isAir?"AIR":r.ubicazione||"",
+        "Old HKD":oldHkd!=null?roundN(oldHkd):"","New HKD":r.isAir?"AIR":newHkd!=null?roundN(newHkd):"MANCANTE",
+        "Δ%":pct!=null?roundN(pct,1):"","Note":r.skipReason||"",
+      };
+    }),
+    "Costi su Fatture",`CostiFatture_${branch}_${month}.xlsx`
+  )}
+    style={{padding:"5px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,
+      borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
+    ⬇ Export Excel
+  </button>
+  
+  <button onClick={()=>setShowMissingOnly(v=>!v)}
+    style={{padding:"5px 14px",
+      background:showMissingOnly?`${T.red}20`:T.surface,
+      color:showMissingOnly?T.red:T.muted,
+      border:`1px solid ${showMissingOnly?T.red:T.border}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap",fontWeight:showMissingOnly?"bold":"normal"}}>
+    {showMissingOnly
+      ? `⚠ Senza costo (${rows.filter(r=>!r.cost && !r.isAir).length})`
+      : `⚠ Mostra senza costo standard (${missingCount})`}
+  </button>
+  
+  {/* ✅ NUOVO BOTTONE - Mostra/Nascondi AIR */}
+  <button onClick={() => setShowAirOnly(v => !v)}
+    style={{
+      padding: "5px 14px",
+      background: showAirOnly ? `${T.orange}20` : T.surface,
+      color: showAirOnly ? T.orange : T.muted,
+      border: `1px solid ${showAirOnly ? T.orange : T.border}`,
+      borderRadius: "6px",
+      cursor: "pointer",
+      fontSize: "11px",
+      whiteSpace: "nowrap",
+      fontWeight: showAirOnly ? "bold" : "normal"
+    }}
+  >
+    {showAirOnly ? `✈ Solo AIR (${rows.filter(r=>r.isAir).length})` : `✈ Escludi AIR (${airCount})`}
+  </button>
+  
+  {airCount > 0 && !showAirOnly && (
+    <span style={{fontSize:"11px",color:T.orange}}>
+      ✈ {airCount} articoli AIR esclusi dal costo standard
+    </span>
+  )}
+</div>
 
       {missingCount > 0 && !showMissingOnly && (
         <div
