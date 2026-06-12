@@ -244,7 +244,8 @@ export default function App() {
 
   useEffect(()=>{ if(branch&&products.length) LS.set(`ifb_products_${branch}`, products); },[products,branch]);
   useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
-  useEffect(()=>{ if(branch&&salesRows.length) LS.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
+  useEffect(()=>{ if(branch) LS.set(`ifb_airlist_${branch}`, airList); },[airList,branch]);
+  useEffect(()=>{ if(branch) LS.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
@@ -1565,10 +1566,10 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
         {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).length>0&&(
           <select onChange={e=>{
             if(!e.target.value) return;
-            const snap=JSON.parse(e.target.value);
-            if(window.confirm(`Ripristinare lista AIR del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} articoli)?`)){
-              const kept=airList.filter((a:any)=>a.branch&&a.branch!==branch);
-              const next=[...kept,...(snap.items||[])];
+            const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
+            if(!snap) return;
+            if(window.confirm(`Ripristinare la lista AIR del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} articoli)?`)){
+              const next=(snap.items||[]);
               setAirList(next);LS.set(`ifb_airlist_${branch}`,next);
               showToast(`Lista AIR ripristinata: ${snap.count} articoli ✓`,T.gold);
             }
@@ -1576,7 +1577,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
           }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
             <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).length})</option>
             {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).map((s:any)=>(
-              <option key={s.id} value={JSON.stringify(s)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli</option>
+                  <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli</option>
             ))}
           </select>
         )}
@@ -1917,12 +1918,13 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
       <select 
         onChange={e => {
           if (e.target.value) {
-            const snap = JSON.parse(e.target.value);
-            if (window.confirm(`Caricare i dati logistici del ${new Date(snap.id).toLocaleDateString("it-IT")}? Sostituirà i dati attuali.`)) {
-              // Ricostruisci i dati dallo snapshot
-              setLogRawRows(snap.rawData);
-              setLogHeaders(snap.headers);
-              setColIdx(snap.colIdx);
+            const snap = importLogs.find((l:any)=>String(l.id)===e.target.value);
+            if(!snap) return;
+            if (window.confirm(`...`)) {
+              if(!snap.rawData?.length){ showToast("Snapshot senza dati raw — ricarica il file", T.orange); return; }
+              setLogRawRows(snap.rawData||[]);
+              setLogHeaders(snap.headers||[]);
+              setColIdx(snap.colIdx||{});
               setMapStep("ready");
               showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
             }
@@ -1934,7 +1936,7 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
       >
         <option value="">📜 Carica da storico ({importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length})</option>
         {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).map((s: any) => (
-          <option key={s.id} value={JSON.stringify(s)}>
+          <option key={s.id} value={String(s.id)}>
             {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe
           </option>
         ))}
@@ -3429,7 +3431,8 @@ function buildPreview() {
           {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).length>0&&(
             <select onChange={e=>{
               if(!e.target.value) return;
-              const snap=JSON.parse(e.target.value);
+              const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
+              if(!snap) return;
               if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)){
                 saveRows(snap.rows);
                 showToast(`Sales Invoice ripristinata: ${snap.count} righe ✓`,T.gold);
@@ -3438,7 +3441,7 @@ function buildPreview() {
             }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
               <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).length})</option>
               {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).map((s:any)=>(
-                <option key={s.id} value={JSON.stringify(s)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
+                <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
               ))}
             </select>
           )}
@@ -3990,22 +3993,22 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
         {/* Dropdown storico */}
         {anagSnaps.length > 0 && (
           <select
-            onChange={e => {
-              if (e.target.value) {
-                const snap = JSON.parse(e.target.value);
-                loadFromSnapshot(snap);
-              }
-              e.target.value = "";
-            }}
-            style={{ ...inputStyle(), width: "auto", fontSize: "12px" }}
-            defaultValue=""
-          >
-            <option value="">📜 Carica da storico ({anagSnaps.length})</option>
-            {anagSnaps.map((s: any) => (
-              <option key={s.id} value={JSON.stringify(s)}>
-                {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli
-              </option>
-            ))}
+          onChange={e => {
+            if (e.target.value) {
+              const snap = anagSnaps.find((s:any) => String(s.id) === e.target.value);
+              if(snap) loadFromSnapshot(snap);
+            }
+            e.target.value = "";
+          }}
+          style={{ ...inputStyle(), width: "auto", fontSize: "12px" }}
+          defaultValue=""
+        >
+          <option value="">📜 Carica da storico ({anagSnaps.length})</option>
+          {anagSnaps.map((s: any) => (
+            <option key={s.id} value={String(s.id)}>
+              {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli
+            </option>
+          ))}
           </select>
         )}
 
