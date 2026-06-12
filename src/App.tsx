@@ -3334,31 +3334,44 @@ function buildPreview() {
     ? (rows||[]).filter((r:any) => !r.branch || r.branch===branch)
     : preview;
 
-  const airMismatches = activeRows.filter(r =>
-    r.transport==="AIR" && !String(r.location||"").toUpperCase().includes("NCJ")
-  );
+    const transportMismatches = activeRows.filter(r => {
+      const locationIsNCJ = String(r.location || "").toUpperCase().includes("NCJ");
+      const isTransportAIR = r.transport === "AIR";
+      
+      // Mismatch tipo 1: è AIR ma location NON è NCJ
+      if (isTransportAIR && !locationIsNCJ) return true;
+      // Mismatch tipo 2: NON è AIR (SEA) ma location È NCJ
+      if (!isTransportAIR && locationIsNCJ) return true;
+      
+      return false;
+    });
 
   const _sq = search.toLowerCase();
   let displayed = activeRows
-    .filter(r => {
-      if(filterTransport==="air") return r.transport==="AIR";
-      if(filterTransport==="sea") return r.transport==="SEA";
-      return true;
-    })
-    .filter(r =>
-      !search ||
-      r.description?.toLowerCase().includes(_sq) ||
-      r.itemCode?.toLowerCase().includes(_sq) ||
-      r.nHK?.toLowerCase().includes(_sq) ||
-      r.location?.toLowerCase().includes(_sq)
-    )
-    .sort((a:any,b:any) => {
-      if(!a.date&&!b.date) return 0;
-      if(!a.date) return 1; if(!b.date) return -1;
-      return sortDir==="desc"
-        ? b.date.localeCompare(a.date)
-        : a.date.localeCompare(b.date);
-    });
+  .filter(r => {
+    if(filterTransport==="air") return r.transport==="AIR";
+    if(filterTransport==="sea") return r.transport==="SEA";
+    if(filterTransport==="mismatch") {
+      const locationIsNCJ = String(r.location || "").toUpperCase().includes("NCJ");
+      const isTransportAIR = r.transport === "AIR";
+      return (isTransportAIR && !locationIsNCJ) || (!isTransportAIR && locationIsNCJ);
+    }
+    return true;
+  })
+  .filter(r =>
+    !search ||
+    r.description?.toLowerCase().includes(_sq) ||
+    r.itemCode?.toLowerCase().includes(_sq) ||
+    r.nHK?.toLowerCase().includes(_sq) ||
+    r.location?.toLowerCase().includes(_sq)
+  )
+  .sort((a:any,b:any) => {
+    if(!a.date&&!b.date) return 0;
+    if(!a.date) return 1; if(!b.date) return -1;
+    return sortDir==="desc"
+      ? b.date.localeCompare(a.date)
+      : a.date.localeCompare(b.date);
+  });
 
   // ── Stats ─────────────────────────────────────────────────────────────────
   const nAir    = activeRows.filter(r=>r.transport==="AIR").length;
@@ -3369,34 +3382,56 @@ function buildPreview() {
   const TableRows = ({data}:{data:any[]}) => (
     <div style={{overflowX:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-      <THead cols={["Data","Codice","N HK","Descrizione","Qty","Prezzo unit.","Location","Transport"]} sticky/>
+        <THead cols={["Data","Codice","N HK","Descrizione","Qty","Prezzo unit.","Location","Transport"]}/>
         <tbody>
           {data.slice(0,500).map((r:any,i:number) => {
-            const isMismatch = airMismatches.includes(r);
+            const locationIsNCJ = String(r.location || "").toUpperCase().includes("NCJ");
+            const isTransportAIR = r.transport === "AIR";
+            const isMismatch = (isTransportAIR && !locationIsNCJ) || (!isTransportAIR && locationIsNCJ);
+            
+            let mismatchType = "";
+            if (isMismatch) {
+              if (isTransportAIR && !locationIsNCJ) mismatchType = "⚠ AIR senza NCJ";
+              if (!isTransportAIR && locationIsNCJ) mismatchType = "⚠ NCJ ma SEA";
+            }
+            
             return (
-              <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:isMismatch?`${T.orange}12`:i%2===0?T.bg:T.surface}}>
-                <TD mono><span style={{color:T.muted}}>{r.date||"—"}</span></TD>
-                <TD mono><span style={{color:T.gold}}>{r.itemCode||"—"}</span></TD>
-                <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
-                <TD>
+              <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:isMismatch?`${T.purple}12`:i%2===0?T.bg:T.surface}}>
+                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.date||"—"}</span></td>
+                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.itemCode||"—"}</span></td>
+                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
+                <td style={{padding:"7px 12px",fontSize:"12px"}}>
                   <span style={{color:r._prodFound===false?T.orange:T.text}}>
                     {r.description}
                     {r._prodFound===false&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ non in anagrafica</span>}
                   </span>
-                </TD>
-                <TD mono><span style={{color:T.muted}}>{r.qty||"—"}</span></TD>
-                <TD mono>
+                </td>
+                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
+                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}>
                   {r.isSample
                     ? <Chip label="SAMPLE" color={T.purple}/>
                     : <span style={{color:T.gold}}>{r.unitPrice!=null&&r.unitPrice>0?r.unitPrice.toFixed(2):"—"}</span>}
-                </TD>
-                <TD mono><span style={{color:isMismatch?T.orange:T.muted}}>{r.location||"—"}</span></TD>
-                <TD>
-                  {r.transport
-                    ? <Chip label={r.transport==="AIR"?"✈ AIR":"⛴ SEA"} color={r.transport==="AIR"?T.orange:T.blue}/>
-                    : <span style={{color:T.dim}}>—</span>}
-                  {isMismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ location?</span>}
-                </TD>
+                 </td>
+                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:isMismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
+                <td style={{padding:"7px 12px",fontSize:"12px"}}>
+                  {r.transport ? (
+                    <Chip 
+                      label={r.transport==="AIR"?"✈ AIR":"⛴ SEA"} 
+                      color={
+                        r.transport==="AIR" 
+                          ? (locationIsNCJ ? T.green : T.orange)
+                          : (locationIsNCJ ? T.orange : T.blue)
+                      }
+                    />
+                  ) : (
+                    <span style={{color:T.dim}}>—</span>
+                  )}
+                  {isMismatch && (
+                    <span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>
+                      {mismatchType}
+                    </span>
+                  )}
+                </td>
               </tr>
             );
           })}
@@ -3500,6 +3535,7 @@ function buildPreview() {
           ["all",  `Tutte (${activeRows.length})`, T.text  ],
           ["air",  `✈ AIR (${nAir})`,              T.orange],
           ["sea",  `⛴ SEA (${nSea})`,              T.blue  ],
+          ["mismatch", `⚠ Mismatch (${transportMismatches.length})`, T.purple],
         ].map(([v,l,c])=>(
           <button key={v as string} onClick={()=>setFilterTransport(v as string)}
             style={{padding:"5px 12px",background:filterTransport===v?`${c}20`:T.surface,
@@ -3511,11 +3547,11 @@ function buildPreview() {
         ))}
 
         <button onClick={()=>setSortDir(d=>d==="desc"?"asc":"desc")}
-          style={{padding:"5px 12px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
-          Data {sortDir==="desc"?"↓ recente":"↑ vecchia"}
-        </button>
+            style={{padding:"5px 12px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
+            Data {sortDir==="desc"?"↓ recente":"↑ vecchia"}
+          </button>
 
-        <div style={{marginLeft:"auto",display:"flex",gap:"8px"}}>
+          <div style={{marginLeft:"auto",display:"flex",gap:"8px"}}>
         <label style={{display:"inline-block",padding:"6px 14px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.text}}>
             📂 Ricarica
             <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
