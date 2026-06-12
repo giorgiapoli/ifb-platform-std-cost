@@ -393,7 +393,9 @@ export default function App() {
       snapshots={snapshots}
       setSnapshots={setSnapshots}
       costHistory={costHistory}
+      setCostHistory={setCostHistory}
       branch={branch}
+      showToast={showToast}
     />,
     mail:        <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
@@ -1313,35 +1315,73 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
         </Section>
       )}
 
-      {step==="preview"&&(
-        <div>
-          <div style={{display:"flex",gap:"12px",marginBottom:"16px"}}>
-            {[[preview.filter(r=>r._hasProduct).length,"Trovati in anagrafica",T.green],[preview.filter(r=>!r._hasProduct).length,"Non trovati",T.red],[preview.length,"Totale",T.text]].map(([n,l,c])=>(
-              <div key={l} style={{padding:"10px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"8px"}}>
-                <div style={{fontSize:"18px",fontWeight:"bold",color:c}}>{n}</div>
-                <div style={{fontSize:"10px",color:T.dim,marginTop:"2px"}}>{l}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
-            <ActionBtn label="← Torna" onClick={()=>setStep("map")}/>
-            <ActionBtn label={`✓ Salva ${preview.filter(r=>r._hasProduct).length} articoli AIR`} onClick={executeImport} primary/>
-          </div>
-          <Section title="Preview">
-            <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <THead cols={["Codice","N HK","Descrizione","Trovato"]}/>
-              <tbody>{preview.map((r,i)=>(
-                <tr key={i} style={{borderBottom:`1px solid ${T.border}`,opacity:r._hasProduct?1:0.5}}>
+{step==="preview"&&(
+  <div>
+    <div style={{display:"flex",gap:"12px",marginBottom:"16px",flexWrap:"wrap"}}>
+      {[[preview.filter(r=>r._hasProduct).length,"✅ Trovati in anagrafica",T.green],
+        [preview.filter(r=>!r._hasProduct).length,"❌ NON trovati in anagrafica",T.red],
+        [preview.length,"📊 Totale",T.text]].map(([n,l,c])=>(
+        <div key={l as string} style={{padding:"10px 16px",background:T.card,border:`1px solid ${c}44`,borderRadius:"8px"}}>
+          <div style={{fontSize:"20px",fontWeight:"bold",color:c as string}}>{n as number}</div>
+          <div style={{fontSize:"10px",color:T.dim,marginTop:"2px"}}>{l as string}</div>
+        </div>
+      ))}
+    </div>
+    
+    <div style={{display:"flex",gap:"10px",marginBottom:"16px",flexWrap:"wrap"}}>
+      <ActionBtn label="← Torna" onClick={()=>setStep("map")}/>
+      <ActionBtn label={`✓ Salva ${preview.filter(r=>r._hasProduct).length} articoli AIR`} onClick={executeImport} primary/>
+    </div>
+    
+    {/* ✅ SEZIONE NON TROVATI - visibile solo se ce ne sono */}
+    {preview.filter(r=>!r._hasProduct).length > 0 && (
+      <Section title={`❌ ${preview.filter(r=>!r._hasProduct).length} codici NON trovati in anagrafica`} accent={T.red}>
+        <div style={{overflowX:"auto", marginBottom:"20px"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <THead cols={["Codice dal file","Descrizione dal file"]}/>
+            <tbody>
+              {preview.filter(r=>!r._hasProduct).map((r,i)=>(
+                <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:`${T.red}08`}}>
+                  <TD mono><span style={{color:T.red, fontWeight:"bold"}}>{r.code}</span></TD>
+                  <TD style={{color:T.muted}}>{r.description || "—"}</TD>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{fontSize:"11px", color:T.muted, padding:"8px 12px", background:`${T.red}10`, borderRadius:"6px"}}>
+          💡 Questi codici non esistono nell'anagrafica. Verranno <strong>ignorati</strong> nell'import. 
+          Verifica se sono digitati correttamente o aggiungili all'anagrafica.
+        </div>
+      </Section>
+    )}
+    
+    {/* ✅ SEZIONE TROVATI (solo AIR) */}
+    {preview.filter(r=>r._hasProduct).length > 0 && (
+      <Section title={`✈ ${preview.filter(r=>r._hasProduct).length} articoli AIR trovati (verranno importati)`} accent={T.green}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
+            <THead cols={["Codice","N HK","Descrizione"]}/>
+            <tbody>
+              {preview.filter(r=>r._hasProduct).slice(0,100).map((r,i)=>(
+                <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
                   <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
                   <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
                   <TD>{r.description}</TD>
-                  <TD>{r._hasProduct?<Chip label="✈ AIR" color={T.orange}/>:<Chip label="NOT FOUND" color={T.red}/>}</TD>
                 </tr>
-              ))}</tbody>
-            </table>
-          </Section>
+              ))}
+            </tbody>
+          </table>
         </div>
-      )}
+        {preview.filter(r=>r._hasProduct).length > 100 && (
+          <div style={{padding:"8px", textAlign:"center", color:T.muted, fontSize:"11px"}}>
+            Mostrati primi 100 su {preview.filter(r=>r._hasProduct).length}
+          </div>
+        )}
+      </Section>
+    )}
+  </div>
+)}
 
       {step==="main"&&(
          <>
@@ -1676,25 +1716,53 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
       </div>
 
       {mapStep === "idle" ? (
-        <div style={{marginBottom:"16px", display:"flex", gap:"10px", alignItems:"center", flexWrap:"wrap"}}>
-          <label style={{display:"inline-block", padding:"8px 16px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", color:T.text}}>
-            📂 Carica Work_tab (08_Work_Tab.xlsx)
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={parseLogFile} style={{display:"none"}}/>
-          </label>
-          <span style={{fontSize:"11px", color:T.muted}}>Colonne: N HK / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
-        </div>
-      ) : mapStep === "ready" ? (
-        <div style={{background:T.card, border:`1px solid ${T.green}`, borderRadius:"8px", padding:"16px", marginBottom:"16px"}}>
-          <div style={{color:T.green, fontWeight:"bold", fontSize:"13px", marginBottom:"8px"}}>✓ File rilevato · {logRawRows.length} righe</div>
-          <div style={{fontSize:"12px", color:T.muted, marginBottom:"12px", lineHeight:"1.8"}}>
-            Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica
-          </div>
-          <div style={{display:"flex", gap:"10px"}}>
-            <ActionBtn label="← Annulla" onClick={() => setMapStep("idle")}/>
-            <ActionBtn label={`✓ Importa logistica per ${branch} (${logRawRows.length} righe)`} onClick={applyLogFile} primary/>
-          </div>
-        </div>
-      ) : null}
+  <div style={{marginBottom:"16px", display:"flex", gap:"10px", alignItems:"center", flexWrap:"wrap"}}>
+    <label style={{display:"inline-block", padding:"8px 16px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", color:T.text}}>
+      📂 Carica Work_tab (08_Work_Tab.xlsx)
+      <input type="file" accept=".xlsx,.xls,.csv" onChange={parseLogFile} style={{display:"none"}}/>
+    </label>
+    
+    {/* ✅ BOTTONE SVUOTA DATI */}
+    <button
+      onClick={() => {
+        if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}? Questa operazione rimuoverà anche i dati importati da Work_tab. Dovrai ricaricare il file.`)) {
+          const newLogistics = logistics.filter((l:any) => l.branch !== branch);
+          setLogistics(newLogistics);
+          LS.set("ifb_logistics", newLogistics);
+          bumpImportTs();
+          showToast(`Dati logistici per ${branch} cancellati ✓`, T.red);
+        }
+      }}
+      style={{
+        padding:"8px 16px",
+        background:"none",
+        border:`1px solid ${T.red}44`,
+        borderRadius:"6px",
+        color:T.red,
+        cursor:"pointer",
+        fontSize:"12px",
+        display:"flex",
+        alignItems:"center",
+        gap:"6px"
+      }}
+    >
+      🗑 Svuota tutti i dati ({logistics.filter((l:any)=>l.branch===branch).length} righe)
+    </button>
+    
+    <span style={{fontSize:"11px", color:T.muted}}>Colonne: N HK / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
+  </div>
+) : mapStep === "ready" ? (
+  <div style={{background:T.card, border:`1px solid ${T.green}`, borderRadius:"8px", padding:"16px", marginBottom:"16px"}}>
+    <div style={{color:T.green, fontWeight:"bold", fontSize:"13px", marginBottom:"8px"}}>✓ File rilevato · {logRawRows.length} righe</div>
+    <div style={{fontSize:"12px", color:T.muted, marginBottom:"12px", lineHeight:"1.8"}}>
+      Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica
+    </div>
+    <div style={{display:"flex", gap:"10px"}}>
+      <ActionBtn label="← Annulla" onClick={() => setMapStep("idle")}/>
+      <ActionBtn label={`✓ Importa logistica per ${branch} (${logRawRows.length} righe)`} onClick={applyLogFile} primary/>
+    </div>
+  </div>
+) : null}
 
       <div style={{display:"flex", gap:"10px", marginBottom:"12px", alignItems:"center", flexWrap:"wrap"}}>
         <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto IFB…"/>
@@ -2475,14 +2543,25 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
   }
 
   // ── Build preview ─────────────────────────────────────────────────────────
-  function buildPreview() {
-    const get = (row:any, field:string) => {
-      const col = mapping[field]; if(!col) return "";
-      const i = headers.indexOf(col); return i>=0 ? row[i] : "";
-    };
+  // ── Build preview ─────────────────────────────────────────────────────────
+function buildPreview() {
+  const get = (row:any, field:string) => {
+    const col = mapping[field]; 
+    if(!col) return "";
+    const i = headers.indexOf(col); 
+    return i >= 0 ? row[i] : "";
+  };
 
-    const parsed: any[] = rawRows.map(r => {
-      const dateRaw = get(r,"date");
+  const parsed: any[] = rawRows
+    .map(r => {
+      // ✅ DEFINISCI code QUI - prendi il valore dalla colonna itemCode
+      const code = String(get(r, "itemCode") || "").trim();
+      const description = String(get(r, "description") || code || "").trim();
+      
+      // Se non c'è un codice, salta questa riga
+      if (!code) return null;
+      
+      const dateRaw = get(r, "date");
       let dateStr = "";
       if(dateRaw) {
         const d = dateRaw instanceof Date ? dateRaw : new Date(dateRaw);
@@ -2490,27 +2569,33 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
         else dateStr = String(dateRaw).slice(0,10);
       }
 
-      const qty       = parseFloat(get(r,"qty"))       || 0;
-      const unitPrice = parseFloat(get(r,"unitPrice"))  || 0;
-      const isSample  = qty > 0 && unitPrice === 0;
+      const qty = parseFloat(get(r, "qty")) || 0;
+      const unitPrice = parseFloat(get(r, "unitPrice")) || 0;
+      const isSample = qty > 0 && unitPrice === 0;
 
-      const prod     = findProduct(code, products, xrefs);
-      const nHK      = prod?.nHK || (xrefs.find((x:any)=>x.ifbNo===code)?.nHK) || "";
-      const isAirProd= prod && airList.some((a:any)=>a.productId===prod.id);
-      const location = String(get(r,"location")||"").trim();
+      const prod = findProduct(code, products, xrefs);
+      const nHK = prod?.nHK || (xrefs.find((x:any) => x.ifbNo === code)?.nHK) || "";
+      const isAirProd = prod && airList.some((a:any) => a.productId === prod.id);
+      const location = String(get(r, "location") || "").trim();
 
       return {
-        itemCode: code, description, date: dateStr,
-        qty, unitPrice, isSample,
-        location, nHK,
-        transport:  isAirProd ? "AIR" : "SEA",
+        itemCode: code,
+        description: description,
+        date: dateStr,
+        qty: qty,
+        unitPrice: unitPrice,
+        isSample: isSample,
+        location: location,
+        nHK: nHK,
+        transport: isAirProd ? "AIR" : "SEA",
         _prodFound: !!prod,
       };
-    }).filter(Boolean);
+    })
+    .filter((r:any) => r !== null && r.itemCode); // filtra righe senza codice
 
-    setPreview(parsed);
-    setStep("preview");
-  }
+  setPreview(parsed);
+  setStep("preview");
+}
 
   // ── Execute import (SOSTITUISCE, non aggiunge) ────────────────────────────
   function executeImport() {
@@ -2732,7 +2817,7 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
 }
 
 // ─── STORICO ──────────────────────────────────────────────────────────────────
-function Storico({snapshots,setSnapshots,costHistory,branch}) {
+function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showToast}) {
   const[sel,setSel]=useState<any>(null);
   const[sortDir,setSortDir]=useState("asc");
   const[deltaFilter,setDeltaFilter]=useState("all");
@@ -2762,37 +2847,142 @@ function Storico({snapshots,setSnapshots,costHistory,branch}) {
       {/* ── COST HISTORY ── */}
       {costSnaps.length>0&&(
         <Section title={`📊 Storico Standard Cost · ${branch}`} accent={T.gold}>
-          <div style={{fontSize:"12px",color:T.muted,marginBottom:"10px"}}>Clicca una data per vedere i costi salvati in quel momento</div>
-          <div style={{display:"flex",gap:"8px",flexWrap:"wrap",marginBottom:"12px"}}>
-            {costSnaps.map((s:any)=>(
-              <button key={s.ts} onClick={()=>setSelCostSnap(selCostSnap?.ts===s.ts?null:s)}
-                style={{padding:"6px 12px",
-                  background:selCostSnap?.ts===s.ts?T.gold:T.card,
-                  color:selCostSnap?.ts===s.ts?"#000":T.text,
-                  border:`1px solid ${selCostSnap?.ts===s.ts?T.gold:T.border}`,
-                  borderRadius:"6px",cursor:"pointer",fontSize:"12px"}}>
-                {s.month||"?"} · {new Date(s.ts).toLocaleDateString("it-IT")}
-              </button>
-            ))}
+          <div style={{fontSize:"12px",color:T.muted,marginBottom:"10px"}}>
+            Clicca una data per vedere i costi salvati in quel momento
           </div>
-          {selCostSnap&&(
-            <div style={{overflowX:"auto"}}>
-              <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <THead cols={["N HK","IFB No","Descrizione","Costo HKD","Note"]}/>
-                <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>(
-                  <tr key={r.id||i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                    <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
-                    <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
-                    <TD>{r.description}</TD>
-                    <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost!=null?roundN(r.cost).toFixed(2):"—"}</span></TD>
-                    <TD><span style={{color:T.dim,fontSize:"11px"}}>{r.skipReason||""}</span></TD>
-                  </tr>
-                ))}</tbody>
-              </table>
+          <div style={{display:"flex",flexDirection:"column",gap:"8px",marginBottom:"12px"}}>
+            {costSnaps.map((s:any, idx:number) => {
+              // Conta quante volte appare questa data
+              const dateStr = new Date(s.ts).toLocaleDateString("it-IT");
+              const sameDates = costSnaps.filter((x:any) => 
+                new Date(x.ts).toLocaleDateString("it-IT") === dateStr
+              ).length;
+              const isDuplicate = sameDates > 1;
+              
+              return (
+                <div key={s.ts} style={{display:"flex",alignItems:"center",gap:"8px"}}>
+                  <button 
+                    onClick={() => setSelCostSnap(selCostSnap?.ts === s.ts ? null : s)}
+                    style={{
+                      flex:1,
+                      padding:"8px 12px",
+                      background:selCostSnap?.ts === s.ts ? T.gold : T.card,
+                      color:selCostSnap?.ts === s.ts ? "#000" : T.text,
+                      border:`1px solid ${selCostSnap?.ts === s.ts ? T.gold : T.border}`,
+                      borderRadius:"6px",
+                      cursor:"pointer",
+                      fontSize:"12px",
+                      textAlign:"left",
+                      display:"flex",
+                      justifyContent:"space-between",
+                      alignItems:"center"
+                    }}
+                  >
+                    <span>
+                      {s.month || "?"} · {dateStr}
+                      {isDuplicate && (
+                        <span style={{
+                          marginLeft:"8px",
+                          fontSize:"10px",
+                          color:T.orange,
+                          background:`${T.orange}20`,
+                          padding:"2px 6px",
+                          borderRadius:"4px"
+                        }}>
+                          ⚠ duplicato #{idx + 1}
+                        </span>
+                      )}
+                    </span>
+                    <span style={{
+                      fontSize:"10px",
+                      color:T.muted,
+                      fontFamily:"monospace"
+                    }}>
+                      {new Date(s.ts).toLocaleTimeString("it-IT", {hour:"2-digit", minute:"2-digit", second:"2-digit"})}
+                    </span>
+                  </button>
+                  
+                  {/* Bottone elimina */}
+                  <button
+                    onClick={() => {
+                      if(window.confirm(`Eliminare lo snapshot del ${dateStr} alle ${new Date(s.ts).toLocaleTimeString("it-IT")}?`)) {
+                        const newCostHistory = costHistory.filter((c:any) => c.ts !== s.ts);
+                        setCostHistory(newCostHistory);
+                        LS.set("ifb_costhistory", newCostHistory);
+                        if(selCostSnap?.ts === s.ts) setSelCostSnap(null);
+                        showToast(`Snapshot del ${dateStr} eliminato`, T.red);
+                      }
+                    }}
+                    style={{
+                      padding:"6px 12px",
+                      background:"none",
+                      border:`1px solid ${T.red}44`,
+                      borderRadius:"6px",
+                      color:T.red,
+                      cursor:"pointer",
+                      fontSize:"11px",
+                      whiteSpace:"nowrap"
+                    }}
+                    title="Elimina questo snapshot"
+                  >
+                    🗑 Elimina
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+          
+          {/* Bottone per eliminare TUTTI gli snapshot */}
+          {costSnaps.length > 1 && (
+            <div style={{marginBottom:"16px"}}>
+              <button
+                onClick={() => {
+                  if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i ${costSnaps.length} snapshot di Standard Cost per ${branch}? Questa operazione è irreversibile.`)) {
+                    const newCostHistory = costHistory.filter((c:any) => c.branch !== branch);
+                    setCostHistory(newCostHistory);
+                    LS.set("ifb_costhistory", newCostHistory);
+                    setSelCostSnap(null);
+                    showToast(`Eliminati ${costSnaps.length} snapshot per ${branch}`, T.red);
+                  }
+                }}
+                style={{
+                  padding:"6px 14px",
+                  background:`${T.red}15`,
+                  border:`1px solid ${T.red}`,
+                  borderRadius:"6px",
+                  color:T.red,
+                  cursor:"pointer",
+                  fontSize:"11px",
+                  fontWeight:"bold"
+                }}
+              >
+                🗑 Elimina TUTTI gli snapshot ({costSnaps.length})
+              </button>
             </div>
           )}
-        </Section>
-      )}
+    
+    {/* Visualizzazione dettaglio snapshot selezionato */}
+    {selCostSnap && (
+      <div style={{overflowX:"auto", marginTop:"16px"}}>
+        <div style={{marginBottom:"8px", fontSize:"11px", color:T.muted}}>
+          Snapshot del {new Date(selCostSnap.ts).toLocaleString("it-IT")}
+        </div>
+        <table style={{width:"100%",borderCollapse:"collapse"}}>
+          <THead cols={["N HK","IFB No","Descrizione","Costo HKD","Note"]}/>
+          <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>(
+            <tr key={r.id||i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+              <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
+              <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
+              <TD>{r.description}</TD>
+              <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost!=null?roundN(r.cost).toFixed(2):"—"}</span></TD>
+              <TD><span style={{color:T.dim,fontSize:"11px"}}>{r.skipReason||""}</span></TD>
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    )}
+  </Section>
+)}
 
       {/* ── IMPORT SNAPSHOTS LIST ── */}
       <Section title="📥 Storico Import">
