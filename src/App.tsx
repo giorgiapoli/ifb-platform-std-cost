@@ -1427,21 +1427,20 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       .filter(r => { if(seen.has(r.productId)) return false; seen.add(r.productId); return true; });
 
     // Mantieni le altre filiali, sostituisce solo quella corrente
-    const kept = airList.filter((a:any) => a.branch && a.branch !== branch);
-    const next = [...kept, ...valid.map(r => ({
+    const next = valid.map(r => ({
       productId: r.productId, code: r.code, nHK: r.nHK,
       description: r.description, transportation: "AIR", branch
-    }))];
+    }));
     setAirList(next); LS.set(`ifb_airlist_${branch}`, next);
     const now = Date.now();
-    const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch,items:next.filter((a:any)=>a.branch===branch)};
+    const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch,items:next};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
     bumpImportTs(); showToast(`AIR ${branch}: lista sostituita con ${valid.length} articoli ✓`, T.gold);
     setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
   }
 
-  const branchAir = airList.filter((a:any) => !a.branch || a.branch===branch);
+  const branchAir = airList;
   const _sq=search.toLowerCase();
   const displayed=branchAir.filter((a:any)=>!search
     ||a.description?.toLowerCase().includes(_sq)
@@ -1607,9 +1606,8 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
  {airList.length>0&&(
    <button
    onClick={()=>{if(window.confirm(`Eliminare i ${branchAir.length} articoli AIR di ${branch}?`)){
-     const kept=airList.filter((a:any)=>a.branch&&a.branch!==branch);
-     setAirList(kept);LS.set(`ifb_airlist_${branch}`,kept);
-   }}}
+    setAirList([]);LS.set(`ifb_airlist_${branch}`,[]);
+  }}}
      style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
      ✕ Svuota lista ({branchAir.length})
    </button>
@@ -1627,7 +1625,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
                       <TD mono><span style={{color:T.gold}}>{a.code}</span></TD>
                       <TD mono><span style={{color:T.muted}}>{a.nHK||"—"}</span></TD>
                       <TD>{a.description}</TD>
-                      <TD><MiniBtn label="✕ Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);LS.set("ifb_airlist",n);}} color={T.red}/></TD>
+                      <TD><MiniBtn label="✕ Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);LS.set(`ifb_airlist_${branch}`,n);}} color={T.red}/></TD>
                     </tr>
                   ))}</tbody>
                 </table>
@@ -1876,7 +1874,9 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
     if(!search) return true;
     return p.description?.toLowerCase().includes(_sq) || p.code?.toLowerCase().includes(_sq) || p.nHK?.toLowerCase().includes(_sq);
   });
-  const displayed = showOnlyMissing ? allProds.filter(p => !getLog(p.id)) : allProds;
+  const displayed = showOnlyMissing
+  ? allProds.filter(p => !getLog(p.id))
+  : allProds.filter(p => !!getLog(p.id));
   const missingCount = allIFBProducts.filter(p => !getLog(p.id)).length;
   const withCount = allIFBProducts.filter(p => getLog(p.id) !== null).length;
 
@@ -1971,20 +1971,11 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
         <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto IFB…"/>
         <button onClick={() => setShowOnlyMissing(v => !v)}
           style={{padding:"6px 14px", background:showOnlyMissing ? T.orange : T.surface, color:showOnlyMissing ? "#000" : T.orange, border:`1px solid ${T.orange}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap", fontWeight:showOnlyMissing ? "bold" : "normal"}}>
-          {showOnlyMissing ? `✓ Mostra tutti (${displayed.length})` : `⚠ Solo senza logistica (${missingCount})`}
+                    {showOnlyMissing ? `✓ Con logistica (${withCount})` : `⚠ Solo senza logistica (${missingCount})`}
         </button>
         <span style={{fontSize:"11px", color:T.muted}}>
-          {showOnlyMissing ? `Mostrando ${displayed.length} prodotti SENZA logistica` : `Mostrando TUTTI i ${displayed.length} prodotti IFB`}
+          {showOnlyMissing ? `Mostrando ${displayed.length} senza logistica` : `${displayed.length} con logistica · ${missingCount} mancanti`}
         </span>
-        // Nella toolbar di Logistics, dopo il bottone "Solo senza logistica", aggiungi:
-        <button 
-          onClick={() => {
-            setShowOnlyMissing(false);
-            setSearch("");
-          }}
-          style={{padding:"6px 14px", background:showOnlyMissing ? T.surface : T.gold, color:showOnlyMissing ? T.orange : "#000", border:`1px solid ${T.orange}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap"}}>
-          👁️ Visualizza tutti ({allIFBProducts.length})
-        </button>
       </div>
 
       {missingCount > 0 && !showOnlyMissing && (
@@ -2523,7 +2514,7 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={["N HK", "IFB No", "Descrizione", ...LABELS]} />
+<THead cols={["N HK", "IFB No", "Descrizione", ...LABELS]} sticky/>
 <tbody>
 {displayed.slice(0, 300).map((p, i) => {
 const prod = products.find(pr => pr.id === p.productId);
@@ -4165,8 +4156,8 @@ function SearchBar({value,onChange,placeholder}){
   return<input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||"Cerca..."}
     style={{...inputStyle(),maxWidth:"320px",marginBottom:"14px"}}/>;
 }
-function THead({cols}){
-  return<thead><tr>{cols.map(c=><th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",letterSpacing:"0.05em",whiteSpace:"nowrap"}}>{c}</th>)}</tr></thead>;
+function THead({cols,sticky=false}:any){
+  return<thead><tr>{cols.map(c=><th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",letterSpacing:"0.05em",whiteSpace:"nowrap",...(sticky?{position:"sticky" as const,top:0,zIndex:10}:{})}}>{c}</th>)}</tr></thead>;
 }
 function TD({children,mono=false}){
   return<td style={{padding:"7px 12px",borderBottom:`1px solid ${T.border}`,fontSize:"12px",fontFamily:mono?"monospace":"inherit",verticalAlign:"middle"}}>{children}</td>;
