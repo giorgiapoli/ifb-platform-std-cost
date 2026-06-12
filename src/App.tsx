@@ -356,7 +356,17 @@ export default function App() {
 
   const pages = {
     dashboard:   <Dashboard costRows={costRows} branch={branch} month={month} navigate={navigate}/>,
-    products:    <Products products={products}/>,
+    products: <Products 
+  products={products} 
+  setProducts={setProducts} 
+  branch={branch} 
+  importLogs={importLogs}
+  setImportLogs={setImportLogs}
+  snapshots={snapshots}
+  setSnapshots={setSnapshots}
+  showToast={showToast}
+  bumpImportTs={bumpImportTs}
+/>,
   
     xref:        <XRefPage 
       xrefs={xrefs} 
@@ -375,8 +385,7 @@ export default function App() {
   setPrices={setPrices} 
   products={products} 
   branch={branch} 
-  month={month} 
-  setPrices={setPrices}
+  month={month}
   salesRows={salesRows} 
   xrefs={xrefs}
   importLogs={importLogs}
@@ -3522,7 +3531,6 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
   );
 }
 
-// ─── PRODUCTS ─────────────────────────────────────────────────────────────────
 // ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
 function Products({products, setProducts, branch, importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs}) {
   const [search, setSearch] = useState("");
@@ -3632,11 +3640,16 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
   }
 
   function loadFromSnapshot(snap: any) {
-    if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")}? Sostituirà i dati attuali.`)) {
-      setProducts(snap.products || []);
-      LS.set(`ifb_products_${branch}`, snap.products || []);
-      showToast(`Anagrafica ripristinata da snapshot`, T.gold);
-    }
+    // ATTENZIONE: Lo snapshot anagrafica contiene solo le differenze (diffs)
+    // Non contiene l'array completo dei prodotti.
+    // Per ripristinare completamente l'anagrafica, avremmo bisogno di salvare l'intero array.
+    // Per ora, mostriamo un messaggio che la funzionalità non è disponibile.
+    showToast(`Ripristino anagrafica da snapshot non ancora implementato. Usa "Carica file" per importare una nuova anagrafica.`, T.orange);
+    
+    // Opzionale: se vuoi implementare il ripristino, dovresti:
+    // 1. Partire dall'anagrafica corrente
+    // 2. Applicare le differenze inverse (operazione complessa)
+    // Per semplicità, consiglio di disabilitare questa funzionalità per l'anagrafica
   }
 
   const mapBCVal = (field: string, raw: string) => {
