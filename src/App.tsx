@@ -59,6 +59,13 @@ const COSTS = {
   },
 };
 
+
+function exportXLSX(rows: any[], sheetName: string, fileName: string) {
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, fileName);
+}
 /**
  * Main cost calculation for HK (sea).
  * Returns null if totalUnits = 0 or missing data.
@@ -227,8 +234,8 @@ export default function App() {
   const[costHistory,setCostHistory] = useState(()=>LS.get("ifb_costhistory",[]));
   const[lastImportTs,setLastImportTs] = useState(()=>LS.get("ifb_last_import_ts",0));
   const[lastCalcTs,setLastCalcTs]     = useState(()=>LS.get("ifb_last_calc_ts",0));
-  const[page,setPage]     = useState("branchSelect");
-  const[branch,setBranch] = useState("");
+  const[page,setPage]     = useState(()=>LS.get("ifb_branch","")?"dashboard":"branchSelect");
+  const[branch,setBranch] = useState(()=>LS.get("ifb_branch",""));
   const[month,setMonth]   = useState(NOW());
   const[toast,setToast]   = useState(null);
   const[pageFilter, setPageFilter] = useState(null);
@@ -239,6 +246,7 @@ export default function App() {
   useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
   useEffect(()=>{ if(branch&&salesRows.length) LS.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
+  useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
@@ -611,6 +619,14 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
               onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
           </div>
           <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca per N HK o IFB N…"/>
+          {xrefs.length>0&&(
+            <div style={{marginBottom:"10px",display:"flex",justifyContent:"flex-end"}}>
+              <button onClick={()=>{if(window.confirm(`Eliminare tutte le ${xrefs.length} XRef di ${branch}?`)){setXrefs([]);LS.set(`ifb_xrefs_${branch}`,[]);}}}
+                style={{padding:"5px 14px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
+                ✕ Svuota lista ({xrefs.length})
+              </button>
+            </div>
+          )}
           <Section title={`${displayed.length} / ${xrefs.length} corrispondenze`}>
             {xrefs.length===0?<div style={{padding:"24px",textAlign:"center",color:T.dim,fontSize:"13px"}}>Nessuna XRef caricata.</div>:(
               <table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -2690,11 +2706,30 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
       <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px",flexWrap:"wrap"}}>
         <PageHeader title={`Standard Cost · ${branch} · ${month}`}
           sub={`${calc.length} calcolati · INALCA F&B · SEA`}/>
-        <button onClick={saveSnapshot} disabled={!needsRecalc}
+                <button onClick={saveSnapshot} disabled={!needsRecalc}
           style={{padding:"7px 16px",background:needsRecalc?T.gold:"#333",
             color:needsRecalc?"#000":T.muted,border:"none",borderRadius:"6px",
             fontWeight:"bold",cursor:needsRecalc?"pointer":"not-allowed",fontSize:"12px",marginTop:"-8px"}}>
           {needsRecalc?"⟳ Ricalcola & Salva":"✓ Aggiornato"}
+        </button>
+        <button onClick={()=>exportXLSX(
+          filtered.filter((r:any)=>r.cost).map((r:any)=>({
+            "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
+            "UOM":r.uom||"","Ubicazione":r.ubicazione||"",
+            "Temp.":r.temperature||"","Temp. Rettif.":r.temperatureOverride||"",
+            "Prezzo EUR":roundN(r.cost?.priceEur),"FOB":roundN(r.cost?.fob),
+            "LIC":roundN(r.cost?.lic),"VGM":roundN(r.cost?.vgm),
+            "HC":roundN(r.cost?.hc),"Pallet":roundN(r.cost?.plt),
+            "Alc.Tax":roundN(r.cost?.alc),"Step1 EUR":roundN(r.cost?.step1Eur),
+            "Step1 HKD":roundN(r.cost?.step1Hkd),"WH EUR":roundN(r.cost?.wh),
+            "Step2 EUR":roundN(r.cost?.step2Eur,4),"Step2 HKD":roundN(r.cost?.step2Hkd),
+            "Δ%":r.delta!=null?roundN(r.delta,1):"",
+          })),
+          "Standard Cost",`SC_${branch}_${month}.xlsx`
+        )}
+          style={{padding:"7px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,
+            borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"12px",marginTop:"-8px"}}>
+          ⬇ Export Excel
         </button>
       </div>
 
@@ -2950,7 +2985,27 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
         sub={`Prodotti ordinati negli ultimi 30gg · ${allRows.length} trovati`}
       />
 
-      <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+<div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+        <button onClick={()=>exportXLSX(
+          rows.map((r:any)=>{
+            const lastD=lastInvoiceDate[r.id];
+            const newHkd=r.cost?.step2Hkd??null;
+            const oldHkd=r.prevCost?.step2Hkd??null;
+            const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
+            return {
+              "Data Fattura":lastD?lastD.toLocaleDateString("it-IT"):"",
+              "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
+              "Ubicazione":r.isAir?"AIR":r.ubicazione||"",
+              "Old HKD":oldHkd!=null?roundN(oldHkd):"","New HKD":r.isAir?"AIR":newHkd!=null?roundN(newHkd):"MANCANTE",
+              "Δ%":pct!=null?roundN(pct,1):"","Note":r.skipReason||"",
+            };
+          }),
+          "Costi su Fatture",`CostiFatture_${branch}_${month}.xlsx`
+        )}
+          style={{padding:"5px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,
+            borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
+          ⬇ Export Excel
+        </button>
         <button onClick={()=>setShowMissingOnly(v=>!v)}
           style={{padding:"5px 14px",
             background:showMissingOnly?`${T.red}20`:T.surface,
