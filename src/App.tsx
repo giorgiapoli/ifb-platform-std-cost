@@ -388,7 +388,18 @@ export default function App() {
       showToast={showToast}
       bumpImportTs={bumpImportTs}
     />,
-    logistics:   <Logistics logistics={logistics} setLogistics={setLogistics} products={products} branch={branch} showToast={showToast} bumpImportTs={bumpImportTs} initFilter={pageFilter} importLogs={importLogs} setImportLogs={setImportLogs}/>,
+    logistics: <Logistics 
+  logistics={logistics} 
+  setLogistics={setLogistics} 
+  products={products} 
+  branch={branch} 
+  showToast={showToast} 
+  bumpImportTs={bumpImportTs} 
+  initFilter={pageFilter} 
+  importLogs={importLogs} 
+  setImportLogs={setImportLogs}
+  xrefs={xrefs}  
+/>,
     prices: <Prices 
   prices={prices} 
   setPrices={setPrices} 
@@ -1774,7 +1785,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
 // ─── LOGISTICS ────────────────────────────────────────────────────────────────
 
-function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportTs,initFilter,importLogs,setImportLogs}) {
+function Logistics({ logistics, setLogistics, products, branch, showToast, bumpImportTs, initFilter, importLogs, setImportLogs, xrefs = [] }) {
   const[search,setSearch]=useState("");
   const[showOnlyMissing,setShowOnlyMissing]=useState(initFilter==="missing");
   const[mapStep,setMapStep]=useState("idle");
@@ -1854,72 +1865,113 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
     let next = [...logistics];
     let countLog = 0, countAir = 0;
     const currentBranch = branch;
-
+  
     logRawRows.forEach(row => {
-      const nhkRaw = iNHK>=0 ? String(row[iNHK]||"").trim() : "";
-      const ifbRaw = iIFB>=0 ? String(row[iIFB]||"").trim() : "";
-      if(!nhkRaw && !ifbRaw) return;
-
+      // Ottieni i codici
+      const nhkRaw = iNHK >= 0 ? String(row[iNHK] || "").trim() : "";
+      const ifbRaw = iIFB >= 0 ? String(row[iIFB] || "").trim() : "";
+      if (!nhkRaw && !ifbRaw) return;
+  
+      // Trova il prodotto
       const prod = findProduct(nhkRaw, products, xrefs) || findProduct(ifbRaw, products, xrefs);
-      if(!prod) return;
-
-      // AIR/SEA — skip AIR
-      const airSeaRaw = iAirSea>=0 ? String(row[iAirSea]||"").trim().toUpperCase() : "";
-      if(airSeaRaw==="AIR"||airSeaRaw==="CH AIR"||airSeaRaw==="FR AIR"||airSeaRaw==="DR AIR") { countAir++; return; }
-
+      if (!prod) return;
+  
+      // Controlla se è AIR (salta)
+      const airSeaRaw = iAirSea >= 0 ? String(row[iAirSea] || "").trim().toUpperCase() : "";
+      if (["AIR", "CH AIR", "FR AIR", "DR AIR"].includes(airSeaRaw)) {
+        countAir++;
+        return;
+      }
+  
       // Ubicazione
-      const ubRaw = iUb>=0 ? String(row[iUb]||"").trim().toUpperCase() : "";
-      const ub = ubRaw.includes("MTS")?"MTS":ubRaw.includes("FOR")?"FOR":"MTO";
-
+      const ubRaw = iUb >= 0 ? String(row[iUb] || "").trim().toUpperCase() : "";
+      let ubicazione = "MTO";
+      if (ubRaw.includes("MTS")) ubicazione = "MTS";
+      else if (ubRaw.includes("FOR")) ubicazione = "FOR";
+  
       // Area
-      const areaRaw = iArea>=0 ? String(row[iArea]||"").trim().toUpperCase() : "";
-      const areaFixed = areaRaw.includes("SUD")?"SUD":areaRaw.includes("CENTRO")||areaRaw.includes("CENTER")?"CENTRO":"NORD";
-
+      const areaRaw = iArea >= 0 ? String(row[iArea] || "").trim().toUpperCase() : "";
+      let area = "NORD";
+      if (areaRaw.includes("SUD")) area = "SUD";
+      else if (areaRaw.includes("CENTRO") || areaRaw.includes("CENTER")) area = "CENTRO";
+  
       // Pallet per container
-      const pltRaw = iPlt>=0 ? parseFloat(String(row[iPlt]||"0")) : 0;
-      const plt = isNaN(pltRaw) ? 0 : pltRaw;
-
+      let plt = 0;
+      if (iPlt >= 0) {
+        const pltVal = parseFloat(String(row[iPlt] || "0"));
+        plt = isNaN(pltVal) ? 0 : pltVal;
+      }
+  
       // Health Certificate
-      const certRaw = iCert>=0 ? String(row[iCert]||"").trim().toUpperCase() : "";
-      const hasCert = ["SI","YES","1","TRUE","SÌ","S"].includes(certRaw);
-
+      const certRaw = iCert >= 0 ? String(row[iCert] || "").trim().toUpperCase() : "";
+      const hasCert = ["SI", "YES", "1", "TRUE", "SÌ", "S"].includes(certRaw);
+  
       // Temperatura rettificata
-      const tempRaw = iTemp>=0 ? String(row[iTemp]||"").trim().toUpperCase() : "";
-      const tempMap: any = {DRY:"DRY",FRESH:"FRESH",FROZEN:"FROZEN",SECCO:"DRY",FRESCO:"FRESH",SURGELATO:"FROZEN"};
-      const temperatureOverride = tempMap[tempRaw] || null;
-
-      // Carriage (PLT cost medio)
-      const carriageRaw = iCarriage>=0 ? parseFloat(String(row[iCarriage]||"0")) : 0;
-      const carriage = isNaN(carriageRaw) ? 0 : carriageRaw;
-
-      // Alc tax
-      const alcRaw = iAlcTax>=0 ? parseFloat(String(row[iAlcTax]||"0")) : 0;
-      const alcTax = isNaN(alcRaw) ? 0 : alcRaw;
-      const hasAlcTax = alcTax > 0;
-
-      const entry = { productId:prod.id, branch:currentBranch, area:areaFixed, ubicazione:ub,
-        pltPerContainer:plt, hasCert, hasAlcTax, alcTax, convFactor:1, carriage, temperatureOverride };
-
-      const idx2 = next.findIndex(l=>l.productId===prod.id&&l.branch===currentBranch);
-      if(idx2>=0) next[idx2]=entry; else next.push(entry);
+      let temperatureOverride = null;
+      if (iTemp >= 0) {
+        const tempRaw = String(row[iTemp] || "").trim().toUpperCase();
+        if (tempRaw === "DRY" || tempRaw === "SECCO") temperatureOverride = "DRY";
+        else if (tempRaw === "FRESH" || tempRaw === "FRESCO") temperatureOverride = "FRESH";
+        else if (tempRaw === "FROZEN" || tempRaw === "SURGELATO") temperatureOverride = "FROZEN";
+      }
+  
+      // Carriage
+      let carriage = 0;
+      if (iCarriage >= 0) {
+        const carrVal = parseFloat(String(row[iCarriage] || "0"));
+        carriage = isNaN(carrVal) ? 0 : carrVal;
+      }
+  
+      // Tassa alcolica
+      let alcTax = 0;
+      let hasAlcTax = false;
+      if (iAlcTax >= 0) {
+        const alcVal = parseFloat(String(row[iAlcTax] || "0"));
+        alcTax = isNaN(alcVal) ? 0 : alcVal;
+        hasAlcTax = alcTax > 0;
+      }
+  
+      const entry = {
+        productId: prod.id,
+        branch: currentBranch,
+        area,
+        ubicazione,
+        pltPerContainer: plt,
+        hasCert,
+        hasAlcTax,
+        alcTax,
+        convFactor: 1,
+        carriage,
+        temperatureOverride
+      };
+  
+      const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
+      if (existIdx >= 0) {
+        next[existIdx] = { ...next[existIdx], ...entry };
+      } else {
+        next.push(entry);
+      }
       countLog++;
     });
-
+  
     setLogistics(next);
     LS.set("ifb_logistics", next);
-    if(countAir>0) showToast(`⚠ ${countAir} AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
+  
+    if (countAir > 0) {
+      showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
+    }
+  
     bumpImportTs();
     showToast(`Logistica aggiornata: ${countLog} prodotti per ${currentBranch} ✓`, T.gold);
-
-
-    // ✅ AGGIUNGI QUESTA PARTE - Salva lo snapshot
+  
+    // Salva snapshot per storico
     const now = Date.now();
-    LS.set(`ifb_log_data_${now}`, {rawData:logRawRows, headers:logHeaders, colIdx});
-    const log = { id:now, type:"logistics", date:new Date(now).toISOString(), branch:currentBranch, count:countLog };
+    LS.set(`ifb_log_data_${now}`, { rawData: logRawRows, headers: logHeaders, colIdx });
+    const log = { id: now, type: "logistics", date: new Date(now).toISOString(), branch: currentBranch, count: countLog };
     const newLogs = [log, ...importLogs];
     setImportLogs(newLogs);
     LS.set("ifb_importlogs", newLogs);
-    
+  
     setMapStep("idle");
     setLogHeaders([]);
     setLogRawRows([]);
