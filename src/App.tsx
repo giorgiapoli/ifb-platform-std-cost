@@ -608,7 +608,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
           </div>
           <Section title="Preview (prime 50)">
             <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <THead cols={["N HK","IFB N","Stato"]}/>
+              <THead cols={["N HK","IFB N","Stato"]} sticky />
               <tbody>{preview.slice(0,50).map(r=>(
                 <tr key={r._idx} style={{borderBottom:`1px solid ${T.border}`,background:r._isNew?`${T.gold}07`:r._changed?`${T.orange}07`:""}}>
                   <TD mono><span style={{color:T.gold}}>{r.nHK}</span></TD>
@@ -642,7 +642,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
           <Section title={`${displayed.length} / ${xrefs.length} corrispondenze`}>
             {xrefs.length===0?<div style={{padding:"24px",textAlign:"center",color:T.dim,fontSize:"13px"}}>Nessuna XRef caricata.</div>:(
               <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <THead cols={["N HK","IFB N","Azioni"]}/>
+                <THead cols={["N HK","IFB N","Azioni"]} sticky />
                 <tbody>{displayed.map((x,i)=>(
                   <tr key={x.nHK+i} style={{borderBottom:`1px solid ${T.border}`}}>
                     <TD mono><span style={{color:T.gold}}>{x.nHK}</span></TD>
@@ -1355,7 +1355,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       </div>
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <THead cols={["N HK","IFB No","Descrizione","Vendor","Categoria","UOM","Qty/Box","Box/Plt","Kg/Box","Temp","Attivo"]}/>
+          <THead cols={["N HK","IFB No","Descrizione","Vendor","Categoria","UOM","Qty/Box","Box/Plt","Kg/Box","Temp","Attivo"]}sticky/>
           <tbody>{preview.slice(0,200).map((r,i)=>(
             <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
               <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -1522,7 +1522,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       <Section title={`❌ ${preview.filter(r=>!r._hasProduct).length} codici NON trovati in anagrafica`} accent={T.red}>
         <div style={{overflowX:"auto", marginBottom:"20px"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["Codice dal file","Descrizione dal file"]}/>
+            <THead cols={["Codice dal file","Descrizione dal file"]}sticky/>
             <tbody>
               {preview.filter(r=>!r._hasProduct).map((r,i)=>(
                 <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:`${T.red}08`}}>
@@ -1545,7 +1545,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       <Section title={`✈ ${preview.filter(r=>r._hasProduct).length} articoli AIR trovati (verranno importati)`} accent={T.green}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["Codice","N HK","Descrizione"]}/>
+            <THead cols={["Codice","N HK","Descrizione"]}sticky/>
             <tbody>
               {preview.filter(r=>r._hasProduct).slice(0,100).map((r,i)=>(
                 <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
@@ -1649,7 +1649,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
               <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo AIR…"/>
               <Section title={`${displayed.length} articoli AIR (esclusi da Standard Cost)`}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <THead cols={["Codice","N HK","Descrizione","Azioni"]}/>
+                  <THead cols={["Codice","N HK","Descrizione","Azioni"]}sticky/>
                   <tbody>{displayed.map((a,i)=>(
                     <tr key={a.productId||i} style={{borderBottom:`1px solid ${T.border}`}}>
                       <TD mono><span style={{color:T.gold}}>{a.code}</span></TD>
@@ -1696,7 +1696,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="ok"||activePanel==="flagged") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["N HK","IFB No","Descrizione","Ubicaz.","Step2 HKD","Prec. HKD","Δ%"]}/>
+        <THead cols={["N HK","IFB No","Descrizione","Ubicaz.","Step2 HKD","Prec. HKD","Δ%"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>{
           const pct = r.cost&&r.prevCost&&r.prevCost.step2Hkd>0
             ? (r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100 : null;
@@ -1722,7 +1722,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="air") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["N HK","IFB No","Descrizione"]}/>
+        <THead cols={["N HK","IFB No","Descrizione"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>(
           <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
             <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -1736,7 +1736,7 @@ function Dashboard({costRows, branch, month, navigate}) {
     // noPrice, noLog, calc0
     return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["N HK","IFB No","Descrizione","Motivo"]}/>
+        <THead cols={["N HK","IFB No","Descrizione","Motivo"]} sticky />
         <tbody>{panel.rows.map((r:any,i:number)=>(
           <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
             <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -2624,7 +2624,7 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={["N HK", "IFB No", "Descrizione", ...LABELS]} sticky/>
+<THead cols={["N HK", "IFB No", "Descrizione", "Vendor", "Categoria", "UOM", "Qty/Box", "Box/Plt", "Kg/Box", "Kg/Plt", "Temp", "Attivo"]} sticky />
 <tbody>
 {displayed.slice(0, 300).map((p, i) => {
 const prod = products.find(pr => pr.id === p.productId);
@@ -2681,7 +2681,7 @@ function FxRates({fx,setFx,branch,month}) {
       {branchRates.length>0&&(
         <Section title="Storico tassi">
           <table style={{borderCollapse:"collapse"}}>
-            <THead cols={["Mese","Tasso"]}/>
+            <THead cols={["Mese","Tasso"]} sticky />
             <tbody>{branchRates.map((f,i)=>(
               <tr key={f.month} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
                 <TD mono><span style={{color:f.month===month?T.gold:T.text}}>{f.month}{f.month===month?" ✓":""}</span></TD>
@@ -2705,7 +2705,39 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
   const[search,setSearch]     = useState("");
   const[showDetail,setShowDetail] = useState<string|null>(null);
   const[invoiceOnly,setInvoiceOnly] = useState(false);
+  
+// AGGIUNGI QUESTI STATI PER I FILTRI MULTIPLI
+const [filterFlags, setFilterFlags] = useState({
+  flagged: false,
+  air: false,
+  noPrice: false,
+  noLog: false,
+  calcZero: false,
+  keepOld: false
+});
   const needsRecalc = lastImportTs > lastCalcTs;
+  
+  // AGGIUNGI QUESTI REF PER LO SCROLL
+  const topScrollRef = useRef<HTMLDivElement>(null);
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+
+  // AGGIUNGI QUESTO useEffect PER SINCRONIZZARE LO SCROLL
+  useEffect(() => {
+    const topScroll = topScrollRef.current;
+    const tableScroll = tableScrollRef.current;
+    if (!topScroll || !tableScroll) return;
+    
+    const handleTopScroll = () => { if (tableScroll) tableScroll.scrollLeft = topScroll.scrollLeft; };
+    const handleTableScroll = () => { if (topScroll) topScroll.scrollLeft = tableScroll.scrollLeft; };
+    
+    topScroll.addEventListener('scroll', handleTopScroll);
+    tableScroll.addEventListener('scroll', handleTableScroll);
+    
+    return () => {
+      topScroll.removeEventListener('scroll', handleTopScroll);
+      tableScroll.removeEventListener('scroll', handleTableScroll);
+    };
+  }, []);
 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
@@ -2743,12 +2775,36 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
   }
 
   let filtered: any[] = costRows.filter((r:any)=>
-    !search||r.description?.toLowerCase().includes(search.toLowerCase())||
-    r.code?.includes(search)||r.nHK?.includes(search));
+  !search||r.description?.toLowerCase().includes(search.toLowerCase())||
+  r.code?.includes(search)||r.nHK?.includes(search));
 
-  if(initFilter==="flagged") filtered=filtered.filter((r:any)=>r.flagged===true);
-  else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
-  if(invoiceOnly) filtered=filtered.filter((r:any)=>invoiceIds.has(r.id));
+// APPLICA FILTRI MULTIPLI
+if (filterFlags.flagged) {
+  filtered = filtered.filter((r:any) => r.flagged === true);
+}
+if (filterFlags.air) {
+  filtered = filtered.filter((r:any) => r.isAir === true);
+}
+if (filterFlags.noPrice) {
+  filtered = filtered.filter((r:any) => !r.cost && !r.isAir && r.skipReason?.includes("NO PREZZO"));
+}
+if (filterFlags.noLog) {
+  filtered = filtered.filter((r:any) => !r.cost && !r.isAir && r.skipReason === "NO LOGISTICA");
+}
+if (filterFlags.calcZero) {
+  filtered = filtered.filter((r:any) => !r.cost && !r.isAir && r.skipReason?.includes("CALC=0"));
+}
+if (filterFlags.keepOld) {
+  filtered = filtered.filter((r:any) => {
+    const lastD = lastOrderDate[r.id];
+    return lastD && lastD < sixMonthsAgo;
+  });
+}
+if (invoiceOnly) {
+  filtered = filtered.filter((r:any) => invoiceIds.has(r.id));
+}
+if(initFilter==="flagged") filtered=filtered.filter((r:any)=>r.flagged===true);
+else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
 
   const calc    = filtered.filter((r:any)=>r.cost?.step2Hkd!=null);
   const noPrice = filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
@@ -2851,14 +2907,86 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
         </button>
 
         {invoiceOnly&&(
-          <span style={{fontSize:"10px",color:T.muted}}>
-            ⚠ KEEP OLD = ultimo ordine &gt;6 mesi fa
-          </span>
-        )}
+  <span style={{fontSize:"10px",color:T.muted}}>
+    ⚠ KEEP OLD = ultimo ordine &gt;6 mesi fa
+  </span>
+)}
+
+{/* FILTRI MULTIPLI */}
+<div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap",alignItems:"center",borderTop:`1px solid ${T.border}`,paddingTop:"10px"}}>
+  <span style={{fontSize:"11px",color:T.muted}}>🔍 Filtri rapidi:</span>
+  
+  <button onClick={() => setFilterFlags(f => ({...f, flagged: !f.flagged}))}
+    style={{padding:"4px 12px",background: filterFlags.flagged ? T.orange : T.surface,
+      color: filterFlags.flagged ? "#000" : T.orange, border: `1px solid ${T.orange}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.flagged ? "bold" : "normal"}}>
+    {filterFlags.flagged ? "✓" : "⬚"} Variazioni ≥3%
+  </button>
+  
+  <button onClick={() => setFilterFlags(f => ({...f, air: !f.air}))}
+    style={{padding:"4px 12px",background: filterFlags.air ? T.blue : T.surface,
+      color: filterFlags.air ? "#000" : T.blue, border: `1px solid ${T.blue}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.air ? "bold" : "normal"}}>
+    {filterFlags.air ? "✓" : "⬚"} ✈ AIR (esclusi)
+  </button>
+  
+  <button onClick={() => setFilterFlags(f => ({...f, noPrice: !f.noPrice}))}
+    style={{padding:"4px 12px",background: filterFlags.noPrice ? T.red : T.surface,
+      color: filterFlags.noPrice ? "#fff" : T.red, border: `1px solid ${T.red}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.noPrice ? "bold" : "normal"}}>
+    {filterFlags.noPrice ? "✓" : "⬚"} ❌ Senza prezzo
+  </button>
+  
+  <button onClick={() => setFilterFlags(f => ({...f, noLog: !f.noLog}))}
+    style={{padding:"4px 12px",background: filterFlags.noLog ? T.orange : T.surface,
+      color: filterFlags.noLog ? "#000" : T.orange, border: `1px solid ${T.orange}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.noLog ? "bold" : "normal"}}>
+    {filterFlags.noLog ? "✓" : "⬚"} ⚠ No logistica
+  </button>
+  
+  <button onClick={() => setFilterFlags(f => ({...f, calcZero: !f.calcZero}))}
+    style={{padding:"4px 12px",background: filterFlags.calcZero ? T.purple : T.surface,
+      color: filterFlags.calcZero ? "#fff" : T.purple, border: `1px solid ${T.purple}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.calcZero ? "bold" : "normal"}}>
+    {filterFlags.calcZero ? "✓" : "⬚"} ⚡ Calc=0
+  </button>
+  
+  <button onClick={() => setFilterFlags(f => ({...f, keepOld: !f.keepOld}))}
+    style={{padding:"4px 12px",background: filterFlags.keepOld ? T.green : T.surface,
+      color: filterFlags.keepOld ? "#000" : T.green, border: `1px solid ${T.green}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.keepOld ? "bold" : "normal"}}>
+    {filterFlags.keepOld ? "✓" : "⬚"} ⏰ KEEP OLD
+  </button>
+  
+  <button onClick={() => setFilterFlags({
+    flagged: false, air: false, noPrice: false, noLog: false, calcZero: false, keepOld: false
+  })}
+    style={{padding:"4px 10px",background: T.surface, color: T.muted, border: `1px solid ${T.border}`,
+      borderRadius:"6px",cursor:"pointer",fontSize:"10px"}}>
+    ✕ Reset filtri
+  </button>
+</div>
       </div>
 
       {/* ── tabella ── */}
-      <div style={{overflowX:"auto",width:"100%"}}>
+      {/* Barra di scorrimento orizzontale in alto */}
+<div 
+  ref={topScrollRef}
+  style={{
+    overflowX: "auto",
+    overflowY: "hidden",
+    marginBottom: "8px",
+    paddingBottom: "4px",
+    opacity: 0.5,
+    transition: "opacity 0.2s"
+  }}
+  onMouseEnter={e => e.currentTarget.style.opacity = "1"}
+  onMouseLeave={e => e.currentTarget.style.opacity = "0.5"}
+>
+  <div style={{ width: "max-content", height: "8px" }} />
+</div>
+
+<div ref={tableScrollRef} style={{overflowX:"auto",width:"100%"}}>
         <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
           <thead>
             {/* riga gruppi */}
@@ -3126,7 +3254,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
       <Section title={`${rows.length} prodotti${showMissingOnly?" senza costo standard":""} · data più recente prima`}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["Data Fattura","N HK","IFB No","Descrizione","Ubicaz.","Old HKD","New HKD","Δ%","Note"]}/>
+            <THead cols={["Data Fattura","N HK","IFB No","Descrizione","Ubicaz.","Old HKD","New HKD","Δ%","Note"]} sticky />
             <tbody>
               {rows.map((r:any,i:number) => {
                 const newHkd = r.cost?.step2Hkd ?? null;
@@ -3382,7 +3510,7 @@ function buildPreview() {
   const TableRows = ({data}:{data:any[]}) => (
     <div style={{overflowX:"auto"}}>
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["Data","Codice","N HK","Descrizione","Qty","Prezzo unit.","Location","Transport"]}/>
+        <THead cols={["Data","Codice","N HK","Descrizione","Qty","Prezzo unit.","Location","Transport"]} sticky />
         <tbody>
           {data.slice(0,500).map((r:any,i:number) => {
             const locationIsNCJ = String(r.location || "").toUpperCase().includes("NCJ");
@@ -3741,7 +3869,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
           Snapshot del {new Date(selCostSnap.ts).toLocaleString("it-IT")}
         </div>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <THead cols={["N HK","IFB No","Descrizione","Costo HKD","Note"]}/>
+          <THead cols={["N HK","IFB No","Descrizione","Costo HKD","Note"]} sticky />
           <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>(
             <tr key={r.id||i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
               <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -3867,7 +3995,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                 {newItems.length===0
                   ? <div style={{color:T.dim,fontSize:"12px"}}>Nessuno.</div>
                   : <table style={{width:"100%",borderCollapse:"collapse"}}>
-                      <THead cols={["IFB No","Descrizione"]}/>
+                      <THead cols={["IFB No","Descrizione"]} sticky />
                       <tbody>{newItems.map((d:any,i:number)=>(
                         <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
                           <TD mono><span style={{color:T.gold}}>{d.id||d.productId}</span></TD>
@@ -3886,7 +4014,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                   ? <div style={{color:T.dim,fontSize:"12px"}}>Nessuna variazione reale.</div>
                   : <div style={{overflowX:"auto"}}>
                       <table style={{width:"100%",borderCollapse:"collapse"}}>
-                        <THead cols={["IFB No / N HK","Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]}/>
+                        <THead cols={["IFB No / N HK","Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]} sticky />
                         <tbody>{shownDiffs.map((d:any,i:number)=>
                           d.fields.map((f:any,j:number)=>{
                             const oldR=roundN(f.old||0),newR=roundN(f.new||0);
@@ -4331,8 +4459,29 @@ function SearchBar({value,onChange,placeholder}){
   return<input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||"Cerca..."}
     style={{...inputStyle(),maxWidth:"320px",marginBottom:"14px"}}/>;
 }
-function THead({cols,sticky=false}:any){
-  return<thead><tr>{cols.map(c=><th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",letterSpacing:"0.05em",whiteSpace:"nowrap",...(sticky?{position:"sticky" as const,top:0,zIndex:10}:{})}}>{c}</th>)}</tr></thead>;
+function THead({cols, sticky=false}: any) {
+  return (
+    <thead>
+      <tr>
+        {cols.map(c => (
+          <th key={c} style={{
+            padding: "7px 12px",
+            background: T.card,
+            color: T.muted,
+            textAlign: "left",
+            borderBottom: `1px solid ${T.border}`,
+            fontSize: "11px",
+            fontWeight: "normal",
+            letterSpacing: "0.05em",
+            whiteSpace: "nowrap",
+            ...(sticky ? { position: "sticky" as const, top: 0, zIndex: 10 } : {})
+          }}>
+            {c}
+          </th>
+        ))}
+      </tr>
+    </thead>
+  );
 }
 function TD({children,mono=false}){
   return<td style={{padding:"7px 12px",borderBottom:`1px solid ${T.border}`,fontSize:"12px",fontFamily:mono?"monospace":"inherit",verticalAlign:"middle"}}>{children}</td>;
