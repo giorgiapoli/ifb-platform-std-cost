@@ -2013,23 +2013,25 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
     </label>
     
     {/* ✅ AGGIUNGI QUESTO DROPDOWN - Carica da storico */}
+    {/* ✅ DROPDOWN CARICA DA STORICO - FUNZIONANTE */}
     {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length > 0 && (
       <select 
         onChange={e => {
           if (e.target.value) {
-            const snap = importLogs.find((l:any)=>String(l.id)===e.target.value);
-            if(!snap) return;
-            if (window.confirm(`...`)) {
+            const snap = importLogs.find((l:any) => String(l.id) === e.target.value);
+            if (!snap) return;
+            if (window.confirm(`Caricare i dati logistici del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)) {
+              // Recupera i dati salvati
               const snapData = LS.get(`ifb_log_data_${snap.id}`, null);
-              const rawData   = snapData?.rawData  || snap.rawData  || [];
-              const snapHdrs  = snapData?.headers   || snap.headers  || [];
-              const snapCols  = snapData?.colIdx    || snap.colIdx   || {};
-              if(!rawData.length){ showToast("Snapshot non disponibile — ricarica il file", T.orange); return; }
-              setLogRawRows(rawData);
-              setLogHeaders(snapHdrs);
-              setColIdx(snapCols);
-              setMapStep("ready");
-              showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
+              if (snapData?.rawData?.length) {
+                setLogRawRows(snapData.rawData);
+                setLogHeaders(snapData.headers);
+                setColIdx(snapData.colIdx || {});
+                setMapStep("ready");
+                showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
+              } else {
+                showToast("Snapshot non disponibile — reimporta il file", T.orange);
+              }
             }
           }
           e.target.value = "";
@@ -4307,31 +4309,28 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   }
 
   function loadFromSnapshot(snap: any) {
-  // Prova prima a leggere i dati separati (formato nuovo)
-  let snapshotProducts = LS.get(`ifb_anag_data_${snap.id}`, []);
-  
-  // Se non trovato, prova a leggere direttamente dallo snapshot (formato vecchio)
-  if (snapshotProducts.length === 0 && snap.products && snap.products.length > 0) {
-    snapshotProducts = snap.products;
-    // Salva anche in formato nuovo per le prossime volte
-    LS.set(`ifb_anag_data_${snap.id}`, snapshotProducts);
-    showToast(`Snapshot convertito al nuovo formato`, T.orange);
+    // Prova a leggere i dati separati (formato nuovo)
+    let snapshotProducts = LS.get(`ifb_anag_data_${snap.id}`, []);
+    
+    // Se non trovato, prova a leggere dallo snapshot (formato vecchio)
+    if (snapshotProducts.length === 0 && snap.products && snap.products.length > 0) {
+      snapshotProducts = snap.products;
+      LS.set(`ifb_anag_data_${snap.id}`, snapshotProducts);
+    }
+    
+    if (snapshotProducts.length === 0) {
+      showToast(`Snapshot non disponibile — reimporta il file`, T.orange);
+      return;
+    }
+    
+    if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
+      setProducts(snapshotProducts);
+      LS.set(`ifb_products_${branch}`, snapshotProducts);
+      showToast(`Anagrafica ripristinata da snapshot`, T.gold);
+      setSearch("");
+      setOnlyIFB(true);
+    }
   }
-  
-  // Se ancora vuoto, non c'è nulla da fare
-  if (snapshotProducts.length === 0) {
-    showToast(`Snapshot non disponibile — reimporta il file`, T.orange);
-    return;
-  }
-  
-  if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
-    setProducts(snapshotProducts);
-    LS.set(`ifb_products_${branch}`, snapshotProducts);
-    showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")}`, T.gold);
-    setSearch("");
-    setOnlyIFB(true);
-  }
-}
 
   const mapBCVal = (field: string, raw: string) => {
     const maps: any = {
@@ -4363,12 +4362,13 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
         </label>
 
         {/* Dropdown storico */}
-        {anagSnaps.length > 0 && (
-          <select
+        {/* Dropdown storico - FUNZIONANTE */}
+      {anagSnaps.length > 0 && (
+        <select
           onChange={e => {
             if (e.target.value) {
-              const snap = anagSnaps.find((s:any) => String(s.id) === e.target.value);
-              if(snap) loadFromSnapshot(snap);
+              const snap = anagSnaps.find((s: any) => String(s.id) === e.target.value);
+              if (snap) loadFromSnapshot(snap);
             }
             e.target.value = "";
           }}
@@ -4381,8 +4381,8 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
               {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli
             </option>
           ))}
-          </select>
-        )}
+        </select>
+      )}
 
         <div style={{ flex: 1 }} />
 
