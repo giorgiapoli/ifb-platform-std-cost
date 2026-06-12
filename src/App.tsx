@@ -359,8 +359,28 @@ export default function App() {
   const pages = {
     dashboard:   <Dashboard costRows={costRows} branch={branch} month={month} navigate={navigate}/>,
     products:    <Products products={products}/>,
-    importAnag:  <ImportBC products={products} setProducts={setProducts} branch={branch} importLogs={importLogs}/>,  // <-- AGGIUNTA LA VIRGOLA QUI
-    xref:        <XRefPage xrefs={xrefs} setXrefs={setXrefs} branch={branch} snapshots={snapshots}/>,
+    importAnag:  <ImportBC 
+      products={products} 
+      setProducts={setProducts} 
+      branch={branch} 
+      importLogs={importLogs}
+      setImportLogs={setImportLogs}
+      snapshots={snapshots}
+      setSnapshots={setSnapshots}
+      showToast={showToast}
+      bumpImportTs={bumpImportTs}
+    />,
+    xref:        <XRefPage 
+      xrefs={xrefs} 
+      setXrefs={setXrefs} 
+      branch={branch} 
+      snapshots={snapshots}
+      setSnapshots={setSnapshots}
+      importLogs={importLogs}
+      setImportLogs={setImportLogs}
+      showToast={showToast}
+      bumpImportTs={bumpImportTs}
+    />,
     logistics:   <Logistics logistics={logistics} setLogistics={setLogistics} products={products} branch={branch} showToast={showToast} bumpImportTs={bumpImportTs} initFilter={pageFilter}/>,
     prices:      <Prices prices={prices} products={products} branch={branch} month={month} setPrices={setPrices} salesRows={salesRows} xrefs={xrefs}/>,
     importPrice: <ImportPrices prices={prices} setPrices={setPrices} products={products} xrefs={xrefs} branch={branch} month={month} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
@@ -369,7 +389,12 @@ export default function App() {
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     costsInvoice: <CostsOnInvoice costRows={costRows} salesRows={salesRows} products={products} xrefs={xrefs} branch={branch} month={month}/>,
     sales:       <SalesInvoice rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    storico: <StoricoPage costSnaps={costSnaps} snapshots={snapshots} branch={branch} products={products} xrefs={xrefs} showToast={showToast}/>,
+    storico: <Storico 
+      snapshots={snapshots}
+      setSnapshots={setSnapshots}
+      costHistory={costHistory}
+      branch={branch}
+    />,
     mail:        <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
   };
@@ -2391,7 +2416,7 @@ function MailGen({costRows,branch,month}) {
   );
 }
 
-// ─── SALES INVOICE ────────────────────────────────────────────────────────────
+
 // ─── SALES INVOICE ────────────────────────────────────────────────────────────
 function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const[step,setStep]       = useState(()=>rows?.length?"view":"upload");
@@ -2585,7 +2610,6 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
           ["itemCode","Codice articolo *",true],
           ["description","Descrizione",false],
           ["date","Data fattura",false],
-          ["date","Data fattura",false],
           ["qty","Quantità",false],
           ["unitPrice","Prezzo unitario",false],
           ["location","Location / Magazzino",false],
@@ -2715,10 +2739,11 @@ function Storico({snapshots,setSnapshots,costHistory,branch}) {
   const[showModified,setShowModified]=useState(false);
   const[showNew,setShowNew]=useState(false);
   const[selCostSnap,setSelCostSnap]=useState<any>(null);
+  const costSnaps = (costHistory || []).filter((s:any) => !s.branch || s.branch === branch);
 
   const branchSnaps = snapshots.filter((s:any)=>
-  !s.branch || s.branch==="ALL" || s.branch===branch
-);
+    !s.branch || s.branch==="ALL" || s.branch===branch
+  );
   const snapDate=(s:any)=>new Date(s.date||s.id).toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric"});
 
   function deleteSnap(id:any){
