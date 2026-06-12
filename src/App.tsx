@@ -1575,21 +1575,21 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
           <input type="file" accept=".xlsx,.xls,.csv"
             onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
         </label>
-        {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).length>0&&(
+        {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch).length>0&&(
           <select onChange={e=>{
             if(!e.target.value) return;
             const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
             if(!snap) return;
             if(window.confirm(`Ripristinare la lista AIR del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} articoli)?`)){
-              const next=LS.get(`ifb_air_data_${snap.id}`,[]);
+              const next=LS.get(`ifb_air_data_${snap.id}`, snap.items||[]);
               if(!next.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
               setAirList(next);LS.set(`ifb_airlist_${branch}`,next);
               showToast(`Lista AIR ripristinata: ${snap.count} articoli ✓`,T.gold);
             }
             e.target.value="";
           }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
-            <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).length})</option>
-            {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch&&l.items?.length>0).map((s:any)=>(
+            <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch).length})</option>
+            {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch).map((s:any)=>(
                   <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli</option>
             ))}
           </select>
@@ -2013,10 +2013,13 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
             if(!snap) return;
             if (window.confirm(`...`)) {
               const snapData = LS.get(`ifb_log_data_${snap.id}`, null);
-              if(!snapData?.rawData?.length){ showToast("Snapshot non disponibile — ricarica il file", T.orange); return; }
-              setLogRawRows(snapData.rawData);
-              setLogHeaders(snapData.headers);
-              setColIdx(snapData.colIdx||{});
+              const rawData   = snapData?.rawData  || snap.rawData  || [];
+              const snapHdrs  = snapData?.headers   || snap.headers  || [];
+              const snapCols  = snapData?.colIdx    || snap.colIdx   || {};
+              if(!rawData.length){ showToast("Snapshot non disponibile — ricarica il file", T.orange); return; }
+              setLogRawRows(rawData);
+              setLogHeaders(snapHdrs);
+              setColIdx(snapCols);
               setMapStep("ready");
               showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
             }
@@ -2418,23 +2421,18 @@ setImportStep("done");
 }
 
 function loadFromSnapshot(snap: any) {
-  if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")}? Sostituirà i dati attuali.`)) {
-    // LO SNAPSHOT ANAGRAFICA CONTIENE L'ARRAY COMPLETO DEI PRODOTTI
-    // Lo snapshot viene salvato in executeImport() con la riga:
-    // const snap = { id: now, type: "anagrafica", date: ..., count: newProds.length, products: newProds, branch: "ALL" };
-    
-    const snapshotProducts = snap.products || [];
-    
-    if (snapshotProducts.length === 0) {
-      showToast(`Nessun prodotto trovato nello snapshot`, T.orange);
-      return;
-    }
-    
+  // Leggi direttamente dallo snapshot (senza andare in localStorage separato)
+  const snapshotProducts = snap.products || [];
+  
+  if (snapshotProducts.length === 0) {
+    showToast(`Nessun prodotto trovato nello snapshot`, T.orange);
+    return;
+  }
+
+  if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
     setProducts(snapshotProducts);
     LS.set(`ifb_products_${branch}`, snapshotProducts);
-    showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)`, T.gold);
-    
-    // Forza il refresh della tabella
+    showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")}`, T.gold);
     setSearch("");
     setOnlyIFB(true);
   }
@@ -3389,7 +3387,7 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
     e.target.value = "";
   }
 
-  // ── Build preview ─────────────────────────────────────────────────────────
+  
   // ── Build preview ─────────────────────────────────────────────────────────
 function buildPreview() {
   const get = (row:any, field:string) => {
@@ -4191,20 +4189,31 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   }
 
   function loadFromSnapshot(snap: any) {
-    const snapshotProducts = LS.get(`ifb_anag_data_${snap.id}`, []);
-    if (snapshotProducts.length === 0) {
-      showToast(`Snapshot non disponibile — reimporta il file`, T.orange);
-      return;
-    }
+  // Prova prima a leggere i dati separati (formato nuovo)
+  let snapshotProducts = LS.get(`ifb_anag_data_${snap.id}`, []);
   
-    if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
-      setProducts(snapshotProducts);
-      LS.set(`ifb_products_${branch}`, snapshotProducts);
-      showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")}`, T.gold);
-      setSearch("");
-      setOnlyIFB(true);
-    }
+  // Se non trovato, prova a leggere direttamente dallo snapshot (formato vecchio)
+  if (snapshotProducts.length === 0 && snap.products && snap.products.length > 0) {
+    snapshotProducts = snap.products;
+    // Salva anche in formato nuovo per le prossime volte
+    LS.set(`ifb_anag_data_${snap.id}`, snapshotProducts);
+    showToast(`Snapshot convertito al nuovo formato`, T.orange);
   }
+  
+  // Se ancora vuoto, non c'è nulla da fare
+  if (snapshotProducts.length === 0) {
+    showToast(`Snapshot non disponibile — reimporta il file`, T.orange);
+    return;
+  }
+  
+  if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
+    setProducts(snapshotProducts);
+    LS.set(`ifb_products_${branch}`, snapshotProducts);
+    showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")}`, T.gold);
+    setSearch("");
+    setOnlyIFB(true);
+  }
+}
 
   const mapBCVal = (field: string, raw: string) => {
     const maps: any = {
