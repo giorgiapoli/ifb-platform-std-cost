@@ -319,7 +319,7 @@ export default function App() {
     {id:"sales",      icon:"📋", label:"Sales Invoice", badge:"⇪"},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
     {id:"mail",       icon:"◻", label:"Mail Mensile"},
-    {id:"notes",      icon:"📝", label:"Note & Ambiguità"},
+    {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
   ];
 
   // ── Page: branch selection splash ──────────────────────────────────────────
@@ -631,6 +631,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
   );
 }
 
+
 // ─── NOTES PAGE ───────────────────────────────────────────────────────────────
 function NotesPage() {
   const sections=[
@@ -654,9 +655,152 @@ function NotesPage() {
       "Backup/restore completo.",
     ]},
   ];
+
+  // ✅ NUOVA SEZIONE ISTRUZIONI
+  const instructions = [
+    {
+      title: "🏁 1. Selezione Filiale",
+      steps: [
+        "All'avvio, seleziona la filiale desiderata (Hong Kong è attualmente l'unica attiva)",
+        "Il mese viene impostato automaticamente sul mese corrente",
+        "Puoi cambiare filiale o mese in qualsiasi momento dalla sidebar sinistra"
+      ]
+    },
+    {
+      title: "📦 2. Importazione Anagrafica",
+      steps: [
+        "Vai su 'Anagrafica' → clicca '📂 Carica anagrafica (BC export)'",
+        "Seleziona il file Excel esportato da Business Central",
+        "Mappa le colonne se necessario (il sistema prova a farlo automaticamente)",
+        "Clicca 'Preview' per verificare i dati, poi 'Importa'",
+        "I dati vengono salvati automaticamente e rimangono disponibili al prossimo accesso"
+      ]
+    },
+    {
+      title: "💶 3. Importazione Listini",
+      steps: [
+        "Vai su 'Listini' → clicca '📂 Carica listini'",
+        "Seleziona il file PBI o CURRENT PRICELIST",
+        "Seleziona il mese di riferimento (se diverso da quello corrente)",
+        "Verifica il mapping automatico del codice articolo",
+        "Clicca 'Preview' per vedere i prezzi trovati, poi 'Importa'",
+        "I prezzi vengono salvati per mese e filiale"
+      ]
+    },
+    {
+      title: "🚚 4. Logistica (Work_tab)",
+      steps: [
+        "Vai su 'Logistica' → clicca '📂 Carica Work_tab'",
+        "Seleziona il file 08_Work_Tab.xlsx",
+        "Il sistema rileva automaticamente colonne: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica",
+        "Clicca 'Importa' per salvare i parametri logistici",
+        "⚠️ Le righe importate sono in SOLA LETTURA (colore dorato)",
+        "Le righe senza logistica sono modificabili (colore arancione)",
+        "Puoi svuotare tutti i dati con '🗑 Svuota tutti i dati'"
+      ]
+    },
+    {
+      title: "✈️ 5. Lista AIR Transport",
+      steps: [
+        "Vai su 'AIR Transport' → clicca '📂 Carica lista AIR'",
+        "Carica un file Excel con una colonna di codici articolo (N HK o IFB N)",
+        "Il sistema mostra quali codici sono trovati/non trovati in anagrafica",
+        "Clicca 'Salva' per marcare questi articoli come trasporto aereo",
+        "Questi articoli verranno ESCLUSI dal calcolo Standard Cost",
+        "Nota: anche la location 'NCJ' in fattura viene considerata AIR automaticamente"
+      ]
+    },
+    {
+      title: "📊 6. Calcolo Standard Cost",
+      steps: [
+        "Vai su 'Standard Cost' → clicca '⟳ Ricalcola & Salva'",
+        "Il sistema calcola il costo per tutti gli articoli INALCA F&B con trasporto SEA",
+        "Vedi la tabella con breakdown dettagliato: Prezzo, FOB, LIC, VGM, HC, Pallet, Tassa Alcolica, Magazzino",
+        "Clicca su una riga per vedere il dettaglio completo del calcolo",
+        "Le variazioni ≥ ±3% sono evidenziate",
+        "I costi vengono salvati come snapshot per confronti futuri"
+      ]
+    },
+    {
+      title: "📋 7. Sales Invoice (Fatture)",
+      steps: [
+        "Vai su 'Sales Invoice' → clicca '📂 Ricarica'",
+        "Carica il file fattura (Excel/CSV)",
+        "Mappa le colonne: Codice articolo, Descrizione, Data, Quantità, Prezzo, Location",
+        "Il trasporto AIR/SEA viene determinato automaticamente dalla lista AIR o dalla location 'NCJ'",
+        "Clicca 'Importa' per salvare i dati",
+        "Puoi filtrare per 'Solo AIR' o 'Solo SEA'"
+      ]
+    },
+    {
+      title: "📈 8. Dashboard & Monitoraggio",
+      steps: [
+        "La Dashboard mostra statistiche riassuntive: costi calcolati, variazioni, AIR esclusi, mancanti",
+        "Clicca su qualsiasi card per vedere la lista dettagliata degli articoli in quella categoria",
+        "Usa i filtri e la ricerca per trovare articoli specifici"
+      ]
+    },
+    {
+      title: "⏱️ 9. Storico & Snapshot",
+      steps: [
+        "Vai su 'Storico & Diff' per vedere tutti gli import effettuati",
+        "Clicca su uno snapshot per vedere le differenze rispetto alla versione precedente",
+        "Gli snapshot Standard Cost vengono creati ogni volta che clicchi 'Ricalcola & Salva'",
+        "Puoi eliminare snapshot singoli o tutti"
+      ]
+    },
+    {
+      title: "✉️ 10. Mail Mensile",
+      steps: [
+        "Vai su 'Mail Mensile' → il sistema prepara automaticamente il testo delle variazioni > ±3%",
+        "Clicca 'Copia testo' per copiare negli appunti e incollare nella mail"
+      ]
+    }
+  ];
+
   return(
     <div>
-      <PageHeader title="📝 Note & Ambiguità" sub="Stato del progetto · regole di calcolo"/>
+      <PageHeader title="📝 Guida & Istruzioni" sub="Manuale d'uso · regole di calcolo · note tecniche"/>
+
+      {/* ✅ NUOVA SEZIONE ISTRUZIONI */}
+      <Section title="" accent={T.gold}>
+        <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
+          {instructions.map((inst, idx) => (
+            <div key={idx} style={{
+              background:T.card,
+              borderLeft: `4px solid ${T.gold}`,
+              borderRadius:"8px",
+              padding:"12px 16px"
+            }}>
+              <div style={{
+                fontSize:"13px",
+                fontWeight:"bold",
+                color:T.gold,
+                marginBottom:"8px",
+                display:"flex",
+                alignItems:"center",
+                gap:"8px"
+              }}>
+                <span style={{fontSize:"16px"}}>📌</span>
+                {inst.title}
+              </div>
+              <ul style={{
+                margin:0,
+                paddingLeft:"20px",
+                fontSize:"12px",
+                color:T.muted,
+                lineHeight:"1.8"
+              }}>
+                {inst.steps.map((step, i) => (
+                  <li key={i}>{step}</li>
+                ))}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Sezioni esistenti */}
       {sections.map(s=>(
         <Section key={s.title} title={s.title} accent={s.color}>
           <ul style={{margin:0,padding:"0 0 0 18px"}}>
@@ -1403,6 +1547,45 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
    <input type="file" accept=".xlsx,.xls,.csv"
      onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
  </label>
+ 
+{/* Bottone Mostra lista - stile coerente con il tema */}
+<button
+  onClick={() => {
+    setSearch("");
+    setStep("main");
+  }}
+  style={{
+    padding: "8px 16px",
+    background: branchAir.length > 0 ? `${T.blue}20` : T.surface,
+    border: `1px solid ${branchAir.length > 0 ? T.blue : T.border}`,
+    borderRadius: "6px",
+    color: branchAir.length > 0 ? T.blue : T.muted,
+    cursor: "pointer",
+    fontSize: "12px",
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    transition: "all 0.2s"
+  }}
+  onMouseEnter={e => {
+    if (branchAir.length > 0) {
+      e.currentTarget.style.background = `${T.blue}30`;
+      e.currentTarget.style.borderColor = T.blue;
+    }
+  }}
+  onMouseLeave={e => {
+    if (branchAir.length > 0) {
+      e.currentTarget.style.background = `${T.blue}20`;
+      e.currentTarget.style.borderColor = T.blue;
+    } else {
+      e.currentTarget.style.background = T.surface;
+      e.currentTarget.style.borderColor = T.border;
+    }
+  }}
+>
+  <span style={{fontSize: "12px"}}>✈️</span>
+  Lista AIR ({branchAir.length})
+</button>
  {airList.length>0&&(
    <button
    onClick={()=>{if(window.confirm(`Eliminare i ${branchAir.length} articoli AIR di ${branch}?`)){
@@ -1638,72 +1821,33 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
     let countLog = 0;
     let countAir = 0;
     const currentBranch = branch;
-
+  
     logRawRows.forEach(row => {
-      const nHK = String(row[iNHK >= 0 ? iNHK : 99] || "").trim();
-      const ifbNo = String(row[iIFB >= 0 ? iIFB : 99] || "").trim();
-      
-      if (!nHK && !ifbNo) return;
-      
-      const prod = products.find(p => 
-        (nHK && (p.nHK === nHK || p.code === nHK)) || 
-        (ifbNo && (p.code === ifbNo || p.id === ifbNo))
-      );
-      if (!prod) return;
-      if (!isIFBVendor(prod.vendorName)) return;
-
-      const ub = String(row[iUb >= 0 ? iUb : 99] || "").trim().toUpperCase();
-      if (!["MTO", "MTS", "FOR"].includes(ub)) return;
-      
-      const area = String(row[iArea >= 0 ? iArea : 99] || "NORD").trim().toUpperCase();
-      
-      const tempRaw = String(row[iTemp >= 0 ? iTemp : 99] || "").trim().toUpperCase();
-      const temp = tempRaw === "FRESH" ? "FRESH" : tempRaw === "FROZEN" ? "FROZEN" : "DRY";
-      
-      const pltRaw = parseFloat(row[iPlt >= 0 ? iPlt : 99]) || 0;
-      const plt = pltRaw > 0 ? pltRaw : (temp === "DRY" ? 25 : (temp === "FRESH" || temp === "FROZEN") ? 23 : 20);
-      
-      const certRaw = String(row[iCert >= 0 ? iCert : 99] || "").trim().toUpperCase();
-      const hasCert = certRaw === "SI" || certRaw === "YES" || certRaw === "TRUE";
-      const carriage = parseFloat(row[iCarriage >= 0 ? iCarriage : 99]) || 0;
-      const airSea = String(row[iAirSea >= 0 ? iAirSea : 99] || "").trim().toUpperCase();
-      const alcRaw = String(row[iAlcTax >= 0 ? iAlcTax : 99] || "").trim().toUpperCase();
-      const hasAlcTax = alcRaw === "SI" || alcRaw === "YES" || alcRaw === "TRUE";
-      
-      if (airSea === "AIR") countAir++;
-      
-      const areaFixed = ["NORD", "CENTRO", "SUD"].includes(area) ? area : "NORD";
-      // Temperatura rettificata dal Work_tab: sovrascrive l'anagrafica se presente
-      const temperatureOverride = (iTemp >= 0 && tempRaw !== "") ? temp : null;
-      
-      const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
-      const entry = {
-        productId: prod.id,
-        branch: currentBranch,
-        area: areaFixed,
-        ubicazione: ub,
-        pltPerContainer: plt,
-        hasCert,
-        hasAlcTax,
-        alcTax: 0,
-        convFactor: 1,
-        carriage,
-        temperatureOverride,
-      };
-      
-      if (existIdx >= 0) {
-        next[existIdx] = { ...next[existIdx], ...entry };
-      } else {
-        next.push(entry);
-      }
-      countLog++;
+      // ... tutto il codice esistente ...
     });
-
+  
     setLogistics(next);
     LS.set("ifb_logistics", next);
     if (countAir > 0) showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
     bumpImportTs();
     showToast(`Logistica aggiornata: ${countLog} prodotti per ${currentBranch} ✓`, T.gold);
+    
+    // ✅ AGGIUNGI QUESTA PARTE - Salva lo snapshot
+    const now = Date.now();
+    const log = {
+      id: now,
+      type: "logistics",
+      date: new Date(now).toISOString(),
+      branch: currentBranch,
+      count: countLog,
+      rawData: logRawRows,      // SALVA I DATI RAW
+      headers: logHeaders,      // SALVA GLI HEADER
+      colIdx: colIdx            // SALVA IL MAPPING
+    };
+    const newLogs = [log, ...importLogs];
+    setImportLogs(newLogs);
+    LS.set("ifb_importlogs", newLogs);
+    
     setMapStep("idle");
     setLogHeaders([]);
     setLogRawRows([]);
@@ -1734,10 +1878,39 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
       <input type="file" accept=".xlsx,.xls,.csv" onChange={parseLogFile} style={{display:"none"}}/>
     </label>
     
-    {/* ✅ BOTTONE SVUOTA DATI */}
+    {/* ✅ AGGIUNGI QUESTO DROPDOWN - Carica da storico */}
+    {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length > 0 && (
+      <select 
+        onChange={e => {
+          if (e.target.value) {
+            const snap = JSON.parse(e.target.value);
+            if (window.confirm(`Caricare i dati logistici del ${new Date(snap.id).toLocaleDateString("it-IT")}? Sostituirà i dati attuali.`)) {
+              // Ricostruisci i dati dallo snapshot
+              setLogRawRows(snap.rawData);
+              setLogHeaders(snap.headers);
+              setColIdx(snap.colIdx);
+              setMapStep("ready");
+              showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
+            }
+          }
+          e.target.value = "";
+        }}
+        style={{ ...inputStyle(), width: "auto", fontSize: "12px" }}
+        defaultValue=""
+      >
+        <option value="">📜 Carica da storico ({importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length})</option>
+        {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).map((s: any) => (
+          <option key={s.id} value={JSON.stringify(s)}>
+            {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe
+          </option>
+        ))}
+      </select>
+    )}
+    
+    {/* Bottone Svuota dati esistente */}
     <button
       onClick={() => {
-        if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}? Questa operazione rimuoverà anche i dati importati da Work_tab. Dovrai ricaricare il file.`)) {
+        if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}?`)) {
           const newLogistics = logistics.filter((l:any) => l.branch !== branch);
           setLogistics(newLogistics);
           LS.set("ifb_logistics", newLogistics);
@@ -1785,6 +1958,15 @@ function Logistics({logistics,setLogistics,products,branch,showToast,bumpImportT
         <span style={{fontSize:"11px", color:T.muted}}>
           {showOnlyMissing ? `Mostrando ${displayed.length} prodotti SENZA logistica` : `Mostrando TUTTI i ${displayed.length} prodotti IFB`}
         </span>
+        // Nella toolbar di Logistics, dopo il bottone "Solo senza logistica", aggiungi:
+        <button 
+          onClick={() => {
+            setShowOnlyMissing(false);
+            setSearch("");
+          }}
+          style={{padding:"6px 14px", background:showOnlyMissing ? T.surface : T.gold, color:showOnlyMissing ? T.orange : "#000", border:`1px solid ${T.orange}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap"}}>
+          👁️ Visualizza tutti ({allIFBProducts.length})
+        </button>
       </div>
 
       {missingCount > 0 && !showOnlyMissing && (
@@ -2117,25 +2299,26 @@ setImportStep("done");
 }
 
 function loadFromSnapshot(snap: any) {
-if (window.confirm(`Caricare i listini del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.month})? Sostituirà i dati attuali.`)) {
-// Ricostruisce i prezzi dallo snapshot
-const snapshotPrices = snap.diffs?.map((d: any) => ({
-productId: d.productId,
-branch: snap.branch,
-month: snap.month,
-dapFinal: d.fields?.find((f: any) => f.field === "dapFinal")?.new || 0,
-mtsPrice: d.fields?.find((f: any) => f.field === "mtsPrice")?.new || 0,
-fcaDiscounted: d.fields?.find((f: any) => f.field === "fcaDiscounted")?.new || 0,
-dapPrice: d.fields?.find((f: any) => f.field === "dapPrice")?.new || 0,
-fcaPrice: d.fields?.find((f: any) => f.field === "fcaPrice")?.new || 0,
-})) || [];
-
-const existingPrices = prices.filter((p: any) => !(p.branch === snap.branch && p.month === snap.month));
-const newPrices = [...existingPrices, ...snapshotPrices];
-setPrices(newPrices);
-LS.set("ifb_prices", newPrices);
-showToast(`Listini ripristinati da snapshot (${snap.month})`, T.gold);
-}
+  if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")}? Sostituirà i dati attuali.`)) {
+    // LO SNAPSHOT ANAGRAFICA CONTIENE L'ARRAY COMPLETO DEI PRODOTTI
+    // Lo snapshot viene salvato in executeImport() con la riga:
+    // const snap = { id: now, type: "anagrafica", date: ..., count: newProds.length, products: newProds, branch: "ALL" };
+    
+    const snapshotProducts = snap.products || [];
+    
+    if (snapshotProducts.length === 0) {
+      showToast(`Nessun prodotto trovato nello snapshot`, T.orange);
+      return;
+    }
+    
+    setProducts(snapshotProducts);
+    LS.set(`ifb_products_${branch}`, snapshotProducts);
+    showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)`, T.gold);
+    
+    // Forza il refresh della tabella
+    setSearch("");
+    setOnlyIFB(true);
+  }
 }
 
 const resetImport = () => {
@@ -2953,8 +3136,14 @@ function buildPreview() {
 
       const prod = findProduct(code, products, xrefs);
       const nHK = prod?.nHK || (xrefs.find((x:any) => x.ifbNo === code)?.nHK) || "";
-      const isAirProd = prod && airList.some((a:any) => a.productId === prod.id);
       const location = String(get(r, "location") || "").trim();
+      const isAirLocation = location.toUpperCase() === "NCJ";
+      const isAirProd = prod && airList.some((a:any) => a.productId === prod.id);
+
+      // Il trasporto è AIR se:
+      // 1. Il prodotto è nella lista AIR, OPPURE
+      // 2. La location è NCJ (New Cargo Jet - corriere aereo)
+      const isAir = isAirProd || isAirLocation;
 
       return {
         itemCode: code,
@@ -2965,7 +3154,7 @@ function buildPreview() {
         isSample: isSample,
         location: location,
         nHK: nHK,
-        transport: isAirProd ? "AIR" : "SEA",
+        transport: isAir ? "AIR" : "SEA",
         _prodFound: !!prod,
       };
     })
@@ -3532,10 +3721,11 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
 }
 
 // ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
-function Products({products, setProducts, branch, importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs}) {
+// ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
+function Products({ products, setProducts, branch, importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
   const [search, setSearch] = useState("");
   const [onlyIFB, setOnlyIFB] = useState(true);
-  const [importStep, setImportStep] = useState<"idle"|"map"|"preview">("idle");
+  const [importStep, setImportStep] = useState<"idle" | "map" | "preview">("idle");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<any[]>([]);
   const [map, setMap] = useState<any>({});
@@ -3543,18 +3733,37 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
   const [fileName, setFileName] = useState("");
 
   // Storico import anagrafica
-  const anagSnaps = snapshots.filter((s:any) => s.type === "anagrafica" && (!s.branch || s.branch === "ALL" || s.branch === branch));
+  const anagSnaps = snapshots.filter((s: any) => s.type === "anagrafica" && (!s.branch || s.branch === "ALL" || s.branch === branch));
 
-  const FIELDS = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","temperature","active","vendorName","vendorName2"];
-  const FLABELS = {nHK:"N HK (No_)",code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone",temperature:"Product Type",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
+  const FIELDS = ["nHK", "code", "description", "category", "uom", "qtyPerBox", "boxPerPallet", "kgPerBox", "temperature", "active", "vendorName", "vendorName2"];
+  const FLABELS = {
+    nHK: "N HK (No_)",
+    code: "IFB Item *",
+    description: "Descrizione *",
+    category: "Section",
+    uom: "UOM",
+    qtyPerBox: "Qty/Cartone",
+    boxPerPallet: "Cartoni/Pallet",
+    kgPerBox: "Kg per Cartone",
+    temperature: "Product Type",
+    active: "Bloccato",
+    vendorName: "Vendor Name",
+    vendorName2: "Vendor Name 2"
+  };
 
   const LOCAL_ALIASES = {
-    nHK: ["no","no_"], code: ["ifbitem","ifb item","ifb no","ifb n"],
-    description: ["description"], category: ["sectiondescription","section description","section"],
-    uom: ["salesunitofmeasure","sales unit of measure"], qtyPerBox: ["quantityxpackaging","quantity x packaging"],
-    boxPerPallet: ["packagingxpallet","packaging x pallet"], kgPerBox: ["netweight","net weight"],
-    temperature: ["producttype","product type","product type rettificato"], active: ["blocked"],
-    vendorName: ["vendorname","vendor name"], vendorName2: ["vendorname2","vendor name 2"],
+    nHK: ["no", "no_"],
+    code: ["ifbitem", "ifb item", "ifb no", "ifb n"],
+    description: ["description"],
+    category: ["sectiondescription", "section description", "section"],
+    uom: ["salesunitofmeasure", "sales unit of measure"],
+    qtyPerBox: ["quantityxpackaging", "quantity x packaging"],
+    boxPerPallet: ["packagingxpallet", "packaging x pallet"],
+    kgPerBox: ["netweight", "net weight"],
+    temperature: ["producttype", "product type", "product type rettificato"],
+    active: ["blocked"],
+    vendorName: ["vendorname", "vendor name"],
+    vendorName2: ["vendorname2", "vendor name 2"],
   };
 
   function autoMap(hdrs: string[]) {
@@ -3578,7 +3787,7 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
         if (!data.length) { showToast("File vuoto", T.red); return; }
-        
+
         let hi = 0;
         for (let i = 0; i < Math.min(5, data.length); i++) {
           const rNorm = data[i].map((c: any) => String(c || "").toLowerCase().replace(/[\s_]/g, ""));
@@ -3613,25 +3822,43 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
   function executeImport() {
     const now = Date.now();
     const newProds = preview.map((r: any) => ({
-      id: r.code || r.nHK, code: r.code, nHK: r.nHK, description: r.description,
-      category: mapBCVal("category", r.category), uom: mapBCVal("uom", r.uom),
-      qtyPerBox: parseFloat(r.qtyPerBox) || 0, boxPerPallet: parseFloat(r.boxPerPallet) || 0,
-      kgPerBox: parseFloat(r.kgPerBox) || 0, temperature: mapBCVal("temperature", r.temperature),
+      id: r.code || r.nHK,
+      code: r.code,
+      nHK: r.nHK,
+      description: r.description,
+      category: mapBCVal("category", r.category),
+      uom: mapBCVal("uom", r.uom),
+      qtyPerBox: parseFloat(r.qtyPerBox) || 0,
+      boxPerPallet: parseFloat(r.boxPerPallet) || 0,
+      kgPerBox: parseFloat(r.kgPerBox) || 0,
+      temperature: mapBCVal("temperature", r.temperature),
       kgxplt: parseFloat(r.kgxplt) || roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.boxPerPallet) || 0)),
       active: !["true", "1", "yes"].includes(String(r.active || "").toLowerCase()),
-      vendorName: r.vendorName || "", vendorName2: r.vendorName2 || "",
+      vendorName: r.vendorName || "",
+      vendorName2: r.vendorName2 || "",
     }));
-    
+
     setProducts(newProds);
     LS.set(`ifb_products_${branch}`, newProds);
-    
-    const log = { id: now, type: "anagrafica", date: new Date(now).toISOString(), count: newProds.length, diffs: [], branch: "ALL" };
+
+    // Salva l'array completo nello snapshot
+    const log = {
+      id: now,
+      type: "anagrafica",
+      date: new Date(now).toISOString(),
+      count: newProds.length,
+      products: newProds,
+      branch: "ALL"
+    };
+
     const newLogs = [log, ...importLogs];
     setImportLogs(newLogs);
     LS.set("ifb_importlogs", newLogs);
+
     const newSnaps = [log, ...snapshots].slice(0, 50);
     setSnapshots(newSnaps);
     LS.set("ifb_snapshots", newSnaps);
+
     bumpImportTs();
     showToast(`Importati ${newProds.length} articoli`, T.gold);
     setImportStep("idle");
@@ -3640,16 +3867,20 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
   }
 
   function loadFromSnapshot(snap: any) {
-    // ATTENZIONE: Lo snapshot anagrafica contiene solo le differenze (diffs)
-    // Non contiene l'array completo dei prodotti.
-    // Per ripristinare completamente l'anagrafica, avremmo bisogno di salvare l'intero array.
-    // Per ora, mostriamo un messaggio che la funzionalità non è disponibile.
-    showToast(`Ripristino anagrafica da snapshot non ancora implementato. Usa "Carica file" per importare una nuova anagrafica.`, T.orange);
-    
-    // Opzionale: se vuoi implementare il ripristino, dovresti:
-    // 1. Partire dall'anagrafica corrente
-    // 2. Applicare le differenze inverse (operazione complessa)
-    // Per semplicità, consiglio di disabilitare questa funzionalità per l'anagrafica
+    const snapshotProducts = snap.products || [];
+
+    if (snapshotProducts.length === 0) {
+      showToast(`Nessun prodotto trovato nello snapshot`, T.orange);
+      return;
+    }
+
+    if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
+      setProducts(snapshotProducts);
+      LS.set(`ifb_products_${branch}`, snapshotProducts);
+      showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")}`, T.gold);
+      setSearch("");
+      setOnlyIFB(true);
+    }
   }
 
   const mapBCVal = (field: string, raw: string) => {
@@ -3663,7 +3894,12 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
   };
 
   const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
-  const filtered = base.filter((p: any) => !search || p.description?.toLowerCase().includes(search.toLowerCase()) || p.code?.toLowerCase().includes(search.toLowerCase()) || p.nHK?.toLowerCase().includes(search.toLowerCase()));
+  const filtered = base.filter((p: any) =>
+    !search ||
+    p.description?.toLowerCase().includes(search.toLowerCase()) ||
+    p.code?.toLowerCase().includes(search.toLowerCase()) ||
+    p.nHK?.toLowerCase().includes(search.toLowerCase())
+  );
 
   return (
     <div>
@@ -3675,9 +3911,20 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
           📂 Carica anagrafica (BC export)
           <input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
         </label>
-        
+
+        {/* Dropdown storico */}
         {anagSnaps.length > 0 && (
-          <select onChange={e => { if (e.target.value) loadFromSnapshot(JSON.parse(e.target.value)); e.target.value = ""; }} style={{ ...inputStyle(), width: "auto", fontSize: "12px" }} defaultValue="">
+          <select
+            onChange={e => {
+              if (e.target.value) {
+                const snap = JSON.parse(e.target.value);
+                loadFromSnapshot(snap);
+              }
+              e.target.value = "";
+            }}
+            style={{ ...inputStyle(), width: "auto", fontSize: "12px" }}
+            defaultValue=""
+          >
             <option value="">📜 Carica da storico ({anagSnaps.length})</option>
             {anagSnaps.map((s: any) => (
               <option key={s.id} value={JSON.stringify(s)}>
@@ -3686,15 +3933,26 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
             ))}
           </select>
         )}
-        
+
         <div style={{ flex: 1 }} />
-        
-        <button onClick={() => setOnlyIFB((v: boolean) => !v)} style={{ padding: "5px 12px", background: onlyIFB ? `${T.gold}20` : T.surface, color: onlyIFB ? T.gold : T.muted, border: `1px solid ${onlyIFB ? T.gold : T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px" }}>
+
+        <button
+          onClick={() => setOnlyIFB((v: boolean) => !v)}
+          style={{
+            padding: "5px 12px",
+            background: onlyIFB ? `${T.gold}20` : T.surface,
+            color: onlyIFB ? T.gold : T.muted,
+            border: `1px solid ${onlyIFB ? T.gold : T.border}`,
+            borderRadius: "6px",
+            cursor: "pointer",
+            fontSize: "11px"
+          }}
+        >
           {onlyIFB ? `✓ Solo INALCA F&B (${base.length})` : `Mostra tutti (${products.length})`}
         </button>
       </div>
 
-      {/* Step di import */}
+      {/* Step di import - Mappa */}
       {importStep === "map" && (
         <div style={{ background: T.card, border: `1px solid ${T.gold}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
           <div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne · {fileName}</div>
@@ -3702,7 +3960,11 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
             {FIELDS.slice(0, 9).map(f => (
               <div key={f}>
                 <label style={{ fontSize: "10px", color: T.muted }}>{FLABELS[f]}</label>
-                <select value={map[f] || ""} onChange={e => setMap((m: any) => ({ ...m, [f]: e.target.value }))} style={{ ...inputStyle(), fontSize: "11px", padding: "4px 6px" }}>
+                <select
+                  value={map[f] || ""}
+                  onChange={e => setMap((m: any) => ({ ...m, [f]: e.target.value }))}
+                  style={{ ...inputStyle(), fontSize: "11px", padding: "4px 6px" }}
+                >
                   <option value="">—</option>
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
@@ -3716,15 +3978,28 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
         </div>
       )}
 
+      {/* Step di import - Preview */}
       {importStep === "preview" && (
         <div style={{ background: T.card, border: `1px solid ${T.green}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
           <div style={{ color: T.green, fontWeight: "bold", marginBottom: "12px" }}>Preview · {preview.length} articoli</div>
           <div style={{ maxHeight: "200px", overflow: "auto", marginBottom: "12px", fontSize: "11px" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead><tr>{["N HK", "IFB No", "Descrizione"].map(c => <th key={c} style={{ textAlign: "left", padding: "4px" }}>{c}</th>)}</tr></thead>
-              <tbody>{preview.slice(0, 20).map((r, i) => (
-                <tr key={i}><td style={{ padding: "2px 4px" }}>{r.nHK}</td><td style={{ padding: "2px 4px", color: T.gold }}>{r.code}</td><td style={{ padding: "2px 4px" }}>{r.description}</td></tr>
-              ))}</tbody>
+              <thead>
+                <tr>
+                  <th style={{ textAlign: "left", padding: "4px" }}>N HK</th>
+                  <th style={{ textAlign: "left", padding: "4px" }}>IFB No</th>
+                  <th style={{ textAlign: "left", padding: "4px" }}>Descrizione</th>
+                </tr>
+              </thead>
+              <tbody>
+                {preview.slice(0, 20).map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ padding: "2px 4px" }}>{r.nHK}</td>
+                    <td style={{ padding: "2px 4px", color: T.gold }}>{r.code}</td>
+                    <td style={{ padding: "2px 4px" }}>{r.description}</td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
@@ -3741,26 +4016,61 @@ function Products({products, setProducts, branch, importLogs, setImportLogs, sna
       <Section title={`${filtered.length} articoli`}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <THead cols={["N HK", "IFB No", "Descrizione", "Vendor", "Categoria", "UOM", "Qty/Box", "Box/Plt", "Kg/Box", "Kg/Plt", "Temp", "Attivo"]} />
-            <tbody>{filtered.map((p: any, i: number) => {
-              const kgxplt = p.kgxplt || roundN((parseFloat(p.kgPerBox) || 0) * (parseFloat(p.boxPerPallet) || 0));
-              return (
-                <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
-                  <TD mono><span style={{ color: T.muted }}>{p.nHK || "—"}</span></TD>
-                  <TD mono><span style={{ color: T.gold }}>{p.code}</span></TD>
-                  <TD>{p.description}</TD>
-                  <TD><span style={{ fontSize: "11px", color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>{p.vendorName || "—"}</span></TD>
-                  <TD><Chip label={p.category || "—"} color={p.category === "WINE" ? T.purple : p.category === "MEAT" ? T.red : T.blue} /></TD>
-                  <TD><Chip label={p.uom || "—"} color={T.muted} /></TD>
-                  <TD mono>{p.qtyPerBox || "—"}</TD>
-                  <TD mono>{p.boxPerPallet || "—"}</TD>
-                  <TD mono>{p.kgPerBox || "—"}</TD>
-                  <TD mono><span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span></TD>
-                  <TD><Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></TD>
-                  <TD><Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} /></TD>
-                </tr>
-              );
-            })}</tbody>
+            <thead>
+              <tr>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>N HK</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>IFB No</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Descrizione</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Vendor</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Categoria</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>UOM</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Qty/Box</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Box/Plt</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Kg/Box</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Kg/Plt</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Temp</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Attivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((p: any, i: number) => {
+                const kgxplt = p.kgxplt || roundN((parseFloat(p.kgPerBox) || 0) * (parseFloat(p.boxPerPallet) || 0));
+                return (
+                  <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
+                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>
+                      <span style={{ color: T.muted }}>{p.nHK || "—"}</span>
+                    </td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>
+                      <span style={{ color: T.gold }}>{p.code}</span>
+                    </td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>{p.description}</td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
+                      <span style={{ fontSize: "11px", color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>
+                        {p.vendorName || "—"}
+                      </span>
+                    </td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
+                      <Chip label={p.category || "—"} color={p.category === "WINE" ? T.purple : p.category === "MEAT" ? T.red : T.blue} />
+                    </td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
+                      <Chip label={p.uom || "—"} color={T.muted} />
+                    </td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>{p.qtyPerBox || "—"}</td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>{p.boxPerPallet || "—"}</td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>{p.kgPerBox || "—"}</td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>
+                      <span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span>
+                    </td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
+                      <Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} />
+                    </td>
+                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
+                      <Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} />
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
           </table>
         </div>
       </Section>
