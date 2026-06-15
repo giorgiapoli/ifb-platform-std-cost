@@ -2023,15 +2023,18 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
             if (window.confirm(`Caricare i dati logistici del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)) {
               // Recupera i dati salvati
               const snapData = LS.get(`ifb_log_data_${snap.id}`, null);
-              if (snapData?.rawData?.length) {
-                setLogRawRows(snapData.rawData);
-                setLogHeaders(snapData.headers);
-                setColIdx(snapData.colIdx || {});
-                setMapStep("ready");
-                showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
-              } else {
-                showToast("Snapshot non disponibile — reimporta il file", T.orange);
+              const rawData  = snapData?.rawData  || snap.rawData  || [];
+              const snapHdrs = snapData?.headers   || snap.headers  || [];
+              const snapCols = snapData?.colIdx    || snap.colIdx   || {};
+              if (!rawData.length) {
+                showToast("Snapshot non disponibile — i dati grezzi non sono stati salvati (quota LS). Reimporta il file Work_tab.", T.orange);
+                return;
               }
+              setLogRawRows(rawData);
+              setLogHeaders(snapHdrs);
+              setColIdx(snapCols);
+              setMapStep("ready");
+              showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
             }
           }
           e.target.value = "";
@@ -3564,7 +3567,10 @@ function buildPreview() {
   function executeImport() {
     const now = Date.now();
     saveRows(preview.map((r:any) => ({...r, branch})));
-    const log = {id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch,rows:preview.map((r:any)=>({...r,branch}))};
+    const salesData = preview.map((r:any)=>({...r,branch}));
+    const savedSales = LS.set(`ifb_sales_data_${now}`, salesData);
+    if (!savedSales) showToast(`⚠ Quota LS: storico fattura non salvato`, T.orange);
+    const log = {id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
     bumpImportTs();
@@ -3802,19 +3808,21 @@ function buildPreview() {
             📂 Ricarica
             <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
           </label>
-          {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).length>0&&(
+          {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length>0&&(
             <select onChange={e=>{
               if(!e.target.value) return;
               const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
               if(!snap) return;
               if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)){
-                saveRows(snap.rows);
+                const rows = LS.get(`ifb_sales_data_${snap.id}`, snap.rows||[]);
+                if(!rows.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
+                saveRows(rows);
                 showToast(`Sales Invoice ripristinata: ${snap.count} righe ✓`,T.gold);
               }
               e.target.value="";
             }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
-              <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).length})</option>
-              {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch&&l.rows?.length>0).map((s:any)=>(
+              <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length})</option>
+              {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).map((s:any)=>(
                 <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
               ))}
             </select>
@@ -4398,7 +4406,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
             fontSize: "11px"
           }}
         >
-          {onlyIFB ? `✓ Solo INALCA F&B (${base.length})` : `Mostra tutti (${products.length})`}
+          {onlyIFB ? `✓ Solo IF&B (${base.length})` : `Mostra tutti (${products.length})`}
         </button>
       </div>
 
