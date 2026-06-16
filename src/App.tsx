@@ -3393,7 +3393,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
                     </TD>
                     <TD>{r.description}</TD>
                     <TD>
-                      {rowIsAir(r) ? (
+                      {isAirRow(r) ? (
                         <Chip label="✈ AIR" color={T.orange} />
                       ) : (
                         <Chip
@@ -3414,15 +3414,15 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
                     <TD mono>
                       <span
                         style={{
-                          color: newHkd != null ? T.gold : rowIsAir(r) ? T.orange : T.red,
+                          color: newHkd != null ? T.gold : isAirRow(r) ? T.orange : T.red,
                           fontWeight: "bold",
                         }}
                       >
-                        {rowIsAir(r) ? "AIR" : newHkd != null ? newHkd.toFixed(2) : "MANCANTE"}
+                        {isAirRow(r) ? "AIR" : newHkd != null ? newHkd.toFixed(2) : "MANCANTE"}
                       </span>
                     </TD>
                     <TD>
-                      {rowIsAir(r) ? (
+                      {isAirRow(r) ? (
                         <span style={{ color: T.dim }}>—</span>
                       ) : pct != null ? (
                         <span
@@ -3439,7 +3439,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
                       )}
                     </TD>
                     <TD>
-                      {rowIsAir(r) ? (
+                      {isAirRow(r) ? (
                         <Chip label="✈ AIR" color={T.orange} />
                       ) : (
                         <span style={{ fontSize: "11px", color: T.dim }}>{r.skipReason || ""}</span>
@@ -4677,7 +4677,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
     }));
     setMeatPrices(entries);
     LS.set("ifb_meatprices", entries);
-    LS.set(`ifb_meatprices_data_${now}`, entries);
+    try { LS.set(`ifb_meatprices_data_${now}`, entries); } catch(_){ /* quota piena, storico non salvato */ }
     const log = {id:now, type:"meatlist", date:new Date(now).toISOString(), count:entries.length, diffs:[], branch:"ALL"};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
@@ -4712,9 +4712,10 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
             if(!snap) return;
             if(window.confirm(`Ripristinare listino del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} prezzi)?`)) {
               const data = LS.get(`ifb_meatprices_data_${snap.id}`, null);
-              if(!data?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
-              setMeatPrices(data); LS.set("ifb_meatprices",data);
-              showToast(`Listino carne ripristinato: ${data.length} prezzi ✓`, T.gold);
+              const toLoad = data?.length ? data : meatPrices;
+              if(!toLoad?.length){ showToast("Nessun dato disponibile — reimporta il file", T.orange); return; }
+              setMeatPrices(toLoad); LS.set("ifb_meatprices", toLoad);
+              showToast(`Listino carne: ${toLoad.length} prezzi ${data?.length ? "ripristinati" : "correnti"} ✓`, T.gold);
             }
             e.target.value="";
           }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
