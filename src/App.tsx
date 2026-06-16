@@ -3219,9 +3219,11 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 // ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
 function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
-  const [showMissingOnly, setShowMissingOnly] = useState(false);
   const [excludeAir, setExcludeAir] = useState(false);
   const [newHkdFilter, setNewHkdFilter] = useState<"all"|"ok"|"mancante"|"air">("all");
+  const [filterNHK, setFilterNHK] = useState("");
+  const [filterIFBNo, setFilterIFBNo] = useState("");
+
 
   const today = new Date();
   const oneMonthAgo = new Date(today);
@@ -3277,14 +3279,20 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   const missingCount = allRows.filter(isMissing).length;
   const airCount     = allRows.filter(isAirRow).length;
 
-  let rows: any[];
-  if (showMissingOnly)   rows = allRows.filter(isMissing);
-  else if (excludeAir)   rows = allRows.filter((r: any) => !isAirRow(r));
-  else                   rows = allRows;
+  const uniqueNHK   = [...new Set(allRows.map((r:any)=>r.nHK).filter(Boolean))].sort() as string[];
+  const uniqueIFBNo = [...new Set(allRows.map((r:any)=>r.code).filter(Boolean))].sort() as string[];
 
-  if (newHkdFilter === "ok")       rows = rows.filter((r: any) => r.cost?.step2Hkd != null && !isAirRow(r));
-  else if (newHkdFilter === "mancante") rows = rows.filter((r: any) => !r.cost && !isAirRow(r));
-  else if (newHkdFilter === "air") rows = rows.filter((r: any) => isAirRow(r));                 
+  let rows: any[];
+  if (excludeAir) rows = allRows.filter((r: any) => !isAirRow(r));
+  else            rows = allRows;
+
+  if (newHkdFilter === "ok")            rows = rows.filter((r:any) => r.cost?.step2Hkd != null && !isAirRow(r));
+  else if (newHkdFilter === "mancante") rows = rows.filter((r:any) => !r.cost && !isAirRow(r));
+  else if (newHkdFilter === "air")      rows = rows.filter((r:any) => isAirRow(r));
+  if (filterNHK)   rows = rows.filter((r:any) => (r.nHK||"") === filterNHK);
+  if (filterIFBNo) rows = rows.filter((r:any) => (r.code||"") === filterIFBNo);
+
+               
 
   return (
     <div>
@@ -3315,16 +3323,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
     ⬇ Export Excel
   </button>
   
-  <button onClick={()=>setShowMissingOnly(v=>!v)}
-    style={{padding:"5px 14px",
-      background:showMissingOnly?`${T.red}20`:T.surface,
-      color:showMissingOnly?T.red:T.muted,
-      border:`1px solid ${showMissingOnly?T.red:T.border}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap",fontWeight:showMissingOnly?"bold":"normal"}}>
-    {showMissingOnly
-      ? `⚠ Senza costo (${rows.length})`
-      : `⚠ Mostra senza costo standard (${missingCount})`}
-  </button>
+  
   
   {/* ✅ NUOVO BOTTONE - Mostra/Nascondi AIR */}
   <button onClick={() => setExcludeAir(v => !v)}
@@ -3347,46 +3346,37 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   )}
 </div>
 
-      {missingCount > 0 && !showMissingOnly && (
-        <div
-          style={{
-            background: `${T.orange}15`,
-            border: `1px solid ${T.orange}44`,
-            borderRadius: "6px",
-            padding: "10px 14px",
-            marginBottom: "14px",
-            fontSize: "12px",
-            color: T.orange,
-          }}
-        >
-          ⚠ {missingCount} prodotti ordinati recentemente NON hanno Standard Cost — verifica listino e logistica.
-        </div>
-      )}
 
-      <Section
-        title={`${rows.length} prodotti${showMissingOnly ? " senza costo standard" : ""} · data più recente prima`}
-      >
+<Section title={`${rows.length} prodotti · data più recente prima`}>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-              <tr>
-                {["Data Fattura","N HK","IFB No","Descrizione","Ubicaz.","Old HKD"].map(c=>(
-                  <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>
-                ))}
-                <th style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
-                  <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
-                    style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
-                    <option value="all">New HKD ▾</option>
-                    <option value="ok">✅ Con costo</option>
-                    <option value="mancante">❌ MANCANTE</option>
-                    <option value="air">✈ AIR</option>
-                  </select>
-                </th>
-                {["Δ%","Note"].map(c=>(
-                  <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>
-                ))}
-              </tr>
-            </thead>
+            <thead><tr>
+            <th style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>Data Fattura</th>
+            {([["N HK",filterNHK,setFilterNHK,uniqueNHK],["IFB No",filterIFBNo,setFilterIFBNo,uniqueIFBNo]] as [string,string,(v:string)=>void,string[]][]).map(([label,val,setter,opts])=>(
+              <th key={label} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                <select value={val} onChange={e=>setter(e.target.value)}
+                  style={{background:val?`${T.gold}22`:T.card,color:val?T.gold:T.muted,border:`1px solid ${val?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"120px"}}>
+                  <option value="">{label} ▾</option>
+                  {opts.map(v=><option key={v} value={v}>{v}</option>)}
+                </select>
+              </th>
+            ))}
+            {["Descrizione","Ubicaz.","Old HKD"].map(c=>(
+              <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>
+            ))}
+            <th style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+              <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
+                style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
+                <option value="all">New HKD ▾</option>
+                <option value="ok">✅ Con costo</option>
+                <option value="mancante">❌ MANCANTE</option>
+                <option value="air">✈ AIR</option>
+              </select>
+            </th>
+            {["Δ%","Note"].map(c=>(
+              <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>
+            ))}
+          </tr></thead>
             <tbody>
               {rows.map((r: any, i: number) => {
                 const newHkd = r.cost?.step2Hkd ?? null;
