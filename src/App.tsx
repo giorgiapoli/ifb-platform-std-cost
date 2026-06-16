@@ -79,6 +79,7 @@ function exportXLSX(rows: any[], sheetName: string, fileName: string) {
  */
 function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature } = product;
+  const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor } = logistic || {};
 
   // ── Units per pallet ── (formula modello Excel)
   // PCS: qtyPerBox × boxPerPallet
@@ -224,6 +225,31 @@ const LS = {
 };
 
 // Seed data (minimal)
+// ─── IndexedDB per dati grandi ──────────────────────────────────────────────
+const IDB = (() => {
+  let dbP: Promise<IDBDatabase>|null = null;
+  const open = () => {
+    if(!dbP) dbP = new Promise((res,rej) => {
+      const r = indexedDB.open("ifb_store",1);
+      r.onupgradeneeded = e => (e.target as IDBOpenDBRequest).result.createObjectStore("store");
+      r.onsuccess = e => res((e.target as IDBOpenDBRequest).result);
+      r.onerror = () => { dbP=null; rej(); };
+    });
+    return dbP;
+  };
+  return {
+    set: async (key:string, val:any) => {
+      try { const db=await open(); await new Promise<void>((res,rej)=>{ const tx=db.transaction("store","readwrite"); tx.objectStore("store").put(val,key); tx.oncomplete=()=>res(); tx.onerror=rej; }); return true; } catch { return false; }
+    },
+    get: async (key:string, def:any=null) => {
+      try { const db=await open(); return await new Promise(res=>{ const tx=db.transaction("store","readonly"); const r=tx.objectStore("store").get(key); r.onsuccess=()=>res(r.result??def); r.onerror=()=>res(def); }); } catch { return def; }
+    },
+    del: async (key:string) => {
+      try { const db=await open(); await new Promise<void>((res)=>{ const tx=db.transaction("store","readwrite"); tx.objectStore("store").delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>res(); }); } catch {}
+    }
+  };
+})();
+
 const SEED_PRODUCTS = [];
 const SEED_LOGISTIC = [];
 const SEED_PRICES   = [];
@@ -256,19 +282,21 @@ export default function App() {
 
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
 
-  useEffect(()=>{ if(branch&&products.length) LS.set(`ifb_products_${branch}`, products); },[products,branch]);
+  useEffect(()=>{ if(branch&&products.length) IDB.set(`ifb_products_${branch}`, products); },[products,branch]);
   useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
   useEffect(()=>{ if(branch) LS.set(`ifb_airlist_${branch}`, airList); },[airList,branch]);
-  useEffect(()=>{ if(branch) LS.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
+  useEffect(()=>{ if(branch) IDB.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
-    setProducts(LS.get(`ifb_products_${branch}`,[]));
-    setXrefs(LS.get(`ifb_xrefs_${branch}`,[]));
-    setAirList(LS.get(`ifb_airlist_${branch}`,[]));
-    setSalesRows(LS.get(`ifb_sales_invoice_${branch}`,[]));
+    (async()=>{
+      setProducts(await IDB.get(`ifb_products_${branch}`,[]));
+      setXrefs(LS.get(`ifb_xrefs_${branch}`,[]));
+      setAirList(LS.get(`ifb_airlist_${branch}`,[]));
+      setSalesRows(await IDB.get(`ifb_sales_invoice_${branch}`,[]));
+    })();
   },[branch]);
 
   const showToast = (msg,color=T.green) => { setToast({msg,color}); setTimeout(()=>setToast(null),3500); };
@@ -1982,8 +2010,9 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   
     // Salva snapshot per storico
     const now = Date.now();
-    LS.set(`ifb_log_data_${now}`, { rawData: logRawRows, headers: logHeaders, colIdx });
-    const log = { id: now, type: "logistics", date: new Date(now).toISOString(), branch: currentBranch, count: countLog };
+const branchEntries = next.filter((l:any) => l.branch === currentBranch);
+IDB.set(`ifb_log_data_${now}`, branchEntries);
+const log = { id: now, type: "logistics", date: new Date(now).toISOString(), branch: currentBranch, count: countLog };
     const newLogs = [log, ...importLogs];
     setImportLogs(newLogs);
     LS.set("ifb_importlogs", newLogs);
@@ -2024,29 +2053,26 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
     {/* ✅ DROPDOWN CARICA DA STORICO - FUNZIONANTE */}
     {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length > 0 && (
       <select 
-        onChange={e => {
-          if (e.target.value) {
-            const snap = importLogs.find((l:any) => String(l.id) === e.target.value);
-            if (!snap) return;
-            if (window.confirm(`Caricare i dati logistici del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)) {
-              // Recupera i dati salvati
-              const snapData = LS.get(`ifb_log_data_${snap.id}`, null);
-              const rawData  = snapData?.rawData  || snap.rawData  || [];
-              const snapHdrs = snapData?.headers   || snap.headers  || [];
-              const snapCols = snapData?.colIdx    || snap.colIdx   || {};
-              if (!rawData.length) {
-                showToast("Snapshot non disponibile — i dati grezzi non sono stati salvati (quota LS). Reimporta il file Work_tab.", T.orange);
-                return;
-              }
-              setLogRawRows(rawData);
-              setLogHeaders(snapHdrs);
-              setColIdx(snapCols);
-              setMapStep("ready");
-              showToast(`Dati logistici caricati da storico (${snap.count} righe)`, T.gold);
+      onChange={async e => {
+        if (e.target.value) {
+          const snap = importLogs.find((l:any) => String(l.id) === e.target.value);
+          if (!snap) return;
+          if (window.confirm(`Ripristinare logistica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)) {
+            const branchEntries = await IDB.get(`ifb_log_data_${snap.id}`, null);
+            if (!branchEntries?.length) {
+              showToast("Snapshot non disponibile — reimporta il file Work_tab.", T.orange);
+              return;
             }
+            const other = logistics.filter((l:any) => l.branch !== branch);
+            const newLog = [...other, ...branchEntries];
+            setLogistics(newLog);
+            LS.set("ifb_logistics", newLog);
+            bumpImportTs();
+            showToast(`Logistica ripristinata: ${branchEntries.length} righe ✓`, T.gold);
           }
-          e.target.value = "";
-        }}
+        }
+        e.target.value = "";
+      }}
         style={{ ...inputStyle(), width: "auto", fontSize: "12px" }}
         defaultValue=""
       >
@@ -3274,7 +3300,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
         {excludeAir ? `✓ AIR esclusi (${airCount})` : `✈ Escludi AIR (${airCount})`}
   </button>
   
-  {airCount > 0 && !showAirOnly && (
+  {airCount > 0 && excludeAir && (
     <span style={{fontSize:"11px",color:T.orange}}>
       ✈ {airCount} articoli AIR esclusi dal costo standard
     </span>
@@ -3440,8 +3466,7 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
 
   function saveRows(data:any[]) {
     setRows(data);
-    const savedSR = LS.set(`ifb_sales_invoice_${branch}`, data);
-    if (!savedSR) showToast("⚠ LocalStorage piena: fattura NON salvata permanentemente.", T.red);
+    IDB.set(`ifb_sales_invoice_${branch}`, data);
   }
 
   // ── Parsing file ─────────────────────────────────────────────────────────
@@ -3542,8 +3567,7 @@ function buildPreview() {
     const now = Date.now();
     saveRows(preview.map((r:any) => ({...r, branch})));
     const salesData = preview.map((r:any)=>({...r,branch}));
-    const savedSales = LS.set(`ifb_sales_data_${now}`, salesData);
-    if (!savedSales) showToast(`⚠ Quota LS: storico fattura non salvato`, T.orange);
+    IDB.set(`ifb_sales_data_${now}`, salesData);
     const log = {id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
@@ -3733,13 +3757,13 @@ function buildPreview() {
       <PageHeader title="📋 Sales Invoice" sub="Carica il file fattura per associare i costi agli articoli"/>
       {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length>0&&(
         <div style={{marginBottom:"16px",display:"flex",gap:"10px",alignItems:"center"}}>
-          <select onChange={e=>{
+          <select onChange={async e=>{
             if(!e.target.value) return;
             const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
             if(!snap) return;
             if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)){
-              const r=LS.get(`ifb_sales_data_${snap.id}`,snap.rows||[]);
-              if(!r.length){showToast("Snapshot non disponibile — reimporta il file",T.orange);return;}
+              const r=await IDB.get(`ifb_sales_data_${snap.id}`,null);
+              if(!r?.length){showToast("Snapshot non disponibile — reimporta il file",T.orange);return;}
               saveRows(r);setStep("view");
               showToast(`Sales Invoice ripristinata: ${snap.count} righe ✓`,T.gold);
             }
@@ -3804,14 +3828,14 @@ function buildPreview() {
             <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
           </label>
           {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length>0&&(
-            <select onChange={e=>{
+            <select onChange={async e=>{
               if(!e.target.value) return;
               const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
               if(!snap) return;
               if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)){
-                const rows = LS.get(`ifb_sales_data_${snap.id}`, snap.rows||[]);
-                if(!rows.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
-                saveRows(rows);
+                const rows = await IDB.get(`ifb_sales_data_${snap.id}`, null);
+              if(!rows?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
+              saveRows(rows);
                 showToast(`Sales Invoice ripristinata: ${snap.count} righe ✓`,T.gold);
               }
               e.target.value="";
@@ -4294,10 +4318,8 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     }));
   
     setProducts(newProds);
-    LS.set(`ifb_products_${branch}`, newProds);
-  
-    // ✅ CORRETTO: SALVA L'ARRAY COMPLETO NELLO SNAPSHOT
-    LS.set(`ifb_anag_data_${now}`, newProds);   // dati grandi: chiave separata
+    IDB.set(`ifb_products_${branch}`, newProds);
+    IDB.set(`ifb_anag_data_${now}`, newProds);
     const log = { id:now, type:"anagrafica", date:new Date(now).toISOString(), count:newProds.length, branch:"ALL" };
     const newLogs = [log,...importLogs];
     setImportLogs(newLogs); LS.set("ifb_importlogs", newLogs);
@@ -4311,27 +4333,17 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     setRawRows([]);
   }
 
-  function loadFromSnapshot(snap: any) {
-    // Prova a leggere i dati separati (formato nuovo)
-    let snapshotProducts = LS.get(`ifb_anag_data_${snap.id}`, []);
-    
-    // Se non trovato, prova a leggere dallo snapshot (formato vecchio)
-    if (snapshotProducts.length === 0 && snap.products && snap.products.length > 0) {
-      snapshotProducts = snap.products;
-      LS.set(`ifb_anag_data_${snap.id}`, snapshotProducts);
-    }
-    
-    if (snapshotProducts.length === 0) {
+  async function loadFromSnapshot(snap: any) {
+    const snapshotProducts = await IDB.get(`ifb_anag_data_${snap.id}`, []);
+    if (!snapshotProducts?.length) {
       showToast(`Snapshot non disponibile — reimporta il file`, T.orange);
       return;
     }
-    
-    if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
+    if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)?`)) {
       setProducts(snapshotProducts);
-      LS.set(`ifb_products_${branch}`, snapshotProducts);
-      showToast(`Anagrafica ripristinata da snapshot`, T.gold);
-      setSearch("");
-      setOnlyIFB(true);
+      await IDB.set(`ifb_products_${branch}`, snapshotProducts);
+      showToast(`Anagrafica ripristinata: ${snapshotProducts.length} articoli ✓`, T.gold);
+      setSearch(""); setOnlyIFB(true);
     }
   }
 
