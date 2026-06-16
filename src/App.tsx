@@ -302,7 +302,8 @@ export default function App() {
       // Apply pltPerContainer default formula if value from Work_tab is 0 or missing
       // Formula: =SE(ProductType="DRY";25;SE(OR(ProductType="FRESH";ProductType="FROZEN");23;0))
       const pltFromFile = logRaw.pltPerContainer || 0;
-      const plt = pltFromFile > 0 ? pltFromFile : pltDefault(prod.temperature);
+      const effectiveTemp = logRaw.temperatureOverride || prod.temperature;
+      const plt = pltFromFile > 0 ? pltFromFile : pltDefault(effectiveTemp);
       const log = { ...logRaw, pltPerContainer: plt };
 
       const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month);
