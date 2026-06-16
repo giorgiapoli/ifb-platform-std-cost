@@ -3269,16 +3269,17 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
       if (p) _airIds.add(p.id);
     }
   });
-  const isAirRow = (r: any): boolean => r.isAir === true || _airIds.has(r.id);
+  const isAirRow = (r: any): boolean => 
+  r.isAir === true || r.skipReason === "AIR" || _airIds.has(r.id);
 
-  const missingCount = allRows.filter((r: any) => !r.cost && !isAirRow(r)).length;
-  const airCount     = allRows.filter((r: any) => isAirRow(r)).length;
+  const isMissing = (r: any) => !r.cost && !isAirRow(r);
+  const missingCount = allRows.filter(isMissing).length;
+  const airCount     = allRows.filter(isAirRow).length;
 
   let rows: any[];
-  if (excludeAir && showMissingOnly) rows = allRows.filter((r: any) => !r.cost && !isAirRow(r));
-  else if (showMissingOnly)          rows = allRows.filter((r: any) => !r.cost && !isAirRow(r));
-  else if (excludeAir)               rows = allRows.filter((r: any) => !isAirRow(r));
-  else                               rows = allRows;
+  if (showMissingOnly)   rows = allRows.filter(isMissing);
+  else if (excludeAir)   rows = allRows.filter((r: any) => !isAirRow(r));
+  else                   rows = allRows;                      
 
   return (
     <div>
