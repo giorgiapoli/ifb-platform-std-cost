@@ -149,7 +149,7 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
     step1Hkd: step1Eur * eurToHkd,
     wh,
     step2Eur,
-    step2Hkd: Math.round(step2Eur * eurToHkd * 100) / 100,
+    step2Hkd: step2Eur * eurToHkd,
     rate: eurToHkd,
     unitsPerPlt,
   };
