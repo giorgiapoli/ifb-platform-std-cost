@@ -1530,7 +1530,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
     }));
     setAirList(next); LS.set(`ifb_airlist_${branch}`, next);
     const now = Date.now();
-    LS.set(`ifb_air_data_${now}`, next);
+    IDB.set(`ifb_air_data_${now}`, next);
     const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
@@ -1645,13 +1645,13 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
             onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
         </label>
         {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch).length>0&&(
-          <select onChange={e=>{
+          <select onChange={async e=>{
             if(!e.target.value) return;
             const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
             if(!snap) return;
             if(window.confirm(`Ripristinare la lista AIR del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} articoli)?`)){
-              const next=LS.get(`ifb_air_data_${snap.id}`, snap.items||[]);
-              if(!next.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
+              const next=await IDB.get(`ifb_air_data_${snap.id}`, null);
+              if(!next?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
               setAirList(next);LS.set(`ifb_airlist_${branch}`,next);
               showToast(`Lista AIR ripristinata: ${snap.count} articoli ✓`,T.gold);
             }
@@ -4678,7 +4678,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
     }));
     setMeatPrices(entries);
     LS.set("ifb_meatprices", entries);
-    try { LS.set(`ifb_meatprices_data_${now}`, entries); } catch(_){ /* quota piena, storico non salvato */ }
+    IDB.set(`ifb_meatprices_data_${now}`, entries);
     const log = {id:now, type:"meatlist", date:new Date(now).toISOString(), count:entries.length, diffs:[], branch:"ALL"};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
@@ -4707,16 +4707,15 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
         </label>
 
         {meatSnaps.length > 0 && (
-          <select onChange={e=>{
+          <select onChange={async e=>{
             if(!e.target.value) return;
             const snap = importLogs.find((l:any)=>String(l.id)===e.target.value);
             if(!snap) return;
             if(window.confirm(`Ripristinare listino del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} prezzi)?`)) {
-              const data = LS.get(`ifb_meatprices_data_${snap.id}`, null);
-              const toLoad = data?.length ? data : meatPrices;
-              if(!toLoad?.length){ showToast("Nessun dato disponibile — reimporta il file", T.orange); return; }
-              setMeatPrices(toLoad); LS.set("ifb_meatprices", toLoad);
-              showToast(`Listino carne: ${toLoad.length} prezzi ${data?.length ? "ripristinati" : "correnti"} ✓`, T.gold);
+              const data = await IDB.get(`ifb_meatprices_data_${snap.id}`, null);
+              if(!data?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
+              setMeatPrices(data); LS.set("ifb_meatprices", data);
+              showToast(`Listino carne: ${data.length} prezzi ripristinati ✓`, T.gold);
             }
             e.target.value="";
           }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
@@ -4902,7 +4901,7 @@ function DropZone({onFile,label}){
       <div style={{fontSize:"13px",color:T.text,marginBottom:"4px"}}>{label||"Trascina o clicca per caricare"}</div>
       <div style={{fontSize:"11px",color:T.muted}}>Excel (.xlsx, .xls) o CSV</div>
       <input id="_dz_in" type="file" accept=".xlsx,.xls,.csv"
-        onChange={e=>{const f=e.target.files?.[0];if(f)onFile(f);e.target.value="";}} style={{display:"none"}}/>
+        onChange={async e=>{const f=e.target.files?.[0];if(f)onFile(f);e.target.value="";}} style={{display:"none"}}/>
     </div>
   );
 }
