@@ -365,6 +365,27 @@ export default function App() {
       const pi  = selectPrice(pr, ub);
       const piP = prPrev ? selectPrice(prPrev, ub) : null;
 
+      // Se il prezzo da listino è zero, prova il fallback listino carne
+      if (!pi || pi === 0) {
+        const meat = meatPrices.find((m:any) =>
+          m.code === prod.code ||
+          m.code === String(prod.id) ||
+          (prod.nHK && m.code === prod.nHK)
+        );
+        if (meat) {
+          const kgPerUnit =
+            prod.uom === "KG"  ? 1 :
+            prod.uom === "BOX" ? (Number(prod.kgPerBox)||0) :
+            (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1, 1);
+          const piMeat = meat.pricePerKg * kgPerUnit;
+          const effectiveProdM = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
+          const costM = calcHK({ priceInput:piMeat, ubicazione:ub, product:effectiveProdM, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
+          return { ...prod, cost:costM, prevCost:null, delta:null, priceInput:piMeat, isNew:true,
+            flagged:false, ubicazione:ub, pltUsed:plt, temperatureOverride:log.temperatureOverride||null,
+            skipReason: costM ? undefined : "CALC=0", _fromMeatList:true };
+        }
+      }
+
             // Temperatura rettificata dal Work_tab ha precedenza su quella dell'anagrafica
       const effectiveProd = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
       const cost = calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
