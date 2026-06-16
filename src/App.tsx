@@ -4357,15 +4357,16 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     return maps[field][String(raw || "").toLowerCase().trim()] || raw;
   };
 
-  const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
-  const filtered = base.filter((p: any) => {
-    if (!search) return true;
-    const q = search.toLowerCase();
-    return String(p.description||"").toLowerCase().includes(q) ||
-           String(p.code||"").toLowerCase().includes(q) ||
-           String(p.nHK||"").toLowerCase().includes(q) ||
-           String(p.id||"").toLowerCase().includes(q);
-  });
+  const filtered = useMemo(() => {
+    const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
+    const q = search.trim().toLowerCase();
+    const filtered = !q ? base : base.filter((p: any) =>
+      String(p.description||"").toLowerCase().includes(q) ||
+      String(p.code||"").toLowerCase().includes(q) ||
+      String(p.nHK||"").toLowerCase().includes(q) ||
+      String(p.id||"").toLowerCase().includes(q)
+    );
+  }, [products, search, onlyIFB]);
 
   return (
     <div>
