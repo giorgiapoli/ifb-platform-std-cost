@@ -213,7 +213,7 @@ function calcDAPFinal({ dapDiscounted, fcaPrice, fcaDiscounted, vendorName, sect
 
 const LS = {
   get: (k,def) => { try{ const v=localStorage.getItem(k); return v?JSON.parse(v):def; }catch{ return def; } },
-  set: (k,v)   => { try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} },
+  set: (k,v) => { try{ localStorage.setItem(k,JSON.stringify(v)); return true; }catch{ return false; } },
 };
 
 // Seed data (minimal)
@@ -1183,13 +1183,9 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
               <table style={{width:"100%", borderCollapse:"collapse"}}>
                 <thead>
                   <tr>
-                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Codice (dal file)</th>
-                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Descrizione (dal file)</th>
-                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Match Anagrafica</th>
-                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>DAP Final</th>
-                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>MTS Price</th>
-                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>FCA Disc.</th>
-                    <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px"}}>Stato</th>
+                  {["Codice (dal file)","Descrizione (dal file)","Match Anagrafica","DAP Final","MTS Price","FCA Disc.","Stato"].map(c=>(
+                    <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",position:"sticky",top:0,zIndex:10}}>{c}</th>
+                  ))}
                    </tr>
                 </thead>
                 <tbody>
@@ -1321,7 +1317,9 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     }
     const snap={id:now,type:"anagrafica",date:new Date(now).toISOString(),count:newProds.length,diffs,products:newProds,branch:"ALL"};
     const newSnaps=[snap,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    setProducts(newProds);LS.set(`ifb_products_${branch}`,newProds);
+    setProducts(newProds);
+    const savedProd = LS.set(`ifb_products_${branch}`, newProds);
+    if (!savedProd) showToast("⚠ LocalStorage piena: anagrafica NON salvata. Esporta i dati.", T.red);
     const log={id:now,type:"anagrafica",date:new Date(now).toISOString(),msg:`Importati ${newProds.length} articoli`};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newCount=diffs.filter(d=>d.isNew).length,changed=diffs.filter(d=>!d.isNew&&d.fields.length>0).length;
@@ -2121,16 +2119,9 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>IFB No</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>N HK</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Descrizione</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Ubicaz.</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Area</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Plt/Cont</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Cert.</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Alcol &gt;30°</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Carriage</th>
-                <th style={{padding:"7px 12px", background:T.card, color:T.muted, textAlign:"left", borderBottom:`1px solid ${T.border}`, fontSize:"11px", fontWeight:"normal"}}>Conv.</th>
+              {["IFB No","N HK","Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."].map(c=>(
+                <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
+              ))}
               </tr>
             </thead>
             <tbody>
@@ -2635,7 +2626,7 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={["N HK", "IFB No", "Descrizione", "Vendor", "Categoria", "UOM", "Qty/Box", "Box/Plt", "Kg/Box", "Kg/Plt", "Temp", "Attivo"]} sticky />
+<THead cols={["N HK","IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Final"]} sticky />
 <tbody>
 {displayed.slice(0, 300).map((p, i) => {
 const prod = products.find(pr => pr.id === p.productId);
@@ -2718,15 +2709,16 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
     const[invoiceOnly,setInvoiceOnly] = useState(false);
       
     // AGGIUNGI QUESTI STATI PER I FILTRI MULTIPLI
-    const [filterFlags, setFilterFlags] = useState({
+    const [filterFlags, setFilterFlags] = useState<Record<string,false|"include"|"exclude">>({
       flagged: false,
       air: false,
       noPrice: false,
       noLog: false,
       calcZero: false,
       keepOld: false,
-      costCalculated: false   // ← NUOVO FILTRO
+      costCalculated: false
     });
+    const cycleFilter = (key:string) => setFilterFlags(f=>({...f,[key]: f[key]===false?"include":f[key]==="include"?"exclude":false}));
   const needsRecalc = lastImportTs > lastCalcTs;
   
   // AGGIUNGI QUESTI REF PER LO SCROLL
@@ -2790,31 +2782,18 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
   !search||r.description?.toLowerCase().includes(search.toLowerCase())||
   r.code?.includes(search)||r.nHK?.includes(search));
 
-// APPLICA FILTRI MULTIPLI
-if (filterFlags.costCalculated) {
-  filtered = filtered.filter((r:any) => r.cost?.step2Hkd != null);
-}
-if (filterFlags.flagged) {
-  filtered = filtered.filter((r:any) => r.flagged === true);
-}
-if (filterFlags.air) {
-  filtered = filtered.filter((r:any) => r.isAir === true);
-}
-if (filterFlags.noPrice) {
-  filtered = filtered.filter((r:any) => !r.cost && !r.isAir && r.skipReason?.includes("NO PREZZO"));
-}
-if (filterFlags.noLog) {
-  filtered = filtered.filter((r:any) => !r.cost && !r.isAir && r.skipReason === "NO LOGISTICA");
-}
-if (filterFlags.calcZero) {
-  filtered = filtered.filter((r:any) => !r.cost && !r.isAir && r.skipReason?.includes("CALC=0"));
-}
-if (filterFlags.keepOld) {
-  filtered = filtered.filter((r:any) => {
-    const lastD = lastOrderDate[r.id];
-    return lastD && lastD < sixMonthsAgo;
-  });
-}
+// APPLICA FILTRI MULTIPLI (include = mostra solo questi; exclude = nascondi questi)
+  const applyFlag = (flag:false|"include"|"exclude", test:(r:any)=>boolean) => {
+    if(flag==="include") filtered=filtered.filter(test);
+    else if(flag==="exclude") filtered=filtered.filter(r=>!test(r));
+  };
+  applyFlag(filterFlags.costCalculated, r=> r.cost?.step2Hkd!=null);
+  applyFlag(filterFlags.flagged,        r=> r.flagged===true);
+  applyFlag(filterFlags.air,            r=> r.isAir===true);
+  applyFlag(filterFlags.noPrice,        r=> !r.cost&&!r.isAir&&!!r.skipReason?.includes("NO PREZZO"));
+  applyFlag(filterFlags.noLog,          r=> !r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
+  applyFlag(filterFlags.calcZero,       r=> !r.cost&&!r.isAir&&!!r.skipReason?.includes("CALC=0"));
+  applyFlag(filterFlags.keepOld,        r=> { const d=lastOrderDate[r.id]; return !!(d&&d<sixMonthsAgo); });
 if (invoiceOnly) {
   filtered = filtered.filter((r:any) => invoiceIds.has(r.id));
 }
@@ -3467,7 +3446,8 @@ function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setS
 
   function saveRows(data:any[]) {
     setRows(data);
-    LS.set(`ifb_sales_invoice_${branch}`, data);
+    const savedSR = LS.set(`ifb_sales_invoice_${branch}`, data);
+    if (!savedSR) showToast("⚠ LocalStorage piena: fattura NON salvata permanentemente.", T.red);
   }
 
   // ── Parsing file ─────────────────────────────────────────────────────────
@@ -3757,6 +3737,27 @@ function buildPreview() {
   if(step==="upload") return (
     <div>
       <PageHeader title="📋 Sales Invoice" sub="Carica il file fattura per associare i costi agli articoli"/>
+      {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length>0&&(
+        <div style={{marginBottom:"16px",display:"flex",gap:"10px",alignItems:"center"}}>
+          <select onChange={e=>{
+            if(!e.target.value) return;
+            const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
+            if(!snap) return;
+            if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)){
+              const r=LS.get(`ifb_sales_data_${snap.id}`,snap.rows||[]);
+              if(!r.length){showToast("Snapshot non disponibile — reimporta il file",T.orange);return;}
+              saveRows(r);setStep("view");
+              showToast(`Sales Invoice ripristinata: ${snap.count} righe ✓`,T.gold);
+            }
+            e.target.value="";
+          }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
+            <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length})</option>
+            {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).map((s:any)=>(
+              <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
+            ))}
+          </select>
+        </div>
+      )}
       <Section title="Carica file">
         <DropZone onFile={(f:File)=>{ const e={target:{files:[f],value:""}} as any; parseFile(e); }} label="Trascina o clicca — Excel / CSV fattura"/>
       </Section>
@@ -4393,9 +4394,13 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       )}
 
         <div style={{ flex: 1 }} />
+    <button onClick={()=>{if(window.confirm(`Eliminare tutti i ${products.length} articoli dall'anagrafica?`)){setProducts([]);LS.set(`ifb_products_${branch}`,[]);bumpImportTs();showToast("Anagrafica svuotata",T.red);}}}
+      style={{padding:"5px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
+      🗑 Svuota anagrafica ({products.length})
+    </button>
 
-        <button
-          onClick={() => setOnlyIFB((v: boolean) => !v)}
+    <button
+      onClick={() => setOnlyIFB((v: boolean) => !v)}
           style={{
             padding: "5px 12px",
             background: onlyIFB ? `${T.gold}20` : T.surface,
