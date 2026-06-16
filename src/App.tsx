@@ -78,14 +78,21 @@ function exportXLSX(rows: any[], sheetName: string, fileName: string) {
  *   Step2 = Step1 + warehouseCost
  */
 function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
-  const { uom, qtyPerBox, boxPerPallet, kgPerBox, temperature } = product;
-  const { area, pltPerContainer, hasCert, hasAlcTax, alcTax, convFactor=1 } = logistic;
+  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature } = product;
 
-  // ── Units per pallet ──
+  // ── Units per pallet ── (formula modello Excel)
+  // PCS: qtyPerBox × boxPerPallet
+  // BOX: boxPerPallet
+  // KG:  kgxplt (kg per pallet = KgPerBox × qtyPerBox × boxPerPallet)
   let unitsPerPlt: number;
-  if      (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
-  else if (uom==="KG")  unitsPerPlt = Number(kgPerBox||qtyPerBox) * Number(boxPerPallet);
-  else                  unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet);
+  if (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
+  else if (uom==="KG") {
+    const kgPerPlt = Number(kgxplt) > 0
+      ? Number(kgxplt)
+      : Number(kgPerBox||1) * Number(qtyPerBox||1) * Number(boxPerPallet);
+    unitsPerPlt = kgPerPlt;
+  }
+  else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet); // PCS
 
   // ── Divisore collo per MTS picking ──
   const divisoreCollo =
@@ -1297,7 +1304,9 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       category:mapBCVal("category",r.category), uom:mapBCVal("uom",r.uom),
       qtyPerBox:parseFloat(r.qtyPerBox)||0, boxPerPallet:parseFloat(r.boxPerPallet)||0,
       kgPerBox:parseFloat(r.kgPerBox)||0, temperature:mapBCVal("temperature",r.temperature),
-      kgxplt: parseFloat(r.kgxplt) || roundN((parseFloat(r.kgPerBox)||0) * (parseFloat(r.boxPerPallet)||0)),
+      kgxplt: parseFloat(r.kgxplt) > 0
+    ? parseFloat(r.kgxplt)
+    : roundN((parseFloat(r.kgPerBox)||0) * (parseFloat(r.qtyPerBox)||1) * (parseFloat(r.boxPerPallet)||0)),
       active:!["true","1","yes"].includes(String(r.active||"").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
@@ -2908,71 +2917,58 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
     ⚠ KEEP OLD = ultimo ordine &gt;6 mesi fa
   </span>
 )}
+      </div>
+
 
 {/* FILTRI MULTIPLI */}
-{/* FILTRI MULTIPLI */}
-<div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap",alignItems:"center",borderTop:`1px solid ${T.border}`,paddingTop:"10px"}}>
-  <span style={{fontSize:"11px",color:T.muted}}>🔍 Filtri rapidi:</span>
-  
-  {/* ✅ NUOVO BOTTONE - Costi calcolati */}
-  <button onClick={() => setFilterFlags(f => ({...f, costCalculated: !f.costCalculated}))}
-    style={{padding:"4px 12px",background: filterFlags.costCalculated ? T.gold : T.surface,
-      color: filterFlags.costCalculated ? "#000" : T.gold, border: `1px solid ${T.gold}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.costCalculated ? "bold" : "normal"}}>
-    {filterFlags.costCalculated ? "✓" : "⬚"} ✅ Costi calcolati
-  </button>
-  
-  <button onClick={() => setFilterFlags(f => ({...f, flagged: !f.flagged}))}
-    style={{padding:"4px 12px",background: filterFlags.flagged ? T.orange : T.surface,
-      color: filterFlags.flagged ? "#000" : T.orange, border: `1px solid ${T.orange}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.flagged ? "bold" : "normal"}}>
-    {filterFlags.flagged ? "✓" : "⬚"} Variazioni ≥3%
-  </button>
-  
-  <button onClick={() => setFilterFlags(f => ({...f, air: !f.air}))}
-    style={{padding:"4px 12px",background: filterFlags.air ? T.blue : T.surface,
-      color: filterFlags.air ? "#000" : T.blue, border: `1px solid ${T.blue}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.air ? "bold" : "normal"}}>
-    {filterFlags.air ? "✓" : "⬚"} ✈ AIR (esclusi)
-  </button>
-  
-  <button onClick={() => setFilterFlags(f => ({...f, noPrice: !f.noPrice}))}
-    style={{padding:"4px 12px",background: filterFlags.noPrice ? T.red : T.surface,
-      color: filterFlags.noPrice ? "#fff" : T.red, border: `1px solid ${T.red}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.noPrice ? "bold" : "normal"}}>
-    {filterFlags.noPrice ? "✓" : "⬚"} ❌ Senza prezzo
-  </button>
-  
-  <button onClick={() => setFilterFlags(f => ({...f, noLog: !f.noLog}))}
-    style={{padding:"4px 12px",background: filterFlags.noLog ? T.orange : T.surface,
-      color: filterFlags.noLog ? "#000" : T.orange, border: `1px solid ${T.orange}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.noLog ? "bold" : "normal"}}>
-    {filterFlags.noLog ? "✓" : "⬚"} ⚠ No logistica
-  </button>
-  
-  <button onClick={() => setFilterFlags(f => ({...f, calcZero: !f.calcZero}))}
-    style={{padding:"4px 12px",background: filterFlags.calcZero ? T.purple : T.surface,
-      color: filterFlags.calcZero ? "#fff" : T.purple, border: `1px solid ${T.purple}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.calcZero ? "bold" : "normal"}}>
-    {filterFlags.calcZero ? "✓" : "⬚"} ⚡ Calc=0
-  </button>
-  
-  <button onClick={() => setFilterFlags(f => ({...f, keepOld: !f.keepOld}))}
-    style={{padding:"4px 12px",background: filterFlags.keepOld ? T.green : T.surface,
-      color: filterFlags.keepOld ? "#000" : T.green, border: `1px solid ${T.green}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight: filterFlags.keepOld ? "bold" : "normal"}}>
-    {filterFlags.keepOld ? "✓" : "⬚"} ⏰ KEEP OLD
-  </button>
-  
-  <button onClick={() => setFilterFlags({
-    flagged: false, air: false, noPrice: false, noLog: false, calcZero: false, keepOld: false, costCalculated: false
+<div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap",alignItems:"flex-start",borderTop:`1px solid ${T.border}`,paddingTop:"10px"}}>
+  <span style={{fontSize:"11px",color:T.muted,paddingTop:"6px"}}>🔍 Filtri:</span>
+  {([ 
+    {key:"costCalculated", label:"✅ Costi calcolati", col:T.gold},
+    {key:"flagged",        label:"Variazioni ≥3%",    col:T.orange},
+    {key:"air",            label:"✈ AIR",             col:T.blue},
+    {key:"noPrice",        label:"❌ Senza prezzo",   col:T.red},
+    {key:"noLog",          label:"⚠ No logistica",    col:T.orange},
+    {key:"calcZero",       label:"⚡ Calc=0",          col:T.purple},
+    {key:"keepOld",        label:"⏰ KEEP OLD",        col:T.green},
+  ] as Array<{key:string,label:string,col:string}>).map(({key,label,col})=>{
+    const v = filterFlags[key];
+    const isInclude = v==="include";
+    const isExclude = v==="exclude";
+    const isActive  = isInclude||isExclude;
+    return(
+      <div key={key} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:"2px"}}>
+        <button
+          onClick={()=>cycleFilter(key)}
+          style={{
+            padding:"4px 10px",
+            background: isInclude?col : isExclude?T.red : T.surface,
+            color:       isInclude?"#000" : isExclude?"#fff" : col,
+            border:`1px solid ${isActive?col:col+"66"}`,
+            borderRadius:"6px",
+            cursor:"pointer",
+            fontSize:"11px",
+            fontWeight: isActive ? "bold" : "normal" as React.CSSProperties["fontWeight"],
+            whiteSpace:"nowrap"
+          }}
+        >
+          {isInclude?"▲ includi":isExclude?"▼ escludi":"⬚"} {label}
+        </button>
+        {isActive&&(
+          <span style={{fontSize:"9px",color:isInclude?col:T.red,letterSpacing:"0.03em"}}>
+            {isInclude?"mostra solo questi":"nasconde questi"}
+          </span>
+        )}
+      </div>
+    );
   })}
-    style={{padding:"4px 10px",background: T.surface, color: T.muted, border: `1px solid ${T.border}`,
-      borderRadius:"6px",cursor:"pointer",fontSize:"10px"}}>
-    ✕ Reset filtri
+  <button
+    onClick={()=>setFilterFlags({flagged:false,air:false,noPrice:false,noLog:false,calcZero:false,keepOld:false,costCalculated:false})}
+    style={{padding:"4px 10px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"10px",alignSelf:"flex-start",marginTop:"2px"}}
+  >
+    ✕ Reset
   </button>
 </div>
-      </div>
 
       {/* ── tabella ── */}
       {/* Barra di scorrimento orizzontale in alto */}
@@ -3171,7 +3167,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 // ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
 function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   const [showMissingOnly, setShowMissingOnly] = useState(false);
-  const [showAirOnly, setShowAirOnly] = useState(false);
+  const [excludeAir, setExcludeAir] = useState(false);
 
   const today = new Date();
   const oneMonthAgo = new Date(today);
@@ -3216,9 +3212,9 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   let rows = showMissingOnly ? allRows.filter((r: any) => !r.cost && !r.isAir) : allRows;
 
   // ✅ APPLICA FILTRO AIR se attivo
-  if (showAirOnly) {
-    rows = rows.filter((r: any) => r.isAir === true);
-  }                                      // tutti
+  if (excludeAir) {
+    rows = rows.filter((r: any) => r.isAir !== true);
+  }                                    // tutti
   
   const missingCount = allRows.filter((r: any) => !r.cost && !r.isAir).length;
   const airCount = allRows.filter((r: any) => r.isAir).length;
@@ -3264,20 +3260,17 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   </button>
   
   {/* ✅ NUOVO BOTTONE - Mostra/Nascondi AIR */}
-  <button onClick={() => setShowAirOnly(v => !v)}
-    style={{
-      padding: "5px 14px",
-      background: showAirOnly ? `${T.orange}20` : T.surface,
-      color: showAirOnly ? T.orange : T.muted,
-      border: `1px solid ${showAirOnly ? T.orange : T.border}`,
-      borderRadius: "6px",
-      cursor: "pointer",
-      fontSize: "11px",
-      whiteSpace: "nowrap",
-      fontWeight: showAirOnly ? "bold" : "normal"
-    }}
-  >
-    {showAirOnly ? `✈ Solo AIR (${rows.filter(r=>r.isAir).length})` : `✈ Escludi AIR (${airCount})`}
+  <button onClick={() => setExcludeAir(v => !v)}
+        style={{
+          padding: "5px 14px",
+          background: excludeAir ? `${T.orange}20` : T.surface,
+          color: excludeAir ? T.orange : T.muted,
+          border: `1px solid ${excludeAir ? T.orange : T.border}`,
+          borderRadius: "6px", cursor: "pointer", fontSize: "11px",
+          whiteSpace: "nowrap", fontWeight: excludeAir ? "bold" : "normal"
+        }}
+      >
+        {excludeAir ? `✓ AIR esclusi (${airCount})` : `✈ Escludi AIR (${airCount})`}
   </button>
   
   {airCount > 0 && !showAirOnly && (
@@ -4352,12 +4345,14 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   };
 
   const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
-  const filtered = base.filter((p: any) =>
-    !search ||
-    p.description?.toLowerCase().includes(search.toLowerCase()) ||
-    p.code?.toLowerCase().includes(search.toLowerCase()) ||
-    p.nHK?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = base.filter((p: any) => {
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return String(p.description||"").toLowerCase().includes(q) ||
+           String(p.code||"").toLowerCase().includes(q) ||
+           String(p.nHK||"").toLowerCase().includes(q) ||
+           String(p.id||"").toLowerCase().includes(q);
+  });
 
   return (
     <div>
