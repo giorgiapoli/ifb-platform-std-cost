@@ -3221,6 +3221,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   const [showMissingOnly, setShowMissingOnly] = useState(false);
   const [excludeAir, setExcludeAir] = useState(false);
+  const [newHkdFilter, setNewHkdFilter] = useState<"all"|"ok"|"mancante"|"air">("all");
 
   const today = new Date();
   const oneMonthAgo = new Date(today);
@@ -3279,7 +3280,11 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   let rows: any[];
   if (showMissingOnly)   rows = allRows.filter(isMissing);
   else if (excludeAir)   rows = allRows.filter((r: any) => !isAirRow(r));
-  else                   rows = allRows;                      
+  else                   rows = allRows;
+
+  if (newHkdFilter === "ok")       rows = rows.filter((r: any) => r.cost?.step2Hkd != null && !isAirRow(r));
+  else if (newHkdFilter === "mancante") rows = rows.filter((r: any) => !r.cost && !isAirRow(r));
+  else if (newHkdFilter === "air") rows = rows.filter((r: any) => isAirRow(r));                 
 
   return (
     <div>
@@ -3363,10 +3368,25 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
       >
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
-            <THead
-              cols={["Data Fattura", "N HK", "IFB No", "Descrizione", "Ubicaz.", "Old HKD", "New HKD", "Δ%", "Note"]}
-              sticky
-            />
+          <thead>
+              <tr>
+                {["Data Fattura","N HK","IFB No","Descrizione","Ubicaz.","Old HKD"].map(c=>(
+                  <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>
+                ))}
+                <th style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                  <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
+                    style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
+                    <option value="all">New HKD ▾</option>
+                    <option value="ok">✅ Con costo</option>
+                    <option value="mancante">❌ MANCANTE</option>
+                    <option value="air">✈ AIR</option>
+                  </select>
+                </th>
+                {["Δ%","Note"].map(c=>(
+                  <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>
+                ))}
+              </tr>
+            </thead>
             <tbody>
               {rows.map((r: any, i: number) => {
                 const newHkd = r.cost?.step2Hkd ?? null;
