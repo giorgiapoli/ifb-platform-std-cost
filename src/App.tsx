@@ -276,6 +276,7 @@ export default function App() {
   const[month,setMonth]   = useState(NOW());
   const[toast,setToast]   = useState(null);
   const[pageFilter, setPageFilter] = useState(null);
+  const [meatPrices, setMeatPrices] = useState<any[]>(() => LS.get("ifb_meatprices", []));
 
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
 
@@ -285,6 +286,7 @@ export default function App() {
   useEffect(()=>{ if(branch) IDB.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
+  useEffect(()=>{ if(meatPrices.length) LS.set("ifb_meatprices", meatPrices); }, [meatPrices]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
@@ -338,9 +340,28 @@ export default function App() {
       const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month);
       const prPrev = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
 
-      if(!pr) return { ...prod, cost:null, prevCost:null, priceInput:null, skipReason:`NO PREZZO (${branch}/${month})` };
+      const ub = log.ubicazione;
 
-      const ub  = log.ubicazione;
+      if(!pr) {
+        // Fallback: listino carne (€/kg → €/unit)
+        const meat = meatPrices.find((m:any) =>
+          m.code === prod.code ||
+          m.code === String(prod.id) ||
+          (prod.nHK && m.code === prod.nHK)
+        );
+        if(!meat) return { ...prod, cost:null, prevCost:null, priceInput:null, ubicazione:ub, skipReason:`NO PREZZO (${branch}/${month})` };
+        const kgPerUnit =
+          prod.uom === "KG"  ? 1 :
+          prod.uom === "BOX" ? (Number(prod.kgPerBox)||0) :
+          (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1, 1);
+        const pi = meat.pricePerKg * kgPerUnit;
+        const effectiveProd2 = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
+        const cost2 = calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd2, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
+        return { ...prod, cost:cost2, prevCost:null, delta:null, priceInput:pi, isNew:true,
+          flagged:false, ubicazione:ub, pltUsed:plt, temperatureOverride:log.temperatureOverride||null,
+          skipReason: cost2 ? undefined : "CALC=0", _fromMeatList:true };
+      }
+
       const pi  = selectPrice(pr, ub);
       const piP = prPrev ? selectPrice(prPrev, ub) : null;
 
@@ -357,7 +378,7 @@ export default function App() {
         flagged: delta!==null && Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt,
         temperatureOverride: log.temperatureOverride || null };
     });
-  }, [products,logistics,prices,fx,airList,branch,month]);
+  }, [products,logistics,prices,fx,airList,meatPrices,branch,month]);
 
   const NAV = [
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
@@ -365,6 +386,7 @@ export default function App() {
     {id:"xref",       icon:"⇄", label:"XRef N / IFB"},
     {id:"logistics",  icon:"◎", label:"Logistica"},
     {id:"prices",     icon:"◉", label:"Listini", badge:"💶"},
+    {id:"meatlist", icon:"🥩", label:"Listino Carne"},
     {id:"fx",         icon:"◌", label:"Cambi"},
     {id:"air",        icon:"✈", label:"AIR Transport"},
     {id:"costs",      icon:"◆", label:"Standard Cost"},
@@ -459,9 +481,12 @@ export default function App() {
   showToast={showToast}
   bumpImportTs={bumpImportTs}
 />,
+
+
     
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     costsInvoice: <CostsOnInvoice costRows={costRows} salesRows={salesRows} products={products} xrefs={xrefs} branch={branch} month={month}/>,
     sales:       <SalesInvoice rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
@@ -3227,25 +3252,34 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   );
 
   const allRows = costRows
-    .filter((r: any) => recentProductIds.has(r.id))
-    .sort((a: any, b: any) => {
-      const da = lastInvoiceDate[a.id], db = lastInvoiceDate[b.id];
-      if (!da && !db) return 0;
-      if (!da) return 1;
-      if (!db) return -1;
-      return db.getTime() - da.getTime();
-    });
+  .filter((r: any) => recentProductIds.has(r.id))
+  .sort((a: any, b: any) => {
+    const da = lastInvoiceDate[a.id], db = lastInvoiceDate[b.id];
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return db.getTime() - da.getTime();
+  });
 
-  // ✅ FILTRO: mostra solo quelli SENZA costo se showMissingOnly è true
-  let rows = showMissingOnly ? allRows.filter((r: any) => !r.cost) : allRows;
+// AIR = flag da airList O transport AIR in salesRows (location NCJ)
+const salesAirIds = useMemo(() => {
+  const s = new Set<string>();
+  salesRows.filter((r: any) => r.transport === "AIR").forEach((r: any) => {
+    const prod = findProduct(r.itemCode, products, xrefs);
+    if (prod) s.add(prod.id);
+  });
+  return s;
+}, [salesRows, products, xrefs]);
 
-  // ✅ APPLICA FILTRO AIR se attivo
-  if (excludeAir) {
-    rows = rows.filter((r: any) => r.isAir !== true);
-  }                                    // tutti
-  
-  const missingCount = allRows.filter((r: any) => !r.cost).length;
-  const airCount = allRows.filter((r: any) => r.isAir).length;
+const rowIsAir = (r: any) => r.isAir || salesAirIds.has(r.id);
+
+// Applica filtri in sequenza
+let rows = allRows;
+if (showMissingOnly) rows = rows.filter((r: any) => !r.cost && !rowIsAir(r));
+if (excludeAir)      rows = rows.filter((r: any) => !rowIsAir(r));
+
+const missingCount = allRows.filter((r: any) => !r.cost && !rowIsAir(r)).length;
+const airCount     = allRows.filter((r: any) => rowIsAir(r)).length;
 
   return (
     <div>
@@ -3360,7 +3394,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
                     </TD>
                     <TD>{r.description}</TD>
                     <TD>
-                      {r.isAir ? (
+                      {rowIsAir(r) ? (
                         <Chip label="✈ AIR" color={T.orange} />
                       ) : (
                         <Chip
@@ -3381,15 +3415,15 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
                     <TD mono>
                       <span
                         style={{
-                          color: newHkd != null ? T.gold : r.isAir ? T.orange : T.red,
+                          color: newHkd != null ? T.gold : rowIsAir(r) ? T.orange : T.red,
                           fontWeight: "bold",
                         }}
                       >
-                        {r.isAir ? "AIR" : newHkd != null ? newHkd.toFixed(2) : "MANCANTE"}
+                        {rowIsAir(r) ? "AIR" : newHkd != null ? newHkd.toFixed(2) : "MANCANTE"}
                       </span>
                     </TD>
                     <TD>
-                      {r.isAir ? (
+                      {rowIsAir(r) ? (
                         <span style={{ color: T.dim }}>—</span>
                       ) : pct != null ? (
                         <span
@@ -3406,7 +3440,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
                       )}
                     </TD>
                     <TD>
-                      {r.isAir ? (
+                      {rowIsAir(r) ? (
                         <Chip label="✈ AIR" color={T.orange} />
                       ) : (
                         <span style={{ fontSize: "11px", color: T.dim }}>{r.skipReason || ""}</span>
@@ -4557,6 +4591,266 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   );
 }
 
+
+// ─── MEAT PRICE LIST ──────────────────────────────────────────────────────────
+function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
+  const [step, setStep] = useState<"main"|"map"|"preview">("main");
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<any[]>([]);
+  const [mapping, setMapping] = useState<any>({});
+  const [preview, setPreview] = useState<any[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [search, setSearch] = useState("");
+
+  const meatSnaps = (importLogs||[]).filter((l:any) => l.type === "meatlist");
+
+  function parsePrice(raw:any): number {
+    if(raw == null) return 0;
+    if(typeof raw === "number") return raw;
+    const s = String(raw).replace(/[€\s]/g,"").replace(",",".");
+    return parseFloat(s) || 0;
+  }
+
+  function parseFile(file:File) {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read((ev.target as any).result, {type:"binary"});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data:any[][] = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        if(data.length < 2) { showToast("File vuoto", T.red); return; }
+        const hdrs = data[0].map((h:any) => String(h||"").trim());
+        const rows = data.slice(1).filter((r:any[]) => r.some(c => c !== ""));
+        setHeaders(hdrs);
+        setRawRows(rows);
+        // Auto-map
+        const am:any = {};
+        hdrs.forEach(h => {
+          const hl = h.toLowerCase().replace(/[\s_()\/]/g,"");
+          if(!am.code        && ["codice","code","no","no_","ifbn"].some(a=>hl===a||hl.includes(a))) am.code = h;
+          if(!am.description && ["descrizione","description","desc"].some(a=>hl.includes(a))) am.description = h;
+          if(!am.pricePerKg  && ["prezzo","price","€","eur","kg"].some(a=>hl.includes(a))) am.pricePerKg = h;
+          if(!am.fonte       && hl.includes("fonte")) am.fonte = h;
+          if(!am.foglio      && hl.includes("foglio")) am.foglio = h;
+        });
+        setMapping(am);
+        setStep("map");
+      } catch(err:any) { showToast("Errore: "+err.message, T.red); }
+    };
+    reader.readAsBinaryString(file);
+  }
+
+  function buildPreview() {
+    const get = (row:any, field:string) => {
+      const col = mapping[field]; if(!col) return "";
+      const i = headers.indexOf(col); return i >= 0 ? row[i] : "";
+    };
+    const mapped = rawRows.map((row,idx) => {
+      const code = String(get(row,"code")||"").trim();
+      if(!code) return null;
+      const pricePerKg = parsePrice(get(row,"pricePerKg"));
+      const prod = findProduct(code, products, xrefs);
+      return {
+        _idx: idx,
+        code,
+        description: String(get(row,"description")||"").trim() || prod?.description || code,
+        pricePerKg,
+        fonte: String(get(row,"fonte")||"").trim(),
+        foglio: String(get(row,"foglio")||"").trim(),
+        _prodFound: !!prod,
+        _prodCode: prod?.code || "",
+        _prodNHK: prod?.nHK || "",
+      };
+    }).filter(Boolean);
+    setPreview(mapped);
+    setStep("preview");
+  }
+
+  function executeImport() {
+    const now = Date.now();
+    const entries = preview.map((r:any) => ({
+      code: r.code,
+      description: r.description,
+      pricePerKg: r.pricePerKg,
+      fonte: r.fonte,
+      foglio: r.foglio,
+    }));
+    setMeatPrices(entries);
+    LS.set("ifb_meatprices", entries);
+    LS.set(`ifb_meatprices_data_${now}`, entries);
+    const log = {id:now, type:"meatlist", date:new Date(now).toISOString(), count:entries.length, diffs:[], branch:"ALL"};
+    const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
+    const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
+    bumpImportTs();
+    showToast(`Listino carne: ${entries.length} prezzi importati ✓`, T.gold);
+    setStep("main"); setPreview([]); setRawRows([]);
+  }
+
+  const _sq = search.toLowerCase();
+  const displayed = meatPrices.filter((m:any) =>
+    !search ||
+    m.code?.toLowerCase().includes(_sq) ||
+    m.description?.toLowerCase().includes(_sq) ||
+    m.foglio?.toLowerCase().includes(_sq)
+  );
+
+  return (
+    <div>
+      <PageHeader title="🥩 Listino Carne" sub={`${meatPrices.length} prezzi · usato come fallback se l'articolo non è nei listini principali`}/>
+
+      {/* Toolbar */}
+      <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
+        <label style={{display:"inline-block",padding:"8px 16px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold",fontSize:"12px"}}>
+          📂 Carica listino carne
+          <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
+        </label>
+
+        {meatSnaps.length > 0 && (
+          <select onChange={e=>{
+            if(!e.target.value) return;
+            const snap = importLogs.find((l:any)=>String(l.id)===e.target.value);
+            if(!snap) return;
+            if(window.confirm(`Ripristinare listino del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} prezzi)?`)) {
+              const data = LS.get(`ifb_meatprices_data_${snap.id}`, null);
+              if(!data?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
+              setMeatPrices(data); LS.set("ifb_meatprices",data);
+              showToast(`Listino carne ripristinato: ${data.length} prezzi ✓`, T.gold);
+            }
+            e.target.value="";
+          }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
+            <option value="">📜 Storico ({meatSnaps.length})</option>
+            {meatSnaps.map((s:any)=>(
+              <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} prezzi</option>
+            ))}
+          </select>
+        )}
+
+        {meatPrices.length > 0 && (
+          <button onClick={()=>{if(window.confirm(`Eliminare tutti i ${meatPrices.length} prezzi del listino carne?`)){setMeatPrices([]);LS.set("ifb_meatprices",[]);}}}
+            style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
+            🗑 Svuota ({meatPrices.length})
+          </button>
+        )}
+
+        <span style={{fontSize:"11px",color:T.muted}}>Colonne attese: Codice · Descrizione · Prezzo (€/kg) · opzionali: Fonte, Foglio</span>
+      </div>
+
+      {/* Step: map */}
+      {step === "map" && (
+        <div style={{background:T.card,border:`1px solid ${T.gold}`,borderRadius:"8px",padding:"16px",marginBottom:"16px"}}>
+          <div style={{color:T.gold,fontWeight:"bold",marginBottom:"12px"}}>Mappatura · {fileName} · {rawRows.length} righe</div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",marginBottom:"16px"}}>
+            {([
+              ["code","Codice IFB *",true],
+              ["description","Descrizione",false],
+              ["pricePerKg","Prezzo €/kg *",true],
+              ["fonte","Fonte",false],
+              ["foglio","Foglio / Categoria",false],
+            ] as [string,string,boolean][]).map(([f,l,req])=>(
+              <div key={f}>
+                <label style={{display:"block",fontSize:"11px",color:req?T.gold:T.muted,marginBottom:"4px"}}>{l}</label>
+                <select value={mapping[f]||""} onChange={e=>setMapping((m:any)=>({...m,[f]:e.target.value}))}
+                  style={{...inputStyle(),cursor:"pointer",borderColor:req&&!mapping[f]?T.red+"88":T.border}}>
+                  <option value="">— non mappato —</option>
+                  {headers.map(h=><option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:"10px"}}>
+            <ActionBtn label="← Annulla" onClick={()=>setStep("main")}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"]||!mapping["pricePerKg"]}/>
+          </div>
+        </div>
+      )}
+
+      {/* Step: preview */}
+      {step === "preview" && (
+        <div style={{background:T.card,border:`1px solid ${T.green}`,borderRadius:"8px",padding:"16px",marginBottom:"16px"}}>
+          <div style={{color:T.green,fontWeight:"bold",marginBottom:"12px"}}>Preview · {preview.length} righe</div>
+          <div style={{display:"flex",gap:"12px",marginBottom:"14px",flexWrap:"wrap"}}>
+            {[
+              [preview.filter((r:any)=>r._prodFound).length, "✅ Trovati in anagrafica", T.green],
+              [preview.filter((r:any)=>!r._prodFound).length, "⚠ Non in anagrafica", T.orange],
+              [preview.filter((r:any)=>r.pricePerKg>0).length, "💶 Con prezzo", T.gold],
+            ].map(([n,l,c])=>(
+              <div key={l as string} style={{padding:"8px 14px",background:T.surface,border:`1px solid ${c}44`,borderRadius:"6px"}}>
+                <div style={{fontSize:"18px",fontWeight:"bold",color:c as string}}>{n as number}</div>
+                <div style={{fontSize:"10px",color:T.dim}}>{l as string}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{maxHeight:"200px",overflow:"auto",marginBottom:"14px"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:"11px"}}>
+              <THead cols={["Codice","Descrizione","€/kg","Match anagrafica","Foglio"]} sticky/>
+              <tbody>{preview.slice(0,30).map((r:any,i:number)=>(
+                <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r._prodFound?T.bg:`${T.orange}08`}}>
+                  <td style={{padding:"4px 8px",fontFamily:"monospace",color:T.gold}}>{r.code}</td>
+                  <td style={{padding:"4px 8px"}}>{r.description}</td>
+                  <td style={{padding:"4px 8px",fontFamily:"monospace",color:r.pricePerKg>0?T.green:T.red}}>
+                    {r.pricePerKg>0?`€ ${r.pricePerKg.toFixed(2)}`:"—"}
+                  </td>
+                  <td style={{padding:"4px 8px"}}>
+                    {r._prodFound
+                      ? <span style={{color:T.green,fontSize:"10px"}}>✓ {r._prodCode}</span>
+                      : <span style={{color:T.orange,fontSize:"10px"}}>⚠ non trovato</span>}
+                  </td>
+                  <td style={{padding:"4px 8px",color:T.muted,fontSize:"10px"}}>{r.foglio||"—"}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+          <div style={{display:"flex",gap:"10px"}}>
+            <ActionBtn label="← Torna" onClick={()=>setStep("map")}/>
+            <ActionBtn label={`✓ Importa ${preview.length} prezzi`} onClick={executeImport} primary/>
+          </div>
+        </div>
+      )}
+
+      {/* Tabella listino */}
+      {step === "main" && (
+        <>
+          <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca codice, descrizione, foglio…"/>
+          {meatPrices.length === 0 ? (
+            <div style={{padding:"32px",textAlign:"center",color:T.dim,fontSize:"13px"}}>
+              Nessun listino carne caricato. Clicca "Carica listino carne" per iniziare.
+            </div>
+          ) : (
+            <Section title={`${displayed.length} prezzi`}>
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%",borderCollapse:"collapse"}}>
+                  <THead cols={["Codice IFB","Descrizione","€/kg","Foglio","Fonte"]} sticky/>
+                  <tbody>
+                    {displayed.map((m:any,i:number)=>{
+                      const prod = findProduct(m.code, products, xrefs);
+                      return(
+                        <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                          <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}>
+                            <span style={{color:T.gold}}>{m.code}</span>
+                            {prod && <span style={{marginLeft:"6px",fontSize:"9px",color:T.green}}>✓ {prod.code}</span>}
+                          </td>
+                          <td style={{padding:"7px 12px",fontSize:"12px"}}>{m.description}</td>
+                          <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}>
+                            <span style={{color:T.green,fontWeight:"bold"}}>€ {m.pricePerKg?.toFixed(2)||"—"}</span>
+                          </td>
+                          <td style={{padding:"7px 12px",fontSize:"12px"}}>
+                            {m.foglio && <Chip label={m.foglio} color={T.blue}/>}
+                          </td>
+                          <td style={{padding:"7px 12px",fontSize:"11px",color:T.muted}}>{m.fonte||"—"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </Section>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 
 // ─── SHARED HELPERS ───────────────────────────────────────────────────────────
