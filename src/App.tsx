@@ -3233,14 +3233,14 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
     });
 
   // ✅ FILTRO: mostra solo quelli SENZA costo se showMissingOnly è true
-  let rows = showMissingOnly ? allRows.filter((r: any) => !r.cost && !r.isAir) : allRows;
+  let rows = showMissingOnly ? allRows.filter((r: any) => !r.cost) : allRows;
 
   // ✅ APPLICA FILTRO AIR se attivo
   if (excludeAir) {
     rows = rows.filter((r: any) => r.isAir !== true);
   }                                    // tutti
   
-  const missingCount = allRows.filter((r: any) => !r.cost && !r.isAir).length;
+  const missingCount = allRows.filter((r: any) => !r.cost).length;
   const airCount = allRows.filter((r: any) => r.isAir).length;
 
   return (
