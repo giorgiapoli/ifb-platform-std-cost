@@ -88,10 +88,7 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   let unitsPerPlt: number;
   if (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
   else if (uom==="KG") {
-    const kgPerPlt = Number(kgxplt) > 0
-      ? Number(kgxplt)
-      : Number(kgPerBox||1) * Number(qtyPerBox||1) * Number(boxPerPallet);
-    unitsPerPlt = kgPerPlt;
+    unitsPerPlt = Number(kgxplt) > 0 ? Number(kgxplt) : 300;
   }
   else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet); // PCS
 
@@ -4214,7 +4211,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   // Storico import anagrafica
   const anagSnaps = snapshots.filter((s: any) => s.type === "anagrafica" && (!s.branch || s.branch === "ALL" || s.branch === branch));
 
-  const FIELDS = ["nHK", "code", "description", "category", "uom", "qtyPerBox", "boxPerPallet", "kgPerBox", "temperature", "active", "vendorName", "vendorName2"];
+  const FIELDS = ["nHK", "code", "description", "category", "uom", "qtyPerBox", "boxPerPallet", "kgPerBox", "kgxplt", "temperature", "active", "vendorName", "vendorName2"];
   const FLABELS = {
     nHK: "N HK (No_)",
     code: "IFB Item *",
@@ -4239,6 +4236,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     qtyPerBox: ["quantityxpackaging", "quantity x packaging"],
     boxPerPallet: ["packagingxpallet", "packaging x pallet"],
     kgPerBox: ["netweight", "net weight"],
+    kgxplt: ["kgxplt", "kg x pallet", "kg per pallet", "kgperpallet"],
     temperature: ["producttype", "product type", "product type rettificato"],
     active: ["blocked"],
     vendorName: ["vendorname", "vendor name"],
@@ -4311,7 +4309,9 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       boxPerPallet: parseFloat(r.boxPerPallet) || 0,
       kgPerBox: parseFloat(r.kgPerBox) || 0,
       temperature: mapBCVal("temperature", r.temperature),
-      kgxplt: parseFloat(r.kgxplt) || roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.boxPerPallet) || 0)),
+      kgxplt: parseFloat(r.kgxplt) > 0
+      ? parseFloat(r.kgxplt)
+      : 0,
       active: !["true", "1", "yes"].includes(String(r.active || "").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
