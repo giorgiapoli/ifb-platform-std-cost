@@ -3261,25 +3261,24 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
     return db.getTime() - da.getTime();
   });
 
-// AIR = flag da airList O transport AIR in salesRows (location NCJ)
-const salesAirIds = useMemo(() => {
-  const s = new Set<string>();
-  salesRows.filter((r: any) => r.transport === "AIR").forEach((r: any) => {
-    const prod = findProduct(r.itemCode, products, xrefs);
-    if (prod) s.add(prod.id);
+  // AIR = flag da airList OPPURE transport AIR in fattura
+  const _airIds = new Set<string>();
+  salesRows.forEach((r: any) => {
+    if (r.transport === "AIR") {
+      const p = findProduct(r.itemCode, products, xrefs);
+      if (p) _airIds.add(p.id);
+    }
   });
-  return s;
-}, [salesRows, products, xrefs]);
+  const isAirRow = (r: any): boolean => r.isAir === true || _airIds.has(r.id);
 
-const rowIsAir = (r: any) => r.isAir || salesAirIds.has(r.id);
+  const missingCount = allRows.filter((r: any) => !r.cost && !isAirRow(r)).length;
+  const airCount     = allRows.filter((r: any) => isAirRow(r)).length;
 
-// Applica filtri in sequenza
-let rows = allRows;
-if (showMissingOnly) rows = rows.filter((r: any) => !r.cost && !rowIsAir(r));
-if (excludeAir)      rows = rows.filter((r: any) => !rowIsAir(r));
-
-const missingCount = allRows.filter((r: any) => !r.cost && !rowIsAir(r)).length;
-const airCount     = allRows.filter((r: any) => rowIsAir(r)).length;
+  let rows: any[];
+  if (excludeAir && showMissingOnly) rows = allRows.filter((r: any) => !r.cost && !isAirRow(r));
+  else if (showMissingOnly)          rows = allRows.filter((r: any) => !r.cost && !isAirRow(r));
+  else if (excludeAir)               rows = allRows.filter((r: any) => !isAirRow(r));
+  else                               rows = allRows;
 
   return (
     <div>
@@ -3317,7 +3316,7 @@ const airCount     = allRows.filter((r: any) => rowIsAir(r)).length;
       border:`1px solid ${showMissingOnly?T.red:T.border}`,
       borderRadius:"6px",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap",fontWeight:showMissingOnly?"bold":"normal"}}>
     {showMissingOnly
-      ? `⚠ Senza costo (${rows.filter(r=>!r.cost && !r.isAir).length})`
+      ? `⚠ Senza costo (${rows.length})`
       : `⚠ Mostra senza costo standard (${missingCount})`}
   </button>
   
