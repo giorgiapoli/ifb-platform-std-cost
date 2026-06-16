@@ -317,7 +317,11 @@ export default function App() {
     const eligible = products.filter(p => p.active && isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
-      const airEntry = airList.find((a:any)=>a.productId===prod.id);
+      const airEntry = airList.find((a:any)=>
+          a.productId === prod.id ||
+          (a.code && a.code === prod.code) ||
+          (a.nHK && prod.nHK && a.nHK === prod.nHK)
+        );
       if(airEntry && isAirTransport(airEntry.transportation))
         return { ...prod, cost:null, prevCost:null, priceInput:null, isAir:true, skipReason:"AIR" };
 
@@ -3537,7 +3541,11 @@ function buildPreview() {
       const prod = findProduct(code, products, xrefs);
       const nHK = prod?.nHK || (xrefs.find((x:any) => x.ifbNo === code)?.nHK) || "";
       const location = String(get(r, "location") || "").trim();
-      const isAirProd = prod && airList.some((a:any) => a.productId === prod.id);
+      const isAirProd = prod && airList.some((a:any) =>
+          a.productId === prod.id ||
+          (a.code && a.code === prod.code) ||
+          (a.nHK && prod.nHK && a.nHK === prod.nHK)
+        );
       const isAir = isAirProd;
 
       return {
@@ -4357,7 +4365,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     return maps[field][String(raw || "").toLowerCase().trim()] || raw;
   };
 
-  const filtered = useMemo(() => {
+  
     const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
     const q = search.trim().toLowerCase();
     const filtered = !q ? base : base.filter((p: any) =>
@@ -4366,7 +4374,6 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       String(p.nHK||"").toLowerCase().includes(q) ||
       String(p.id||"").toLowerCase().includes(q)
     );
-  }, [products, search, onlyIFB]);
 
   return (
     <div>
