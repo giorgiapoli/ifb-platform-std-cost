@@ -20,6 +20,7 @@ const NOW = () => new Date().toISOString().slice(0,7);
 const roundN = (n, d=2) => Math.round((n||0)*Math.pow(10,d))/Math.pow(10,d);
 const EXCLUDED_INVOICE_DESC = ["health certificate costs","late payment interest","interest on intercompany","handling costs","freight cost"];
 const isExcludedDesc = d => EXCLUDED_INVOICE_DESC.some(ex=>String(d||"").toLowerCase().includes(ex));
+const isAccountingCode = (c:string) => /^\d+\.\d+(\.\d+)+$/.test(String(c||"").trim());
 const AIR_TYPES = ["air","sea"];
 const isAirTransport = t => {
   const val = String(t||"").toLowerCase().trim();
@@ -411,8 +412,7 @@ export default function App() {
     {id:"fx",         icon:"◌", label:"Cambi"},
     {id:"air",        icon:"✈", label:"AIR Transport"},
     {id:"costs",      icon:"◆", label:"Standard Cost"},
-    {id:"costsInvoice", icon:"📋", label:"Costi su Fatture"},
-    {id:"sales",      icon:"📋", label:"Sales Invoice", badge:"⇪"},
+    {id:"invoice", icon:"📋", label:"Fatture & Costi", badge:"⇪"},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
     {id:"mail",       icon:"◻", label:"Mail Mensile"},
     {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
@@ -509,8 +509,7 @@ export default function App() {
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
-    costsInvoice: <CostsOnInvoice costRows={costRows} salesRows={salesRows} products={products} xrefs={xrefs} branch={branch} month={month}/>,
-    sales:       <SalesInvoice rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     storico: <Storico 
       snapshots={snapshots}
       setSnapshots={setSnapshots}
@@ -3238,153 +3237,341 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 
 
-// ─── COSTS ON INVOICE ───────────────────────────────────────────────────────────────
-function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
+// ─── FATTURE & COSTI (unified) ────────────────────────────────────────────────
+function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}:any) {
+  const [step, setStep] = useState(() => rows?.length ? "view" : "upload");
+  const [preview, setPreview] = useState<any[]>([]);
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [mapping, setMapping] = useState<any>({});
+  const [rawRows, setRawRows] = useState<any[]>([]);
+  const [fileName, setFileName] = useState("");
   const [excludeAir, setExcludeAir] = useState(false);
   const [newHkdFilter, setNewHkdFilter] = useState<"all"|"ok"|"mancante"|"air">("all");
+  const [filterTransport, setFilterTransport] = useState("all");
   const [filterNHK, setFilterNHK] = useState("");
   const [filterIFBNo, setFilterIFBNo] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortDir, setSortDir] = useState<"desc"|"asc">("desc");
+
+  useEffect(() => { if (rows?.length && step === "upload") setStep("view"); }, [rows]);
+
+  function saveRows(data: any[]) { setRows(data); IDB.set(`ifb_sales_invoice_${branch}`, data); }
+
+  function parseFile(e: any) {
+    const file = e.target.files?.[0]; if (!file) return;
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const wb = XLSX.read((ev.target as any).result, { type: "binary" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data: any[][] = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+        if (data.length < 2) { showToast("File vuoto", T.red); return; }
+        const hdrs = data[0].map((h: any) => String(h || "").trim());
+        const raws = data.slice(1).filter((r: any[]) => r.some(c => c !== ""));
+        setHeaders(hdrs); setRawRows(raws);
+        const norm = (s: string) => s.toLowerCase().replace(/[\s_()\-\.]/g, "");
+        const am: any = {};
+        hdrs.forEach(h => {
+          const n = norm(h);
+          if (!am.itemCode && (n === "no" || n === "no_" || ["itemno","codice","code"].some(a => n.includes(a)))) am.itemCode = h;
+          else if (!am.description && ["description","descrizione"].some(a => n.includes(a))) am.description = h;
+          else if (!am.date && ["postingdate","invoicedate","shipdate","lastpostingdate","date","data"].some(a => n.includes(a))) am.date = h;
+          else if (!am.qty && (n === "qty" || n === "quantity" || n.includes("quantit"))) am.qty = h;
+          else if (!am.unitPrice && ["unitprice","salesprice","listprice","prezzounit","unitamount","price"].some(a => n.includes(a.replace(/\s/g, "")))) am.unitPrice = h;
+          else if (!am.location && ["location","locationcode","ubicazione","warehouse","magazzino"].some(a => n.includes(a))) am.location = h;
+        });
+        setMapping(am); setStep("map");
+      } catch (err: any) { showToast("Errore: " + err.message, T.red); }
+    };
+    reader.readAsBinaryString(file);
+    e.target.value = "";
+  }
+
+  function buildPreview() {
+    const get = (row: any, field: string) => { const col = mapping[field]; if (!col) return ""; const i = headers.indexOf(col); return i >= 0 ? row[i] : ""; };
+    const parsed = rawRows.map(r => {
+      const code = String(get(r, "itemCode") || "").trim();
+      const description = String(get(r, "description") || code || "").trim();
+      if (!code) return null;
+      if (isExcludedDesc(description) || isAccountingCode(code)) return null;
+      const dateRaw = get(r, "date");
+      let dateStr = "";
+      if (dateRaw) { const d = dateRaw instanceof Date ? dateRaw : new Date(dateRaw); if (!isNaN(d.getTime())) dateStr = d.toISOString().slice(0, 10); else dateStr = String(dateRaw).slice(0, 10); }
+      const qty = parseFloat(get(r, "qty")) || 0;
+      const unitPrice = parseFloat(get(r, "unitPrice")) || 0;
+      const location = String(get(r, "location") || "").trim();
+      const prod = findProduct(code, products, xrefs);
+      const nHK = prod?.nHK || (xrefs.find((x: any) => x.ifbNo === code)?.nHK) || "";
+      const isAirProd = prod && airList.some((a: any) => a.productId === prod.id || (a.code && a.code === prod.code) || (a.nHK && prod.nHK && a.nHK === prod.nHK));
+      return { itemCode: code, description, date: dateStr, qty, unitPrice, isSample: qty > 0 && unitPrice === 0, location, nHK, transport: isAirProd ? "AIR" : "SEA", _prodFound: !!prod };
+    }).filter(Boolean) as any[];
+    setPreview(parsed); setStep("preview");
+  }
+
+  function executeImport() {
+    const now = Date.now();
+    const data = preview.map((r: any) => ({ ...r, branch }));
+    saveRows(data);
+    IDB.set(`ifb_sales_data_${now}`, data);
+    const log = { id: now, type: "sales", date: new Date(now).toISOString(), count: preview.length, diffs: [], branch };
+    const newLogs = [log, ...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs", newLogs);
+    const newSnaps = [log, ...snapshots].slice(0, 50); setSnapshots(newSnaps); LS.set("ifb_snapshots", newSnaps);
+    bumpImportTs(); showToast(`${preview.length} righe importate ✓`, T.gold);
+    setStep("view");
+  }
+
+  const activeRows = useMemo(() => (rows || []).filter((r: any) => !r.branch || r.branch === branch), [rows, branch]);
 
   const enriched = useMemo(() => {
-    return salesRows
-      .filter((r: any) => !r.branch || r.branch === branch)
+    return [...activeRows]
       .sort((a: any, b: any) => {
-        if (!a.date && !b.date) return 0;
-        if (!a.date) return 1;
-        if (!b.date) return -1;
-        return b.date.localeCompare(a.date);
+        if (!a.date && !b.date) return 0; if (!a.date) return 1; if (!b.date) return -1;
+        return sortDir === "desc" ? b.date.localeCompare(a.date) : a.date.localeCompare(b.date);
       })
       .map((r: any) => {
         const prod = findProduct(r.itemCode, products, xrefs);
         const cr = prod ? costRows.find((c: any) => c.id === prod.id) : null;
         const isAir = r.transport === "AIR" || cr?.isAir === true || cr?.skipReason === "AIR";
+        const locationIsNCJ = String(r.location || "").toUpperCase().includes("NCJ");
+        const mismatch = (isAir && !locationIsNCJ) || (!isAir && locationIsNCJ);
         const newHkd = cr?.cost?.step2Hkd ?? null;
         const oldHkd = cr?.prevCost?.step2Hkd ?? null;
-        const pct = newHkd != null && oldHkd != null && oldHkd > 0
-          ? (newHkd - oldHkd) / oldHkd * 100 : null;
-        return {
-          ...r,
-          nHK: prod?.nHK || r.nHK || "",
-          ifbNo: prod?.code || r.itemCode || "",
-          description: r.description || prod?.description || "",
-          ubicazione: cr?.ubicazione || "",
-          isAir,
-          newHkd,
-          oldHkd,
-          pct,
-          skipReason: cr?.skipReason || "",
-        };
+        const pct = newHkd != null && oldHkd != null && oldHkd > 0 ? (newHkd - oldHkd) / oldHkd * 100 : null;
+        return { ...r, nHK: prod?.nHK || r.nHK || "", ifbNo: prod?.code || r.itemCode || "",
+          description: r.description || prod?.description || "", ubicazione: cr?.ubicazione || "",
+          isAir, locationIsNCJ, mismatch, newHkd, oldHkd, pct, skipReason: cr?.skipReason || "" };
       });
-  }, [salesRows, costRows, products, xrefs, branch]);
+  }, [activeRows, costRows, products, xrefs, sortDir]);
 
-  const uniqueNHK   = [...new Set(enriched.map((r:any) => r.nHK).filter(Boolean))].sort() as string[];
-  const uniqueIFBNo = [...new Set(enriched.map((r:any) => r.ifbNo).filter(Boolean))].sort() as string[];
-  const airCount    = enriched.filter((r:any) => r.isAir).length;
+  const mismatches  = enriched.filter((r: any) => r.mismatch);
+  const airCount    = enriched.filter((r: any) => r.isAir).length;
+  const uniqueNHK   = [...new Set(enriched.map((r: any) => r.nHK).filter(Boolean))].sort() as string[];
+  const uniqueIFBNo = [...new Set(enriched.map((r: any) => r.ifbNo).filter(Boolean))].sort() as string[];
 
-  let rows = enriched as any[];
-  if (excludeAir) rows = rows.filter(r => !r.isAir);
-  if (newHkdFilter === "ok")       rows = rows.filter(r => r.newHkd !== null && !r.isAir);
-  else if (newHkdFilter === "mancante") rows = rows.filter(r => r.newHkd === null && !r.isAir);
-  else if (newHkdFilter === "air") rows = rows.filter(r => r.isAir);
-  if (filterNHK)   rows = rows.filter(r => r.nHK === filterNHK);
-  if (filterIFBNo) rows = rows.filter(r => r.ifbNo === filterIFBNo);
+  let displayed = enriched as any[];
+  if (excludeAir) displayed = displayed.filter(r => !r.isAir);
+  if (filterTransport === "air") displayed = displayed.filter(r => r.isAir);
+  else if (filterTransport === "sea") displayed = displayed.filter(r => !r.isAir);
+  else if (filterTransport === "mismatch") displayed = displayed.filter(r => r.mismatch);
+  if (newHkdFilter === "ok") displayed = displayed.filter(r => r.newHkd !== null && !r.isAir);
+  else if (newHkdFilter === "mancante") displayed = displayed.filter(r => r.newHkd === null && !r.isAir);
+  else if (newHkdFilter === "air") displayed = displayed.filter(r => r.isAir);
+  if (filterNHK) displayed = displayed.filter(r => r.nHK === filterNHK);
+  if (filterIFBNo) displayed = displayed.filter(r => r.ifbNo === filterIFBNo);
+  if (search) { const q = search.toLowerCase(); displayed = displayed.filter(r => r.description?.toLowerCase().includes(q) || r.itemCode?.toLowerCase().includes(q) || r.nHK?.toLowerCase().includes(q) || r.location?.toLowerCase().includes(q)); }
+
+  if (step === "map") return (
+    <div>
+      <PageHeader title="📋 Fatture & Costi · Mappatura" sub={`${fileName} · ${rawRows.length} righe`} />
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", marginBottom: "20px", maxWidth: "800px" }}>
+        {([["itemCode","Codice articolo *",true],["description","Descrizione",false],["date","Data fattura",false],["qty","Quantità",false],["unitPrice","Prezzo unitario",false],["location","Location",false]] as [string,string,boolean][]).map(([field,label,req]) => (
+          <div key={field}>
+            <label style={{ display: "block", fontSize: "11px", color: req ? T.gold : T.muted, marginBottom: "5px" }}>{label}{req ? " *" : ""}</label>
+            <select value={mapping[field] || ""} onChange={e => setMapping((m: any) => ({ ...m, [field]: e.target.value || null }))}
+              style={{ ...inputStyle(), cursor: "pointer", borderColor: req && !mapping[field] ? T.red + "88" : T.border }}>
+              <option value="">— non mappato —</option>
+              {headers.map(h => <option key={h} value={h}>{h}</option>)}
+            </select>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: "10px" }}>
+        <ActionBtn label="← Ricarica" onClick={() => setStep("upload")} />
+        <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["itemCode"]} />
+      </div>
+    </div>
+  );
+
+  if (step === "preview") return (
+    <div>
+      <PageHeader title="📋 Fatture & Costi · Preview" sub={`${fileName} · ${preview.length} righe valide`} />
+      {rows?.length > 0 && <div style={{ background: `${T.orange}15`, border: `1px solid ${T.orange}44`, borderRadius: "6px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: T.orange }}>⚠ Questo import sostituirà i dati attuali ({rows.length} righe).</div>}
+      <div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
+        {([[preview.length,"Totale",T.text],[preview.filter((r:any)=>r.transport==="AIR").length,"✈ AIR",T.orange],[preview.filter((r:any)=>r.transport==="SEA").length,"⛴ SEA",T.blue],[preview.filter((r:any)=>!r._prodFound).length,"⚠ Non in anagrafica",T.red]] as [number,string,string][]).map(([n,l,c]) => (
+          <div key={l} style={{ padding: "10px 16px", background: T.card, border: `1px solid ${T.border}`, borderRadius: "8px" }}>
+            <div style={{ fontSize: "20px", fontWeight: "bold", color: c }}>{n}</div>
+            <div style={{ fontSize: "10px", color: T.dim }}>{l}</div>
+          </div>
+        ))}
+      </div>
+      <div style={{ display: "flex", gap: "10px", marginBottom: "16px" }}>
+        <ActionBtn label="← Mappa" onClick={() => setStep("map")} />
+        <ActionBtn label={`✓ Importa ${preview.length} righe`} onClick={executeImport} primary />
+      </div>
+    </div>
+  );
+
+  if (step === "upload") return (
+    <div>
+      <PageHeader title="📋 Fatture & Costi" sub="Carica il file fattura" />
+      {importLogs.filter((l: any) => l.type === "sales" && l.branch === branch).length > 0 && (
+        <select onChange={async e => {
+          if (!e.target.value) return;
+          const snap = importLogs.find((l: any) => String(l.id) === e.target.value); if (!snap) return;
+          if (window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")}?`)) {
+            const r = await IDB.get(`ifb_sales_data_${snap.id}`, null);
+            if (!r?.length) { showToast("Snapshot non disponibile", T.orange); return; }
+            saveRows(r); setStep("view"); showToast(`${snap.count} righe ripristinate ✓`, T.gold);
+          }
+          e.target.value = "";
+        }} style={{ ...inputStyle(), width: "auto", fontSize: "12px", marginBottom: "16px" }} defaultValue="">
+          <option value="">📜 Carica da storico ({importLogs.filter((l: any) => l.type === "sales" && l.branch === branch).length})</option>
+          {importLogs.filter((l: any) => l.type === "sales" && l.branch === branch).map((s: any) => (
+            <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
+          ))}
+        </select>
+      )}
+      <Section title="Carica file fattura">
+        <DropZone onFile={(f: File) => { const e = { target: { files: [f], value: "" } } as any; parseFile(e); }} label="Trascina o clicca — Excel / CSV fattura" />
+      </Section>
+    </div>
+  );
 
   return (
     <div>
-      <PageHeader
-        title={`Costi su Fatture · ${branch} · ${month}`}
-        sub={`${enriched.length} righe · stessa sequenza di Sales Invoice`}
-      />
+      <PageHeader title={`📋 Fatture & Costi · ${branch}`} sub={`${enriched.length} righe`} />
 
-      <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+      {mismatches.length > 0 && (
+        <div style={{ background: `${T.orange}15`, border: `1px solid ${T.orange}`, borderRadius: "6px", padding: "10px 16px", marginBottom: "14px", display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+          <span style={{ color: T.orange, fontWeight: "bold" }}>
+            ⚠ {mismatches.filter((r: any) => r.isAir && !r.locationIsNCJ).length} AIR senza NCJ &nbsp;·&nbsp;
+            {mismatches.filter((r: any) => !r.isAir && r.locationIsNCJ).length} NCJ ma SEA
+          </span>
+          <button onClick={() => setFilterTransport(v => v === "mismatch" ? "all" : "mismatch")}
+            style={{ padding: "4px 12px", background: filterTransport === "mismatch" ? T.purple : T.surface, color: filterTransport === "mismatch" ? "#fff" : T.purple, border: `1px solid ${T.purple}`, borderRadius: "4px", cursor: "pointer", fontSize: "12px", fontWeight: "bold" }}>
+            {filterTransport === "mismatch" ? "Mostra tutte" : "Mostra mismatch"}
+          </button>
+        </div>
+      )}
+
+      <div style={{ display: "flex", gap: "8px", marginBottom: "10px", alignItems: "center", flexWrap: "wrap" }}>
+        <label style={{ display: "inline-block", padding: "6px 14px", background: T.surface, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "12px", color: T.text }}>
+          📂 Ricarica
+          <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{ display: "none" }} />
+        </label>
+        {importLogs.filter((l: any) => l.type === "sales" && l.branch === branch).length > 0 && (
+          <select onChange={async e => {
+            if (!e.target.value) return;
+            const snap = importLogs.find((l: any) => String(l.id) === e.target.value); if (!snap) return;
+            if (window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")}?`)) {
+              const r = await IDB.get(`ifb_sales_data_${snap.id}`, null);
+              if (!r?.length) { showToast("Snapshot non disponibile", T.orange); return; }
+              saveRows(r); showToast(`${snap.count} righe ripristinate ✓`, T.gold);
+            }
+            e.target.value = "";
+          }} style={{ ...inputStyle(), width: "auto", fontSize: "12px" }} defaultValue="">
+            <option value="">📜 Storico ({importLogs.filter((l: any) => l.type === "sales" && l.branch === branch).length})</option>
+            {importLogs.filter((l: any) => l.type === "sales" && l.branch === branch).map((s: any) => (
+              <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
+            ))}
+          </select>
+        )}
         <button onClick={() => exportXLSX(
-          rows.map((r:any) => ({
-            "Data Fattura": r.date || "",
-            "N HK": r.nHK || "",
-            "IFB No": r.ifbNo || "",
-            "Descrizione": r.description || "",
-            "Ubicazione": r.isAir ? "AIR" : r.ubicazione || "",
+          displayed.map((r: any) => ({
+            "Data": r.date || "", "N HK": r.nHK || "", "IFB No": r.ifbNo || "", "Descrizione": r.description || "",
+            "Qty": r.qty || "", "Prezzo Unit.": r.unitPrice || "", "Location": r.location || "", "Transport": r.transport || "",
+            "Mismatch": r.mismatch ? "⚠" : "", "Ubicaz.": r.isAir ? "AIR" : r.ubicazione || "",
             "Old HKD": r.oldHkd != null ? roundN(r.oldHkd) : "",
             "New HKD": r.isAir ? "AIR" : r.newHkd != null ? roundN(r.newHkd) : "MANCANTE",
-            "Δ%": r.pct != null ? roundN(r.pct, 1) : "",
-            "Note": r.skipReason || "",
+            "Δ%": r.pct != null ? roundN(r.pct, 1) : "", "Note": r.skipReason || "",
           })),
-          "Costi su Fatture", `CostiFatture_${branch}_${month}.xlsx`
-        )}
-          style={{padding:"5px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
+          "Fatture & Costi", `Fatture_${branch}.xlsx`
+        )} style={{ padding: "6px 14px", background: `${T.green}20`, border: `1px solid ${T.green}44`, borderRadius: "6px", color: T.green, cursor: "pointer", fontSize: "11px" }}>
           ⬇ Export Excel
         </button>
-
         <button onClick={() => setExcludeAir(v => !v)}
-          style={{padding:"5px 14px",background:excludeAir?`${T.orange}20`:T.surface,color:excludeAir?T.orange:T.muted,border:`1px solid ${excludeAir?T.orange:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeAir?"bold":"normal"}}>
+          style={{ padding: "6px 14px", background: excludeAir ? `${T.orange}20` : T.surface, color: excludeAir ? T.orange : T.muted, border: `1px solid ${excludeAir ? T.orange : T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: excludeAir ? "bold" : "normal" }}>
           {excludeAir ? `✓ AIR esclusi (${airCount})` : `✈ Escludi AIR (${airCount})`}
+        </button>
+        <button onClick={() => setSortDir(d => d === "desc" ? "asc" : "desc")}
+          style={{ padding: "6px 14px", background: T.surface, color: T.muted, border: `1px solid ${T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px" }}>
+          Data {sortDir === "desc" ? "↓" : "↑"}
+        </button>
+        <button onClick={() => { if (window.confirm(`Eliminare i dati (${activeRows.length} righe)?`)) { saveRows([]); setStep("upload"); } }}
+          style={{ padding: "6px 12px", background: "none", border: `1px solid ${T.red}44`, borderRadius: "6px", color: T.red, cursor: "pointer", fontSize: "11px" }}>
+          ✕ Svuota
         </button>
       </div>
 
-      <Section title={`${rows.length} prodotti · data più recente prima`}>
-        <div style={{overflowX:"auto"}}>
-          <table style={{width:"100%",borderCollapse:"collapse"}}>
+      <div style={{ display: "flex", gap: "6px", marginBottom: "10px", flexWrap: "wrap" }}>
+        {([["all",`Tutte (${enriched.length})`,T.text],["air",`✈ AIR (${airCount})`,T.orange],["sea",`⛴ SEA (${enriched.length-airCount})`,T.blue],["mismatch",`⚠ Mismatch (${mismatches.length})`,T.purple]] as [string,string,string][]).map(([v,l,c]) => (
+          <button key={v} onClick={() => setFilterTransport(v)}
+            style={{ padding: "5px 12px", background: filterTransport === v ? `${c}20` : T.surface, color: filterTransport === v ? c : T.muted, border: `1px solid ${filterTransport === v ? c : T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px", fontWeight: filterTransport === v ? "bold" : "normal" }}>
+            {l}
+          </button>
+        ))}
+      </div>
+
+      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca codice, N HK, descrizione, location…" />
+
+      <Section title={`${displayed.length} righe`}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead><tr>
-              <th style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",position:"sticky",top:0,zIndex:10}}>Data Fattura</th>
-              {([["N HK",filterNHK,setFilterNHK,uniqueNHK],["IFB No",filterIFBNo,setFilterIFBNo,uniqueIFBNo]] as [string,string,(v:string)=>void,string[]][]).map(([label,val,setter,opts])=>(
-                <th key={label} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
-                  <select value={val} onChange={e=>setter(e.target.value)}
-                    style={{background:val?`${T.gold}22`:T.card,color:val?T.gold:T.muted,border:`1px solid ${val?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"120px"}}>
-                    <option value="">{label} ▾</option>
-                    {opts.map(v=><option key={v} value={v}>{v}</option>)}
+              {(["Data","Ubicaz.","Old HKD","Δ%","Note"] as string[]).map(c => (
+                <th key={c} style={{ padding: "7px 10px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px", fontWeight: "normal", whiteSpace: "nowrap", position: "sticky", top: 0, zIndex: 10 }}>{c}</th>
+              ))}
+              {([["N HK ▾",filterNHK,setFilterNHK,uniqueNHK],["IFB No ▾",filterIFBNo,setFilterIFBNo,uniqueIFBNo]] as [string,string,(v:string)=>void,string[]][]).map(([label,val,setter,opts]) => (
+                <th key={label} style={{ padding: "4px 8px", background: T.card, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10 }}>
+                  <select value={val} onChange={e => setter(e.target.value)}
+                    style={{ background: val ? `${T.gold}22` : T.card, color: val ? T.gold : T.muted, border: `1px solid ${val ? T.gold : T.border}`, borderRadius: "4px", padding: "3px 6px", fontSize: "10px", cursor: "pointer", fontFamily: "inherit", outline: "none", maxWidth: "110px" }}>
+                    <option value="">{label}</option>
+                    {opts.map(v => <option key={v} value={v}>{v}</option>)}
                   </select>
                 </th>
               ))}
-              {["Descrizione","Ubicaz.","Old HKD"].map(c=>(
-                <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",position:"sticky",top:0,zIndex:10}}>{c}</th>
+              {(["Descrizione","Qty","Prezzo","Location","Transport"] as string[]).map(c => (
+                <th key={c} style={{ padding: "7px 10px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px", fontWeight: "normal", whiteSpace: "nowrap", position: "sticky", top: 0, zIndex: 10 }}>{c}</th>
               ))}
-              <th style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
-                <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
-                  style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
+              <th style={{ padding: "4px 8px", background: T.card, borderBottom: `1px solid ${T.border}`, position: "sticky", top: 0, zIndex: 10 }}>
+                <select value={newHkdFilter} onChange={e => setNewHkdFilter(e.target.value as any)}
+                  style={{ background: newHkdFilter !== "all" ? `${T.gold}22` : T.card, color: newHkdFilter !== "all" ? T.gold : T.muted, border: `1px solid ${newHkdFilter !== "all" ? T.gold : T.border}`, borderRadius: "4px", padding: "3px 6px", fontSize: "10px", cursor: "pointer", fontFamily: "inherit", outline: "none" }}>
                   <option value="all">New HKD ▾</option>
                   <option value="ok">✅ Con costo</option>
                   <option value="mancante">❌ MANCANTE</option>
                   <option value="air">✈ AIR</option>
                 </select>
               </th>
-              {["Δ%","Note"].map(c=>(
-                <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",position:"sticky",top:0,zIndex:10}}>{c}</th>
-              ))}
             </tr></thead>
             <tbody>
-              {rows.map((r:any, i:number) => (
-                <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                  <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></TD>
-                  <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
-                  <TD mono><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></TD>
-                  <TD>{r.description}</TD>
-                  <TD>
-                    {r.isAir
-                      ? <Chip label="✈ AIR" color={T.orange}/>
-                      : <Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>}
-                  </TD>
-                  <TD mono><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></TD>
-                  <TD mono>
-                    <span style={{color:r.newHkd!=null?T.gold:r.isAir?T.orange:T.red,fontWeight:"bold"}}>
-                      {r.isAir?"AIR":r.newHkd!=null?r.newHkd.toFixed(2):"MANCANTE"}
+              {displayed.slice(0, 1000).map((r: any, i: number) => (
+                <tr key={i} style={{ borderBottom: `1px solid ${T.border}`, background: r.mismatch ? `${T.purple}10` : i % 2 === 0 ? T.bg : T.surface }}>
+                  <td style={{ padding: "6px 10px", fontSize: "11px", fontFamily: "monospace", whiteSpace: "nowrap" }}><span style={{ color: T.gold, fontWeight: "bold" }}>{r.date || "—"}</span></td>
+                  <td style={{ padding: "6px 10px", fontSize: "11px" }}>
+                    {r.isAir ? <Chip label="✈ AIR" color={T.orange} /> : <Chip label={r.ubicazione || "—"} color={r.ubicazione === "FOR" ? T.purple : r.ubicazione === "MTS" ? T.blue : T.green} />}
+                  </td>
+                  <td style={{ padding: "6px 10px", fontSize: "11px", fontFamily: "monospace", textAlign: "right" }}><span style={{ color: T.muted }}>{r.oldHkd != null ? r.oldHkd.toFixed(2) : "—"}</span></td>
+                  <td style={{ padding: "6px 10px", fontSize: "11px", textAlign: "right" }}>
+                    {r.pct != null ? <span style={{ color: r.pct > 3 ? T.red : r.pct < -3 ? T.green : T.text, fontWeight: Math.abs(r.pct) > 3 ? "bold" : "normal" }}>{r.pct > 0 ? "+" : ""}{r.pct.toFixed(1)}%</span> : <span style={{ color: T.dim }}>—</span>}
+                  </td>
+                  <td style={{ padding: "6px 10px", fontSize: "10px" }}>
+                    {r.isAir ? <Chip label="✈ AIR" color={T.orange} /> : <span style={{ color: T.dim }}>{r.skipReason || ""}</span>}
+                  </td>
+                  <td style={{ padding: "4px 8px" }}><span style={{ color: T.muted, fontSize: "11px", fontFamily: "monospace" }}>{r.nHK || "—"}</span></td>
+                  <td style={{ padding: "4px 8px" }}><span style={{ color: T.gold, fontSize: "11px", fontFamily: "monospace" }}>{r.ifbNo || r.itemCode || "—"}</span></td>
+                  <td style={{ padding: "6px 10px", fontSize: "12px", maxWidth: "200px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    <span style={{ color: r._prodFound === false ? T.orange : T.text }}>{r.description}</span>
+                  </td>
+                  <td style={{ padding: "6px 10px", fontSize: "11px", fontFamily: "monospace", textAlign: "right" }}><span style={{ color: T.muted }}>{r.qty || "—"}</span></td>
+                  <td style={{ padding: "6px 10px", fontSize: "11px", fontFamily: "monospace", textAlign: "right" }}>
+                    {r.isSample ? <Chip label="SAMPLE" color={T.purple} /> : <span style={{ color: T.muted }}>{r.unitPrice > 0 ? r.unitPrice.toFixed(2) : "—"}</span>}
+                  </td>
+                  <td style={{ padding: "6px 10px", fontSize: "11px", fontFamily: "monospace" }}><span style={{ color: r.mismatch ? T.purple : T.muted }}>{r.location || "—"}</span></td>
+                  <td style={{ padding: "6px 10px", fontSize: "11px", whiteSpace: "nowrap" }}>
+                    <Chip label={r.isAir ? "✈ AIR" : "⛴ SEA"} color={r.isAir ? (r.locationIsNCJ ? T.green : T.orange) : (r.locationIsNCJ ? T.orange : T.blue)} />
+                    {r.mismatch && <span style={{ marginLeft: "5px", fontSize: "9px", color: T.purple }}>⚠ {r.isAir && !r.locationIsNCJ ? "AIR senza NCJ" : "NCJ ma SEA"}</span>}
+                  </td>
+                  <td style={{ padding: "6px 10px", fontSize: "11px", fontFamily: "monospace", textAlign: "right" }}>
+                    <span style={{ color: r.newHkd != null ? T.gold : r.isAir ? T.orange : T.red, fontWeight: "bold" }}>
+                      {r.isAir ? "AIR" : r.newHkd != null ? r.newHkd.toFixed(2) : "MANCANTE"}
                     </span>
-                  </TD>
-                  <TD>
-                    {r.pct!=null
-                      ? <span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:"bold"}}>
-                          {r.pct>0?"+":""}{r.pct.toFixed(1)}%
-                        </span>
-                      : <span style={{color:T.dim}}>{r.newHkd===null&&!r.isAir?"—":"—"}</span>}
-                  </TD>
-                  <TD>
-                    {r.isAir
-                      ? <Chip label="✈ AIR" color={T.orange}/>
-                      : <span style={{fontSize:"11px",color:T.dim}}>{r.skipReason||""}</span>}
-                  </TD>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {displayed.length > 1000 && <div style={{ padding: "12px", textAlign: "center", color: T.muted, fontSize: "11px" }}>Mostrate 1000/{displayed.length} righe</div>}
         </div>
       </Section>
     </div>
@@ -3416,425 +3603,6 @@ function MailGen({costRows,branch,month}) {
     </div>
   );
 }
-
-
-// ─── SALES INVOICE ────────────────────────────────────────────────────────────
-function SalesInvoice({rows,setRows,branch,airList,products,xrefs,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
-  const[step,setStep]       = useState(()=>rows?.length?"view":"upload");
-  const[preview,setPreview] = useState<any[]>([]);
-  const[headers,setHeaders] = useState<string[]>([]);
-  const[mapping,setMapping] = useState<any>({});
-  const[rawRows,setRawRows] = useState<any[]>([]);
-  const[fileName,setFileName]= useState("");
-  const[search,setSearch]   = useState("");
-  const[filterTransport,setFilterTransport] = useState("all"); // all | air | sea
-  const[sortDir,setSortDir] = useState<"desc"|"asc">("desc");
-
-  // Sincronizza step se rows arrivano dopo il mount
-  useEffect(()=>{ if(rows?.length&&step==="upload") setStep("view"); },[rows]);
-
-  function saveRows(data:any[]) {
-    setRows(data);
-    IDB.set(`ifb_sales_invoice_${branch}`, data);
-  }
-
-  // ── Parsing file ─────────────────────────────────────────────────────────
-  function parseFile(e:any) {
-    const file = e.target.files?.[0]; if(!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = ev => {
-      try {
-        const wb = XLSX.read((ev.target as any).result, {type:"binary"});
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const data: any[][] = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
-        if(data.length < 2) { showToast("File vuoto", T.red); return; }
-
-        const hdrs = data[0].map((h:any) => String(h||"").trim());
-        const raws = data.slice(1).filter((r:any[]) => r.some(c=>c!==""));
-        setHeaders(hdrs);
-        setRawRows(raws);
-
-        // Auto-mapping
-        const norm = (s:string) => s.toLowerCase().replace(/[\s_()\-\.]/g,"");
-        const am: any = {};
-        hdrs.forEach(h => {
-          const n = norm(h);
-          if(!am.itemCode    && (n==="no"||n==="no_"||["itemno","codice","code"].some(a=>n.includes(a)))) am.itemCode=h;
-          else if(!am.description && ["description","descrizione"].some(a=>n.includes(a))) am.description=h;
-          else if(!am.date   && ["postingdate","invoicedate","shipdate","lastpostingdate","date","data"].some(a=>n.includes(a))) am.date=h;
-          else if(!am.qty    && (n==="qty"||n==="quantity"||["quantit"].some(a=>n.includes(a)))) am.qty=h;
-          else if(!am.unitPrice && ["unitprice","unit price","salesprice","listprice","prezzounit","unitamount","price"].some(a=>n.includes(a.replace(/\s/g,"")))) am.unitPrice=h;
-          else if(!am.location && ["location","locationcode","ubicazione","warehouse","magazzino"].some(a=>n.includes(a))) am.location=h;
-        });
-        setMapping(am);
-        setStep("map");
-      } catch(err:any) { showToast("Errore: "+err.message, T.red); }
-    };
-    reader.readAsBinaryString(file);
-    e.target.value = "";
-  }
-
-  
-  // ── Build preview ─────────────────────────────────────────────────────────
-function buildPreview() {
-  const get = (row:any, field:string) => {
-    const col = mapping[field]; 
-    if(!col) return "";
-    const i = headers.indexOf(col); 
-    return i >= 0 ? row[i] : "";
-  };
-
-  const parsed: any[] = rawRows
-    .map(r => {
-      // ✅ DEFINISCI code QUI - prendi il valore dalla colonna itemCode
-      const code = String(get(r, "itemCode") || "").trim();
-      const description = String(get(r, "description") || code || "").trim();
-      
-      // Se non c'è un codice, salta questa riga
-      if (!code) return null;
-      
-      const dateRaw = get(r, "date");
-      let dateStr = "";
-      if(dateRaw) {
-        const d = dateRaw instanceof Date ? dateRaw : new Date(dateRaw);
-        if(!isNaN(d.getTime())) dateStr = d.toISOString().slice(0,10);
-        else dateStr = String(dateRaw).slice(0,10);
-      }
-
-      const qty = parseFloat(get(r, "qty")) || 0;
-      const unitPrice = parseFloat(get(r, "unitPrice")) || 0;
-      const isSample = qty > 0 && unitPrice === 0;
-
-      const prod = findProduct(code, products, xrefs);
-      const nHK = prod?.nHK || (xrefs.find((x:any) => x.ifbNo === code)?.nHK) || "";
-      const location = String(get(r, "location") || "").trim();
-      const isAirProd = prod && airList.some((a:any) =>
-          a.productId === prod.id ||
-          (a.code && a.code === prod.code) ||
-          (a.nHK && prod.nHK && a.nHK === prod.nHK)
-        );
-      const isAir = isAirProd;
-
-      return {
-        itemCode: code,
-        description: description,
-        date: dateStr,
-        qty: qty,
-        unitPrice: unitPrice,
-        isSample: isSample,
-        location: location,
-        nHK: nHK,
-        transport: isAir ? "AIR" : "SEA",
-        _prodFound: !!prod,
-      };
-    })
-    .filter((r:any) => r !== null && r.itemCode); // filtra righe senza codice
-
-  setPreview(parsed);
-  setStep("preview");
-}
-
-  // ── Execute import (SOSTITUISCE, non aggiunge) ────────────────────────────
-  function executeImport() {
-    const now = Date.now();
-    saveRows(preview.map((r:any) => ({...r, branch})));
-    const salesData = preview.map((r:any)=>({...r,branch}));
-    IDB.set(`ifb_sales_data_${now}`, salesData);
-    const log = {id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch};
-    const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
-    const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
-    bumpImportTs();
-    showToast(`Fattura: ${preview.length} righe importate ✓`, T.gold);
-    setStep("view");
-  }
-
-  // ── Righe visualizzate ────────────────────────────────────────────────────
-  const activeRows: any[] = step==="view"
-    ? (rows||[]).filter((r:any) => !r.branch || r.branch===branch)
-    : preview;
-
-    const transportMismatches = activeRows.filter(r => {
-      const locationIsNCJ = String(r.location || "").toUpperCase().includes("NCJ");
-      const isTransportAIR = r.transport === "AIR";
-      
-      // Mismatch tipo 1: è AIR ma location NON è NCJ
-      if (isTransportAIR && !locationIsNCJ) return true;
-      // Mismatch tipo 2: NON è AIR (SEA) ma location È NCJ
-      if (!isTransportAIR && locationIsNCJ) return true;
-      
-      return false;
-    });
-
-  const _sq = search.toLowerCase();
-  let displayed = activeRows
-  .filter(r => {
-    if(filterTransport==="air") return r.transport==="AIR";
-    if(filterTransport==="sea") return r.transport==="SEA";
-    if(filterTransport==="mismatch") {
-      const locationIsNCJ = String(r.location || "").toUpperCase().includes("NCJ");
-      const isTransportAIR = r.transport === "AIR";
-      return (isTransportAIR && !locationIsNCJ) || (!isTransportAIR && locationIsNCJ);
-    }
-    return true;
-  })
-  .filter(r =>
-    !search ||
-    r.description?.toLowerCase().includes(_sq) ||
-    r.itemCode?.toLowerCase().includes(_sq) ||
-    r.nHK?.toLowerCase().includes(_sq) ||
-    r.location?.toLowerCase().includes(_sq)
-  )
-  .sort((a:any,b:any) => {
-    if(!a.date&&!b.date) return 0;
-    if(!a.date) return 1; if(!b.date) return -1;
-    return sortDir==="desc"
-      ? b.date.localeCompare(a.date)
-      : a.date.localeCompare(b.date);
-  });
-
-  // ── Stats ─────────────────────────────────────────────────────────────────
-  const nAir    = activeRows.filter(r=>r.transport==="AIR").length;
-  const nSea    = activeRows.filter(r=>r.transport==="SEA").length;
-  const nNoCode = activeRows.filter(r=>!r._prodFound).length;
-
-  // ── Tabella righe ─────────────────────────────────────────────────────────
-  const TableRows = ({data}:{data:any[]}) => (
-    <div style={{overflowX:"auto"}}>
-      <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["Data","Codice","N HK","Descrizione","Qty","Prezzo unit.","Location","Transport"]} sticky />
-        <tbody>
-          {data.slice(0,500).map((r:any,i:number) => {
-            const locationIsNCJ = String(r.location || "").toUpperCase().includes("NCJ");
-            const isTransportAIR = r.transport === "AIR";
-            const isMismatch = (isTransportAIR && !locationIsNCJ) || (!isTransportAIR && locationIsNCJ);
-            
-            let mismatchType = "";
-            if (isMismatch) {
-              if (isTransportAIR && !locationIsNCJ) mismatchType = "⚠ AIR senza NCJ";
-              if (!isTransportAIR && locationIsNCJ) mismatchType = "⚠ NCJ ma SEA";
-            }
-            
-            return (
-              <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:isMismatch?`${T.purple}12`:i%2===0?T.bg:T.surface}}>
-                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.date||"—"}</span></td>
-                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.itemCode||"—"}</span></td>
-                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
-                <td style={{padding:"7px 12px",fontSize:"12px"}}>
-                  <span style={{color:r._prodFound===false?T.orange:T.text}}>
-                    {r.description}
-                    {r._prodFound===false&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.orange}}>⚠ non in anagrafica</span>}
-                  </span>
-                </td>
-                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
-                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}>
-                  {r.isSample
-                    ? <Chip label="SAMPLE" color={T.purple}/>
-                    : <span style={{color:T.gold}}>{r.unitPrice!=null&&r.unitPrice>0?r.unitPrice.toFixed(2):"—"}</span>}
-                 </td>
-                <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}><span style={{color:isMismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
-                <td style={{padding:"7px 12px",fontSize:"12px"}}>
-                  {r.transport ? (
-                    <Chip 
-                      label={r.transport==="AIR"?"✈ AIR":"⛴ SEA"} 
-                      color={
-                        r.transport==="AIR" 
-                          ? (locationIsNCJ ? T.green : T.orange)
-                          : (locationIsNCJ ? T.orange : T.blue)
-                      }
-                    />
-                  ) : (
-                    <span style={{color:T.dim}}>—</span>
-                  )}
-                  {isMismatch && (
-                    <span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>
-                      {mismatchType}
-                    </span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-      {data.length>500&&<div style={{padding:"12px",textAlign:"center",color:T.muted,fontSize:"11px"}}>Mostrate 500/{data.length} righe</div>}
-    </div>
-  );
-
-  // ── STEP: map ─────────────────────────────────────────────────────────────
-  if(step==="map") return (
-    <div>
-      <PageHeader title="📋 Sales Invoice · Mappatura colonne" sub={`${fileName} · ${rawRows.length} righe`}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"20px",maxWidth:"800px"}}>
-        {([
-          ["itemCode","Codice articolo *",true],
-          ["description","Descrizione",false],
-          ["date","Data fattura",false],
-          ["qty","Quantità",false],
-          ["unitPrice","Prezzo unitario",false],
-          ["location","Location / Magazzino",false],
-        ] as [string,string,boolean][]).map(([field,label,required])=>(
-          <div key={field}>
-            <label style={{display:"block",fontSize:"11px",color:required?T.gold:T.muted,marginBottom:"5px"}}>{label}{required?" *":""}</label>
-            <select value={mapping[field]||""} onChange={e=>setMapping((m:any)=>({...m,[field]:e.target.value||null}))}
-              style={{...inputStyle(),cursor:"pointer",borderColor:required&&!mapping[field]?T.red+"88":T.border}}>
-              <option value="">— non mappato —</option>
-              {headers.map(h=><option key={h} value={h}>{h}</option>)}
-            </select>
-          </div>
-        ))}
-      </div>
-      <div style={{padding:"8px 12px",background:`${T.blue}08`,borderRadius:"6px",fontSize:"11px",color:T.muted,marginBottom:"16px",maxWidth:"800px"}}>
-        ℹ Il trasporto AIR/SEA viene rilevato automaticamente dalla lista AIR — non serve una colonna Transport.
-      </div>
-      <div style={{display:"flex",gap:"10px"}}>
-        <ActionBtn label="← Ricarica" onClick={()=>setStep("upload")}/>
-        <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["itemCode"]}/>
-      </div>
-    </div>
-  );
-
-  // ── STEP: preview ─────────────────────────────────────────────────────────
-  if(step==="preview") return (
-    <div>
-      <PageHeader title="📋 Sales Invoice · Preview" sub={`${fileName} · ${preview.length} righe valide`}/>
-      {rows?.length>0 && (
-        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>
-          ⚠ Questo import <strong>sostituirà</strong> la fattura attuale ({rows.length} righe).
-        </div>
-      )}
-      <div style={{display:"flex",gap:"12px",marginBottom:"16px",flexWrap:"wrap"}}>
-        {[
-          [preview.length,                                      "Righe totali",         T.text  ],
-          [preview.filter(r=>r.transport==="AIR").length,       "✈ AIR",                T.orange],
-          [preview.filter(r=>r.transport==="SEA").length,       "⛴ SEA",                T.blue  ],
-          [preview.filter(r=>!r._prodFound).length,             "⚠ Non in anagrafica",  T.red   ],
-        ].map(([n,l,c])=>(
-          <div key={l as string} style={{padding:"10px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"8px"}}>
-            <div style={{fontSize:"20px",fontWeight:"bold",color:c as string}}>{n as number}</div>
-            <div style={{fontSize:"10px",color:T.dim,marginTop:"2px"}}>{l as string}</div>
-          </div>
-        ))}
-      </div>
-      <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
-        <ActionBtn label="← Mappa" onClick={()=>setStep("map")}/>
-        <ActionBtn label={`✓ Importa ${preview.length} righe`} onClick={executeImport} primary/>
-      </div>
-      <TableRows data={preview}/>
-    </div>
-  );
-
-  // ── STEP: upload ──────────────────────────────────────────────────────────
-  if(step==="upload") return (
-    <div>
-      <PageHeader title="📋 Sales Invoice" sub="Carica il file fattura per associare i costi agli articoli"/>
-      {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length>0&&(
-        <div style={{marginBottom:"16px",display:"flex",gap:"10px",alignItems:"center"}}>
-          <select onChange={async e=>{
-            if(!e.target.value) return;
-            const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
-            if(!snap) return;
-            if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)){
-              const r=await IDB.get(`ifb_sales_data_${snap.id}`,null);
-              if(!r?.length){showToast("Snapshot non disponibile — reimporta il file",T.orange);return;}
-              saveRows(r);setStep("view");
-              showToast(`Sales Invoice ripristinata: ${snap.count} righe ✓`,T.gold);
-            }
-            e.target.value="";
-          }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
-            <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length})</option>
-            {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).map((s:any)=>(
-              <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
-            ))}
-          </select>
-        </div>
-      )}
-      <Section title="Carica file">
-        <DropZone onFile={(f:File)=>{ const e={target:{files:[f],value:""}} as any; parseFile(e); }} label="Trascina o clicca — Excel / CSV fattura"/>
-      </Section>
-    </div>
-  );
-
-  // ── STEP: view ────────────────────────────────────────────────────────────
-  return (
-    <div>
-      <PageHeader title="📋 Sales Invoice" sub={`${activeRows.length} righe · ${fileName||"dati caricati"}`}/>
-
-      {transportMismatches.length > 0 && (
-  <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}`,borderRadius:"6px",padding:"10px 16px",marginBottom:"16px",display:"flex",alignItems:"center",gap:"12px",flexWrap:"wrap"}}>
-    <span style={{color:T.orange,fontWeight:"bold"}}>
-      ⚠ {transportMismatches.filter(r => r.transport === "AIR" && !String(r.location || "").toUpperCase().includes("NCJ")).length} righe: AIR senza NCJ · 
-      {transportMismatches.filter(r => r.transport !== "AIR" && String(r.location || "").toUpperCase().includes("NCJ")).length} righe: NCJ ma SEA
-    </span>
-    <button onClick={()=>setFilterTransport(v=>v==="mismatch"?"all":"mismatch")}
-      style={{padding:"4px 12px",background:filterTransport==="mismatch"?T.purple:T.surface,color:filterTransport==="mismatch"?"#fff":T.purple,border:`1px solid ${T.purple}`,borderRadius:"4px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
-      {filterTransport==="mismatch"?"Mostra tutte":"Mostra mismatch"}
-    </button>
-  </div>
-)}
-
-      {/* Stats bar */}
-      <div style={{display:"flex",gap:"8px",marginBottom:"14px",flexWrap:"wrap",alignItems:"center"}}>
-        {[
-          ["all",  `Tutte (${activeRows.length})`, T.text  ],
-          ["air",  `✈ AIR (${nAir})`,              T.orange],
-          ["sea",  `⛴ SEA (${nSea})`,              T.blue  ],
-          ["mismatch", `⚠ Mismatch (${transportMismatches.length})`, T.purple],
-        ].map(([v,l,c])=>(
-          <button key={v as string} onClick={()=>setFilterTransport(v as string)}
-            style={{padding:"5px 12px",background:filterTransport===v?`${c}20`:T.surface,
-              color:filterTransport===v?c as string:T.muted,
-              border:`1px solid ${filterTransport===v?c as string:T.border}`,
-              borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:filterTransport===v?"bold":"normal"}}>
-            {l as string}
-          </button>
-        ))}
-
-        <button onClick={()=>setSortDir(d=>d==="desc"?"asc":"desc")}
-            style={{padding:"5px 12px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
-            Data {sortDir==="desc"?"↓ recente":"↑ vecchia"}
-          </button>
-
-          <div style={{marginLeft:"auto",display:"flex",gap:"8px"}}>
-        <label style={{display:"inline-block",padding:"6px 14px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.text}}>
-            📂 Ricarica
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
-          </label>
-          {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length>0&&(
-            <select onChange={async e=>{
-              if(!e.target.value) return;
-              const snap=importLogs.find((l:any)=>String(l.id)===e.target.value);
-              if(!snap) return;
-              if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)){
-                const rows = await IDB.get(`ifb_sales_data_${snap.id}`, null);
-              if(!rows?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
-              saveRows(rows);
-                showToast(`Sales Invoice ripristinata: ${snap.count} righe ✓`,T.gold);
-              }
-              e.target.value="";
-            }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
-              <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length})</option>
-              {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).map((s:any)=>(
-                <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
-              ))}
-            </select>
-          )}
-          <button onClick={()=>{if(window.confirm(`Eliminare i dati fattura (${activeRows.length} righe)?`)){saveRows([]);setStep("upload");}}}
-            style={{padding:"6px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
-            ✕ Svuota
-          </button>
-        </div>
-      </div>
-
-      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca per codice, N HK, descrizione, location…"/>
-
-      <Section title={`${displayed.length} righe${filterTransport!=="all"?` (${filterTransport.toUpperCase()})`:""}`}>
-        <TableRows data={displayed}/>
-      </Section>
-    </div>
-  );
-}
-
 // ─── STORICO ──────────────────────────────────────────────────────────────────
 function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showToast}) {
   const[sel,setSel]=useState<any>(null);
