@@ -415,14 +415,14 @@ export default function App() {
   const NAV = [
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
     {id:"products",   icon:"◈", label:"Anagrafica", badge:"⇪"},
-    {id:"xref",       icon:"⇄", label:"XRef N / IFB"},
-    {id:"logistics",  icon:"◎", label:"Logistica"},
+    {id:"xref",       icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
+    {id:"logistics",  icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"},
     {id:"prices",     icon:"◉", label:"Listini", badge:"💶"},
-    {id:"meatlist", icon:"🥩", label:"Listino Carne"},
-    {id:"fx",         icon:"◌", label:"Cambi"},
-    {id:"air",        icon:"✈", label:"AIR Transport"},
+    {id:"meatlist",   icon:"🥩", label:"Listino Carne"},
+    ...(!isCAN ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
+    ...(!isCAN ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
     {id:"costs",      icon:"◆", label:"Standard Cost"},
-    {id:"invoice", icon:"📋", label:"Fatture & Costi", badge:"⇪"},
+    {id:"invoice",    icon:"📋", label:"Fatture & Costi", badge:"⇪"},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
     {id:"mail",       icon:"◻", label:"Mail Mensile"},
     {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
@@ -615,6 +615,7 @@ export default function App() {
 
 // ─── XREF PAGE ────────────────────────────────────────────────────────────────
 function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+  const branchCode = branch === "CAN" ? "N COMIT" : "N HK";
   const[step,setStep]=useState("main");
   const[rawRows,setRawRows]=useState([]);
   const[headers,setHeaders]=useState([]);
@@ -675,11 +676,11 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
 
   return(
     <div>
-      <PageHeader title={`⇄ XRef N / IFB N · ${branch}`} sub="Codici filiale ↔ IFB N — ogni filiale ha la propria tabella"/>
+      <PageHeader title={`⇄ XRef ${branchCode} / IFB N · ${branch}`} sub="Codici filiale ↔ IFB N — ogni filiale ha la propria tabella"/>
       {step==="map"&&(
         <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
-            {[["Colonna N HK *",colNHK,setColNHK],["Colonna IFB N *",colIFB,setColIFB]].map(([lbl,val,setter])=>(
+            {[[`Colonna ${branchCode} *`,colNHK,setColNHK],["Colonna IFB N *",colIFB,setColIFB]].map(([lbl,val,setter])=>(
               <div key={lbl}>
                 <label style={{display:"block",fontSize:"11px",color:T.gold,marginBottom:"5px"}}>{lbl}</label>
                 <select value={val} onChange={e=>setter(e.target.value)} style={{...inputStyle(),cursor:"pointer"}}>
@@ -711,7 +712,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
           </div>
           <Section title="Preview (prime 50)">
             <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <THead cols={["N HK","IFB N","Stato"]} sticky />
+              <THead cols={[branchCode,"IFB N","Stato"]} sticky />
               <tbody>{preview.slice(0,50).map(r=>(
                 <tr key={r._idx} style={{borderBottom:`1px solid ${T.border}`,background:r._isNew?`${T.gold}07`:r._changed?`${T.orange}07`:""}}>
                   <TD mono><span style={{color:T.gold}}>{r.nHK}</span></TD>
@@ -729,11 +730,11 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
             onClick={()=>document.getElementById("_xref_in")?.click()}>
             <div style={{fontSize:"24px",marginBottom:"6px"}}>⇄</div>
             <div style={{fontSize:"13px",color:T.text,marginBottom:"4px"}}>Carica file XRef (Excel/CSV)</div>
-            <div style={{fontSize:"11px",color:T.muted}}>Due colonne: N HK · IFB N</div>
+            <div style={{fontSize:"11px",color:T.muted}}>Due colonne: {branchCode} · IFB N</div>
             <input id="_xref_in" type="file" accept=".xlsx,.xls,.csv"
               onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
           </div>
-          <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca per N HK o IFB N…"/>
+          <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca per ${branchCode} o IFB N…`}/>
           {xrefs.length>0&&(
             <div style={{marginBottom:"10px",display:"flex",justifyContent:"flex-end"}}>
               <button onClick={()=>{if(window.confirm(`Eliminare tutte le ${xrefs.length} XRef di ${branch}?`)){setXrefs([]);LS.set(`ifb_xrefs_${branch}`,[]);}}}
@@ -745,7 +746,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
           <Section title={`${displayed.length} / ${xrefs.length} corrispondenze`}>
             {xrefs.length===0?<div style={{padding:"24px",textAlign:"center",color:T.dim,fontSize:"13px"}}>Nessuna XRef caricata.</div>:(
               <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <THead cols={["N HK","IFB N","Azioni"]} sticky />
+                <THead cols={[branchCode,"IFB N","Azioni"]} sticky />
                 <tbody>{displayed.map((x,i)=>(
                   <tr key={x.nHK+i} style={{borderBottom:`1px solid ${T.border}`}}>
                     <TD mono><span style={{color:T.gold}}>{x.nHK}</span></TD>
@@ -3010,10 +3011,10 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 {/* FILTRI MULTIPLI */}
 <div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap",alignItems:"flex-start",borderTop:`1px solid ${T.border}`,paddingTop:"10px"}}>
   <span style={{fontSize:"11px",color:T.muted,paddingTop:"6px"}}>🔍 Filtri:</span>
-  {([ 
+  {([
     {key:"costCalculated", label:"✅ Costi calcolati", col:T.gold},
     {key:"flagged",        label:"Variazioni ≥3%",    col:T.orange},
-    {key:"air",            label:"✈ AIR",             col:T.blue},
+    ...(branch!=="CAN" ? [{key:"air", label:"✈ AIR", col:T.blue}] : []),
     {key:"noPrice",        label:"❌ Senza prezzo",   col:T.red},
     {key:"noLog",          label:"⚠ No logistica",    col:T.orange},
     {key:"calcZero",       label:"⚡ Calc=0",          col:T.purple},
@@ -3090,7 +3091,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             </tr>
             {/* riga colonne */}
             <tr style={stickyTop22}>
-              <TH align="left" sticky w={70}>N HK</TH>
+              <TH align="left" sticky w={70}>{branch==="CAN"?"N COMIT":"N HK"}</TH>
               <TH align="left" w={70}>IFB No</TH>
               <TH align="left" w={180}>Descrizione</TH>
               <TH w={60}>UOM</TH>
