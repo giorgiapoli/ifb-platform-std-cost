@@ -3245,241 +3245,144 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   const [filterNHK, setFilterNHK] = useState("");
   const [filterIFBNo, setFilterIFBNo] = useState("");
 
-
-  const today = new Date();
-  const oneMonthAgo = new Date(today);
-  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-  const lastInvoiceDate = useMemo(() => {
-    const map: Record<string, Date> = {};
-    salesRows.forEach((r: any) => {
-      const d = r.date ? new Date(r.date) : null;
-      if (!d || isNaN(d.getTime())) return;
-      const prod = findProduct(r.itemCode, products, xrefs);
-      if (!prod) return;
-      if (!map[prod.id] || d > map[prod.id]) map[prod.id] = d;
-    });
-    return map;
-  }, [salesRows, products, xrefs]);
-
-  const recentProductIds = new Set(
-    salesRows
-      .filter((r: any) => {
-        const d = r.date ? new Date(r.date) : null;
-        return d && d >= oneMonthAgo && d <= today;
+  const enriched = useMemo(() => {
+    return salesRows
+      .filter((r: any) => !r.branch || r.branch === branch)
+      .sort((a: any, b: any) => {
+        if (!a.date && !b.date) return 0;
+        if (!a.date) return 1;
+        if (!b.date) return -1;
+        return b.date.localeCompare(a.date);
       })
       .map((r: any) => {
         const prod = findProduct(r.itemCode, products, xrefs);
-        return prod?.id || null;
-      })
-      .filter(Boolean)
-  );
+        const cr = prod ? costRows.find((c: any) => c.id === prod.id) : null;
+        const isAir = r.transport === "AIR" || cr?.isAir === true || cr?.skipReason === "AIR";
+        const newHkd = cr?.cost?.step2Hkd ?? null;
+        const oldHkd = cr?.prevCost?.step2Hkd ?? null;
+        const pct = newHkd != null && oldHkd != null && oldHkd > 0
+          ? (newHkd - oldHkd) / oldHkd * 100 : null;
+        return {
+          ...r,
+          nHK: prod?.nHK || r.nHK || "",
+          ifbNo: prod?.code || r.itemCode || "",
+          description: r.description || prod?.description || "",
+          ubicazione: cr?.ubicazione || "",
+          isAir,
+          newHkd,
+          oldHkd,
+          pct,
+          skipReason: cr?.skipReason || "",
+        };
+      });
+  }, [salesRows, costRows, products, xrefs, branch]);
 
-  const allRows = costRows
-  .filter((r: any) => recentProductIds.has(r.id))
-  .sort((a: any, b: any) => {
-    const da = lastInvoiceDate[a.id], db = lastInvoiceDate[b.id];
-    if (!da && !db) return 0;
-    if (!da) return 1;
-    if (!db) return -1;
-    return db.getTime() - da.getTime();
-  });
+  const uniqueNHK   = [...new Set(enriched.map((r:any) => r.nHK).filter(Boolean))].sort() as string[];
+  const uniqueIFBNo = [...new Set(enriched.map((r:any) => r.ifbNo).filter(Boolean))].sort() as string[];
+  const airCount    = enriched.filter((r:any) => r.isAir).length;
 
-  // AIR = flag da airList OPPURE transport AIR in fattura
-  const _airIds = new Set<string>();
-  salesRows.forEach((r: any) => {
-    if (r.transport === "AIR") {
-      const p = findProduct(r.itemCode, products, xrefs);
-      if (p) _airIds.add(p.id);
-    }
-  });
-  const isAirRow = (r: any): boolean => 
-  r.isAir === true || r.skipReason === "AIR" || _airIds.has(r.id);
-
-  const isMissing = (r: any) => !r.cost && !isAirRow(r);
-  const missingCount = allRows.filter(isMissing).length;
-  const airCount     = allRows.filter(isAirRow).length;
-
-  const uniqueNHK   = [...new Set(allRows.map((r:any)=>r.nHK).filter(Boolean))].sort() as string[];
-  const uniqueIFBNo = [...new Set(allRows.map((r:any)=>r.code).filter(Boolean))].sort() as string[];
-
-  let rows: any[];
-  if (excludeAir) rows = allRows.filter((r: any) => !isAirRow(r));
-  else            rows = allRows;
-
-  if (newHkdFilter === "ok")            rows = rows.filter((r:any) => r.cost?.step2Hkd != null && !isAirRow(r));
-  else if (newHkdFilter === "mancante") rows = rows.filter((r:any) => (r.cost?.step2Hkd ?? null) === null && !isAirRow(r));
-  else if (newHkdFilter === "air")      rows = rows.filter((r:any) => isAirRow(r));
-  if (filterNHK)   rows = rows.filter((r:any) => (r.nHK||"") === filterNHK);
-  if (filterIFBNo) rows = rows.filter((r:any) => (r.code||"") === filterIFBNo);
-
-               
+  let rows = enriched as any[];
+  if (excludeAir) rows = rows.filter(r => !r.isAir);
+  if (newHkdFilter === "ok")       rows = rows.filter(r => r.newHkd !== null && !r.isAir);
+  else if (newHkdFilter === "mancante") rows = rows.filter(r => r.newHkd === null && !r.isAir);
+  else if (newHkdFilter === "air") rows = rows.filter(r => r.isAir);
+  if (filterNHK)   rows = rows.filter(r => r.nHK === filterNHK);
+  if (filterIFBNo) rows = rows.filter(r => r.ifbNo === filterIFBNo);
 
   return (
     <div>
       <PageHeader
         title={`Costi su Fatture · ${branch} · ${month}`}
-        sub={`Prodotti ordinati negli ultimi 30gg · ${allRows.length} trovati`}
+        sub={`${enriched.length} righe · stessa sequenza di Sales Invoice`}
       />
 
-<div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
-  <button onClick={()=>exportXLSX(
-    rows.map((r:any)=>{
-      const lastD=lastInvoiceDate[r.id];
-      const newHkd=r.cost?.step2Hkd??null;
-      const oldHkd=r.prevCost?.step2Hkd??null;
-      const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
-      return {
-        "Data Fattura":lastD?lastD.toLocaleDateString("it-IT"):"",
-        "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
-        "Ubicazione":r.isAir?"AIR":r.ubicazione||"",
-        "Old HKD":oldHkd!=null?roundN(oldHkd):"","New HKD":r.isAir?"AIR":newHkd!=null?roundN(newHkd):"MANCANTE",
-        "Δ%":pct!=null?roundN(pct,1):"","Note":r.skipReason||"",
-      };
-    }),
-    "Costi su Fatture",`CostiFatture_${branch}_${month}.xlsx`
-  )}
-    style={{padding:"5px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,
-      borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
-    ⬇ Export Excel
-  </button>
-  
-  
-  
-  {/* ✅ NUOVO BOTTONE - Mostra/Nascondi AIR */}
-  <button onClick={() => setExcludeAir(v => !v)}
-        style={{
-          padding: "5px 14px",
-          background: excludeAir ? `${T.orange}20` : T.surface,
-          color: excludeAir ? T.orange : T.muted,
-          border: `1px solid ${excludeAir ? T.orange : T.border}`,
-          borderRadius: "6px", cursor: "pointer", fontSize: "11px",
-          whiteSpace: "nowrap", fontWeight: excludeAir ? "bold" : "normal"
-        }}
-      >
-        {excludeAir ? `✓ AIR esclusi (${airCount})` : `✈ Escludi AIR (${airCount})`}
-  </button>
-  
-  {airCount > 0 && excludeAir && (
-    <span style={{fontSize:"11px",color:T.orange}}>
-      ✈ {airCount} articoli AIR esclusi dal costo standard
-    </span>
-  )}
-</div>
+      <div style={{display:"flex",gap:"8px",marginBottom:"14px",alignItems:"center",flexWrap:"wrap"}}>
+        <button onClick={() => exportXLSX(
+          rows.map((r:any) => ({
+            "Data Fattura": r.date || "",
+            "N HK": r.nHK || "",
+            "IFB No": r.ifbNo || "",
+            "Descrizione": r.description || "",
+            "Ubicazione": r.isAir ? "AIR" : r.ubicazione || "",
+            "Old HKD": r.oldHkd != null ? roundN(r.oldHkd) : "",
+            "New HKD": r.isAir ? "AIR" : r.newHkd != null ? roundN(r.newHkd) : "MANCANTE",
+            "Δ%": r.pct != null ? roundN(r.pct, 1) : "",
+            "Note": r.skipReason || "",
+          })),
+          "Costi su Fatture", `CostiFatture_${branch}_${month}.xlsx`
+        )}
+          style={{padding:"5px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
+          ⬇ Export Excel
+        </button>
 
+        <button onClick={() => setExcludeAir(v => !v)}
+          style={{padding:"5px 14px",background:excludeAir?`${T.orange}20`:T.surface,color:excludeAir?T.orange:T.muted,border:`1px solid ${excludeAir?T.orange:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeAir?"bold":"normal"}}>
+          {excludeAir ? `✓ AIR esclusi (${airCount})` : `✈ Escludi AIR (${airCount})`}
+        </button>
+      </div>
 
-<Section title={`${rows.length} prodotti · data più recente prima`}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <Section title={`${rows.length} prodotti · data più recente prima`}>
+        <div style={{overflowX:"auto"}}>
+          <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-            <th style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>Data Fattura</th>
-            {([["N HK",filterNHK,setFilterNHK,uniqueNHK],["IFB No",filterIFBNo,setFilterIFBNo,uniqueIFBNo]] as [string,string,(v:string)=>void,string[]][]).map(([label,val,setter,opts])=>(
-              <th key={label} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
-                <select value={val} onChange={e=>setter(e.target.value)}
-                  style={{background:val?`${T.gold}22`:T.card,color:val?T.gold:T.muted,border:`1px solid ${val?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"120px"}}>
-                  <option value="">{label} ▾</option>
-                  {opts.map(v=><option key={v} value={v}>{v}</option>)}
+              <th style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",position:"sticky",top:0,zIndex:10}}>Data Fattura</th>
+              {([["N HK",filterNHK,setFilterNHK,uniqueNHK],["IFB No",filterIFBNo,setFilterIFBNo,uniqueIFBNo]] as [string,string,(v:string)=>void,string[]][]).map(([label,val,setter,opts])=>(
+                <th key={label} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                  <select value={val} onChange={e=>setter(e.target.value)}
+                    style={{background:val?`${T.gold}22`:T.card,color:val?T.gold:T.muted,border:`1px solid ${val?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"120px"}}>
+                    <option value="">{label} ▾</option>
+                    {opts.map(v=><option key={v} value={v}>{v}</option>)}
+                  </select>
+                </th>
+              ))}
+              {["Descrizione","Ubicaz.","Old HKD"].map(c=>(
+                <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",position:"sticky",top:0,zIndex:10}}>{c}</th>
+              ))}
+              <th style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
+                  style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
+                  <option value="all">New HKD ▾</option>
+                  <option value="ok">✅ Con costo</option>
+                  <option value="mancante">❌ MANCANTE</option>
+                  <option value="air">✈ AIR</option>
                 </select>
               </th>
-            ))}
-            {["Descrizione","Ubicaz.","Old HKD"].map(c=>(
-              <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>
-            ))}
-            <th style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
-              <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
-                style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
-                <option value="all">New HKD ▾</option>
-                <option value="ok">✅ Con costo</option>
-                <option value="mancante">❌ MANCANTE</option>
-                <option value="air">✈ AIR</option>
-              </select>
-            </th>
-            {["Δ%","Note"].map(c=>(
-              <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>
-            ))}
-          </tr></thead>
+              {["Δ%","Note"].map(c=>(
+                <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",position:"sticky",top:0,zIndex:10}}>{c}</th>
+              ))}
+            </tr></thead>
             <tbody>
-              {rows.map((r: any, i: number) => {
-                const newHkd = r.cost?.step2Hkd ?? null;
-                const oldHkd = r.prevCost?.step2Hkd ?? null;
-                const pct = newHkd != null && oldHkd != null && oldHkd > 0 ? (newHkd - oldHkd) / oldHkd * 100 : null;
-                const lastD = lastInvoiceDate[r.id];
-                return (
-                  <tr
-                    key={r.id}
-                    style={{
-                      borderBottom: `1px solid ${T.border}`,
-                      background: i % 2 === 0 ? T.bg : T.surface,
-                    }}
-                  >
-                    <TD mono>
-                      <span style={{ color: T.gold, fontWeight: "bold" }}>
-                        {lastD ? lastD.toLocaleDateString("it-IT") : "—"}
-                      </span>
-                    </TD>
-                    <TD mono>
-                      <span style={{ color: T.muted }}>{r.nHK || "—"}</span>
-                    </TD>
-                    <TD mono>
-                      <span style={{ color: T.gold }}>{r.code}</span>
-                    </TD>
-                    <TD>{r.description}</TD>
-                    <TD>
-                      {isAirRow(r) ? (
-                        <Chip label="✈ AIR" color={T.orange} />
-                      ) : (
-                        <Chip
-                          label={r.ubicazione || "—"}
-                          color={
-                            r.ubicazione === "FOR"
-                              ? T.purple
-                              : r.ubicazione === "MTS"
-                              ? T.blue
-                              : T.green
-                          }
-                        />
-                      )}
-                    </TD>
-                    <TD mono>
-                      <span style={{ color: T.muted }}>{oldHkd != null ? oldHkd.toFixed(2) : "—"}</span>
-                    </TD>
-                    <TD mono>
-                      <span
-                        style={{
-                          color: newHkd != null ? T.gold : isAirRow(r) ? T.orange : T.red,
-                          fontWeight: "bold",
-                        }}
-                      >
-                        {isAirRow(r) ? "AIR" : newHkd != null ? newHkd.toFixed(2) : "MANCANTE"}
-                      </span>
-                    </TD>
-                    <TD>
-                      {isAirRow(r) ? (
-                        <span style={{ color: T.dim }}>—</span>
-                      ) : pct != null ? (
-                        <span
-                          style={{
-                            color: pct > 3 ? T.red : pct < -3 ? T.green : T.text,
-                            fontWeight: "bold",
-                          }}
-                        >
-                          {pct > 0 ? "+" : ""}
-                          {pct.toFixed(1)}%
+              {rows.map((r:any, i:number) => (
+                <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                  <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></TD>
+                  <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
+                  <TD mono><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></TD>
+                  <TD>{r.description}</TD>
+                  <TD>
+                    {r.isAir
+                      ? <Chip label="✈ AIR" color={T.orange}/>
+                      : <Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>}
+                  </TD>
+                  <TD mono><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></TD>
+                  <TD mono>
+                    <span style={{color:r.newHkd!=null?T.gold:r.isAir?T.orange:T.red,fontWeight:"bold"}}>
+                      {r.isAir?"AIR":r.newHkd!=null?r.newHkd.toFixed(2):"MANCANTE"}
+                    </span>
+                  </TD>
+                  <TD>
+                    {r.pct!=null
+                      ? <span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:"bold"}}>
+                          {r.pct>0?"+":""}{r.pct.toFixed(1)}%
                         </span>
-                      ) : (
-                        <span style={{ color: T.dim }}>{r.isNew ? "🆕 Nuovo" : "—"}</span>
-                      )}
-                    </TD>
-                    <TD>
-                      {isAirRow(r) ? (
-                        <Chip label="✈ AIR" color={T.orange} />
-                      ) : (
-                        <span style={{ fontSize: "11px", color: T.dim }}>{r.skipReason || ""}</span>
-                      )}
-                    </TD>
-                  </tr>
-                );
-              })}
+                      : <span style={{color:T.dim}}>{r.newHkd===null&&!r.isAir?"—":"—"}</span>}
+                  </TD>
+                  <TD>
+                    {r.isAir
+                      ? <Chip label="✈ AIR" color={T.orange}/>
+                      : <span style={{fontSize:"11px",color:T.dim}}>{r.skipReason||""}</span>}
+                  </TD>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
