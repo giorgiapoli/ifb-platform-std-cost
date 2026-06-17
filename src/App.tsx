@@ -28,6 +28,7 @@ const isExcludedDesc = (d: string) =>
 
 // Codici contabili tipo 51.9020.25 (cifre con punti)
 const isAccountingCode = (c: string) => /^\d+\.\d+(\.\d+)+$/.test(String(c||"").trim());
+const branchN = (branch: string) => branch === "CAN" ? "N COMIT" : "N HK";
 
 const AIR_TYPES = ["air","sea"];
 const isAirTransport = t => {
@@ -1460,7 +1461,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       </div>
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <THead cols={["N HK","IFB No","Descrizione","Vendor","Categoria","UOM","Qty/Box","Box/Plt","Kg/Box","Temp","Attivo"]}sticky/>
+          <THead cols={[branchN(branch),"IFB No","Descrizione","Vendor","Categoria","UOM","Qty/Box","Box/Plt","Kg/Box","Temp","Attivo"]}sticky/>
           <tbody>{preview.slice(0,200).map((r,i)=>(
             <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
               <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -1650,7 +1651,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       <Section title={`✈ ${preview.filter(r=>r._hasProduct).length} articoli AIR trovati (verranno importati)`} accent={T.green}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
-            <THead cols={["Codice","N HK","Descrizione"]}sticky/>
+            <THead cols={["Codice",branchN(branch),"Descrizione"]}sticky/>
             <tbody>
               {preview.filter(r=>r._hasProduct).slice(0,100).map((r,i)=>(
                 <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
@@ -1754,7 +1755,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
               <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo AIR…"/>
               <Section title={`${displayed.length} articoli AIR (esclusi da Standard Cost)`}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <THead cols={["Codice","N HK","Descrizione","Azioni"]}sticky/>
+                  <THead cols={["Codice",branchN(branch),"Descrizione","Azioni"]}sticky/>
                   <tbody>{displayed.map((a,i)=>(
                     <tr key={a.productId||i} style={{borderBottom:`1px solid ${T.border}`}}>
                       <TD mono><span style={{color:T.gold}}>{a.code}</span></TD>
@@ -1801,7 +1802,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="ok"||activePanel==="flagged") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["N HK","IFB No","Descrizione","Ubicaz.","Step2 HKD","Prec. HKD","Δ%"]}sticky/>
+        <THead cols={[branchN(branch),"IFB No","Descrizione","Ubicaz.","Step2 HKD","Prec. HKD","Δ%"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>{
           const pct = r.cost&&r.prevCost&&r.prevCost.step2Hkd>0
             ? (r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100 : null;
@@ -1827,7 +1828,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="air") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["N HK","IFB No","Descrizione"]}sticky/>
+        <THead cols={[branchN(branch),"IFB No","Descrizione"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>(
           <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
             <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -1841,7 +1842,7 @@ function Dashboard({costRows, branch, month, navigate}) {
     // noPrice, noLog, calc0
     return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={["N HK","IFB No","Descrizione","Motivo"]} sticky />
+        <THead cols={[branchN(branch),"IFB No","Descrizione","Motivo"]} sticky />
         <tbody>{panel.rows.map((r:any,i:number)=>(
           <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
             <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -2724,7 +2725,7 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={["N HK","IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Final"]} sticky />
+<THead cols={[branchN(branch),"IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Final"]} sticky />
 <tbody>
 {displayed.slice(0, 300).map((p, i) => {
 const prod = products.find(pr => pr.id === p.productId);
@@ -2959,7 +2960,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
         </button>
         <button onClick={()=>exportXLSX(
           filtered.filter((r:any)=>r.cost).map((r:any)=>({
-            "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
+            [branchN(branch)]:r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
             "UOM":r.uom||"","Ubicazione":r.ubicazione||"",
             "Temp.":r.temperature||"","Temp. Rettif.":r.temperatureOverride||"",
             "Prezzo EUR":roundN(r.cost?.priceEur),"FOB":roundN(r.cost?.fob),
@@ -3493,7 +3494,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
         )}
         <button onClick={()=>exportXLSX(
           displayed.map((r:any)=>({
-            "Data":r.date||"","N HK":r.nHK||"","IFB No":r.ifbNo||"","Descrizione":r.description||"",
+            "Data":r.date||"",[branchN(branch)]:r.nHK||"","IFB No":r.ifbNo||"","Descrizione":r.description||"",
             "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"","Location":r.location||"",
             "Mismatch":r.mismatch?"⚠ "+( r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"",
             "Mag./Trasp.":r.isAir?"AIR":r.ubicazione||"",
@@ -3534,12 +3535,12 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data","N HK ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old HKD","New HKD ▾","Δ%","Motivo"].map((c,ci)=>{
-                if(c==="N HK ▾") return(
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old HKD","New HKD ▾","Δ%","Motivo"].map((c,ci)=>{
+                if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
                       style={{background:filterNHK?`${T.gold}22`:T.card,color:filterNHK?T.gold:T.muted,border:`1px solid ${filterNHK?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"110px"}}>
-                      <option value="">N HK ▾</option>
+                      <option value="">{branchN(branch)} ▾</option>
                       {uniqueNHK.map(v=><option key={v} value={v}>{v}</option>)}
                     </select>
                   </th>
@@ -3796,7 +3797,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
           Snapshot del {new Date(selCostSnap.ts).toLocaleString("it-IT")}
         </div>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <THead cols={["N HK","IFB No","Descrizione","Costo HKD","Note"]} sticky />
+          <THead cols={[branchN(branch),"IFB No","Descrizione","Costo HKD","Note"]} sticky />
           <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>(
             <tr key={r.id||i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
               <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -3941,7 +3942,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                   ? <div style={{color:T.dim,fontSize:"12px"}}>Nessuna variazione reale.</div>
                   : <div style={{overflowX:"auto"}}>
                       <table style={{width:"100%",borderCollapse:"collapse"}}>
-                        <THead cols={["IFB No / N HK","Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]} sticky />
+                        <THead cols={[`IFB No / ${branchN(branch)}`,"Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]} sticky />
                         <tbody>{shownDiffs.map((d:any,i:number)=>
                           d.fields.map((f:any,j:number)=>{
                             const oldR=roundN(f.old||0),newR=roundN(f.new||0);
@@ -4343,7 +4344,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>N HK</th>
+                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>{branchN(branch)}</th>
                 <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>IFB No</th>
                 <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Descrizione</th>
                 <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Vendor</th>
