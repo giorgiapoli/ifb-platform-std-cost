@@ -4245,6 +4245,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
             if (window.confirm(`Eliminare tutti i ${products.length} articoli dall'anagrafica?`)) {
               setProducts([]);
               LS.set(`ifb_products_${branch}`, []);
+              IDB.set(`ifb_products_${branch}`, []);
               bumpImportTs();
               showToast("Anagrafica svuotata", T.red);
             }
