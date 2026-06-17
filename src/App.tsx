@@ -1221,7 +1221,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
           <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"12px", marginBottom:"18px"}}>
             <div>
-              <label style={{display:"block", fontSize:"11px", color:T.gold, marginBottom:"5px"}}>📌 Codice * (N HK o IFB N)</label>
+              <label style={{display:"block", fontSize:"11px", color:T.gold, marginBottom:"5px"}}>📌 Codice * ({branchN(branch)} o IFB N)</label>
               <select 
                 value={mapping["code"] || ""} 
                 onChange={e => setMapping(m => ({...m, code: e.target.value || null}))} 
@@ -1328,7 +1328,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
 
   // Added vendorName AND vendorName2
   const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","temperature","active","vendorName","vendorName2"];
-  const FLABELS={nHK:"N HK (No_)",code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone / Net Weight",temperature:"Product Type",active:"Bloccato",vendorName:"Vendor Name (es. INALCA FOOD & BEVERAGE SRL)",vendorName2:"Vendor Name 2 (fornitore reale)"};
+  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone / Net Weight",temperature:"Product Type",active:"Bloccato",vendorName:"Vendor Name (es. INALCA FOOD & BEVERAGE SRL)",vendorName2:"Vendor Name 2 (fornitore reale)"};
 
   const LOCAL_ALIASES = {
     nHK:         ["no","no_"],          // Anagrafica 'no' column = N HK
@@ -1589,7 +1589,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       {step==="map"&&(
         <Section title={`Mappatura — ${fileName}`}>
           <div style={{marginBottom:"16px",maxWidth:"320px"}}>
-            <label style={{display:"block",fontSize:"11px",color:T.gold,marginBottom:"5px"}}>Colonna Codice * (N HK o IFB N)</label>
+            <label style={{display:"block",fontSize:"11px",color:T.gold,marginBottom:"5px"}}>Colonna Codice * ({branchN(branch)} o IFB N)</label>
             <select value={colCode} onChange={e=>setColCode(e.target.value)} style={{...inputStyle(),cursor:"pointer"}}>
               <option value="">— seleziona —</option>
               {headers.map(h=><option key={h} value={h}>{h}</option>)}
@@ -1748,7 +1748,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
      ✕ Svuota lista ({branchAir.length})
    </button>
  )}
- <span style={{fontSize:"11px",color:T.muted}}>Colonna richiesta: N HK o IFB N · ogni import sostituisce la lista precedente</span>
+ <span style={{fontSize:"11px",color:T.muted}}>Colonna richiesta: {branchN(branch)} o IFB N · ogni import sostituisce la lista precedente</span>
 </div>
           {airList.length>0&&(
             <>
@@ -2175,7 +2175,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
       🗑 Svuota tutti i dati ({logistics.filter((l:any)=>l.branch===branch).length} righe)
     </button>
     
-    <span style={{fontSize:"11px", color:T.muted}}>Colonne: N HK / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
+    <span style={{fontSize:"11px", color:T.muted}}>Colonne: {branchN(branch)} / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
   </div>
 ) : mapStep === "ready" ? (
   <div style={{background:T.card, border:`1px solid ${T.green}`, borderRadius:"8px", padding:"16px", marginBottom:"16px"}}>
@@ -2218,7 +2218,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-              {["IFB No","N HK","Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."].map(c=>(
+              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."].map(c=>(
                 <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
               ))}
               </tr>
@@ -3093,7 +3093,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             </tr>
             {/* riga colonne */}
             <tr style={stickyTop22}>
-              <TH align="left" sticky w={70}>{branch==="CAN"?"N COMIT":"N HK"}</TH>
+              <TH align="left" sticky w={70}>{branchN(branch)}</TH>
               <TH align="left" w={70}>IFB No</TH>
               <TH align="left" w={180}>Descrizione</TH>
               <TH w={60}>UOM</TH>
@@ -3529,7 +3529,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
         ))}
       </div>
 
-      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca codice, N HK, descrizione, location…"/>
+      <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca codice, ${branchN(branch)}, descrizione, location…`}/>
 
       <Section title={`${displayed.length} righe`}>
         <div style={{overflowX:"auto"}}>
@@ -3998,7 +3998,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
   const FIELDS = ["nHK", "code", "description", "category", "uom", "qtyPerBox", "boxPerPallet", "kgPerBox", "kgxplt", "temperature", "active", "vendorName", "vendorName2"];
   const FLABELS = {
-    nHK: "N HK (No_)",
+    nHK: `${branchN(branch)} (No_)`,
     code: "IFB Item *",
     description: "Descrizione *",
     category: "Section",
@@ -4312,7 +4312,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
                 <tr>
-                  <th style={{ textAlign: "left", padding: "4px" }}>N HK</th>
+                  <th style={{ textAlign: "left", padding: "4px" }}>{branchN(branch)}</th>
                   <th style={{ textAlign: "left", padding: "4px" }}>IFB No</th>
                   <th style={{ textAlign: "left", padding: "4px" }}>Descrizione</th>
                 </tr>
