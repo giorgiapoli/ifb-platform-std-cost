@@ -3408,7 +3408,12 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
       <PageHeader title="📋 Fatture & Costi · Preview" sub={`${fileName} · ${preview.length} righe valide`}/>
       {rows?.length>0&&<div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>⚠ Questo import sostituirà i dati attuali ({rows.length} righe).</div>}
       <div style={{display:"flex",gap:"12px",marginBottom:"16px",flexWrap:"wrap"}}>
-        {[[preview.length,"Totale",T.text],[preview.filter((r:any)=>r.transport==="AIR").length,"✈ AIR",T.orange],[preview.filter((r:any)=>r.transport==="SEA").length,"⛴ SEA",T.blue],[preview.filter((r:any)=>!r._prodFound).length,"⚠ Non in anagrafica",T.red]].map(([n,l,c])=>(
+        {([
+          [preview.length,"Totale",T.text],
+          ...(branch!=="CAN"?[[preview.filter((r:any)=>r.transport==="AIR").length,"✈ AIR",T.orange]]:[] as any),
+          ...(branch!=="CAN"?[[preview.filter((r:any)=>r.transport==="SEA").length,"⛴ SEA",T.blue]]:[] as any),
+          [preview.filter((r:any)=>!r._prodFound).length,"⚠ Non in anagrafica",T.red],
+        ] as [number,string,string][]).map(([n,l,c])=>(
           <div key={l as string} style={{padding:"10px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"8px"}}>
             <div style={{fontSize:"20px",fontWeight:"bold",color:c as string}}>{n as number}</div>
             <div style={{fontSize:"10px",color:T.dim}}>{l as string}</div>
