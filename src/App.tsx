@@ -289,7 +289,9 @@ export default function App() {
 
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
 
-  useEffect(()=>{ if(branch&&products.length) IDB.set(`ifb_products_${branch}`, products); },[products,branch]);
+  const branchRef = useRef(branch);
+  useEffect(()=>{ branchRef.current = branch; },[branch]);
+  useEffect(()=>{ if(branchRef.current&&products.length) IDB.set(`ifb_products_${branchRef.current}`, products); },[products]);
   useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
   useEffect(()=>{ if(branch) LS.set(`ifb_airlist_${branch}`, airList); },[airList,branch]);
   useEffect(()=>{ if(branch) IDB.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
