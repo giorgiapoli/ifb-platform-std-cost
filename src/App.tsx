@@ -20,7 +20,7 @@ const NOW = () => new Date().toISOString().slice(0,7);
 const roundN = (n, d=2) => Math.round((n||0)*Math.pow(10,d))/Math.pow(10,d);
 const EXCLUDED_INVOICE_DESC = [
   "freight","health certificate","handling costs","freight cost",
-  "interest on intercompany","pallets","vendita prodotti finiti",
+  "interest on intercompany","pallet","vendita prodotti finiti",
   "late payment interest","unifreddo costs",
 ];
 const isExcludedDesc = (d: string) =>
