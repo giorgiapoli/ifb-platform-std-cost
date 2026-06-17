@@ -546,7 +546,7 @@ export default function App() {
               <button key={key} onClick={()=>{ setBranch(key); setPage("dashboard"); }}
                 style={{padding:"5px 8px",background:branch===key?`${c.color}20`:"transparent",
                   border:`1px solid ${branch===key?c.color:"transparent"}`,borderRadius:"6px",
-                  color:branch===key?c.color:T.muted,cursor:"pointer",fontFamily:"inherit",
+                  color:branch===key?c.color:T.muted,fontFamily:"inherit",
                   fontSize:"11px",textAlign:"left",display:"flex",alignItems:"center",gap:"6px",
                   opacity:c.active?1:0.45,cursor:c.active?"pointer":"default"}}>
                 <span>{c.flag}</span>{c.label}
