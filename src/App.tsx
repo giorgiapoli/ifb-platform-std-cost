@@ -1535,16 +1535,6 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     setPreview(mapped);setStep("preview");
   }
 
-  const mapBCVal=(field,raw)=>{
-    const maps={
-      category:{"food":"FOOD","alimenti":"FOOD","beverage":"WINE","wine":"WINE","spirits":"SPIRITS","vino":"WINE","meat":"MEAT","carni":"MEAT","salumi":"MEAT","milk and dairy products":"FOOD","cow cheese":"FOOD","sheep cheese":"FOOD","stretched-curd cheese":"FOOD","pork meat":"MEAT","ham":"MEAT","other cured meats":"MEAT","poultry and rabbit meat":"MEAT","egg products":"FOOD","eggs":"FOOD","flour and groats":"FOOD","preserved fish":"MEAT","fish processing":"MEAT","shellfish":"MEAT","molluscs and mussels":"MEAT","soft drinks":"FOOD","oil and fats":"FOOD","pasta and rice":"FOOD","condiments":"FOOD","meat processing":"MEAT"},
-      uom:{"pcs":"PCS","pz":"PCS","piece":"PCS","pezzi":"PCS","box":"BOX","ctn":"BOX","cartone":"BOX","collo":"BOX","kg":"KG","kgs":"KG","kilogram":"KG"},
-      temperature:{"dry":"DRY","secco":"DRY","ambient":"DRY","amb":"DRY","fresh":"FRESH","fresco":"FRESH","chilled":"FRESH","refrigerated":"FRESH","frozen":"FROZEN","surgelato":"FROZEN","congelato":"FROZEN"},
-    };
-    if(!maps[field]) return raw;
-    return maps[field][String(raw||"").toLowerCase().trim()]||raw;
-  };
-
   function executeImport() {
     const now=Date.now();
     const newProds=preview.map((r)=>({
@@ -1585,6 +1575,16 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     bumpImportTs();setStep("done");
     showToast(`Importati ${newProds.length} articoli`,T.gold);
   }
+
+  const mapBCVal=(field,raw)=>{
+    const maps={
+      category:{"food":"FOOD","alimenti":"FOOD","beverage":"WINE","wine":"WINE","spirits":"SPIRITS","vino":"WINE","meat":"MEAT","carni":"MEAT","salumi":"MEAT","milk and dairy products":"FOOD","cow cheese":"FOOD","sheep cheese":"FOOD","stretched-curd cheese":"FOOD","pork meat":"MEAT","ham":"MEAT","other cured meats":"MEAT","poultry and rabbit meat":"MEAT","egg products":"FOOD","eggs":"FOOD","flour and groats":"FOOD","preserved fish":"MEAT","fish processing":"MEAT","shellfish":"MEAT","molluscs and mussels":"MEAT","soft drinks":"FOOD","oil and fats":"FOOD","pasta and rice":"FOOD","condiments":"FOOD","meat processing":"MEAT"},
+      uom:{"pcs":"PCS","pz":"PCS","piece":"PCS","pezzi":"PCS","box":"BOX","ctn":"BOX","cartone":"BOX","collo":"BOX","kg":"KG","kgs":"KG","kilogram":"KG"},
+      temperature:{"dry":"DRY","secco":"DRY","ambient":"DRY","amb":"DRY","fresh":"FRESH","fresco":"FRESH","chilled":"FRESH","refrigerated":"FRESH","frozen":"FROZEN","surgelato":"FROZEN","congelato":"FROZEN"},
+    };
+    if(!maps[field]) return raw;
+    return maps[field][String(raw||"").toLowerCase().trim()]||raw;
+  };
 
   if(step==="done"&&doneInfo) return(
     <div>
