@@ -3348,9 +3348,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
         const newHkd=cr?.cost?.step2Hkd??null;
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
+        const skipReason=isAir?"AIR":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",
-          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason:cr?.skipReason||""};
+          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason};
       });
   },[activeRows,costRows,products,xrefs,sortDir]);
 
@@ -3486,10 +3487,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
         <button onClick={()=>exportXLSX(
           displayed.map((r:any)=>({
             "Data":r.date||"","N HK":r.nHK||"","IFB No":r.ifbNo||"","Descrizione":r.description||"",
-            "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"","Location":r.location||"","Transport":r.transport||"",
-            "Mismatch":r.mismatch?"⚠":"","Ubicaz.":r.isAir?"AIR":r.ubicazione||"",
+            "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"","Location":r.location||"",
+            "Mismatch":r.mismatch?"⚠ "+( r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"",
+            "Mag./Trasp.":r.isAir?"AIR":r.ubicazione||"",
             "Old HKD":r.oldHkd!=null?roundN(r.oldHkd):"","New HKD":r.isAir?"AIR":r.newHkd!=null?roundN(r.newHkd):"MANCANTE",
-            "Δ%":r.pct!=null?roundN(r.pct,1):"","Note":r.skipReason||"",
+            "Δ%":r.pct!=null?roundN(r.pct,1):"","Motivo":r.skipReason||"",
           })),
           "Fatture & Costi",`Fatture_${branch}.xlsx`
         )} style={{padding:"6px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
@@ -3525,7 +3527,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data","N HK ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Transport","Ubicaz.","Old HKD","New HKD ▾","Δ%","Note"].map((c,ci)=>{
+              {["Data","N HK ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old HKD","New HKD ▾","Δ%","Motivo"].map((c,ci)=>{
                 if(c==="N HK ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -3575,23 +3577,25 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
                     </td>
                     <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace"}}><span style={{color:r.mismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
                     <td style={{padding:"6px 10px",fontSize:"11px",whiteSpace:"nowrap"}}>
-                      <Chip label={r.isAir?"✈ AIR":"⛴ SEA"} color={r.isAir?(r.locationIsNCJ?T.green:T.orange):(r.locationIsNCJ?T.orange:T.blue)}/>
-                      {r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}
-                    </td>
-                    <td style={{padding:"6px 10px",fontSize:"11px"}}>
-                      {r.isAir?<Chip label="✈ AIR" color={T.orange}/>:<Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>}
+                      {r.isAir
+                        ? <><Chip label="✈ AIR" color={r.locationIsNCJ?T.green:T.orange}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
+                        : <><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
+                      }
                     </td>
                     <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></td>
                     <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}>
-                      <span style={{color:r.newHkd!=null?T.gold:r.isAir?T.orange:T.red,fontWeight:"bold"}}>
-                        {r.isAir?"AIR":r.newHkd!=null?r.newHkd.toFixed(2):"MANCANTE"}
-                      </span>
+                      {r.isAir
+                        ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
+                        : r.newHkd!=null
+                          ? <span style={{color:T.gold,fontWeight:"bold"}}>{r.newHkd.toFixed(2)}</span>
+                          : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
+                      }
                     </td>
                     <td style={{padding:"6px 10px",fontSize:"11px",textAlign:"right"}}>
                       {r.pct!=null?<span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:Math.abs(r.pct)>3?"bold":"normal"}}>{r.pct>0?"+":""}{r.pct.toFixed(1)}%</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
-                    <td style={{padding:"6px 10px",fontSize:"10px"}}>
-                      {r.isAir?<Chip label="✈ AIR" color={T.orange}/>:<span style={{color:T.dim}}>{r.skipReason||""}</span>}
+                    <td style={{padding:"6px 10px",fontSize:"10px",maxWidth:"160px"}}>
+                      {r.skipReason?<span style={{color:r.skipReason==="AIR"?T.orange:T.orange,fontStyle:"italic"}}>{r.skipReason}</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
                   </tr>
                 );
