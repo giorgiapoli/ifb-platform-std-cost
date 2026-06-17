@@ -667,7 +667,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
     const kept=xrefs.filter(x=>!incoming.find(i=>i.nHK===x.nHK));
     const next=[...incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo})),...kept];
     setXrefs(next);LS.set(`ifb_xrefs_${branch}`,next);
-    const log={id,type:"xref",fileName,date:new Date(id).toISOString(),count:incoming.length,diffs,branch:"ALL"};
+    const log={id,type:"xref",fileName,date:new Date(id).toISOString(),count:incoming.length,diffs,branch};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
     bumpImportTs();showToast(`XRef: ${incoming.length} voci · ${diffs.filter(d=>d.isNew).length} nuove ✓`,T.gold);
@@ -1416,7 +1416,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
         if(fields.length) diffs.push({id:p.id,isNew:false,description:p.description,fields});
       }
     }
-    const snap={id:now,type:"anagrafica",date:new Date(now).toISOString(),count:newProds.length,diffs,products:newProds,branch:"ALL"};
+    const snap={id:now,type:"anagrafica",date:new Date(now).toISOString(),count:newProds.length,diffs,products:newProds,branch};
     const newSnaps=[snap,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
     setProducts(newProds);
     const savedProd = LS.set(`ifb_products_${branch}`, newProds);
@@ -4175,7 +4175,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     setProducts(newProds);
     IDB.set(`ifb_products_${branch}`, newProds);
     IDB.set(`ifb_anag_data_${now}`, newProds);
-    const log = { id:now, type:"anagrafica", date:new Date(now).toISOString(), count:newProds.length, branch:"ALL" };
+    const log = { id:now, type:"anagrafica", date:new Date(now).toISOString(), count:newProds.length, branch };
     const newLogs = [log,...importLogs];
     setImportLogs(newLogs); LS.set("ifb_importlogs", newLogs);
     const newSnaps = [log,...snapshots].slice(0,50);
