@@ -11,7 +11,7 @@ const T = {
 const BRANCH_CFG = {
   HK:  { label:"Hong Kong", flag:"🇭🇰", color:T.gold,   currency:"HKD", defaultRate:9.1437, active:true  },
   MAC: { label:"Macao",     flag:"🇲🇴", color:T.green,  currency:"MOP", defaultRate:9.08,   active:false },
-  CAN: { label:"Canarie",   flag:"🇮🇨", color:T.blue,   currency:"EUR", defaultRate:1,      active:false },
+  CAN: { label:"Canarie",   flag:"🇮🇨", color:T.blue,   currency:"EUR", defaultRate:1,      active:true  },
   AUS: { label:"Australia", flag:"🇦🇺", color:T.orange, currency:"AUD", defaultRate:1.6420, active:false },
 };
 const IFB_VENDOR = "INALCA FOOD & BEVERAGE";
@@ -63,6 +63,120 @@ const COSTS = {
   },
 };
 
+
+// ─── CANARIE COST CONSTANTS (05_Modello_Standard_Cost.xlsx) ──────────────────
+const COSTS_CAN = {
+  VERONA_BARCELONA: 2000,         // EUR fissi per truck (Verona → Barcellona)
+  PALLET: 15,                     // EUR per pallet
+  FUEL_SURCHARGE: 0.0284,         // 2.84% sul freight gomma
+  INSURANCE: 0.005,               // 0.5% sul prezzo acquisto (Seguro)
+  AIEM_ALCOL_PER_HL: 750.36,     // EUR/hl per bevande alcoliche
+  INLAND: { GC:762, TF:762, LAN:830, FUE:830 },  // EUR per container
+  FREIGHT_GOMMA: {
+    GC:  { DRY:133.692, FRESH:117,    FROZEN:133.692   },
+    TF:  { DRY:133.692, FRESH:117,    FROZEN:133.692   },
+    LAN: { DRY:190.254, FRESH:190.254,FROZEN:271.4976  },
+    FUE: { DRY:190.254, FRESH:190.254,FROZEN:271.4976  },
+  } as Record<string,Record<string,number>>,
+  FREIGHT_MARE: {
+    GC_NORD:2580.723404, GC_SUD:2258.529412,
+    TF_NORD:2580.723404, TF_SUD:2258.529412,
+    LAN_NORD:3521.4375,
+    FUE_NORD:3521.4375,
+  } as Record<string,number>,
+  MTO:  { DRY:8.16,    FRESH:10.2,    FROZEN:12.24    },
+  MTS_D:{ DRY:14.4228, FRESH:16.4832, FROZEN:24.7248  },
+  MTS_I:{ DRY:2.5755,  FRESH:3.6057,  FROZEN:3.6057   },
+  MTS_P:{ DRY:0.303,   FRESH:0.3434,  FROZEN:0.3535   },
+};
+
+/**
+ * Calcolo Standard Cost per filiale CANARIE.
+ * Nessun tasso di cambio (tutto EUR). Nessun AIR. Trasporto: GOMMA o MARE.
+ * Restituisce costi per 4 isole + gruppi GC-TF e LAN-FUE.
+ */
+function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
+  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature, aiem: aiemRate } = product;
+  const { transport, area, islands, palletsPerTruck, palletsPerContainer,
+          hasAlcTax, alcLitri, alcGrado } = logistic || {};
+
+  const temp: string = (temperature || "DRY").toUpperCase();
+
+  let unitsPerPlt: number;
+  if (uom === "BOX")       unitsPerPlt = Number(boxPerPallet);
+  else if (uom === "KG")   unitsPerPlt = Number(kgxplt) > 0 ? Number(kgxplt) : 300;
+  else                      unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet); // PCS
+
+  if (!unitsPerPlt || !priceInput) return null;
+
+  const pllTruck     = Number(palletsPerTruck)     || 32;
+  const pllContainer = Number(palletsPerContainer) || 24;
+  const divisoreCollo = uom === "BOX" ? 1 : uom === "KG" ? Number(kgPerBox || qtyPerBox) : Number(qtyPerBox);
+
+  const palletPerUnit = COSTS_CAN.PALLET / unitsPerPlt;
+
+  const alcTassaPerUnit = hasAlcTax && alcLitri > 0 && alcGrado > 0
+    ? Number(alcLitri) * (Number(alcGrado) / 100) * (COSTS_CAN.AIEM_ALCOL_PER_HL / 100)
+    : 0;
+
+  const perIsland: Record<string, any> = {};
+
+  for (const key of ["GC","TF","LAN","FUE"]) {
+    if (!islands?.[key]) continue;
+
+    let freightPerUnit = 0, inlandPerUnit = 0;
+    const tr = (transport || "GOMMA").toUpperCase();
+
+    if (tr === "GOMMA") {
+      const freightPerPlt = COSTS_CAN.FREIGHT_GOMMA[key]?.[temp] || 0;
+      const vbPerUnit     = COSTS_CAN.VERONA_BARCELONA / pllTruck / unitsPerPlt;
+      const freightUnit   = freightPerPlt / unitsPerPlt;
+      const fuel          = freightUnit * COSTS_CAN.FUEL_SURCHARGE;
+      const insurance     = Number(priceInput) * COSTS_CAN.INSURANCE;
+      freightPerUnit      = vbPerUnit + freightUnit + fuel + insurance;
+    } else {
+      const areaKey       = (key === "LAN" || key === "FUE") ? `${key}_NORD` : `${key}_${(area || "NORD").toUpperCase()}`;
+      const freightCont   = COSTS_CAN.FREIGHT_MARE[areaKey] || 0;
+      const unitsCont     = pllContainer * unitsPerPlt;
+      freightPerUnit      = freightCont / unitsCont;
+      inlandPerUnit       = COSTS_CAN.INLAND[key] / unitsCont;
+    }
+
+    const aiemBase   = Number(priceInput) + freightPerUnit + inlandPerUnit + palletPerUnit + alcTassaPerUnit;
+    const aiemPerUnit = ((Number(aiemRate) || 0) / 100) * aiemBase;
+    const step1      = aiemBase + aiemPerUnit;
+
+    let wh = 0;
+    const ub = (ubicazione || "MTO").toUpperCase();
+    if (ub === "MTO") {
+      wh = (COSTS_CAN.MTO[temp] ?? 0) / unitsPerPlt;
+    } else if (ub === "MTS") {
+      wh = (COSTS_CAN.MTS_D[temp] ?? 0) / unitsPerPlt
+         + (COSTS_CAN.MTS_I[temp] ?? 0) / unitsPerPlt
+         + (COSTS_CAN.MTS_P[temp] ?? 0) / divisoreCollo;
+    }
+
+    const step2 = step1 + wh;
+    perIsland[key] = { step1, step2, freightPerUnit, inlandPerUnit, palletPerUnit, aiemPerUnit, alcTassaPerUnit, wh };
+  }
+
+  if (!Object.keys(perIsland).length) return null;
+
+  // Gruppi: GC+TF (stessa tariffa), LAN+FUE (tariffa superiore)
+  const gcTfKeys  = ["GC","TF"].filter(k => perIsland[k]);
+  const lanFueKeys = ["LAN","FUE"].filter(k => perIsland[k]);
+
+  const step2GcTf  = gcTfKeys.length  ? perIsland[gcTfKeys[0]].step2  : null;
+  const step1GcTf  = gcTfKeys.length  ? perIsland[gcTfKeys[0]].step1  : null;
+  const step2LanFue = lanFueKeys.length ? perIsland[lanFueKeys[0]].step2 : null;
+  const step1LanFue = lanFueKeys.length ? perIsland[lanFueKeys[0]].step1 : null;
+
+  // step2Hkd viene usato dall'engine generico per delta/flagged — usiamo GC-TF come primario
+  const step2Hkd  = step2GcTf ?? step2LanFue;
+  const step2Eur  = step2Hkd;
+
+  return { perIsland, step1GcTf, step2GcTf, step1LanFue, step2LanFue, step2Hkd, step2Eur, unitsPerPlt };
+}
 
 function exportXLSX(rows: any[], sheetName: string, fileName: string) {
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -314,6 +428,50 @@ export default function App() {
   // ── Cost rows: only IFB vendor, only SEA (non-AIR)
   const costRows = useMemo(()=>{
     if(!branch) return [];
+
+    // ── CANARIE: motore separato ──────────────────────────────────────────────
+    if (branch === "CAN") {
+      const [yr,mo] = month.split("-").map(Number);
+      const prevM = mo===1 ? `${yr-1}-12` : `${yr}-${String(mo-1).padStart(2,"0")}`;
+      const eligible = products.filter(p => p.active && isIFBVendor(p.vendorName));
+      return eligible.map(prod => {
+        const logRaw = logistics.find((l:any) => l.productId === prod.id && l.branch === "CAN");
+        if (!logRaw) return { ...prod, cost:null, prevCost:null, priceInput:null, skipReason:"NO LOGISTICA" };
+
+        const ub = logRaw.ubicazione || "MTO";
+        const pr     = prices.find((p:any) => p.productId===prod.id && p.branch==="CAN" && p.month===month);
+        const prPrev = prices.find((p:any) => p.productId===prod.id && p.branch==="CAN" && p.month===prevM);
+
+        if (!pr) {
+          const meat = meatPrices.find((m:any) => m.code===prod.code || m.code===String(prod.id));
+          if (!meat) return { ...prod, cost:null, prevCost:null, priceInput:null, ubicazione:ub,
+            skipReason:`NO PREZZO (CAN/${month})` };
+          const kgPerUnit = prod.uom==="KG" ? 1 : prod.uom==="BOX" ? Number(prod.kgPerBox)||0
+            : (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1, 1);
+          const pi = meat.pricePerKg * kgPerUnit;
+          const cost2 = calcCAN({ priceInput:pi, ubicazione:ub, product:prod, logistic:logRaw });
+          return { ...prod, cost:cost2, prevCost:null, delta:null, priceInput:pi, isNew:true,
+            flagged:false, ubicazione:ub, skipReason:cost2?undefined:"CALC=0", _fromMeatList:true };
+        }
+
+        const pi  = selectPrice(pr, ub);
+        const piP = prPrev ? selectPrice(prPrev, ub) : null;
+
+        if (!pi) return { ...prod, cost:null, prevCost:null, priceInput:pi, ubicazione:ub,
+          skipReason:"PREZZO ZERO" };
+
+        const cost     = calcCAN({ priceInput:pi,  ubicazione:ub, product:prod, logistic:logRaw });
+        const prevCost = piP ? calcCAN({ priceInput:piP, ubicazione:ub, product:prod, logistic:logRaw }) : null;
+        if (!cost) return { ...prod, cost:null, prevCost:null, priceInput:pi,
+          skipReason:`CALC=0 (qty=${prod.qtyPerBox} box/plt=${prod.boxPerPallet} uom=${prod.uom})` };
+
+        const delta = cost && prevCost ? (cost.step2Hkd - prevCost.step2Hkd) / prevCost.step2Hkd * 100 : null;
+        return { ...prod, cost, prevCost, delta, priceInput:pi, isNew:!prPrev,
+          flagged: delta!==null && Math.abs(delta)>=3, ubicazione:ub };
+      });
+    }
+
+    // ── HK / altri branch ────────────────────────────────────────────────────
     const fxRate = fx.find(f=>f.branch===branch&&f.month===month)?.rate || BRANCH_CFG[branch]?.defaultRate || 9.1437;
     const [yr,mo] = month.split("-").map(Number);
     const prevM = mo===1 ? `${yr-1}-12` : `${yr}-${String(mo-1).padStart(2,"0")}`;
@@ -402,15 +560,16 @@ export default function App() {
     });
   }, [products,logistics,prices,fx,airList,meatPrices,branch,month]);
 
+  const isCAN = branch === "CAN";
   const NAV = [
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
     {id:"products",   icon:"◈", label:"Anagrafica", badge:"⇪"},
-    {id:"xref",       icon:"⇄", label:"XRef N / IFB"},
-    {id:"logistics",  icon:"◎", label:"Logistica"},
+    {id:"xref",       icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
+    {id:"logistics",  icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"},
     {id:"prices",     icon:"◉", label:"Listini", badge:"💶"},
     {id:"meatlist", icon:"🥩", label:"Listino Carne"},
-    {id:"fx",         icon:"◌", label:"Cambi"},
-    {id:"air",        icon:"✈", label:"AIR Transport"},
+    ...(!isCAN ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
+    ...(!isCAN ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
     {id:"costs",      icon:"◆", label:"Standard Cost"},
     {id:"invoice", icon:"📋", label:"Fatture & Costi", badge:"⇪"},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
@@ -659,13 +818,14 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
 
   const displayed=xrefs.filter(x=>!search||x.nHK?.toLowerCase().includes(search.toLowerCase())||x.ifbNo?.toLowerCase().includes(search.toLowerCase()));
 
+  const branchCode = branch === "CAN" ? "N COMIT" : "N HK";
   return(
     <div>
-      <PageHeader title={`⇄ XRef N / IFB N · ${branch}`} sub="Codici filiale ↔ IFB N — ogni filiale ha la propria tabella"/>
+      <PageHeader title={`⇄ XRef ${branchCode} / IFB N · ${branch}`} sub="Codici filiale ↔ IFB N — ogni filiale ha la propria tabella"/>
       {step==="map"&&(
         <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
-            {[["Colonna N HK *",colNHK,setColNHK],["Colonna IFB N *",colIFB,setColIFB]].map(([lbl,val,setter])=>(
+            {[[`Colonna ${branchCode} *`,colNHK,setColNHK],["Colonna IFB N *",colIFB,setColIFB]].map(([lbl,val,setter])=>(
               <div key={lbl}>
                 <label style={{display:"block",fontSize:"11px",color:T.gold,marginBottom:"5px"}}>{lbl}</label>
                 <select value={val} onChange={e=>setter(e.target.value)} style={{...inputStyle(),cursor:"pointer"}}>
@@ -697,7 +857,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
           </div>
           <Section title="Preview (prime 50)">
             <table style={{width:"100%",borderCollapse:"collapse"}}>
-              <THead cols={["N HK","IFB N","Stato"]} sticky />
+              <THead cols={[branchCode,"IFB N","Stato"]} sticky />
               <tbody>{preview.slice(0,50).map(r=>(
                 <tr key={r._idx} style={{borderBottom:`1px solid ${T.border}`,background:r._isNew?`${T.gold}07`:r._changed?`${T.orange}07`:""}}>
                   <TD mono><span style={{color:T.gold}}>{r.nHK}</span></TD>
@@ -715,11 +875,11 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
             onClick={()=>document.getElementById("_xref_in")?.click()}>
             <div style={{fontSize:"24px",marginBottom:"6px"}}>⇄</div>
             <div style={{fontSize:"13px",color:T.text,marginBottom:"4px"}}>Carica file XRef (Excel/CSV)</div>
-            <div style={{fontSize:"11px",color:T.muted}}>Due colonne: N HK · IFB N</div>
+            <div style={{fontSize:"11px",color:T.muted}}>Due colonne: {branchCode} · IFB N</div>
             <input id="_xref_in" type="file" accept=".xlsx,.xls,.csv"
               onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
           </div>
-          <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca per N HK o IFB N…"/>
+          <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca per ${branchCode} o IFB N…`}/>
           {xrefs.length>0&&(
             <div style={{marginBottom:"10px",display:"flex",justifyContent:"flex-end"}}>
               <button onClick={()=>{if(window.confirm(`Eliminare tutte le ${xrefs.length} XRef di ${branch}?`)){setXrefs([]);LS.set(`ifb_xrefs_${branch}`,[]);}}}
@@ -731,7 +891,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
           <Section title={`${displayed.length} / ${xrefs.length} corrispondenze`}>
             {xrefs.length===0?<div style={{padding:"24px",textAlign:"center",color:T.dim,fontSize:"13px"}}>Nessuna XRef caricata.</div>:(
               <table style={{width:"100%",borderCollapse:"collapse"}}>
-                <THead cols={["N HK","IFB N","Azioni"]} sticky />
+                <THead cols={[branchCode,"IFB N","Azioni"]} sticky />
                 <tbody>{displayed.map((x,i)=>(
                   <tr key={x.nHK+i} style={{borderBottom:`1px solid ${T.border}`}}>
                     <TD mono><span style={{color:T.gold}}>{x.nHK}</span></TD>
@@ -756,7 +916,8 @@ function NotesPage() {
       "Import Listini: il codice nel file PBI deve essere N HK o IFB N — usa XRef per il matching automatico.",
       "Colonna 'No_' nel file CURRENT PRICELIST (ACQ) contiene a volte il codice HK (es. WCAN01-NV) — la mappatura automatica lo rileva.",
       "I codici P_BC_xxx vengono filtrati automaticamente (ID interni Power BI).",
-      "Canarie (CAN), Macao (MAC) e Australia (AUS): calcoli costo non ancora attivati.",
+      "Macao (MAC) e Australia (AUS): calcoli costo non ancora attivati.",
+      "Canarie (CAN): attivato. Caricare Work Tab per logistica + anagrafica IFB per articoli. AIEM dal campo 'aiem' dell'anagrafica.",
     ]},
     {title:"🟡 Ambiguità",color:T.orange,items:[
       "Formula DAP Final: SE(DAP Disc≠0, DAP Disc, SE(isX, SE(WINE, FCA+carriage, FCADisc+carriage), 0)). isX dipende da FOR_VENDORS hardcodato.",
@@ -1309,9 +1470,9 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   const[doneInfo,setDoneInfo]=useState(null);
   const[fileName,setFileName]=useState("");
 
-  // Added vendorName AND vendorName2
-  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","temperature","active","vendorName","vendorName2"];
-  const FLABELS={nHK:"N HK (No_)",code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone / Net Weight",temperature:"Product Type",active:"Bloccato",vendorName:"Vendor Name (es. INALCA FOOD & BEVERAGE SRL)",vendorName2:"Vendor Name 2 (fornitore reale)"};
+  // Added vendorName AND vendorName2; aiem for CAN
+  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
+  const FLABELS={nHK:"N HK (No_)",code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone / Net Weight",kgxplt:"Kg per Pallet (kgxplt)",temperature:"Product Type",aiem:"AIEM % (Canarie)",active:"Bloccato",vendorName:"Vendor Name (es. INALCA FOOD & BEVERAGE SRL)",vendorName2:"Vendor Name 2 (fornitore reale)"};
 
   const LOCAL_ALIASES = {
     nHK:         ["no","no_"],          // Anagrafica 'no' column = N HK
@@ -1322,7 +1483,9 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     qtyPerBox:   ["quantityxpackaging","quantity x packaging"],
     boxPerPallet:["packagingxpallet","packaging x pallet"],
     kgPerBox:    ["netweight","net weight"],
+    kgxplt:      ["kgxplt","kg x plt","kgplt","kgperpallet"],
     temperature: ["producttype","product type","product type rettificato","product type - anagrafica"],
+    aiem:        ["aiem"],
     active:      ["blocked"],
     vendorName:  ["vendorname","vendor name"],    // exact match: 'vendorname' col in Anagrafica
     vendorName2: ["vendorname2","vendor name 2"],
@@ -1382,6 +1545,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       kgxplt: parseFloat(r.kgxplt) > 0
     ? parseFloat(r.kgxplt)
     : roundN((parseFloat(r.kgPerBox)||0) * (parseFloat(r.qtyPerBox)||1) * (parseFloat(r.boxPerPallet)||0)),
+      aiem: parseFloat(r.aiem) || 0,
       active:!["true","1","yes"].includes(String(r.active||"").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
@@ -1923,9 +2087,10 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         const dataRows = raw.slice(headerRowIdx+1).filter(r => r.some(c => c !== ""));
         
         const fi = aliases => hdrs.findIndex(h => aliases.some(a => h.toLowerCase().replace(/[\s_°]/g,"").includes(a.replace(/[\s_°]/g,""))));
-        
+        const fiExact = (...names:string[]) => hdrs.findIndex(h => names.includes(h.trim().toUpperCase()));
+
         const idx = {
-          iNHK: fi(["nhk","n hk","gc"]),
+          iNHK: fi(["nhk","n hk","n comit","comit"]),
           iIFB: fi(["no_(ifb)","noifb","ifb","no_"]),
           iUb: fi(["ubicazione","location","wh"]),
           iArea: fi(["area"]),
@@ -1935,6 +2100,13 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           iCarriage: fi(["pltcostmedio","plt cost medio","pltcost","carriage"]),
           iAirSea: fi(["air/sea","airsea","air","sea"]),
           iAlcTax: fi(["tassa alcolica","tassaalcolica","alcolica","alctax","alc tax"]),
+          // CAN Work Tab islands + transport (exact match to avoid ambiguity)
+          iGC: fiExact("GC"),
+          iTF: fiExact("T","TF","TENERIFE"),
+          iFUE: fiExact("F","FUE","FUERTEVENTURA"),
+          iLAN: fiExact("L","LAN","LANZAROTE"),
+          iTransport: fi(["trasporto","transport"]),
+          iTruck: fi(["camion","truck","pltpertruck"]),
         };
         setColIdx(idx);
         setLogHeaders(hdrs);
@@ -1950,29 +2122,53 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   }
 
   function applyLogFile() {
-    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iAlcTax } = colIdx;
+    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iAlcTax,
+            iGC, iTF, iFUE, iLAN, iTransport, iTruck } = colIdx;
     let next = [...logistics];
     let countLog = 0, countAir = 0;
     const currentBranch = branch;
-  
+    const isCANBranch = currentBranch === "CAN";
+
     logRawRows.forEach(row => {
-      // Ottieni i codici
       const nhkRaw = iNHK >= 0 ? String(row[iNHK] || "").trim() : "";
       const ifbRaw = iIFB >= 0 ? String(row[iIFB] || "").trim() : "";
       if (!nhkRaw && !ifbRaw) return;
-  
-      // Trova il prodotto
+
       const prod = findProduct(nhkRaw, products, xrefs) || findProduct(ifbRaw, products, xrefs);
       if (!prod) return;
-  
-      // Controlla se è AIR (salta)
+
+      if (isCANBranch) {
+        // ── CAN Work Tab: isole + trasporto ──────────────────────────────────
+        const boolVal = (i:number) => i >= 0 ? (Number(row[i]) === 1 || String(row[i]||"").trim() === "1") : false;
+        const islands = { GC: boolVal(iGC), TF: boolVal(iTF), FUE: boolVal(iFUE), LAN: boolVal(iLAN) };
+        const trRaw = iTransport >= 0 ? String(row[iTransport]||"").trim().toUpperCase() : "GOMMA";
+        const transport = trRaw.includes("MARE") || trRaw.includes("SEA") ? "MARE" : "GOMMA";
+        const ubRaw2 = iUb >= 0 ? String(row[iUb]||"").trim().toUpperCase() : "";
+        const ubicazione2 = ubRaw2.includes("MTS") ? "MTS" : ubRaw2.includes("FOR") ? "FOR" : "MTO";
+        const areaRaw2 = iArea >= 0 ? String(row[iArea]||"").trim().toUpperCase() : "NORD";
+        const area2 = areaRaw2.includes("SUD") ? "SUD" : "NORD";
+        const pltTruck = iTruck >= 0 ? (parseFloat(String(row[iTruck]||"0")) || 32) : 32;
+        const pltCont  = iPlt >= 0  ? (parseFloat(String(row[iPlt]||"0"))   || 24) : 24;
+        const entry = { productId:prod.id, branch:currentBranch,
+          transport, islands, area:area2, ubicazione:ubicazione2,
+          palletsPerTruck:pltTruck, palletsPerContainer:pltCont,
+          pltPerContainer: pltCont, // compat
+        };
+        const existIdx = next.findIndex(l => l.productId===prod.id && l.branch===currentBranch);
+        if (existIdx >= 0) next[existIdx] = { ...next[existIdx], ...entry };
+        else next.push(entry);
+        countLog++;
+        return;
+      }
+
+      // ── HK e altri branch ─────────────────────────────────────────────────
       // Controlla se è AIR (salta)
       const airSeaRaw = iAirSea >= 0 ? String(row[iAirSea] || "").trim().toUpperCase() : "";
       if (airSeaRaw === "AIR") {
         countAir++;
         return;
       }
-  
+
       // Ubicazione
       const ubRaw = iUb >= 0 ? String(row[iUb] || "").trim().toUpperCase() : "";
       let ubicazione = "MTO";
@@ -2160,13 +2356,19 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
       🗑 Svuota tutti i dati ({logistics.filter((l:any)=>l.branch===branch).length} righe)
     </button>
     
-    <span style={{fontSize:"11px", color:T.muted}}>Colonne: N HK / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
+    <span style={{fontSize:"11px", color:T.muted}}>
+      {branch === "CAN"
+        ? "Colonne Work Tab: No_(IFB) / GC / T / F / L / Trasporto / UBICAZIONE / Area"
+        : "Colonne: N HK / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA"}
+    </span>
   </div>
 ) : mapStep === "ready" ? (
   <div style={{background:T.card, border:`1px solid ${T.green}`, borderRadius:"8px", padding:"16px", marginBottom:"16px"}}>
     <div style={{color:T.green, fontWeight:"bold", fontSize:"13px", marginBottom:"8px"}}>✓ File rilevato · {logRawRows.length} righe</div>
     <div style={{fontSize:"12px", color:T.muted, marginBottom:"12px", lineHeight:"1.8"}}>
-      Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica
+      {branch === "CAN"
+        ? <>Verranno importati per <strong style={{color:T.gold}}>CAN</strong>: Isole (GC/TF/FUE/LAN), Trasporto (GOMMA/MARE), Ubicazione, Area</>
+        : <>Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica</>}
     </div>
     <div style={{display:"flex", gap:"10px"}}>
       <ActionBtn label="← Annulla" onClick={() => setMapStep("idle")}/>
@@ -2203,7 +2405,10 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-              {["IFB No","N HK","Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."].map(c=>(
+              {(branch === "CAN"
+                ? ["IFB No","Descrizione","Ubicaz.","Trasporto","Area","GC","TF","FUE","LAN","Plt/Truck","Plt/Cont"]
+                : ["IFB No","N HK","Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."]
+              ).map(c=>(
                 <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
               ))}
               </tr>
@@ -2212,15 +2417,28 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
               {displayed.map((prod, i) => {
                 const l = getOrDefault(prod.id);
                 const hasEntry = !!getLog(prod.id);
+                const islandDot = (flag:boolean) => <span style={{color:flag?T.green:T.dim,fontWeight:"bold"}}>{flag?"●":"○"}</span>;
                 return (
                   <tr key={prod.id} style={{borderBottom:`1px solid ${T.border}`, background:!hasEntry ? `${T.orange}08` : (i%2===0 ? T.bg : T.surface)}}>
                     <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.gold}}>{prod.code}</span></td>
-                    <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.muted}}>{prod.nHK||"—"}</span></td>
+                    {branch !== "CAN" && <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.muted}}>{prod.nHK||"—"}</span></td>}
                     <td style={{padding:"7px 12px", fontSize:"12px"}}>
                       {prod.description}
                       {!hasEntry && <span style={{marginLeft:"6px", fontSize:"9px", color:T.orange, fontWeight:"bold"}}>⚠ MANCANTE</span>}
                     </td>
-                    {hasEntry ? (
+                    {hasEntry && branch === "CAN" ? (
+                      <>
+                        <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
+                        <td style={{padding:"7px 12px"}}><Chip label={l.transport||"GOMMA"} color={l.transport==="MARE"?T.blue:T.green}/></td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"NORD"}</td>
+                        <td style={{padding:"7px 12px", textAlign:"center"}}>{islandDot(l.islands?.GC)}</td>
+                        <td style={{padding:"7px 12px", textAlign:"center"}}>{islandDot(l.islands?.TF)}</td>
+                        <td style={{padding:"7px 12px", textAlign:"center"}}>{islandDot(l.islands?.FUE)}</td>
+                        <td style={{padding:"7px 12px", textAlign:"center"}}>{islandDot(l.islands?.LAN)}</td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.palletsPerTruck||32}</td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.gold}}>{l.palletsPerContainer||24}</td>
+                      </>
+                    ) : hasEntry ? (
                       <>
                         <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"—"}</td>
@@ -2942,7 +3160,16 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
           {needsRecalc?"⟳ Ricalcola & Salva":"✓ Aggiornato"}
         </button>
         <button onClick={()=>exportXLSX(
-          filtered.filter((r:any)=>r.cost).map((r:any)=>({
+          filtered.filter((r:any)=>r.cost).map((r:any)=> branch==="CAN" ? ({
+            "IFB No":r.code||"","Descrizione":r.description||"","UOM":r.uom||"",
+            "Ubicazione":r.ubicazione||"","Temp.":r.temperature||"",
+            "Trasporto":r.cost?.transport||"","Prezzo EUR":roundN(r.priceInput,4),
+            "AIEM €/unit":roundN(r.cost?.perIsland?.GC?.aiemPerUnit??r.cost?.perIsland?.TF?.aiemPerUnit??0,4),
+            "WH €/unit":roundN(r.cost?.perIsland?.GC?.wh??r.cost?.perIsland?.TF?.wh??0,4),
+            "Step1 GC-TF":roundN(r.cost?.step1GcTf,4),"Step2 GC-TF ✓":roundN(r.cost?.step2GcTf,4),
+            "Step1 LAN-FUE":roundN(r.cost?.step1LanFue,4),"Step2 LAN-FUE ✓":roundN(r.cost?.step2LanFue,4),
+            "Δ% GC-TF":r.delta!=null?roundN(r.delta,1):"","Old SC":roundN(r.prevCost?.step2GcTf,4),
+          }) : ({
             "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
             "UOM":r.uom||"","Ubicazione":r.ubicazione||"",
             "Temp.":r.temperature||"","Temp. Rettif.":r.temperatureOverride||"",
@@ -2996,10 +3223,10 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 {/* FILTRI MULTIPLI */}
 <div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap",alignItems:"flex-start",borderTop:`1px solid ${T.border}`,paddingTop:"10px"}}>
   <span style={{fontSize:"11px",color:T.muted,paddingTop:"6px"}}>🔍 Filtri:</span>
-  {([ 
+  {([
     {key:"costCalculated", label:"✅ Costi calcolati", col:T.gold},
     {key:"flagged",        label:"Variazioni ≥3%",    col:T.orange},
-    {key:"air",            label:"✈ AIR",             col:T.blue},
+    ...(branch!=="CAN" ? [{key:"air", label:"✈ AIR", col:T.blue}] : []),
     {key:"noPrice",        label:"❌ Senza prezzo",   col:T.red},
     {key:"noLog",          label:"⚠ No logistica",    col:T.orange},
     {key:"calcZero",       label:"⚡ Calc=0",          col:T.purple},
@@ -3064,40 +3291,72 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 <div ref={tableScrollRef} style={{overflowX:"auto",width:"100%"}}>
         <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
           <thead>
-            {/* riga gruppi */}
-            <tr style={stickyTop0}>
-              <GH span={3}/>
-              <GH span={4}/>
-              <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>
-              <GH span={2} accent={T.gold}>Step 1</GH>
-              <GH span={1} accent={T.purple}>Magazzino</GH>
-              <GH span={2} accent={T.green}>Step 2 finale</GH>
-              <GH span={2}/>
-            </tr>
-            {/* riga colonne */}
-            <tr style={stickyTop22}>
-              <TH align="left" sticky w={70}>N HK</TH>
-              <TH align="left" w={70}>IFB No</TH>
-              <TH align="left" w={180}>Descrizione</TH>
-              <TH w={60}>UOM</TH>
-              <TH w={55}>Ubicaz.</TH>
-              <TH w={55} align="center">Temp.</TH>
-              <TH w={55} align="center">Rettif.</TH>
-              <TH accent={T.blue} w={70}>Prezzo €</TH>
-              <TH accent={T.blue} w={65}>FOB</TH>
-              <TH accent={T.blue} w={65}>LIC</TH>
-              <TH accent={T.blue} w={55}>VGM</TH>
-              <TH accent={T.blue} w={55}>Cert.</TH>
-              <TH accent={T.blue} w={60}>Pallet</TH>
-              <TH accent={T.blue} w={60}>Alc.Tax</TH>
-              <TH accent={T.gold} w={72}>Step1 €</TH>
-              <TH accent={T.gold} w={80}>Step1 HKD</TH>
-              <TH accent={T.purple} w={65}>WH €</TH>
-              <TH accent={T.green} w={72}>Step2 €</TH>
-              <TH accent={T.green} w={85}>Step2 HKD ✓</TH>
-              <TH w={60}>Δ%</TH>
-              <TH w={90}>Ultimo ordine</TH>
-            </tr>
+            {branch === "CAN" ? (
+              <>
+                <tr style={stickyTop0}>
+                  <GH span={3}/>
+                  <GH span={3}/>
+                  <GH span={3} accent={T.blue}>Costi (€/unit)</GH>
+                  <GH span={2} accent={T.gold}>Step 1</GH>
+                  <GH span={1} accent={T.purple}>WH</GH>
+                  <GH span={2} accent={T.green}>Step 2 ✓</GH>
+                  <GH span={2}/>
+                </tr>
+                <tr style={stickyTop22}>
+                  <TH align="left" sticky w={70}>IFB No</TH>
+                  <TH align="left" w={180}>Descrizione</TH>
+                  <TH w={55}>Ubicaz.</TH>
+                  <TH w={60}>Trasporto</TH>
+                  <TH w={50}>Temp.</TH>
+                  <TH w={50}>UOM</TH>
+                  <TH accent={T.blue} w={70}>Prezzo €</TH>
+                  <TH accent={T.blue} w={60}>Pallet</TH>
+                  <TH accent={T.blue} w={55}>AIEM €</TH>
+                  <TH accent={T.gold} w={80}>Step1 GC-TF</TH>
+                  <TH accent={T.gold} w={85}>Step1 LAN-FUE</TH>
+                  <TH accent={T.purple} w={60}>WH €</TH>
+                  <TH accent={T.green} w={85}>Step2 GC-TF ✓</TH>
+                  <TH accent={T.green} w={90}>Step2 LAN-FUE ✓</TH>
+                  <TH w={60}>Δ%</TH>
+                  <TH w={90}>Ultimo ordine</TH>
+                </tr>
+              </>
+            ) : (
+              <>
+                <tr style={stickyTop0}>
+                  <GH span={3}/>
+                  <GH span={4}/>
+                  <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>
+                  <GH span={2} accent={T.gold}>Step 1</GH>
+                  <GH span={1} accent={T.purple}>Magazzino</GH>
+                  <GH span={2} accent={T.green}>Step 2 finale</GH>
+                  <GH span={2}/>
+                </tr>
+                <tr style={stickyTop22}>
+                  <TH align="left" sticky w={70}>N HK</TH>
+                  <TH align="left" w={70}>IFB No</TH>
+                  <TH align="left" w={180}>Descrizione</TH>
+                  <TH w={60}>UOM</TH>
+                  <TH w={55}>Ubicaz.</TH>
+                  <TH w={55} align="center">Temp.</TH>
+                  <TH w={55} align="center">Rettif.</TH>
+                  <TH accent={T.blue} w={70}>Prezzo €</TH>
+                  <TH accent={T.blue} w={65}>FOB</TH>
+                  <TH accent={T.blue} w={65}>LIC</TH>
+                  <TH accent={T.blue} w={55}>VGM</TH>
+                  <TH accent={T.blue} w={55}>Cert.</TH>
+                  <TH accent={T.blue} w={60}>Pallet</TH>
+                  <TH accent={T.blue} w={60}>Alc.Tax</TH>
+                  <TH accent={T.gold} w={72}>Step1 €</TH>
+                  <TH accent={T.gold} w={80}>Step1 HKD</TH>
+                  <TH accent={T.purple} w={65}>WH €</TH>
+                  <TH accent={T.green} w={72}>Step2 €</TH>
+                  <TH accent={T.green} w={85}>Step2 HKD ✓</TH>
+                  <TH w={60}>Δ%</TH>
+                  <TH w={90}>Ultimo ordine</TH>
+                </tr>
+              </>
+            )}
           </thead>
           <tbody>
             {filtered.map((r:any,i:number)=>{
@@ -3109,9 +3368,77 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               const isOld  = lastD&&lastD<sixMonthsAgo;
               const rowBg  = i%2===0?T.bg:T.surface;
               const isSelected = showDetail===r.id;
+              const pctFmt = (p:number|null) => p!=null ? ((p>0?"+":"")+p.toFixed(1)+"%") : "—";
+              const pctColor = (p:number|null) => p==null?T.dim:Math.abs(p)>=3?(p>0?T.red:T.green):T.muted;
 
+              if (branch === "CAN") {
+                const gcTf1  = c?.step1GcTf;
+                const lanFue1 = c?.step1LanFue;
+                const gcTf2  = c?.step2GcTf;
+                const lanFue2 = c?.step2LanFue;
+                const pi = c ? Object.values(c.perIsland||{})[0] as any : null;
+                const logEntry = logistics?.find((l:any)=>l.productId===r.id&&l.branch==="CAN");
+                const tr2 = logEntry?.transport || "—";
+                return (<>
+                  <tr key={r.id}
+                    style={{background:isSelected?`${T.gold}08`:rowBg,cursor:"pointer"}}
+                    onClick={()=>setShowDetail((v:any)=>v===r.id?null:r.id)}>
+                    <td style={{...cellL(true),background:isSelected?`${T.gold}08`:rowBg}}>
+                      <span style={{color:T.gold,fontFamily:"monospace",fontSize:"10px"}}>{r.code}</span>
+                    </td>
+                    <td style={{...cellL(),maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis"}}>{r.description}</td>
+                    <td style={cell()}>
+                      {r.ubicazione ? <Chip label={r.ubicazione} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/> : <span style={{color:T.dim}}>—</span>}
+                    </td>
+                    <td style={cell()}><span style={{fontSize:"10px",color:T.muted}}>{tr2}</span></td>
+                    <td style={cell()}>{r.temperature?<Chip label={r.temperature} color={r.temperature==="FROZEN"?T.blue:r.temperature==="FRESH"?T.green:T.muted}/>:<span style={{color:T.dim}}>—</span>}</td>
+                    <td style={cell()}>{r.uom||"—"}</td>
+                    <td style={cell(T.text)}>{c?`€${f4(r.priceInput)}`:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}</td>
+                    <td style={cell()}>{pi?f4(pi.palletPerUnit):"—"}</td>
+                    <td style={cell()}>{pi?f4(pi.aiemPerUnit):"—"}</td>
+                    <td style={cell(T.gold,true)}>{gcTf1!=null?`€${gcTf1.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.gold)}>{lanFue1!=null?`€${lanFue1.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.purple)}>{pi?(pi.wh>0?f4(pi.wh):"—"):"—"}</td>
+                    <td style={cell(T.green,true)}>
+                      {gcTf2!=null?<span style={{fontWeight:"bold"}}>€{gcTf2.toFixed(4)}</span>:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}
+                    </td>
+                    <td style={cell(T.green)}>
+                      {lanFue2!=null?<span style={{color:T.green}}>€{lanFue2.toFixed(4)}</span>:<span style={{color:T.dim,fontSize:"9px"}}>—</span>}
+                    </td>
+                    <td style={cell(pctColor(pct),Math.abs(pct||0)>=3)}>
+                      {pctFmt(pct)}{Math.abs(pct||0)>=3&&" ⚡"}
+                    </td>
+                    <td style={{...cell(),textAlign:"center"}}>
+                      {!lastD ? <span style={{color:T.dim}}>—</span>
+                        : isOld ? <div style={{lineHeight:1.2}}><div style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>⚠ KEEP OLD</div><div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div></div>
+                        : <span style={{color:T.muted}}>{lastD.toLocaleDateString("it-IT")}</span>}
+                    </td>
+                  </tr>
+                  {isSelected&&c&&(
+                    <tr key={r.id+"_detail"}>
+                      <td colSpan={16} style={{padding:"8px 16px",background:`${T.gold}06`,borderBottom:`1px solid ${T.gold}33`}}>
+                        <div style={{display:"flex",flexWrap:"wrap",gap:"6px",fontSize:"10px"}}>
+                          {(["GC","TF","LAN","FUE"] as const).map(k => {
+                            const pi2 = c.perIsland?.[k]; if(!pi2) return null;
+                            return <div key={k} style={{padding:"4px 10px",background:T.card,borderRadius:"6px",border:`1px solid ${T.border}`}}>
+                              <span style={{color:T.gold,fontWeight:"bold"}}>{k}: </span>
+                              <span style={{color:T.muted}}>freight €{f4(pi2.freightPerUnit)} inland €{f4(pi2.inlandPerUnit)} AIEM €{f4(pi2.aiemPerUnit)} WH €{f4(pi2.wh)} </span>
+                              <span style={{color:T.green,fontWeight:"bold"}}>SC2 €{pi2.step2.toFixed(4)}</span>
+                            </div>;
+                          })}
+                          <div style={{padding:"4px 10px",background:T.card,borderRadius:"6px",border:`1px solid ${T.border}`}}>
+                            <span style={{color:T.dim}}>Units/plt: {c.unitsPerPlt||"—"}</span>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>);
+              }
+
+              // ── HK e altri branch ──
               return(<>
-                                  <tr key={r.id}
+                <tr key={r.id}
                   style={{background:isSelected?`${T.gold}08`:rowBg,opacity:r.isAir?0.45:1,cursor:"pointer"}}
                   onClick={()=>setShowDetail((v:any)=>v===r.id?null:r.id)}>
 
@@ -3174,9 +3501,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                   </td>
 
                   {/* delta */}
-                  <td style={cell(pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,Math.abs(pct||0)>=3)}>
-                    {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
-                    {Math.abs(pct||0)>=3&&" ⚡"}
+                  <td style={cell(pctColor(pct),Math.abs(pct||0)>=3)}>
+                    {pctFmt(pct)}{Math.abs(pct||0)>=3&&" ⚡"}
                   </td>
 
                   {/* ultimo ordine */}
