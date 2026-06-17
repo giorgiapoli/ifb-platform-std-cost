@@ -543,11 +543,12 @@ export default function App() {
           <div style={{fontSize:"9px",letterSpacing:"2px",color:T.dim,textTransform:"uppercase",marginBottom:"6px"}}>Filiale</div>
           <div style={{display:"flex",flexDirection:"column",gap:"3px"}}>
             {Object.entries(BRANCH_CFG).map(([key,c])=>(
-              <button key={key} onClick={()=>setBranch(key)}
+              <button key={key} onClick={()=>{ setBranch(key); setPage("dashboard"); }}
                 style={{padding:"5px 8px",background:branch===key?`${c.color}20`:"transparent",
                   border:`1px solid ${branch===key?c.color:"transparent"}`,borderRadius:"6px",
                   color:branch===key?c.color:T.muted,cursor:"pointer",fontFamily:"inherit",
-                  fontSize:"11px",textAlign:"left",display:"flex",alignItems:"center",gap:"6px"}}>
+                  fontSize:"11px",textAlign:"left",display:"flex",alignItems:"center",gap:"6px",
+                  opacity:c.active?1:0.45,cursor:c.active?"pointer":"default"}}>
                 <span>{c.flag}</span>{c.label}
                 {!c.active&&<span style={{fontSize:"7px",color:c.color,marginLeft:"auto",background:`${c.color}22`,padding:"1px 4px",borderRadius:"3px"}}>SOON</span>}
               </button>
@@ -600,7 +601,7 @@ export default function App() {
             <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>✉ Mail</button>
           </div>
         </div>
-        <div style={{flex:1,paddingTop:"20px",paddingLeft:"28px",paddingBottom:"20px",paddingRight:0,overflow:"auto",width:"calc(100% - 200px)",boxSizing:"border-box"}}>{pages[page]}</div>
+        <div style={{flex:1,paddingTop:"20px",paddingLeft:"28px",paddingBottom:"20px",paddingRight:0,overflow:"auto",width:"calc(100% - 200px)",boxSizing:"border-box"}}>{isCAN && (page==="air"||page==="fx") ? pages["dashboard"] : pages[page]}</div>
       </div>
       {toast&&<div style={{position:"fixed",bottom:"24px",right:"24px",padding:"10px 18px",background:toast.color,borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:"bold",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",zIndex:1000}}>{toast.msg}</div>}
     </div>
