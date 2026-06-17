@@ -2074,9 +2074,11 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
     if(!search) return true;
     return p.description?.toLowerCase().includes(_sq) || p.code?.toLowerCase().includes(_sq) || p.nHK?.toLowerCase().includes(_sq);
   });
-  const displayed = showOnlyMissing
-  ? allProds.filter(p => !getLog(p.id))
-  : allProds.filter(p => !!getLog(p.id));
+  const displayed = search
+    ? allProds
+    : showOnlyMissing
+      ? allProds.filter(p => !getLog(p.id))
+      : allProds.filter(p => !!getLog(p.id));
   const missingCount = allIFBProducts.filter(p => !getLog(p.id)).length;
   const withCount = allIFBProducts.filter(p => getLog(p.id) !== null).length;
 
@@ -2880,8 +2882,6 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
 if (invoiceOnly) {
   filtered = filtered.filter((r:any) => invoiceIds.has(r.id));
 }
-
-filtered = filtered.filter((r: any) => r.priceInput !== 0 && r.priceInput != null);
 
 if(initFilter==="flagged") filtered=filtered.filter((r:any)=>r.flagged===true);
 else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
@@ -4334,14 +4334,16 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   };
 
   
-    const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
-    const q = search.trim().toLowerCase();
-    const filtered = !q ? base : base.filter((p: any) =>
-      String(p.description||"").toLowerCase().includes(q) ||
-      String(p.code||"").toLowerCase().includes(q) ||
-      String(p.nHK||"").toLowerCase().includes(q) ||
-      String(p.id||"").toLowerCase().includes(q)
-    );
+    const filtered = useMemo(() => {
+      const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
+      const q = search.trim().toLowerCase();
+      return !q ? base : base.filter((p: any) =>
+        String(p.description||"").toLowerCase().includes(q) ||
+        String(p.code||"").toLowerCase().includes(q) ||
+        String(p.nHK||"").toLowerCase().includes(q) ||
+        String(p.id||"").toLowerCase().includes(q)
+      );
+    }, [products, onlyIFB, search]);
 
   return (
     <div>
