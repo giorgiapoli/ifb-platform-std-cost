@@ -11,7 +11,7 @@ const T = {
 const BRANCH_CFG = {
   HK:  { label:"Hong Kong", flag:"🇭🇰", color:T.gold,   currency:"HKD", defaultRate:9.1437, active:true  },
   MAC: { label:"Macao",     flag:"🇲🇴", color:T.green,  currency:"MOP", defaultRate:9.08,   active:false },
-  CAN: { label:"Canarie",   flag:"🇮🇨", color:T.blue,   currency:"EUR", defaultRate:1,      active:false },
+  CAN: { label:"Canarie",   flag:"🇮🇨", color:T.blue,   currency:"EUR", defaultRate:1,      active:true },
   AUS: { label:"Australia", flag:"🇦🇺", color:T.orange, currency:"AUD", defaultRate:1.6420, active:false },
 };
 const IFB_VENDOR = "INALCA FOOD & BEVERAGE";
@@ -602,7 +602,7 @@ export default function App() {
             <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>✉ Mail</button>
           </div>
         </div>
-        <div style={{flex:1,paddingTop:"20px",paddingLeft:"28px",paddingBottom:"20px",paddingRight:0,overflow:"auto",width:"calc(100% - 200px)",boxSizing:"border-box"}}>{isCAN && (page==="air"||page==="fx") ? pages["dashboard"] : pages[page]}</div>
+        <div style={{flex:1,paddingTop:"20px",paddingLeft:"28px",paddingBottom:"20px",paddingRight:0,overflow:"auto",width:"calc(100% - 200px)",boxSizing:"border-box"}}>{pages[page]}</div>
       </div>
       {toast&&<div style={{position:"fixed",bottom:"24px",right:"24px",padding:"10px 18px",background:toast.color,borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:"bold",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",zIndex:1000}}>{toast.msg}</div>}
     </div>
