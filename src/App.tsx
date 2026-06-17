@@ -4015,7 +4015,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     vendorName2: ["vendorname2", "vendor name 2"],
   };
 
-  // ✅ MAPBCVAL COMPLETA
+  // ✅ MAPBCVAL DEFINITA DENTRO IL COMPONENTE
   const mapBCVal = (field: string, raw: string) => {
     const maps: any = {
       category: {
@@ -4390,7 +4390,6 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     </div>
   );
 }
-
 
 // ─── MEAT PRICE LIST ──────────────────────────────────────────────────────────
 function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
