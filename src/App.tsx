@@ -522,7 +522,7 @@ export default function App() {
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
-    invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     storico: <Storico 
       snapshots={snapshots}
       setSnapshots={setSnapshots}
@@ -3253,7 +3253,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 
 
-function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,logistics,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const [step,setStep]         = useState(()=>rows?.length?"view":"upload");
   const [preview,setPreview]   = useState<any[]>([]);
   const [headers,setHeaders]   = useState<string[]>([]);
@@ -3357,8 +3357,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
         const skipReason=isAir?"AIR":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
+        const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
+        const logTransport=logEntry?.transport||"";
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
-          description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",
+          description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
           isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason};
       });
   },[activeRows,costRows,products,xrefs,sortDir]);
@@ -3370,9 +3372,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
 
   let displayed=enriched as any[];
   if(excludeAir)               displayed=displayed.filter(r=>!r.isAir);
-  if(filterTransport==="air")      displayed=displayed.filter(r=>r.isAir);
-  else if(filterTransport==="sea") displayed=displayed.filter(r=>!r.isAir);
+  if(filterTransport==="air")           displayed=displayed.filter(r=>r.isAir);
+  else if(filterTransport==="sea")      displayed=displayed.filter(r=>!r.isAir);
   else if(filterTransport==="mismatch") displayed=displayed.filter(r=>r.mismatch);
+  else if(filterTransport==="gomma")    displayed=displayed.filter(r=>r.logTransport==="GOMMA");
+  else if(filterTransport==="mare")     displayed=displayed.filter(r=>r.logTransport==="MARE");
   if(newHkdFilter==="ok")          displayed=displayed.filter(r=>r.newHkd!==null&&!r.isAir);
   else if(newHkdFilter==="mancante")displayed=displayed.filter(r=>r.newHkd===null&&!r.isAir);
   else if(newHkdFilter==="air")    displayed=displayed.filter(r=>r.isAir);
@@ -3510,10 +3514,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
         )} style={{padding:"6px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
           ⬇ Export Excel
         </button>
-        <button onClick={()=>setExcludeAir(v=>!v)}
+        {branch!=="CAN"&&<button onClick={()=>setExcludeAir(v=>!v)}
           style={{padding:"6px 14px",background:excludeAir?`${T.orange}20`:T.surface,color:excludeAir?T.orange:T.muted,border:`1px solid ${excludeAir?T.orange:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeAir?"bold":"normal"}}>
           {excludeAir?`✓ AIR esclusi (${airCount})`:`✈ Escludi AIR (${airCount})`}
-        </button>
+        </button>}
         <button onClick={()=>setSortDir(d=>d==="desc"?"asc":"desc")}
           style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
           Data {sortDir==="desc"?"↓":"↑"}
@@ -3526,7 +3530,19 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,sn
 
       {/* Filtri transport */}
       <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap"}}>
-        {([["all",`Tutte (${enriched.length})`,T.text],["air",`✈ AIR (${airCount})`,T.orange],["sea",`⛴ SEA (${enriched.length-airCount})`,T.blue],["mismatch",`⚠ Mismatch (${mismatches.length})`,T.purple]] as [string,string,string][]).map(([v,l,c])=>(
+        {(branch==="CAN"
+          ? [
+              ["all",`Tutte (${enriched.length})`,T.text],
+              ["gomma",`🚛 GOMMA (${enriched.filter((r:any)=>r.logTransport==="GOMMA").length})`,T.orange],
+              ["mare",`🚢 MARE (${enriched.filter((r:any)=>r.logTransport==="MARE").length})`,T.blue],
+            ]
+          : [
+              ["all",`Tutte (${enriched.length})`,T.text],
+              ["air",`✈ AIR (${airCount})`,T.orange],
+              ["sea",`⛴ SEA (${enriched.length-airCount})`,T.blue],
+              ["mismatch",`⚠ Mismatch (${mismatches.length})`,T.purple],
+            ]
+        as [string,string,string][]).map(([v,l,c])=>(
           <button key={v} onClick={()=>setFilterTransport(v)}
             style={{padding:"5px 12px",background:filterTransport===v?`${c}20`:T.surface,color:filterTransport===v?c:T.muted,border:`1px solid ${filterTransport===v?c:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:filterTransport===v?"bold":"normal"}}>
             {l}
