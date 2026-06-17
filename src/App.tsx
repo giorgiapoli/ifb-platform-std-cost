@@ -362,7 +362,7 @@ export default function App() {
           skipReason: cost2 ? undefined : "CALC=0", _fromMeatList:true };
       }
 
-      const pi  = selectPrice(pr, ub);
+            const pi  = selectPrice(pr, ub);
       const piP = prPrev ? selectPrice(prPrev, ub) : null;
 
       // Se il prezzo da listino è zero, prova il fallback listino carne
@@ -3308,7 +3308,7 @@ function CostsOnInvoice({costRows, salesRows, products, xrefs, branch, month}) {
   else            rows = allRows;
 
   if (newHkdFilter === "ok")            rows = rows.filter((r:any) => r.cost?.step2Hkd != null && !isAirRow(r));
-  else if (newHkdFilter === "mancante") rows = rows.filter((r:any) => !r.cost && !isAirRow(r));
+  else if (newHkdFilter === "mancante") rows = rows.filter((r:any) => (r.cost?.step2Hkd ?? null) === null && !isAirRow(r));
   else if (newHkdFilter === "air")      rows = rows.filter((r:any) => isAirRow(r));
   if (filterNHK)   rows = rows.filter((r:any) => (r.nHK||"") === filterNHK);
   if (filterIFBNo) rows = rows.filter((r:any) => (r.code||"") === filterIFBNo);
