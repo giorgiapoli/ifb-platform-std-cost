@@ -412,6 +412,8 @@ export default function App() {
     });
   }, [products,logistics,prices,fx,airList,meatPrices,branch,month]);
 
+  const isCAN = branch === "CAN";
+
   const NAV = [
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
     {id:"products",   icon:"◈", label:"Anagrafica", badge:"⇪"},
@@ -458,7 +460,6 @@ export default function App() {
 
   const needsRecalc = lastImportTs > lastCalcTs;
   const cfg = BRANCH_CFG[branch] || BRANCH_CFG.HK;
-  const isCAN = branch === "CAN";
   const costSnaps = snapshots.filter((s:any) => s.type === "cost");
 
   const pages = {
