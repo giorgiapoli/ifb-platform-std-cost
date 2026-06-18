@@ -3202,7 +3202,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               <GH span={3}/>
               <GH span={branch==="CAN"?5:4}/>
               {branch==="CAN"
-                ? <GH span={5} accent={T.blue}>Costi trasporto (€/unit)</GH>
+                ? <GH span={4} accent={T.blue}>Costi trasporto (€/unit)</GH>
                 : <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>}
               {branch==="CAN"
                 ? <GH span={4} accent={T.gold}>Step 1 per isola</GH>
@@ -3394,7 +3394,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 {/* ── riga dettaglio espansa ── */}
                 {isSelected&&c&&(
                   <tr key={r.id+"_detail"}>
-                    <td colSpan={branch==="CAN"?24:21} style={{padding:"8px 16px",background:`${T.gold}06`,
+                    <td colSpan={branch==="CAN"?23:21} style={{padding:"8px 16px",background:`${T.gold}06`,
                       borderBottom:`1px solid ${T.gold}33`}}>
                       <div style={{display:"flex",flexWrap:"wrap",gap:"6px",fontSize:"10px"}}>
                         {(branch==="CAN" ? [
