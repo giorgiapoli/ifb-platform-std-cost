@@ -419,6 +419,7 @@ export default function App() {
   const[pageFilter, setPageFilter] = useState(null);
   const [meatPrices, setMeatPrices] = useState<any[]>(() => LS.get("ifb_meatprices", []));
   const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
+  const [scAttuali, setScAttuali] = useState<any[]>([]);
 
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
 
@@ -433,6 +434,7 @@ export default function App() {
   useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
   useEffect(()=>{ if(branch) LS.set(`ifb_airlist_${branch}`, airList); },[airList,branch]);
   useEffect(()=>{ if(branch) IDB.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
+  useEffect(()=>{ if(branch) IDB.set(`ifb_scattuali_${branch}`, scAttuali); },[scAttuali,branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   useEffect(()=>{ if(meatPrices.length) LS.set("ifb_meatprices", meatPrices); }, [meatPrices]);
@@ -444,6 +446,7 @@ export default function App() {
       setXrefs(LS.get(`ifb_xrefs_${branch}`,[]));
       setAirList(LS.get(`ifb_airlist_${branch}`,[]));
       setSalesRows(await IDB.get(`ifb_sales_invoice_${branch}`,[]));
+      setScAttuali(await IDB.get(`ifb_scattuali_${branch}`,[]));
     })();
   },[branch]);
 
@@ -578,8 +581,9 @@ export default function App() {
     {id:"exceptions",  icon:"⚡", label:"Eccezioni Prezzi"},
     {id:"costs",      icon:"◆", label:"Standard Cost"},
     {id:"invoice",    icon:"📋", label:"Fatture & Costi", badge:"⇪"},
+    {id:"scattuali",  icon:"📊", label:"SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
-    {id:"mail",       icon:"◻", label:"Mail Mensile"},
+    {id:"check",      icon:"📅", label:"Check Mensile"},
     {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
   ];
 
@@ -676,7 +680,8 @@ export default function App() {
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    storico: <Storico 
+    scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} branch={branch} showToast={showToast}/>,
+    storico: <Storico
       snapshots={snapshots}
       setSnapshots={setSnapshots}
       costHistory={costHistory}
@@ -684,7 +689,8 @@ export default function App() {
       branch={branch}
       showToast={showToast}
     />,
-    mail:        <MailGen costRows={costRows} branch={branch} month={month}/>,
+    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products}/>,
+    mail:  <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
   };
 
@@ -4089,6 +4095,379 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
 
 // ─── MAIL GEN ─────────────────────────────────────────────────────────────────
 // Only shows items with |delta| > 3% (point 7)
+// ─── SC ATTUALI ───────────────────────────────────────────────────────────────
+function ScAttualiPage({scAttuali, setScAttuali, branch, showToast}) {
+  const [step, setStep] = useState("main");
+  const [fileName, setFileName] = useState("");
+  const [preview, setPreview] = useState<any[]>([]);
+  const [search, setSearch] = useState("");
+
+  function parseFile(file) {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (e:any) => {
+      try {
+        const wb = XLSX.read(e.target.result, {type:"binary"});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data: any[][] = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        if (data.length < 2) { showToast("File vuoto", T.red); return; }
+        let hi = 0;
+        for (let i=0; i<Math.min(6, data.length); i++) {
+          const rn = data[i].map((c:any)=>String(c||"").toLowerCase());
+          if (rn.some((c:string)=>c.includes("item no")||c.includes("standard cost")||c.includes("last standard"))) { hi=i; break; }
+        }
+        const hdrs = data[hi].map((c:any)=>String(c||"").trim());
+        const rows = data.slice(hi+1).filter((r:any[])=>r.some((c:any)=>c!==""));
+        const fi = (aliases:string[]) => hdrs.findIndex(h=>aliases.some(a=>h.toLowerCase().replace(/[\s_%()/]/g,"").includes(a.replace(/[\s_%()/]/g,""))));
+        const isHK = hdrs.some(h=>h.toLowerCase().includes("last standard cost"));
+        const iCode     = fi(["itemno","item no"]);
+        const iDesc     = fi(["description","descrizione"]);
+        const iFifo     = isHK ? fi(["unitcost"]) : fi(["unitcost(fifo","unit cost"]);
+        const iLastSC   = isHK ? fi(["laststandard","last standard"]) : fi(["standardcost","standard cost"]);
+        const iSales3m  = fi(["saleslast","sales last","vendite"]);
+        const iLastDate = fi(["lastpurchase","last purchase"]);
+        const iStockQty = fi(["stockqty","stock quantity","stock"]);
+        const iScGC     = !isHK ? fi(["scgrancanaria","gran canaria"]) : -1;
+        const iScLan    = !isHK ? fi(["sclanzarote","lanzarote"]) : -1;
+
+        const num = (v:any) => typeof v==="number" ? v : parseFloat(String(v||"").replace(/[€$,\s]/g,""))||0;
+        const str = (v:any) => String(v||"").trim();
+
+        const parsed = rows.map((row:any[])=>{
+          const code = str(iCode>=0?row[iCode]:"");
+          if (!code) return null;
+          return {
+            code,
+            description: str(iDesc>=0?row[iDesc]:""),
+            lastSC:   num(iLastSC>=0?row[iLastSC]:0),
+            fifoUnit: num(iFifo>=0?row[iFifo]:0),
+            salesLast3m: num(iSales3m>=0?row[iSales3m]:0),
+            lastPurchaseDate: str(iLastDate>=0?row[iLastDate]:""),
+            stockQty: num(iStockQty>=0?row[iStockQty]:0),
+            scGC:  iScGC>=0  ? num(row[iScGC])  : 0,
+            scLan: iScLan>=0 ? num(row[iScLan]) : 0,
+          };
+        }).filter(Boolean);
+
+        if (!parsed.length) { showToast("Nessuna riga valida trovata", T.red); return; }
+        setPreview(parsed);
+        setStep("preview");
+      } catch(err:any) { showToast("Errore lettura file: "+err.message, T.red); }
+    };
+    reader.readAsBinaryString(file);
+  }
+
+  function executeImport() {
+    setScAttuali(preview);
+    showToast(`SC Attuali: ${preview.length} articoli importati ✓`, T.gold);
+    setStep("main");
+    setPreview([]);
+  }
+
+  const displayed = (step==="main"?scAttuali:preview).filter((r:any)=>
+    !search || r.code.toLowerCase().includes(search.toLowerCase()) || r.description.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const isHKReport = branch !== "CAN";
+
+  return (
+    <div>
+      <PageHeader title={`📊 SC Attuali · ${branch}`}
+        sub={scAttuali.length>0 ? `${scAttuali.length} articoli in memoria` : "Nessun report caricato"}/>
+
+      {step==="preview" ? (
+        <Section title={`Preview — ${fileName} · ${preview.length} articoli`}>
+          <div style={{display:"flex",gap:"10px",marginBottom:"14px"}}>
+            <ActionBtn label="← Annulla" onClick={()=>{setStep("main");setPreview([]);}}/>
+            <ActionBtn label={`✓ Importa ${preview.length} articoli`} onClick={executeImport} primary/>
+          </div>
+        </Section>
+      ) : (
+        <Section title="Carica report SC da BC / Navision">
+          <div style={{fontSize:"12px",color:T.muted,marginBottom:"10px",lineHeight:"1.7"}}>
+            {branch==="CAN"
+              ? "Formato Navision: Item No · Description · STANDARD COST · SC GRANCANARIA · SC LANZAROTE · Last Purchase Date · Stock Quantity"
+              : "Formato BC: Item No · Description · unitcost (FIFO) · Last Standard Cost · Sales Last 3 Months · Last Purchase Date · Stock Quantity"}
+          </div>
+          <label style={{display:"inline-block",padding:"8px 16px",background:`${T.gold}22`,border:`1px solid ${T.gold}44`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.gold}}>
+            ⇪ Carica Report SC ({branch})
+            <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>e.target.files?.[0]&&parseFile(e.target.files[0])}/>
+          </label>
+          {scAttuali.length>0&&<span style={{marginLeft:"14px",fontSize:"11px",color:T.muted}}>Ultima importazione: {scAttuali.length} articoli in memoria</span>}
+        </Section>
+      )}
+
+      {displayed.length>0&&(
+        <Section title={step==="preview"?"Anteprima dati":"Dati SC Attuali in memoria"}>
+          <input placeholder="Cerca articolo..." value={search} onChange={e=>setSearch(e.target.value)}
+            style={{...inputStyle(),marginBottom:"12px",width:"280px"}}/>
+          <div style={{overflowX:"auto"}}>
+            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
+              <thead><tr>
+                {(isHKReport
+                  ? ["Codice (N HK)","Descrizione","SC Attuale €","FIFO unit €","Vendite 3m","Last Purchase","Stock Qty"]
+                  : ["Codice (N COMIT)","Descrizione","SC Standard €","FIFO unit €","SC Gran Can €","SC Lanzarote €","Last Purchase","Stock Qty"]
+                ).map(h=><th key={h} style={{padding:"6px 10px",fontSize:"10px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {displayed.slice(0,300).map((r:any,i:number)=>(
+                  <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:i%2?"transparent":`${T.surface}33`}}>
+                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.text,fontFamily:"monospace"}}>{r.code}</td>
+                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,maxWidth:"260px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
+                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.lastSC>0?`€ ${r.lastSC.toFixed(2)}`:"—"}</td>
+                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"—"}</td>
+                    {!isHKReport&&<td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
+                    {!isHKReport&&<td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
+                    {isHKReport&&<td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
+                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>
+                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.stockQty!=null?r.stockQty:"—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {displayed.length>300&&<div style={{padding:"8px",fontSize:"11px",color:T.muted,textAlign:"center"}}>Mostrati 300 su {displayed.length}</div>}
+        </Section>
+      )}
+    </div>
+  );
+}
+
+// ─── CHECK MENSILE ────────────────────────────────────────────────────────────
+function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products}) {
+  // Mesi disponibili dalle fatture (posting date)
+  const availableMonths = useMemo(()=>{
+    const s = new Set<string>();
+    (salesRows||[]).forEach((r:any)=>{
+      const d = r.postingDate ? String(r.postingDate).slice(0,7) : "";
+      if(d&&d.length===7) s.add(d);
+    });
+    return [...s].sort().reverse();
+  },[salesRows]);
+
+  const [selectedMonth, setSelectedMonth] = useState<string>("");
+  const [threshold, setThreshold] = useState(3);
+  const [showOK, setShowOK] = useState(false);
+
+  useEffect(()=>{
+    if(!selectedMonth && availableMonths.length>0) setSelectedMonth(availableMonths[0]);
+  },[availableMonths]);
+
+  // mappe di lookup
+  const xrefByIFB = useMemo(()=>{
+    const m: Record<string,string>={};
+    (xrefs||[]).forEach((x:any)=>{ if(x.ifbNo&&x.nHK) m[x.ifbNo]=x.nHK; });
+    return m;
+  },[xrefs]);
+
+  const costMap = useMemo(()=>{
+    const m: Record<string,any>={};
+    (costRows||[]).forEach((r:any)=>{ m[r.id||r.code]=r; });
+    return m;
+  },[costRows]);
+
+  const scMap = useMemo(()=>{
+    const m: Record<string,any>={};
+    (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
+    return m;
+  },[scAttuali]);
+
+  // fatture del mese selezionato
+  const monthRows = useMemo(()=>{
+    if(!selectedMonth) return [];
+    return (salesRows||[]).filter((r:any)=>{
+      const d = r.postingDate ? String(r.postingDate).slice(0,7) : "";
+      return d===selectedMonth;
+    });
+  },[salesRows, selectedMonth]);
+
+  // righe analisi: un articolo per IFB No
+  const analysisRows = useMemo(()=>{
+    if(!selectedMonth||!monthRows.length) return [];
+    const seen = new Set<string>();
+    const rows: any[] = [];
+    for (const inv of monthRows) {
+      const ifbNo = inv.itemCode;
+      if(!ifbNo||seen.has(ifbNo)) continue;
+      seen.add(ifbNo);
+      const nFiliale = xrefByIFB[ifbNo] || ifbNo;
+      const scEntry  = scMap[nFiliale];
+      const cr       = costMap[ifbNo];
+      const oldSC    = scEntry?.lastSC || 0;
+      // Step2: per CAN usa step2GC; per HK usa step2Eur
+      const newSC    = branch==="CAN"
+        ? (cr?.cost?.step2GC || cr?.cost?.step2Eur || 0)
+        : (cr?.cost?.step2Eur || 0);
+      const deltaAbs = oldSC>0 ? newSC-oldSC : 0;
+      const deltaPct = oldSC>0 ? deltaAbs/oldSC*100 : 0;
+
+      let azione:string, note="";
+      if (!oldSC)                       { azione="NUOVO ARTICOLO"; }
+      else if (Math.abs(deltaPct)>threshold) { azione="DA AGGIORNARE"; note=deltaPct>0?"aumentato listino":"calato listino"; }
+      else                              { azione="OK"; }
+
+      rows.push({
+        codice:     nFiliale,
+        ifbNo,
+        description: cr?.description || inv.description || "",
+        isNuovo:    !oldSC,
+        oldSC,
+        newSC,
+        deltaPct,
+        scFinale:   newSC,
+        lastDate:   scEntry?.lastPurchaseDate || "",
+        stockQty:   scEntry?.stockQty ?? "",
+        azione,
+        note,
+        noCalc:     !newSC && !cr?.cost,
+      });
+    }
+    return rows.sort((a,b)=>{
+      const order = {DA_AGGIORNARE:0,"NUOVO ARTICOLO":1,OK:2};
+      return (order[a.azione.replace(/ /g,"_")]??9)-(order[b.azione.replace(/ /g,"_")]??9);
+    });
+  },[monthRows, xrefByIFB, scMap, costMap, branch, threshold, selectedMonth]);
+
+  const nuovi = analysisRows.filter(r=>r.azione==="NUOVO ARTICOLO");
+  const daAgg = analysisRows.filter(r=>r.azione==="DA AGGIORNARE");
+  const okRows= analysisRows.filter(r=>r.azione==="OK");
+  const toAct = [...daAgg,...nuovi];
+  const displayed = showOK ? analysisRows : toAct;
+
+  function exportExcel() {
+    const branchCode = branch==="CAN"?"COMIT":"HK";
+    const monthFmt = selectedMonth.replace("-","_").slice(0,7);
+    const mLabel = selectedMonth ? new Date(selectedMonth+"-01").toLocaleDateString("it-IT",{month:"short",year:"numeric"}) : "";
+    const data = toAct.map((r:any)=>({
+      "Codice":    r.codice,
+      "IFB":       r.ifbNo,
+      "Descrizione": r.description,
+      "NUOVO":     r.isNuovo?"SI":"",
+      "Old_SC":    r.oldSC>0 ? Number(r.oldSC.toFixed(2)) : "",
+      "New_SC":    r.newSC>0 ? Number(r.newSC.toFixed(2)) : "",
+      "Δ %":       r.oldSC>0 ? (r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%" : "",
+      "SC_FINALE": r.scFinale>0 ? Number(r.scFinale.toFixed(2)) : "",
+      "Last_Date": r.lastDate,
+      "Quantity":  r.stockQty,
+      "AZIONE":    r.azione,
+      "NOTE":      r.note,
+    }));
+    exportXLSX(data, "SC_Analisi", `STDC_Analisi_${branchCode}_${monthFmt}.xlsx`);
+  }
+
+  const AC:{[k:string]:string} = {
+    "DA AGGIORNARE": T.orange,
+    "NUOVO ARTICOLO": T.blue,
+    "OK": T.green,
+  };
+
+  return (
+    <div>
+      <PageHeader title={`📅 Check Mensile · ${branch}`} sub="Confronto SC calcolato vs SC Attuali — soglia ±3%"/>
+
+      {/* Selezione mese + threshold */}
+      <Section title="Filtri">
+        <div style={{display:"flex",gap:"16px",alignItems:"flex-end",flexWrap:"wrap"}}>
+          <div>
+            <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Mese fatture</label>
+            {availableMonths.length===0
+              ? <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>⚠ Nessuna fattura caricata</div>
+              : <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} style={{...inputStyle(),minWidth:"160px",cursor:"pointer"}}>
+                  {availableMonths.map(m=><option key={m} value={m}>{m}</option>)}
+                </select>
+            }
+          </div>
+          <div>
+            <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Soglia Δ%</label>
+            <input type="number" value={threshold} onChange={e=>setThreshold(Number(e.target.value)||3)}
+              min={0} max={50} step={0.5} style={{...inputStyle(),width:"80px"}}/>
+          </div>
+          {scAttuali.length===0&&(
+            <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>
+              ⚠ SC Attuali non caricati — vai alla pagina <strong>SC Attuali</strong>
+            </div>
+          )}
+          {monthRows.length>0&&<div style={{fontSize:"11px",color:T.muted,paddingBottom:"2px"}}>
+            {monthRows.length} righe fattura · {analysisRows.length} articoli univoci
+          </div>}
+        </div>
+      </Section>
+
+      {/* Riepilogo KPI */}
+      {analysisRows.length>0&&(
+        <Section title="Riepilogo">
+          <div style={{display:"flex",gap:"20px",flexWrap:"wrap",marginBottom:"14px"}}>
+            {[
+              {label:"DA AGGIORNARE",n:daAgg.length,c:T.orange,icon:"⬆️"},
+              {label:"NUOVI",n:nuovi.length,c:T.blue,icon:"🆕"},
+              {label:"OK (nessuna azione)",n:okRows.length,c:T.green,icon:"✅"},
+            ].map(({label,n,c,icon})=>(
+              <div key={label} style={{background:`${c}11`,border:`1px solid ${c}44`,borderRadius:"8px",padding:"10px 18px",minWidth:"130px"}}>
+                <div style={{fontSize:"9px",color:c,letterSpacing:"1px",textTransform:"uppercase",marginBottom:"2px"}}>{icon} {label}</div>
+                <div style={{fontSize:"22px",fontWeight:"bold",color:c}}>{n}</div>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:"10px",flexWrap:"wrap"}}>
+            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={toAct.length===0}/>
+            <ActionBtn label={showOK?"Nascondi OK ✓":"Mostra anche OK ✓"} onClick={()=>setShowOK(s=>!s)}/>
+          </div>
+        </Section>
+      )}
+
+      {/* Tabella */}
+      {displayed.length>0 ? (
+        <Section title={`Articoli · ${displayed.length} mostrati`}>
+          <div style={{overflowX:"auto"}}>
+            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
+              <thead><tr>
+                {["Codice","IFB","Descrizione","NUOVO","Old SC €","New SC €","Δ %","SC FINALE €","Last Date","Stock","AZIONE","NOTE"].map(h=>(
+                  <th key={h} style={{padding:"6px 10px",fontSize:"10px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>
+                ))}
+              </tr></thead>
+              <tbody>
+                {displayed.map((r:any,i:number)=>{
+                  const ac = AC[r.azione]||T.muted;
+                  const isNuovo = r.azione==="NUOVO ARTICOLO";
+                  const isDa    = r.azione==="DA AGGIORNARE";
+                  return (
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${ac}09`}}>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.text,fontFamily:"monospace",whiteSpace:"nowrap"}}>{r.codice}</td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.muted,fontFamily:"monospace"}}>{r.ifbNo}</td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.text,maxWidth:"230px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.blue,textAlign:"center",fontWeight:"bold"}}>{isNuovo?"SI":""}</td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.oldSC>0?`€ ${r.oldSC.toFixed(2)}`:"—"}</td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.newSC>0?`€ ${r.newSC.toFixed(2)}`:r.noCalc?"NC":"—"}</td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",textAlign:"right",fontWeight:"bold",
+                        color:r.deltaPct>0?T.orange:r.deltaPct<0?"#e05a5a":T.muted}}>
+                        {r.oldSC>0?(r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%":"—"}
+                      </td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.green,textAlign:"right",fontWeight:"bold"}}>{r.scFinale>0?`€ ${r.scFinale.toFixed(2)}`:"—"}</td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastDate||"—"}</td>
+                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.stockQty!==""?r.stockQty:"—"}</td>
+                      <td style={{padding:"5px 10px",textAlign:"center"}}>
+                        <span style={{padding:"2px 7px",borderRadius:"4px",fontSize:"10px",fontWeight:"bold",whiteSpace:"nowrap",
+                          background:`${ac}22`,color:ac}}>{r.azione}</span>
+                      </td>
+                      <td style={{padding:"5px 10px",fontSize:"10px",color:T.muted,fontStyle:"italic",whiteSpace:"nowrap"}}>{r.note}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      ) : selectedMonth&&!analysisRows.length ? (
+        <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
+          {scAttuali.length===0
+            ? "⚠️ Carica prima il report SC Attuali (pagina SC Attuali)."
+            : `Nessun articolo nelle fatture di ${selectedMonth}.`}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function MailGen({costRows,branch,month}) {
   const[copied,setCopied]=useState(false);
   // Only items where |delta| > 3%
