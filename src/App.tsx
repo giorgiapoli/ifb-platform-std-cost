@@ -645,10 +645,10 @@ export default function App() {
     ...(!isCAN&&!isMAC ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
     ...(!isMAC ? [{id:"exceptions", icon:"⚡", label:"Eccezioni Prezzi"}] : []),
     {id:"costs",      icon:"◆", label:"Standard Cost"},
-    {id:"invoice",    icon:"📋", label:"Fatture & Costi", badge:"⇪"},
-    {id:"scattuali",  icon:"📊", label:"SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined},
+    ...(!isMAC ? [{id:"invoice", icon:"📋", label:"Fatture & Costi", badge:"⇪"}] : []),
+    ...(!isMAC ? [{id:"scattuali", icon:"📊", label:"SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined}] : []),
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
-    {id:"check",      icon:"📅", label:"Check Mensile"},
+    ...(!isMAC ? [{id:"check", icon:"📅", label:"Check Mensile"}] : []),
     {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
   ];
   const NAV = NAV_ALL;
@@ -754,6 +754,7 @@ export default function App() {
       setCostHistory={setCostHistory}
       branch={branch}
       showToast={showToast}
+      macHkCostRows={macHkCostRows}
     />,
     check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products}/>,
     mail:  <MailGen costRows={costRows} branch={branch} month={month}/>,
@@ -4678,13 +4679,21 @@ function MailGen({costRows,branch,month}) {
 
 
 // ─── STORICO ──────────────────────────────────────────────────────────────────
-function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showToast}) {
+function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showToast,macHkCostRows:_unused}) {
   const[sel,setSel]=useState<any>(null);
   const[sortDir,setSortDir]=useState("asc");
   const[deltaFilter,setDeltaFilter]=useState("all");
   const[showModified,setShowModified]=useState(false);
   const[showNew,setShowNew]=useState(false);
   const[selCostSnap,setSelCostSnap]=useState<any>(null);
+  const[macProds,setMacProds]=useState<any[]>([]);
+
+  // Per HK: carica prodotti MAC (servono HOFF flag e macToHkConv per derivare costi MAC affianco)
+  useEffect(()=>{
+    if(branch==="HK") IDB.get("ifb_products_MAC",[]).then((d:any[])=>setMacProds(d));
+    else setMacProds([]);
+  },[branch]);
+
   const costSnaps = (costHistory || []).filter((s:any) => !s.branch || s.branch === branch);
 
   const branchSnaps = snapshots.filter((s:any)=>
@@ -4829,16 +4838,31 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
           Snapshot del {new Date(selCostSnap.ts).toLocaleString("it-IT")}
         </div>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <THead cols={[branchN(branch),"IFB No","Descrizione","Costo HKD","Note"]} sticky />
-          <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>(
+          <THead cols={branch==="HK"&&macProds.length>0
+            ? [branchN(branch),"IFB No","Descrizione","New SC HKD","New SC MAC (MOP)","HOFF","×UOM","Note"]
+            : [branchN(branch),"IFB No","Descrizione","Costo HKD","Note"]} sticky />
+          <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>{
+            const macProd = branch==="HK"&&macProds.length>0
+              ? (macProds.find((p:any)=>p.id===r.id||p.code===r.code||p.nHK===r.nHK))
+              : null;
+            const macCost = macProd && r.cost!=null
+              ? calcMAC({ hkCost:{step2Hkd:r.cost,step2Eur:0,priceEur:0,unitsPerPlt:0}, isHoff:macProd.isHoff??false, macToHkConv:macProd.macToHkConv>1?macProd.macToHkConv:1 })
+              : null;
+            return(
             <tr key={r.id||i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
               <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
               <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
               <TD>{r.description}</TD>
               <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost!=null?roundN(r.cost).toFixed(2):"—"}</span></TD>
+              {branch==="HK"&&macProds.length>0&&<>
+                <TD mono><span style={{color:macCost?T.green:T.dim,fontWeight:"bold"}}>{macCost?macCost.macNewSC.toFixed(2):"—"}</span></TD>
+                <TD><span style={{color:macProd?(macProd.isHoff?T.orange:T.blue):T.dim,fontSize:"10px"}}>{macProd?(macProd.isHoff?"HOFF +3%":"non-HOFF +10%"):"—"}</span></TD>
+                <TD mono><span style={{color:T.muted,fontSize:"10px"}}>{macProd?.macToHkConv>1?`×${macProd.macToHkConv}`:"—"}</span></TD>
+              </>}
               <TD><span style={{color:T.dim,fontSize:"11px"}}>{r.skipReason||""}</span></TD>
             </tr>
-          ))}</tbody>
+            );
+          })}</tbody>
         </table>
       </div>
     )}
