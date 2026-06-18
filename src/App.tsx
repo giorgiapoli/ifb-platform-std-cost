@@ -305,15 +305,16 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
 const HKD_TO_MOP = 1.03;          // fixed exchange rate HKD → MOP
 const MAC_MARKUP = { hoff: 0.03, nonHoff: 0.10 };  // 3% HOFF, 10% non-HOFF
 
-function calcMAC({ hkCost, isHoff }: any) {
+function calcMAC({ hkCost, isHoff, macToHkConv = 1 }: any) {
   if (!hkCost?.step2Hkd) return null;
   const markup = isHoff ? MAC_MARKUP.hoff : MAC_MARKUP.nonHoff;
-  const hkNewSC = hkCost.step2Hkd;
-  const macNewSC = hkNewSC * (1 + markup) * HKD_TO_MOP;
+  const conv = Number(macToHkConv) > 0 ? Number(macToHkConv) : 1;
+  const hkNewSC = hkCost.step2Hkd;           // per HK UOM
+  const macNewSC = hkNewSC * conv * (1 + markup) * HKD_TO_MOP;  // per MAC UOM
   return {
-    hkNewSC, markup: markup * 100, isHoff, macNewSC,
-    step2Hkd: macNewSC,  // compat: used by delta calc
-    step2Eur: (hkCost.step2Eur || 0) * (1 + markup),
+    hkNewSC, markup: markup * 100, isHoff, macNewSC, macToHkConv: conv,
+    step2Hkd: macNewSC,
+    step2Eur: (hkCost.step2Eur || 0) * conv * (1 + markup),
     priceEur: hkCost.priceEur || 0,
     unitsPerPlt: hkCost.unitsPerPlt || 0,
     rate: HKD_TO_MOP,
@@ -502,8 +503,13 @@ export default function App() {
         if (!hkRow.cost?.step2Hkd) return { ...hkRow, cost:null, skipReason:hkRow.skipReason||"NO HK COST" };
         const macProd = macProdMap[hkRow.id] || macProdMap[hkRow.code];
         const isHoff = macProd?.isHoff ?? false;
-        const macCost = calcMAC({ hkCost:hkRow.cost, isHoff });
-        return { ...hkRow, isHoff, cost:macCost };
+        const macUom = macProd?.macUom || "";
+        const hkUom  = macProd?.hkUom  || "";
+        // UOM conversion: if MAC sells per BOX(6) and HK sells per PCS, conv=6
+        const uomDiffers = macUom && hkUom && macUom !== hkUom;
+        const macToHkConv = macProd?.macToHkConv > 1 ? macProd.macToHkConv : 1;
+        const macCost = calcMAC({ hkCost:hkRow.cost, isHoff, macToHkConv });
+        return { ...hkRow, isHoff, macUom, hkUom, uomDiffers, macToHkConv, cost:macCost };
       });
     }
 
@@ -1471,12 +1477,12 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   const[doneInfo,setDoneInfo]=useState(null);
   const[fileName,setFileName]=useState("");
 
-  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","isHoff","active","vendorName","vendorName2"];
-  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg/Cartone (Net Weight)",kgxplt:"Kg x PLT",temperature:"Product Type",aiem:"AIEM % (CAN, col. W)",isHoff:"HOFF Flag (MAC: 1=HOFF, 0=non-HOFF)",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
+  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","isHoff","macUom","hkUom","macToHkConv","active","vendorName","vendorName2"];
+  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item / BV No *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg/Cartone (Net Weight)",kgxplt:"Kg x PLT",temperature:"Product Type",aiem:"★ AIEM % (CAN — col. W anagrafica)",isHoff:"HOFF Flag (MAC: 1=HOFF)",macUom:"MAC UOM di vendita",hkUom:"HK/BV UOM di vendita",macToHkConv:"Fattore conversione MAC÷HK (es. 6 se HK=PCS e MAC=BOX6)",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
 
   const LOCAL_ALIASES = {
     nHK:         ["no","no_"],          // Anagrafica 'no' column = N HK
-    code:        ["ifbitem","ifb item","ifb no","ifb n"],
+    code:        ["ifbitem","ifb item","ifb no","ifb n","bvno","bv no","bvmastercode","bv mastercode"],
     description: ["description"],
     category:    ["sectiondescription","section description","section"],
     uom:         ["salesunitofmeasure","sales unit of measure"],
@@ -1488,8 +1494,12 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     kgxplt:      ["kgxplt","kg x pallet","kg per pallet","kgperpallet","kgplt"],
     vendorName:  ["vendorname","vendor name"],
     vendorName2: ["vendorname2","vendor name 2"],
-    aiem:        ["aiem","igic","alim","aiem%","aiem_perc"],
+    aiem:        ["aiem","igic","alim","aiem%","aiem_perc","aiem_canarie","aiemperc"],
     isHoff:      ["ishoff","hoff","hofflag","hoff flag","hoff_flag","is hoff"],
+    nHK:         ["no","no_","macaono","macao no","macao_no","macaomastercode","macao mastercode","macaoitemno"],
+    macUom:      ["macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom","mac uom","macuom"],
+    hkUom:       ["bvsalesunitofmeasure","bv salesunitofmeasure","bvuom","hk uom","hkuom"],
+    macToHkConv: ["mactoHkconv","conversionfactor","conv factor","conversion","fattoreconv","macaotoHkconv"],
   };
 
   function autoMap(hdrs) {
@@ -1551,6 +1561,9 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       vendorName2: r.vendorName2 || "",
       aiem: parseFloat(r.aiem)||0,
       isHoff: ["true","1","yes","hoff","si","sì"].includes(String(r.isHoff||"").toLowerCase()),
+      macUom: r.macUom ? String(r.macUom).trim().toUpperCase() : "",
+      hkUom:  r.hkUom  ? String(r.hkUom).trim().toUpperCase()  : "",
+      macToHkConv: parseFloat(r.macToHkConv)>0 ? parseFloat(r.macToHkConv) : 1,
     }));
     const prevMap=Object.fromEntries(products.map(p=>[p.id,p]));
     const diffs=[];
@@ -1631,15 +1644,22 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     <div>
       <PageHeader title={`Mappatura Anagrafica · ${fileName}`} sub={`${rows.length} righe · mappatura auto da export BC`}/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",maxWidth:"960px",marginBottom:"20px"}}>
-        {FIELDS.map(f=>(
-          <div key={f}>
-            <label style={{display:"block",fontSize:"11px",color:f==="code"||f==="description"?T.gold:T.muted,marginBottom:"5px"}}>{FLABELS[f]}</label>
-            <select value={map[f]||""} onChange={e=>setMap(m=>({...m,[f]:e.target.value}))} style={{...inputStyle(),borderColor:map[f]?T.gold:T.border}}>
+        {FIELDS.map(f=>{
+          const isRequired = f==="code"||f==="description";
+          const isCurrent = branch==="CAN"&&f==="aiem";
+          const isMacField = ["macUom","hkUom","macToHkConv"].includes(f);
+          const isHoffField = f==="isHoff";
+          const labelColor = isRequired?T.gold:isCurrent?T.orange:(isMacField||isHoffField)?T.purple:T.muted;
+          return(
+          <div key={f} style={isCurrent?{border:`1px solid ${T.orange}33`,borderRadius:"6px",padding:"4px 6px",background:`${T.orange}08`}:{}}>
+            <label style={{display:"block",fontSize:"11px",color:labelColor,marginBottom:"5px"}}>{FLABELS[f]}</label>
+            <select value={map[f]||""} onChange={e=>setMap(m=>({...m,[f]:e.target.value}))} style={{...inputStyle(),borderColor:map[f]?T.gold:(isCurrent&&!map[f])?T.orange:T.border}}>
               <option value="">— non mappato —</option>
               {headers.map(h=><option key={h} value={h}>{h}</option>)}
             </select>
           </div>
-        ))}
+          );
+        })}
       </div>
       <div style={{display:"flex",gap:"10px"}}>
         <ActionBtn label="← Ricarica" onClick={()=>setStep("upload")}/>
@@ -2266,10 +2286,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
       <input type="file" accept=".xlsx,.xls,.csv" onChange={parseLogFile} style={{display:"none"}}/>
     </label>
     
-    {/* ✅ AGGIUNGI QUESTO DROPDOWN - Carica da storico */}
-    {/* ✅ DROPDOWN CARICA DA STORICO - FUNZIONANTE */}
-    {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length > 0 && (
-      <select 
+    <select
       onChange={async e => {
         if (e.target.value) {
           const snap = importLogs.find((l:any) => String(l.id) === e.target.value);
@@ -2290,17 +2307,21 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         }
         e.target.value = "";
       }}
-        style={{ ...inputStyle(), width: "auto", fontSize: "12px" }}
-        defaultValue=""
-      >
-        <option value="">📜 Carica da storico ({importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length})</option>
-        {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).map((s: any) => (
-          <option key={s.id} value={String(s.id)}>
-            {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe
-          </option>
-        ))}
-      </select>
-    )}
+      style={{ ...inputStyle(), width: "auto", fontSize: "12px" }}
+      defaultValue=""
+    >
+      {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length === 0
+        ? <option value="">📜 Storico — nessun import precedente</option>
+        : <>
+            <option value="">📜 Carica da storico ({importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length})</option>
+            {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).map((s: any) => (
+              <option key={s.id} value={String(s.id)}>
+                {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe
+              </option>
+            ))}
+          </>
+      }
+    </select>
     
     {/* Bottone Svuota dati esistente */}
     <button
@@ -3353,9 +3374,13 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                     </td>
                     <td style={cell(T.blue)}>{mc?`${mc.hkNewSC.toFixed(2)}`:"—"}</td>
                     <td style={cell(T.dim)}>{mc?`+${mc.markup.toFixed(0)}%`:"—"}</td>
-                    <td style={cell(T.green,true)}>
+                    <td style={cell(r.uomDiffers&&mc.macToHkConv===1?T.orange:T.green,true)}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
-                        {mc?`${mc.macNewSC.toFixed(2)}`:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}
+                        {mc?<>
+                          {`${mc.macNewSC.toFixed(2)}`}
+                          {mc.macToHkConv>1&&<span style={{fontSize:"8px",color:T.purple,marginLeft:"3px"}}>×{mc.macToHkConv}</span>}
+                          {r.uomDiffers&&mc.macToHkConv===1&&<span style={{fontSize:"8px",color:T.orange,marginLeft:"3px"}}>⚠UOM</span>}
+                        </>:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                       </span>
                     </td>
                     <td style={cell(pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,Math.abs(pct||0)>=3)}>
@@ -3378,6 +3403,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                               [`Markup ${r.isHoff?"HOFF":"non-HOFF"}`,`+ ${mc.markup.toFixed(0)}%`,r.isHoff?"Prodotto HOFF (House of Fine Foods): BV SC +3%":"Prodotto senza flag HOFF: BV SC +10%",T.orange],
                               ["Tasso HKD → MOP",`× ${HKD_TO_MOP}`,"Tasso di cambio fisso",T.muted],
                               ["NEW SC (MOP)",`MOP ${mc.macNewSC.toFixed(4)}`,`HKD ${mc.hkNewSC.toFixed(4)} × ${(1+mc.markup/100).toFixed(2)} × ${HKD_TO_MOP}`,T.green],
+                            ...(mc.macToHkConv>1?[["Conversione UOM",`× ${mc.macToHkConv}`,`HK UOM: ${r.hkUom||"—"} → MAC UOM: ${r.macUom||"—"} (${mc.macToHkConv} unità HK per 1 MAC)`,T.purple]]:
+                             r.uomDiffers?[["⚠ UOM diversa!","conv. = 1",`HK: ${r.hkUom} vs MAC: ${r.macUom} — imposta Fattore Conversione in Anagrafica`,T.orange]]:[]),
                             ].map(([k,v,f,col]:any[])=>(
                               <tr key={String(k)}>
                                 <td style={{padding:"3px 12px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{k}</td>
@@ -3388,7 +3415,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                           </tbody>
                         </table>
                         <div style={{marginTop:"6px",fontSize:"9px",color:T.dim}}>
-                          u/plt: {(mc.unitsPerPlt||0).toFixed(2)} · {r.description}
+                          u/plt: {(mc.unitsPerPlt||0).toFixed(2)} · HK UOM: {r.hkUom||"—"} · MAC UOM: {r.macUom||"—"}
                         </div>
                       </td>
                     </tr>
