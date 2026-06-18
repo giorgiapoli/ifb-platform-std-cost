@@ -75,27 +75,29 @@ const COSTS = {
 // ─── CANARIE COST ENGINE ─────────────────────────────────────────────────────
 // Source: 05_Modello_Standard_Cost.xlsx — COSTS (LOG) sheet
 const COSTS_CAN = {
-  // GOMMA: Verona → Barcellona fixed per container (2 truck types: DRY=32plt, FF=24plt)
-  VERONA_BARC: 2000,
-  // GOMMA: Barcellona → island per pallet, by temperature
+  // GOMMA: Verona → Barcellona, costo per pallet (COSTS(LOG)!D5 = 62.5 = 2000/32plt)
+  VERONA_BARC_PLT: 62.5,
+  // GOMMA: Barcellona → island per pallet, by temperature (COSTS(LOG) rows 9-11)
   BARC: {
     DRY:    { GC:133.692, TF:133.692, LAN:190.254, FUE:190.254 },
     FRESH:  { GC:117,     TF:117,     LAN:190.254, FUE:190.254 },
     FROZEN: { GC:133.692, TF:133.692, LAN:271.498, FUE:271.498 },
   },
-  // GOMMA: Assicurazione (Seguro) = 0.5% sul valore merce
+  // GOMMA: Assicurazione (Seguro) = 0.5% sul valore merce (COSTS(LOG)!F15)
   ASSICURAZIONE: 0.005,
-  // MARE: all-in freight per pallet per island, by area
+  // MARE: all-in freight per container per island, by area (COSTS(LOG) rows 20-23)
+  // Formula Excel: D20 / (Y6 * AA6) = rate / (unitsPerPlt × pltPerContainer)
   MARE: {
     NORD:   { GC:2580.72, TF:2580.72, LAN:3521.44, FUE:3521.44 },
     CENTRO: { GC:0,       TF:0,       LAN:0,       FUE:0       },
     SUD:    { GC:2258.53, TF:2258.53, LAN:0,       FUE:0       },
   },
-  // MARE: Inland + Custom Clearance per container per island
+  // MARE: Inland + Custom Clearance per container per island (COSTS(LOG) rows 27-30)
+  // Formula Excel: D27 / (Y6 * AA6) = rate / totalUnits
   INLAND_DRY: { GC:762, TF:762, LAN:830, FUE:830 },
   INLAND_FF:  { GC:0,   TF:0,   LAN:0,   FUE:0   },
-  // Pallet (same as HK)
-  PLT: 30,
+  // Pallet (COSTS(LOG)!I1 = 15, formula: I1/Y6)
+  PLT: 15,
   // MTO (CROSS DOCKING)
   MTO:   { DRY:8.16,   FRESH:10.2,  FROZEN:12.24 },
   MTS_D: { DRY:14.42,  FRESH:16.48, FROZEN:24.72 },
@@ -106,20 +108,25 @@ const COSTS_CAN = {
 const CAN_ISLANDS = ["GC","TF","LAN","FUE"] as const;
 
 function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
-  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature } = product;
+  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature, aiem: prodAiem } = product;
   const { pltPerContainer, area, hasAlcTax, alcTax, convFactor, transport } = logistic || {};
 
-  let unitsPerPlt: number;
-  if (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
-  else if (uom==="KG") unitsPerPlt = Number(kgxplt)>0 ? Number(kgxplt) : 300;
-  else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet);
+  const cf = Number(convFactor||1) || 1;
 
+  // unitsPerPlt (Y6 in modello): formula Excel IF(J="PCS",Q*R,IF(J="BOX",R,...)) / CM6
+  let unitsPerPlt: number;
+  if (uom==="BOX")      unitsPerPlt = Number(boxPerPallet) / cf;
+  else if (uom==="KG")  unitsPerPlt = (Number(kgxplt)>0 ? Number(kgxplt) : 300) / cf;
+  else                  unitsPerPlt = (Number(qtyPerBox) * Number(boxPerPallet)) / cf; // PCS
+
+  // divisoreCollo (AC in modello): per MTS picking
   const divisoreCollo = uom==="BOX" ? 1 : uom==="KG" ? Number(kgPerBox||qtyPerBox) : Number(qtyPerBox);
+
   const plt_n = Math.max(Number(pltPerContainer)||1, 1);
   const totalUnits = unitsPerPlt * plt_n;
-  if (!totalUnits) return null;
+  if (!unitsPerPlt || !totalUnits) return null;
 
-  const priceEur = Number(priceInput||0) * Number(convFactor||1);
+  const priceEur = Number(priceInput||0);
   if (!priceEur) return null;
 
   const temp: string = temperature || "DRY";
@@ -127,27 +134,44 @@ function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
   const isMARE = transport === "MARE";
   const isFF = temp === "FRESH" || temp === "FROZEN";
 
-  // Pallet cost per unit
+  // Pallet (BO): COSTS(LOG)!I1 / Y6 = 15 / unitsPerPlt
   const plt = COSTS_CAN.PLT / unitsPerPlt;
 
-  // AIEM (stored in alcTax as a %, e.g. 5 for 5%)
-  const aiemRate = hasAlcTax ? (Number(alcTax)||0) / 100 : 0;
-  const aiemUnit = priceEur * aiemRate;
+  // AIEM (W6): da product.aiem (col 23 Anagrafica) oppure logistic.alcTax se impostato
+  const aiemPct = (Number(prodAiem)||0) > 0
+    ? Number(prodAiem) / 100
+    : (hasAlcTax ? (Number(alcTax)||0) / 100 : 0);
 
-  // Per-island transport cost (€/unit)
-  const islandTransport = (isl: string) => {
-    if (isMARE) {
-      const freight = (COSTS_CAN.MARE[areaKey]?.[isl] ?? 0) / unitsPerPlt;
-      const inlandTbl = isFF ? COSTS_CAN.INLAND_FF : COSTS_CAN.INLAND_DRY;
-      const inland = (inlandTbl[isl] ?? 0) / plt_n / unitsPerPlt;
-      return freight + inland;
-    } else {
-      const veronaBarcUnit = COSTS_CAN.VERONA_BARC / plt_n / unitsPerPlt;
-      const barcUnit = (COSTS_CAN.BARC[temp]?.[isl] ?? 0) / unitsPerPlt;
-      const assicUnit = priceEur * COSTS_CAN.ASSICURAZIONE;
-      return veronaBarcUnit + barcUnit + assicUnit;
-    }
-  };
+  // Costi MARE per isola (AM/AO/AQ/AS + AU/AW/AY/BA)
+  // Formula: rate / (Y6 * AA6) = rate / totalUnits
+  const inlandTbl = isFF ? COSTS_CAN.INLAND_FF : COSTS_CAN.INLAND_DRY;
+  const freightPerIsland = (isl: string): number =>
+    isMARE ? (COSTS_CAN.MARE[areaKey]?.[isl] ?? 0) / totalUnits : 0;
+  const inlandPerIsland = (isl: string): number =>
+    isMARE ? (inlandTbl[isl] ?? 0) / totalUnits : 0;
+
+  // Costi GOMMA (BC/BE/BG/BI/BK + BM)
+  // VeronaBarc (BC): COSTS(LOG)!D5 / Y6 = 62.5 / unitsPerPlt
+  const veronaBarcUnit = isMARE ? 0 : COSTS_CAN.VERONA_BARC_PLT / unitsPerPlt;
+  // BarcIsland (BE/BG/BI/BK): rate / Y6 = rate / unitsPerPlt
+  const barcPerIsland = (isl: string): number =>
+    isMARE ? 0 : (COSTS_CAN.BARC[temp]?.[isl] ?? 0) / unitsPerPlt;
+  // Assicurazione (BM): prezzo × 0.5% (solo GOMMA)
+  const assicUnit = isMARE ? 0 : priceEur * COSTS_CAN.ASSICURAZIONE;
+
+  // Trasporto per isola (somma dei costi sopra, escluso pallet e AIEM)
+  const transpPerIsland = (isl: string): number =>
+    freightPerIsland(isl) + inlandPerIsland(isl) + veronaBarcUnit + barcPerIsland(isl) + assicUnit;
+
+  // AIEM per gruppo isola (BR per GC-TF, BT per LAN-FUE)
+  // Formula: (AL6 + CR6) × (W6/100) dove CR6≈0 (nessun trasporto inter-isola)
+  const aiemGCTF  = (priceEur + transpPerIsland("GC"))  * aiemPct;
+  const aiemLANFUE= (priceEur + transpPerIsland("LAN")) * aiemPct;
+  const aiemForIsl = (isl: string) => (isl==="LAN"||isl==="FUE") ? aiemLANFUE : aiemGCTF;
+
+  // Step1 per isola: BV=AL+AM+AU+BC+BE+BM+BO+BR (MARE o GOMMA, appropriato)
+  const step1: Record<string,number> = {};
+  const step2: Record<string,number> = {};
 
   // Warehouse
   let wh = 0;
@@ -157,26 +181,23 @@ function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
     wh = (COSTS_CAN.MTS_D[temp]??0)/unitsPerPlt + (COSTS_CAN.MTS_I[temp]??0)/unitsPerPlt + (COSTS_CAN.MTS_P[temp]??0)/divisoreCollo;
   }
 
-  const step1: Record<string,number> = {};
-  const step2: Record<string,number> = {};
   for (const isl of CAN_ISLANDS) {
-    step1[isl] = priceEur + islandTransport(isl) + plt + aiemUnit;
+    step1[isl] = priceEur + transpPerIsland(isl) + plt + aiemForIsl(isl);
     step2[isl] = step1[isl] + wh;
   }
 
-  // Breakdown for display
-  const barcUnitGC = isMARE ? 0 : (COSTS_CAN.BARC[temp]?.GC ?? 0) / unitsPerPlt;
-  const veronaBarcUnit = isMARE ? 0 : COSTS_CAN.VERONA_BARC / plt_n / unitsPerPlt;
-  const assicUnit = isMARE ? 0 : priceEur * COSTS_CAN.ASSICURAZIONE;
-  const freightGC = isMARE ? (COSTS_CAN.MARE[areaKey]?.GC ?? 0) / unitsPerPlt : 0;
-  const inlandGC  = isMARE ? ((isFF?COSTS_CAN.INLAND_FF:COSTS_CAN.INLAND_DRY).GC ?? 0) / plt_n / unitsPerPlt : 0;
+  // Per display: breakdown per GC
+  const freightGC = freightPerIsland("GC");
+  const inlandGC  = inlandPerIsland("GC");
+  const barcUnitGC = barcPerIsland("GC");
+  const aiemUnit = aiemGCTF; // GC canonical
 
   return {
     priceEur, plt, aiemUnit, wh, transport: transport||"GOMMA", unitsPerPlt,
     veronaBarcUnit, barcUnitGC, assicUnit, freightGC, inlandGC,
     step1GC: step1.GC, step1TF: step1.TF, step1LAN: step1.LAN, step1FUE: step1.FUE,
     step2GC: step2.GC, step2TF: step2.TF, step2LAN: step2.LAN, step2FUE: step2.FUE,
-    // compat with existing code (GC as canonical)
+    // compat con codice esistente (GC come canonico)
     step1Eur: step1.GC, step1Hkd: step1.GC,
     step2Eur: step2.GC, step2Hkd: step2.GC, rate:1,
     fob:0, lic:0, vgm:0, hc:0, alc: aiemUnit,
@@ -1458,9 +1479,9 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   const[doneInfo,setDoneInfo]=useState(null);
   const[fileName,setFileName]=useState("");
 
-  // Added vendorName AND vendorName2
-  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","temperature","active","vendorName","vendorName2"];
-  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone / Net Weight",temperature:"Product Type",active:"Bloccato",vendorName:"Vendor Name (es. INALCA FOOD & BEVERAGE SRL)",vendorName2:"Vendor Name 2 (fornitore reale)"};
+  // Added vendorName AND vendorName2 AND aiem
+  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","temperature","active","vendorName","vendorName2","aiem"];
+  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone / Net Weight",temperature:"Product Type",active:"Bloccato",vendorName:"Vendor Name (es. INALCA FOOD & BEVERAGE SRL)",vendorName2:"Vendor Name 2 (fornitore reale)",aiem:"AIEM % (col. W Anagrafica, CAN)"};
 
   const LOCAL_ALIASES = {
     nHK:         ["no","no_"],          // Anagrafica 'no' column = N HK
@@ -1475,6 +1496,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     active:      ["blocked"],
     vendorName:  ["vendorname","vendor name"],    // exact match: 'vendorname' col in Anagrafica
     vendorName2: ["vendorname2","vendor name 2"],
+    aiem:        ["aiem","igic","alim","aiem%","aiem_perc"],
   };
 
   function autoMap(hdrs) {
@@ -1534,6 +1556,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       active:!["true","1","yes"].includes(String(r.active||"").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
+      aiem: parseFloat(r.aiem)||0,
     }));
     const prevMap=Object.fromEntries(products.map(p=>[p.id,p]));
     const diffs=[];
@@ -2960,24 +2983,32 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
   // AGGIUNGI QUESTI REF PER LO SCROLL
   const topScrollRef = useRef<HTMLDivElement>(null);
   const tableScrollRef = useRef<HTMLDivElement>(null);
+  const topScrollInnerRef = useRef<HTMLDivElement>(null);
 
-  // AGGIUNGI QUESTO useEffect PER SINCRONIZZARE LO SCROLL
   useEffect(() => {
     const topScroll = topScrollRef.current;
     const tableScroll = tableScrollRef.current;
-    if (!topScroll || !tableScroll) return;
-    
-    const handleTopScroll = () => { if (tableScroll) tableScroll.scrollLeft = topScroll.scrollLeft; };
-    const handleTableScroll = () => { if (topScroll) topScroll.scrollLeft = tableScroll.scrollLeft; };
-    
+    const topInner = topScrollInnerRef.current;
+    if (!topScroll || !tableScroll || !topInner) return;
+
+    // sync scroll positions
+    const handleTopScroll = () => { tableScroll.scrollLeft = topScroll.scrollLeft; };
+    const handleTableScroll = () => { topScroll.scrollLeft = tableScroll.scrollLeft; };
     topScroll.addEventListener('scroll', handleTopScroll);
     tableScroll.addEventListener('scroll', handleTableScroll);
-    
+
+    // sync phantom width to actual table scroll width
+    const syncWidth = () => { topInner.style.width = tableScroll.scrollWidth + "px"; };
+    syncWidth();
+    const ro = new ResizeObserver(syncWidth);
+    ro.observe(tableScroll);
+
     return () => {
       topScroll.removeEventListener('scroll', handleTopScroll);
       tableScroll.removeEventListener('scroll', handleTableScroll);
+      ro.disconnect();
     };
-  }, []);
+  }, [filtered.length]);
 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
@@ -3212,7 +3243,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
   onMouseEnter={e => e.currentTarget.style.opacity = "1"}
   onMouseLeave={e => e.currentTarget.style.opacity = "0.5"}
 >
-  <div style={{ width: "max-content", height: "8px" }} />
+  <div ref={topScrollInnerRef} style={{ width: "1px", height: "12px" }} />
 </div>
 
 <div ref={tableScrollRef} style={{overflowX:"auto",width:"100%"}}>
