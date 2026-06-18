@@ -3373,7 +3373,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                     </td>
                     <td style={cell(T.blue)}>{mc?`${mc.hkNewSC.toFixed(2)}`:"—"}</td>
                     <td style={cell(T.dim)}>{mc?`+${mc.markup.toFixed(0)}%`:"—"}</td>
-                    <td style={cell(r.uomDiffers&&mc.macToHkConv===1?T.orange:T.green,true)}>
+                    <td style={cell(mc&&r.uomDiffers&&mc.macToHkConv===1?T.orange:T.green,true)}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
                         {mc?<>
                           {`${mc.macNewSC.toFixed(2)}`}
