@@ -72,6 +72,116 @@ const COSTS = {
   },
 };
 
+// ─── CANARIE COST ENGINE ─────────────────────────────────────────────────────
+// Source: 05_Modello_Standard_Cost.xlsx — COSTS (LOG) sheet
+const COSTS_CAN = {
+  // GOMMA: Verona → Barcellona fixed per container (2 truck types: DRY=32plt, FF=24plt)
+  VERONA_BARC: 2000,
+  // GOMMA: Barcellona → island per pallet, by temperature
+  BARC: {
+    DRY:    { GC:133.692, TF:133.692, LAN:190.254, FUE:190.254 },
+    FRESH:  { GC:117,     TF:117,     LAN:190.254, FUE:190.254 },
+    FROZEN: { GC:133.692, TF:133.692, LAN:271.498, FUE:271.498 },
+  },
+  // GOMMA: Assicurazione (Seguro) = 0.5% sul valore merce
+  ASSICURAZIONE: 0.005,
+  // MARE: all-in freight per pallet per island, by area
+  MARE: {
+    NORD:   { GC:2580.72, TF:2580.72, LAN:3521.44, FUE:3521.44 },
+    CENTRO: { GC:0,       TF:0,       LAN:0,       FUE:0       },
+    SUD:    { GC:2258.53, TF:2258.53, LAN:0,       FUE:0       },
+  },
+  // MARE: Inland + Custom Clearance per container per island
+  INLAND_DRY: { GC:762, TF:762, LAN:830, FUE:830 },
+  INLAND_FF:  { GC:0,   TF:0,   LAN:0,   FUE:0   },
+  // Pallet (same as HK)
+  PLT: 30,
+  // MTO (CROSS DOCKING)
+  MTO:   { DRY:8.16,   FRESH:10.2,  FROZEN:12.24 },
+  MTS_D: { DRY:14.42,  FRESH:16.48, FROZEN:24.72 },
+  MTS_I: { DRY:2.58,   FRESH:3.61,  FROZEN:3.61  },
+  MTS_P: { DRY:0.30,   FRESH:0.34,  FROZEN:0.35  },
+};
+
+const CAN_ISLANDS = ["GC","TF","LAN","FUE"] as const;
+
+function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
+  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature } = product;
+  const { pltPerContainer, area, hasAlcTax, alcTax, convFactor, transport } = logistic || {};
+
+  let unitsPerPlt: number;
+  if (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
+  else if (uom==="KG") unitsPerPlt = Number(kgxplt)>0 ? Number(kgxplt) : 300;
+  else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet);
+
+  const divisoreCollo = uom==="BOX" ? 1 : uom==="KG" ? Number(kgPerBox||qtyPerBox) : Number(qtyPerBox);
+  const plt_n = Math.max(Number(pltPerContainer)||1, 1);
+  const totalUnits = unitsPerPlt * plt_n;
+  if (!totalUnits) return null;
+
+  const priceEur = Number(priceInput||0) * Number(convFactor||1);
+  if (!priceEur) return null;
+
+  const temp: string = temperature || "DRY";
+  const areaKey: string = area || "NORD";
+  const isMARE = transport === "MARE";
+  const isFF = temp === "FRESH" || temp === "FROZEN";
+
+  // Pallet cost per unit
+  const plt = COSTS_CAN.PLT / unitsPerPlt;
+
+  // AIEM (stored in alcTax as a %, e.g. 5 for 5%)
+  const aiemRate = hasAlcTax ? (Number(alcTax)||0) / 100 : 0;
+  const aiemUnit = priceEur * aiemRate;
+
+  // Per-island transport cost (€/unit)
+  const islandTransport = (isl: string) => {
+    if (isMARE) {
+      const freight = (COSTS_CAN.MARE[areaKey]?.[isl] ?? 0) / unitsPerPlt;
+      const inlandTbl = isFF ? COSTS_CAN.INLAND_FF : COSTS_CAN.INLAND_DRY;
+      const inland = (inlandTbl[isl] ?? 0) / plt_n / unitsPerPlt;
+      return freight + inland;
+    } else {
+      const veronaBarcUnit = COSTS_CAN.VERONA_BARC / plt_n / unitsPerPlt;
+      const barcUnit = (COSTS_CAN.BARC[temp]?.[isl] ?? 0) / unitsPerPlt;
+      const assicUnit = priceEur * COSTS_CAN.ASSICURAZIONE;
+      return veronaBarcUnit + barcUnit + assicUnit;
+    }
+  };
+
+  // Warehouse
+  let wh = 0;
+  if (ubicazione==="MTO") {
+    wh = (COSTS_CAN.MTO[temp] ?? 0) / unitsPerPlt;
+  } else if (ubicazione==="MTS") {
+    wh = (COSTS_CAN.MTS_D[temp]??0)/unitsPerPlt + (COSTS_CAN.MTS_I[temp]??0)/unitsPerPlt + (COSTS_CAN.MTS_P[temp]??0)/divisoreCollo;
+  }
+
+  const step1: Record<string,number> = {};
+  const step2: Record<string,number> = {};
+  for (const isl of CAN_ISLANDS) {
+    step1[isl] = priceEur + islandTransport(isl) + plt + aiemUnit;
+    step2[isl] = step1[isl] + wh;
+  }
+
+  // Breakdown for display
+  const barcUnitGC = isMARE ? 0 : (COSTS_CAN.BARC[temp]?.GC ?? 0) / unitsPerPlt;
+  const veronaBarcUnit = isMARE ? 0 : COSTS_CAN.VERONA_BARC / plt_n / unitsPerPlt;
+  const assicUnit = isMARE ? 0 : priceEur * COSTS_CAN.ASSICURAZIONE;
+  const freightGC = isMARE ? (COSTS_CAN.MARE[areaKey]?.GC ?? 0) / unitsPerPlt : 0;
+  const inlandGC  = isMARE ? ((isFF?COSTS_CAN.INLAND_FF:COSTS_CAN.INLAND_DRY).GC ?? 0) / plt_n / unitsPerPlt : 0;
+
+  return {
+    priceEur, plt, aiemUnit, wh, transport: transport||"GOMMA", unitsPerPlt,
+    veronaBarcUnit, barcUnitGC, assicUnit, freightGC, inlandGC,
+    step1GC: step1.GC, step1TF: step1.TF, step1LAN: step1.LAN, step1FUE: step1.FUE,
+    step2GC: step2.GC, step2TF: step2.TF, step2LAN: step2.LAN, step2FUE: step2.FUE,
+    // compat with existing code (GC as canonical)
+    step1Eur: step1.GC, step1Hkd: step1.GC,
+    step2Eur: step2.GC, step2Hkd: step2.GC, rate:1,
+    fob:0, lic:0, vgm:0, hc:0, alc: aiemUnit,
+  };
+}
 
 function exportXLSX(rows: any[], sheetName: string, fileName: string) {
   const ws = XLSX.utils.json_to_sheet(rows);
@@ -287,11 +397,17 @@ export default function App() {
   const[toast,setToast]   = useState(null);
   const[pageFilter, setPageFilter] = useState(null);
   const [meatPrices, setMeatPrices] = useState<any[]>(() => LS.get("ifb_meatprices", []));
+  const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
 
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
 
   const branchRef = useRef(branch);
   useEffect(()=>{ branchRef.current = branch; },[branch]);
+
+  // Reload price exceptions when branch changes
+  useEffect(()=>{ if(branch) setPriceExceptions(LS.get(`ifb_exceptions_${branch}`,[])); },[branch]);
+  // Save price exceptions on change (keyed by branch)
+  useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
   useEffect(()=>{ if(branchRef.current&&products.length) IDB.set(`ifb_products_${branchRef.current}`, products); },[products]);
   useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
   useEffect(()=>{ if(branch) LS.set(`ifb_airlist_${branch}`, airList); },[airList,branch]);
@@ -331,6 +447,15 @@ export default function App() {
     const eligible = products.filter(p => p.active && isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
+      // Eccezione prezzo manuale: ha priorità assoluta su listino e carne
+      const exc = priceExceptions.find((e:any) =>
+        e.branch === branch && (
+          e.productId === prod.id ||
+          (e.code && e.code === prod.code) ||
+          (e.nHK && prod.nHK && e.nHK === prod.nHK)
+        )
+      );
+
       const airEntry = airList.find((a:any)=>
           a.productId === prod.id ||
           (a.code && a.code === prod.code) ||
@@ -353,65 +478,70 @@ export default function App() {
       const prPrev = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
 
       const ub = log.ubicazione;
+      const effectiveProd = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
+
+      // Branch-agnostic calc helper
+      const isCAN_b = branch === "CAN";
+      const calcCost = (pi: number) =>
+        isCAN_b
+          ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log })
+          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
+
+      // Eccezione prezzo: bypassa listino e carne
+      if(exc && exc.price > 0) {
+        const costE = calcCost(exc.price);
+        const deltaE = costE ? null : null; // no prev for exceptions
+        return { ...prod, cost:costE, prevCost:null, delta:null, priceInput:exc.price,
+          flagged:false, ubicazione:ub, pltUsed:plt,
+          temperatureOverride:log.temperatureOverride||null, _fromException:true, skipReason: costE?undefined:"CALC=0" };
+      }
+
+      // Meat list fallback helper
+      const meatFallback = () => {
+        const meat = meatPrices.find((m:any) =>
+          m.code===prod.code || m.code===String(prod.id) || (prod.nHK&&m.code===prod.nHK));
+        if (!meat) return null;
+        const kgPerUnit =
+          prod.uom==="KG" ? 1 :
+          prod.uom==="BOX" ? (Number(prod.kgPerBox)||0) :
+          (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1,1);
+        return { pi: meat.pricePerKg * kgPerUnit };
+      };
 
       if(!pr) {
-        // Fallback: listino carne (€/kg → €/unit)
-        const meat = meatPrices.find((m:any) =>
-          m.code === prod.code ||
-          m.code === String(prod.id) ||
-          (prod.nHK && m.code === prod.nHK)
-        );
-        if(!meat) return { ...prod, cost:null, prevCost:null, priceInput:null, ubicazione:ub, skipReason:`NO PREZZO (${branch}/${month})` };
-        const kgPerUnit =
-          prod.uom === "KG"  ? 1 :
-          prod.uom === "BOX" ? (Number(prod.kgPerBox)||0) :
-          (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1, 1);
-        const pi = meat.pricePerKg * kgPerUnit;
-        const effectiveProd2 = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
-        const cost2 = calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd2, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
-        return { ...prod, cost:cost2, prevCost:null, delta:null, priceInput:pi, isNew:true,
+        const mf = meatFallback();
+        if(!mf) return { ...prod, cost:null, prevCost:null, priceInput:null, ubicazione:ub, skipReason:`NO PREZZO (${branch}/${month})` };
+        const cost2 = calcCost(mf.pi);
+        return { ...prod, cost:cost2, prevCost:null, delta:null, priceInput:mf.pi, isNew:true,
           flagged:false, ubicazione:ub, pltUsed:plt, temperatureOverride:log.temperatureOverride||null,
           skipReason: cost2 ? undefined : "CALC=0", _fromMeatList:true };
       }
 
-            const pi  = selectPrice(pr, ub);
+      const pi  = selectPrice(pr, ub);
       const piP = prPrev ? selectPrice(prPrev, ub) : null;
 
-      // Se il prezzo da listino è zero, prova il fallback listino carne
+      // Prezzo zero → fallback listino carne
       if (!pi || pi === 0) {
-        const meat = meatPrices.find((m:any) =>
-          m.code === prod.code ||
-          m.code === String(prod.id) ||
-          (prod.nHK && m.code === prod.nHK)
-        );
-        if (meat) {
-          const kgPerUnit =
-            prod.uom === "KG"  ? 1 :
-            prod.uom === "BOX" ? (Number(prod.kgPerBox)||0) :
-            (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1, 1);
-          const piMeat = meat.pricePerKg * kgPerUnit;
-          const effectiveProdM = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
-          const costM = calcHK({ priceInput:piMeat, ubicazione:ub, product:effectiveProdM, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
-          return { ...prod, cost:costM, prevCost:null, delta:null, priceInput:piMeat, isNew:true,
+        const mf = meatFallback();
+        if (mf) {
+          const costM = calcCost(mf.pi);
+          return { ...prod, cost:costM, prevCost:null, delta:null, priceInput:mf.pi, isNew:true,
             flagged:false, ubicazione:ub, pltUsed:plt, temperatureOverride:log.temperatureOverride||null,
             skipReason: costM ? undefined : "CALC=0", _fromMeatList:true };
         }
       }
 
-            // Temperatura rettificata dal Work_tab ha precedenza su quella dell'anagrafica
-      const effectiveProd = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
-      const cost = calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
+      const cost = calcCost(pi);
       if(!cost) return { ...prod, cost:null, prevCost:null, priceInput:pi,
-        skipReason: !pi || pi === 0 ? "PREZZO ZERO" : `CALC=0 (qty=${prod.qtyPerBox} box/plt=${prod.boxPerPallet} plt=${plt} uom=${prod.uom})` };
+        skipReason: !pi||pi===0 ? "PREZZO ZERO" : `CALC=0 (qty=${prod.qtyPerBox} box/plt=${prod.boxPerPallet} plt=${plt} uom=${prod.uom})` };
 
-      const prevCost = piP!=null ? calcHK({ priceInput:piP, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate }) : null;
-      
+      const prevCost = piP!=null ? calcCost(piP) : null;
       const delta    = cost&&prevCost ? (cost.step2Hkd-prevCost.step2Hkd)/prevCost.step2Hkd*100 : null;
       return { ...prod, cost, prevCost, delta, priceInput:pi, isNew:!prPrev,
-        flagged: delta!==null && Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt,
-        temperatureOverride: log.temperatureOverride || null };
+        flagged: delta!==null&&Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt,
+        temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,branch,month]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month]);
 
   const isCAN = branch === "CAN";
 
@@ -424,6 +554,7 @@ export default function App() {
     {id:"meatlist",   icon:"🥩", label:"Listino Carne"},
     ...(!isCAN ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
     ...(!isCAN ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
+    {id:"exceptions",  icon:"⚡", label:"Eccezioni Prezzi"},
     {id:"costs",      icon:"◆", label:"Standard Cost"},
     {id:"invoice",    icon:"📋", label:"Fatture & Costi", badge:"⇪"},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
@@ -521,6 +652,7 @@ export default function App() {
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     storico: <Storico 
@@ -1942,16 +2074,17 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         const fi = aliases => hdrs.findIndex(h => aliases.some(a => h.toLowerCase().replace(/[\s_°]/g,"").includes(a.replace(/[\s_°]/g,""))));
         
         const idx = {
-          iNHK: fi(["nhk","n hk","gc"]),
+          iNHK: fi(["nhk","n hk","n comit","comit","ncomit"]),
           iIFB: fi(["no_(ifb)","noifb","ifb","no_"]),
-          iUb: fi(["ubicazione","location","wh"]),
+          iUb: fi(["mts/mto","mtsmto","ubicazione","location","wh"]),
           iArea: fi(["area"]),
           iPlt: fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt"]),
           iCert: fi(["healthcertificate","health certificate","cert"]),
-          iTemp: fi(["rettificata","temperature","temp","trettificata"]),
+          iTemp: fi(["rettificata","temperature","temp","trettificata","camion"]),
           iCarriage: fi(["pltcostmedio","plt cost medio","pltcost","carriage"]),
-          iAirSea: fi(["air/sea","airsea","air","sea"]),
-          iAlcTax: fi(["tassa alcolica","tassaalcolica","alcolica","alctax","alc tax"]),
+          iAirSea: fi(["air/sea","airsea"]),
+          iTransport: fi(["trasporto","transport","air/sea","airsea","air","sea"]),
+          iAlcTax: fi(["tassa alcolica","tassaalcolica","alcolica","alctax","alc tax","aiem"]),
         };
         setColIdx(idx);
         setLogHeaders(hdrs);
@@ -1967,28 +2100,31 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   }
 
   function applyLogFile() {
-    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iAlcTax } = colIdx;
+    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iTransport, iAlcTax } = colIdx;
     let next = [...logistics];
     let countLog = 0, countAir = 0;
     const currentBranch = branch;
   
     logRawRows.forEach(row => {
       // Ottieni i codici
-      const nhkRaw = iNHK >= 0 ? String(row[iNHK] || "").trim() : "";
+      // N COMIT / N HK — try dedicated col first, fallback to first column (CAN "N" col)
+      const nhkRaw = iNHK >= 0 ? String(row[iNHK] || "").trim() : String(row[0] || "").trim();
       const ifbRaw = iIFB >= 0 ? String(row[iIFB] || "").trim() : "";
       if (!nhkRaw && !ifbRaw) return;
-  
+
       // Trova il prodotto
       const prod = findProduct(nhkRaw, products, xrefs) || findProduct(ifbRaw, products, xrefs);
       if (!prod) return;
-  
-      // Controlla se è AIR (salta)
-      // Controlla se è AIR (salta)
+
+      // Trasporto: colonna dedicata "Trasporto" o colonna "AIR/SEA"
+      const transportRaw = (iTransport >= 0 ? String(row[iTransport] || "") : "").trim().toUpperCase();
+      if (transportRaw === "AIR") { countAir++; return; }
       const airSeaRaw = iAirSea >= 0 ? String(row[iAirSea] || "").trim().toUpperCase() : "";
-      if (airSeaRaw === "AIR") {
-        countAir++;
-        return;
-      }
+      if (airSeaRaw === "AIR") { countAir++; return; }
+      // Normalise transport value
+      let transport = "";
+      if (transportRaw === "MARE" || transportRaw === "SEA") transport = "MARE";
+      else if (transportRaw === "GOMMA" || transportRaw === "TRUCK" || transportRaw === "ROAD") transport = "GOMMA";
   
       // Ubicazione
       const ubRaw = iUb >= 0 ? String(row[iUb] || "").trim().toUpperCase() : "";
@@ -2049,7 +2185,8 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         alcTax,
         convFactor: 1,
         carriage,
-        temperatureOverride
+        temperatureOverride,
+        ...(transport ? { transport } : {}),
       };
   
       const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
@@ -3084,11 +3221,17 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             {/* riga gruppi */}
             <tr style={stickyTop0}>
               <GH span={3}/>
-              <GH span={4}/>
-              <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>
-              <GH span={2} accent={T.gold}>Step 1</GH>
+              <GH span={branch==="CAN"?5:4}/>
+              {branch==="CAN"
+                ? <GH span={5} accent={T.blue}>Costi trasporto (€/unit)</GH>
+                : <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>}
+              {branch==="CAN"
+                ? <GH span={4} accent={T.gold}>Step 1 per isola</GH>
+                : <GH span={2} accent={T.gold}>Step 1</GH>}
               <GH span={1} accent={T.purple}>Magazzino</GH>
-              <GH span={2} accent={T.green}>Step 2 finale</GH>
+              {branch==="CAN"
+                ? <GH span={4} accent={T.green}>Step 2 per isola</GH>
+                : <GH span={2} accent={T.green}>Step 2 finale</GH>}
               <GH span={2}/>
             </tr>
             {/* riga colonne */}
@@ -3098,20 +3241,41 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               <TH align="left" w={180}>Descrizione</TH>
               <TH w={60}>UOM</TH>
               <TH w={55}>Ubicaz.</TH>
+              {branch==="CAN"&&<TH w={65} align="center">Tratta</TH>}
               <TH w={55} align="center">Temp.</TH>
               <TH w={55} align="center">Rettif.</TH>
               <TH accent={T.blue} w={70}>Prezzo €</TH>
-              <TH accent={T.blue} w={65}>FOB</TH>
-              <TH accent={T.blue} w={65}>LIC</TH>
-              <TH accent={T.blue} w={55}>VGM</TH>
-              <TH accent={T.blue} w={55}>Cert.</TH>
-              <TH accent={T.blue} w={60}>Pallet</TH>
-              <TH accent={T.blue} w={60}>Alc.Tax</TH>
-              <TH accent={T.gold} w={72}>Step1 €</TH>
-              <TH accent={T.gold} w={80}>Step1 HKD</TH>
+              {branch==="CAN" ? <>
+                <TH accent={T.blue} w={65}>Trasp.</TH>
+                <TH accent={T.blue} w={60}>Pallet</TH>
+                <TH accent={T.blue} w={60}>AIEM</TH>
+              </> : <>
+                <TH accent={T.blue} w={65}>FOB</TH>
+                <TH accent={T.blue} w={65}>LIC</TH>
+                <TH accent={T.blue} w={55}>VGM</TH>
+                <TH accent={T.blue} w={55}>Cert.</TH>
+                <TH accent={T.blue} w={60}>Pallet</TH>
+                <TH accent={T.blue} w={60}>Alc.Tax</TH>
+              </>}
+              {branch==="CAN" ? <>
+                <TH accent={T.gold} w={72}>Step1 GC</TH>
+                <TH accent={T.gold} w={72}>Step1 TF</TH>
+                <TH accent={T.gold} w={72}>Step1 LAN</TH>
+                <TH accent={T.gold} w={72}>Step1 FUE</TH>
+              </> : <>
+                <TH accent={T.gold} w={72}>Step1 €</TH>
+                <TH accent={T.gold} w={80}>Step1 HKD</TH>
+              </>}
               <TH accent={T.purple} w={65}>WH €</TH>
-              <TH accent={T.green} w={72}>Step2 €</TH>
-              <TH accent={T.green} w={85}>Step2 HKD ✓</TH>
+              {branch==="CAN" ? <>
+                <TH accent={T.green} w={72}>Step2 GC</TH>
+                <TH accent={T.green} w={72}>Step2 TF</TH>
+                <TH accent={T.green} w={72}>Step2 LAN</TH>
+                <TH accent={T.green} w={85}>Step2 FUE ✓</TH>
+              </> : <>
+                <TH accent={T.green} w={72}>Step2 €</TH>
+                <TH accent={T.green} w={85}>Step2 HKD ✓</TH>
+              </>}
               <TH w={60}>Δ%</TH>
               <TH w={90}>Ultimo ordine</TH>
             </tr>
@@ -3149,6 +3313,19 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                       ? <Chip label={r.ubicazione} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>
                       : <span style={{color:T.dim}}>—</span>}
                   </td>
+                  {branch==="CAN"&&(()=>{
+                    const logEntry = logistics?.find((l:any)=>l.productId===r.id&&l.branch===branch);
+                    const tr = logEntry?.transport||"";
+                    return (
+                      <td style={{...cell(),textAlign:"center"}}>
+                        {tr==="MARE"
+                          ? <Chip label="🚢 MARE" color={T.blue}/>
+                          : tr==="GOMMA"
+                          ? <Chip label="🚛 GOMMA" color={T.orange}/>
+                          : <span style={{color:T.dim,fontSize:"9px"}}>—</span>}
+                      </td>
+                    );
+                  })()}
 
                   {/* temperatura anagrafica */}
                   <td style={{...cell(),textAlign:"center"}}>
@@ -3168,27 +3345,52 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
                   {/* costi breakdown */}
                   <td style={cell(T.text)}>{c?`€${f4(c.priceEur)}`:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}</td>
-                  <td style={cell()}>{c?f4(c.fob):"—"}</td>
-                  <td style={cell()}>{c?f4(c.lic):"—"}</td>
-                  <td style={cell()}>{c?f4(c.vgm):"—"}</td>
-                  <td style={cell(c?.hc>0?T.orange:undefined)}>{c?(c.hc>0?f4(c.hc):"—"):"—"}</td>
-                  <td style={cell()}>{c?f4(c.plt):"—"}</td>
-                  <td style={cell(c?.alc>0?T.orange:undefined)}>{c?(c.alc>0?f4(c.alc):"—"):"—"}</td>
+                  {branch==="CAN" ? <>
+                    {/* trasporto (GC come rappresentativo) */}
+                    <td style={cell()}>{c?f4(c.freightGC+c.inlandGC+c.veronaBarcUnit+c.barcUnitGC+c.assicUnit):"—"}</td>
+                    <td style={cell()}>{c?f4(c.plt):"—"}</td>
+                    <td style={cell(c?.aiemUnit>0?T.orange:undefined)}>{c?(c.aiemUnit>0?f4(c.aiemUnit):"—"):"—"}</td>
+                  </> : <>
+                    <td style={cell()}>{c?f4(c.fob):"—"}</td>
+                    <td style={cell()}>{c?f4(c.lic):"—"}</td>
+                    <td style={cell()}>{c?f4(c.vgm):"—"}</td>
+                    <td style={cell(c?.hc>0?T.orange:undefined)}>{c?(c.hc>0?f4(c.hc):"—"):"—"}</td>
+                    <td style={cell()}>{c?f4(c.plt):"—"}</td>
+                    <td style={cell(c?.alc>0?T.orange:undefined)}>{c?(c.alc>0?f4(c.alc):"—"):"—"}</td>
+                  </>}
 
                   {/* step 1 */}
-                  <td style={cell(T.gold,true)}>{c?`€${c.step1Eur.toFixed(4)}`:"—"}</td>
-                  <td style={cell(T.gold,true)}>{c?`${c.step1Hkd.toFixed(2)}`:"—"}</td>
+                  {branch==="CAN" ? <>
+                    <td style={cell(T.gold,true)}>{c?`€${c.step1GC.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.gold,true)}>{c?`€${c.step1TF.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.gold,true)}>{c?`€${c.step1LAN.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.gold,true)}>{c?`€${c.step1FUE.toFixed(4)}`:"—"}</td>
+                  </> : <>
+                    <td style={cell(T.gold,true)}>{c?`€${c.step1Eur.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.gold,true)}>{c?`${c.step1Hkd.toFixed(2)}`:"—"}</td>
+                  </>}
 
                   {/* magazzino */}
                   <td style={cell(T.purple)}>{c?(c.wh>0?f4(c.wh):"—"):"—"}</td>
 
                   {/* step 2 */}
-                  <td style={cell(T.green,true)}>{c?`€${c.step2Eur.toFixed(4)}`:"—"}</td>
-                  <td style={cell(T.green,true)}>
-                    <span style={{fontSize:"11px",fontWeight:"bold"}}>
-                      {hkd!=null?`${hkd.toFixed(2)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
-                    </span>
-                  </td>
+                  {branch==="CAN" ? <>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2GC.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2TF.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2LAN.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.green,true)}>
+                      <span style={{fontSize:"11px",fontWeight:"bold"}}>
+                        {c?`€${c.step2FUE.toFixed(4)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
+                      </span>
+                    </td>
+                  </> : <>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2Eur.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.green,true)}>
+                      <span style={{fontSize:"11px",fontWeight:"bold"}}>
+                        {hkd!=null?`${hkd.toFixed(2)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
+                      </span>
+                    </td>
+                  </>}
 
                   {/* delta */}
                   <td style={cell(pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,Math.abs(pct||0)>=3)}>
@@ -3213,10 +3415,30 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 {/* ── riga dettaglio espansa ── */}
                 {isSelected&&c&&(
                   <tr key={r.id+"_detail"}>
-                    <td colSpan={21} style={{padding:"8px 16px",background:`${T.gold}06`,
+                    <td colSpan={branch==="CAN"?24:21} style={{padding:"8px 16px",background:`${T.gold}06`,
                       borderBottom:`1px solid ${T.gold}33`}}>
                       <div style={{display:"flex",flexWrap:"wrap",gap:"6px",fontSize:"10px"}}>
-                        {([
+                        {(branch==="CAN" ? [
+                          ["Prezzo acquisto",`€ ${c.priceEur.toFixed(4)}`,T.text],
+                          ["Pallet/unit",`€ ${c.plt.toFixed(4)}`,T.blue],
+                          ["AIEM/unit",c.aiemUnit>0?`€ ${c.aiemUnit.toFixed(4)}`:"—",c.aiemUnit>0?T.orange:T.dim],
+                          ["Trasporto (VeronaBarc)",c.veronaBarcUnit>0?`€ ${c.veronaBarcUnit.toFixed(4)}`:"—",T.blue],
+                          ["Barc→GC/unit",c.barcUnitGC>0?`€ ${c.barcUnitGC.toFixed(4)}`:"—",T.blue],
+                          ["Assicurazione",c.assicUnit>0?`€ ${c.assicUnit.toFixed(4)}`:"—",T.blue],
+                          ["Freight GC",c.freightGC>0?`€ ${c.freightGC.toFixed(4)}`:"—",T.blue],
+                          ["Inland GC",c.inlandGC>0?`€ ${c.inlandGC.toFixed(4)}`:"—",T.blue],
+                          ["Step1 GC",`€ ${c.step1GC.toFixed(4)}`,T.gold],
+                          ["Step1 TF",`€ ${c.step1TF.toFixed(4)}`,T.gold],
+                          ["Step1 LAN",`€ ${c.step1LAN.toFixed(4)}`,T.gold],
+                          ["Step1 FUE",`€ ${c.step1FUE.toFixed(4)}`,T.gold],
+                          ["WH/unit",c.wh>0?`€ ${c.wh.toFixed(4)}`:"—",T.purple],
+                          ["Step2 GC ✓",`€ ${c.step2GC.toFixed(4)}`,T.green],
+                          ["Step2 TF ✓",`€ ${c.step2TF.toFixed(4)}`,T.green],
+                          ["Step2 LAN ✓",`€ ${c.step2LAN.toFixed(4)}`,T.green],
+                          ["Step2 FUE ✓",`€ ${c.step2FUE.toFixed(4)}`,T.green],
+                          ["Units/plt",`${c.unitsPerPlt||"—"}`,T.muted],
+                          ["Tratta",c.transport||"—",T.muted],
+                        ] : [
                           ["Prezzo acquisto",`€ ${c.priceEur.toFixed(4)}`,T.text],
                           ["FOB/unit",`€ ${c.fob.toFixed(4)}`,T.blue],
                           ["LIC/unit",`€ ${c.lic.toFixed(4)}`,T.blue],
@@ -3231,7 +3453,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                           ["Step2 HKD ✓",`${c.step2Hkd.toFixed(2)}`,T.green],
                           ["Rate",`${c.rate}`,T.muted],
                           ["Units/plt",`${c.unitsPerPlt||"—"}`,T.muted],
-                        ] as [string,string,string][]).map(([k,v,col])=>(
+                        ]) .map(([k,v,col])=>(
                           <div key={k} style={{padding:"3px 8px",background:T.card,
                             borderRadius:"4px",border:`1px solid ${T.border}`}}>
                             <span style={{color:T.dim}}>{k}: </span>
@@ -3530,7 +3752,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
       {/* Filtri transport */}
       <div style={{display:"flex",gap:"6px",marginBottom:"10px",flexWrap:"wrap"}}>
-        {(branch==="CAN"
+        {((branch==="CAN"
           ? [
               ["all",`Tutte (${enriched.length})`,T.text],
               ["gomma",`🚛 GOMMA (${enriched.filter((r:any)=>r.logTransport==="GOMMA").length})`,T.orange],
@@ -3541,8 +3763,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
               ["air",`✈ AIR (${airCount})`,T.orange],
               ["sea",`⛴ SEA (${enriched.length-airCount})`,T.blue],
               ["mismatch",`⚠ Mismatch (${mismatches.length})`,T.purple],
-            ]
-        as [string,string,string][]).map(([v,l,c])=>(
+            ]) as [string,string,string][]).map(([v,l,c])=>(
           <button key={v} onClick={()=>setFilterTransport(v)}
             style={{padding:"5px 12px",background:filterTransport===v?`${c}20`:T.surface,color:filterTransport===v?c:T.muted,border:`1px solid ${filterTransport===v?c:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:filterTransport===v?"bold":"normal"}}>
             {l}
@@ -3638,6 +3859,202 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   );
 }
 
+
+// ─── PRICE EXCEPTIONS ─────────────────────────────────────────────────────────
+function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExceptions}) {
+  const [search, setSearch] = useState("");
+  const [selectedProd, setSelectedProd] = useState<any>(null);
+  const [inputPrice, setInputPrice] = useState("");
+  const [inputNote, setInputNote] = useState("");
+  const [showSugg, setShowSugg] = useState(false);
+
+  const isCAN = branch === "CAN";
+  const branchExc = priceExceptions.filter((e:any) => e.branch === branch);
+
+  // Build a lookup: xref productId → nHK/nCOMIT
+  const xrefMap = useMemo(()=>{
+    const m: Record<string,string> = {};
+    xrefs.forEach((x:any)=>{ if(x.productId) m[String(x.productId)] = x.nHK || ""; });
+    return m;
+  }, [xrefs]);
+
+  const activeProducts = products.filter(p => p.active);
+
+  const suggestions = search.length >= 1
+    ? activeProducts.filter(p => {
+        const nVal = xrefMap[String(p.id)] || p.nHK || "";
+        return (
+          String(p.id).includes(search) ||
+          (p.code||"").toLowerCase().includes(search.toLowerCase()) ||
+          (p.description||"").toLowerCase().includes(search.toLowerCase()) ||
+          nVal.toLowerCase().includes(search.toLowerCase())
+        );
+      }).slice(0,10)
+    : [];
+
+  function addException() {
+    const price = parseFloat(inputPrice.replace(",","."));
+    if(!selectedProd || isNaN(price) || price <= 0) return;
+    const existing = priceExceptions.findIndex((e:any) =>
+      e.branch === branch && (e.productId === selectedProd.id || (e.code && e.code === selectedProd.code))
+    );
+    const entry = {
+      branch,
+      productId: selectedProd.id,
+      code: selectedProd.code,
+      nHK: xrefMap[String(selectedProd.id)] || selectedProd.nHK || "",
+      description: selectedProd.description,
+      price,
+      note: inputNote.trim(),
+    };
+    const updated = [...priceExceptions];
+    if(existing >= 0) updated[existing] = entry;
+    else updated.push(entry);
+    setPriceExceptions(updated);
+    setSelectedProd(null);
+    setSearch("");
+    setInputPrice("");
+    setInputNote("");
+  }
+
+  function removeException(idx: number) {
+    const exc = branchExc[idx];
+    setPriceExceptions(priceExceptions.filter((e:any) =>
+      !(e.branch === branch && e.productId === exc.productId)
+    ));
+  }
+
+  return (
+    <div style={{padding:"28px 32px",maxWidth:"900px"}}>
+      <div style={{marginBottom:"24px"}}>
+        <div style={{fontSize:"10px",letterSpacing:"3px",color:T.gold,textTransform:"uppercase",marginBottom:"4px"}}>Filiale · {branch}</div>
+        <h2 style={{margin:0,fontSize:"20px",fontWeight:"bold"}}>⚡ Eccezioni Prezzi</h2>
+        <div style={{color:T.muted,fontSize:"12px",marginTop:"6px"}}>
+          Il prezzo qui inserito ha priorità assoluta su listino e listino carne per il calcolo del costo standard.
+        </div>
+      </div>
+
+      {/* Form aggiunta */}
+      <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:"10px",padding:"18px 20px",marginBottom:"24px"}}>
+        <div style={{fontSize:"11px",letterSpacing:"2px",color:T.gold,textTransform:"uppercase",marginBottom:"14px"}}>Aggiungi / Modifica eccezione</div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 140px 1fr auto",gap:"10px",alignItems:"start"}}>
+
+          {/* Ricerca articolo */}
+          <div style={{position:"relative"}}>
+            <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Articolo</div>
+            <input
+              value={selectedProd ? `[${selectedProd.id}] ${selectedProd.description}` : search}
+              onChange={e=>{ setSearch(e.target.value); setSelectedProd(null); setShowSugg(true); }}
+              onFocus={()=>setShowSugg(true)}
+              placeholder={`Cerca per IFB No, ${isCAN?"N COMIT":"N HK"} o descrizione…`}
+              style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+                padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}}
+            />
+            {showSugg && suggestions.length > 0 && !selectedProd && (
+              <div style={{position:"absolute",top:"100%",left:0,right:0,background:T.card,
+                border:`1px solid ${T.border}`,borderRadius:"6px",zIndex:100,maxHeight:"200px",overflowY:"auto"}}>
+                {suggestions.map(p=>{
+                  const nVal = xrefMap[String(p.id)] || p.nHK || "-";
+                  return (
+                    <div key={p.id}
+                      onMouseDown={()=>{ setSelectedProd(p); setSearch(""); setShowSugg(false); }}
+                      style={{padding:"7px 12px",cursor:"pointer",borderBottom:`1px solid ${T.border}`,fontSize:"12px"}}
+                      onMouseEnter={e=>(e.currentTarget.style.background=T.surface)}
+                      onMouseLeave={e=>(e.currentTarget.style.background="")}>
+                      <span style={{color:T.gold,marginRight:"6px"}}>[{p.id}]</span>
+                      <span>{p.description}</span>
+                      <span style={{color:T.muted,marginLeft:"8px",fontSize:"11px"}}>{isCAN?"N COMIT":"N HK"}: {nVal}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Prezzo */}
+          <div>
+            <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Prezzo (€/unit)</div>
+            <input
+              value={inputPrice}
+              onChange={e=>setInputPrice(e.target.value)}
+              placeholder="0.00"
+              type="number"
+              min="0"
+              step="0.01"
+              style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+                padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}}
+            />
+          </div>
+
+          {/* Nota */}
+          <div>
+            <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Nota (opzionale)</div>
+            <input
+              value={inputNote}
+              onChange={e=>setInputNote(e.target.value)}
+              placeholder="Es: prezzo concordato fornitore…"
+              style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+                padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}}
+            />
+          </div>
+
+          {/* Bottone */}
+          <div>
+            <div style={{fontSize:"10px",color:"transparent",marginBottom:"4px"}}>·</div>
+            <button
+              onClick={addException}
+              disabled={!selectedProd || !inputPrice}
+              style={{padding:"7px 16px",background:selectedProd&&inputPrice?T.gold:"#333",
+                color:selectedProd&&inputPrice?"#111":T.dim,border:"none",borderRadius:"6px",
+                cursor:selectedProd&&inputPrice?"pointer":"default",fontFamily:"inherit",fontSize:"12px",
+                fontWeight:"bold",whiteSpace:"nowrap"}}>
+              {priceExceptions.some((e:any)=>e.branch===branch&&e.productId===selectedProd?.id) ? "Aggiorna" : "Aggiungi"}
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Tabella eccezioni */}
+      {branchExc.length === 0 ? (
+        <div style={{color:T.dim,fontSize:"13px",textAlign:"center",padding:"32px",background:T.card,borderRadius:"10px",border:`1px solid ${T.border}`}}>
+          Nessuna eccezione prezzo per {branch}.
+        </div>
+      ) : (
+        <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:"10px",overflow:"hidden"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
+            <thead>
+              <tr style={{background:T.surface}}>
+                {["IFB No", isCAN?"N COMIT":"N HK", "Descrizione", "Prezzo (€/unit)", "Nota", "·"].map(h=>(
+                  <th key={h} style={{padding:"8px 12px",textAlign:"left",fontSize:"10px",letterSpacing:"1px",
+                    color:T.muted,textTransform:"uppercase",fontWeight:"normal",borderBottom:`1px solid ${T.border}`}}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {branchExc.map((exc:any, i:number)=>(
+                <tr key={i} style={{borderTop:`1px solid ${T.border}`}}>
+                  <td style={{padding:"8px 12px",color:T.gold}}>{exc.productId}</td>
+                  <td style={{padding:"8px 12px",color:T.muted}}>{exc.nHK||"-"}</td>
+                  <td style={{padding:"8px 12px"}}>{exc.description||exc.code||"-"}</td>
+                  <td style={{padding:"8px 12px",color:T.green,fontWeight:"bold"}}>€ {Number(exc.price).toFixed(4)}</td>
+                  <td style={{padding:"8px 12px",color:T.muted,fontStyle:"italic"}}>{exc.note||"-"}</td>
+                  <td style={{padding:"8px 12px",textAlign:"center"}}>
+                    <button onClick={()=>removeException(i)}
+                      style={{background:"transparent",border:`1px solid ${T.red||"#c55"}`,color:T.red||"#c55",
+                        borderRadius:"4px",padding:"2px 8px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>
+                      Rimuovi
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ─── MAIL GEN ─────────────────────────────────────────────────────────────────
 // Only shows items with |delta| > 3% (point 7)
