@@ -516,11 +516,21 @@ export default function App() {
         if (!hkRow.cost?.step2Hkd) return { ...hkRow, cost:null, skipReason:hkRow.skipReason||"NO HK COST" };
         const macProd = macProdMap[hkRow.id] || macProdMap[hkRow.code];
         const isHoff = macProd?.isHoff ?? false;
-        const macUom = macProd?.macUom || "";
-        const hkUom  = macProd?.hkUom  || "";
-        // UOM conversion: if MAC sells per BOX(6) and HK sells per PCS, conv=6
-        const uomDiffers = macUom && hkUom && macUom !== hkUom;
-        const macToHkConv = macProd?.macToHkConv > 1 ? macProd.macToHkConv : 1;
+        // MAC UOM = UOM di vendita Macao (campo "uom" del prodotto MAC)
+        // HK UOM  = campo "hkUom" del prodotto MAC (UOM di vendita BV/HK)
+        const macUom = macProd?.uom  || "";
+        const hkUom  = macProd?.hkUom || hkRow.uom || "";
+        // Conversione automatica: se UOM diverse, usa qtyPerBox del prodotto HK
+        const uomDiffers = macUom && hkUom && macUom.toUpperCase() !== hkUom.toUpperCase();
+        let macToHkConv = 1;
+        if (uomDiffers) {
+          const hkU = hkUom.toUpperCase();
+          const mU  = macUom.toUpperCase();
+          const qty = Number(hkRow.qtyPerBox) || 1;
+          if (hkU==="PCS" && (mU==="BOX"||mU==="CTN")) macToHkConv = qty;
+          else if ((hkU==="BOX"||hkU==="CTN") && mU==="PCS") macToHkConv = 1/qty;
+          // altri casi: conv=1 (non gestito automaticamente)
+        }
         const macCost = calcMAC({ hkCost:hkRow.cost, isHoff, macToHkConv });
         return { ...hkRow, isHoff, macUom, hkUom, uomDiffers, macToHkConv, cost:macCost };
       });
@@ -5052,23 +5062,26 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   // Storico import anagrafica
   const anagSnaps = snapshots.filter((s: any) => s.type === "anagrafica" && (!s.branch || s.branch === "ALL" || s.branch === branch));
 
-  const FIELDS = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","isHoff","macUom","hkUom","macToHkConv","active","vendorName","vendorName2"];
+  // Campi per branch: solo quelli rilevanti
+  const FIELDS_HK  = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","active","vendorName","vendorName2"];
+  const FIELDS_CAN = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
+  const FIELDS_MAC = ["nHK","code","description","isHoff","uom","hkUom","active","vendorName"];
+  const FIELDS = branch==="CAN" ? FIELDS_CAN : branch==="MAC" ? FIELDS_MAC : FIELDS_HK;
+
   const FLABELS: any = {
-    nHK: `${branchN(branch)} (No_)`,
-    code: "IFB Item *",
+    nHK: branch==="MAC" ? "MACAO No (No_)" : branch==="CAN" ? "N COMIT (No_)" : "N HK (No_)",
+    code: "IFB Item / BV No *",
     description: "Descrizione *",
     category: "Section",
-    uom: "UOM",
+    uom: branch==="MAC" ? "UOM vendita MACAO" : "UOM",
     qtyPerBox: "Qty/Cartone",
     boxPerPallet: "Cartoni/Pallet",
     kgPerBox: "Kg per Cartone",
     kgxplt: "Kg x PLT",
     temperature: "Product Type",
-    aiem: "★ AIEM % (CAN — col. W anagrafica)",
-    isHoff: "HOFF Flag (MAC: 1=HOFF)",
-    macUom: "MAC UOM di vendita",
-    hkUom: "HK/BV UOM di vendita",
-    macToHkConv: "Fattore conversione MAC÷HK",
+    aiem: "★ AIEM % (col. W anagrafica CAN)",
+    isHoff: "HOFF Flag (1 = House of Fine Foods)",
+    hkUom: "HK/BV UOM (per calcolo conversione automatica)",
     active: "Bloccato",
     vendorName: "Vendor Name",
     vendorName2: "Vendor Name 2"
@@ -5231,9 +5244,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       kgxplt: parseFloat(r.kgxplt) > 0 ? parseFloat(r.kgxplt) : roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.qtyPerBox) || 1) * (parseFloat(r.boxPerPallet) || 0)),
       aiem: parseFloat(r.aiem) || 0,
       isHoff: ["true","1","yes","hoff","si","sì"].includes(String(r.isHoff||"").toLowerCase()),
-      macUom: r.macUom ? String(r.macUom).trim().toUpperCase() : "",
-      hkUom:  r.hkUom  ? String(r.hkUom).trim().toUpperCase()  : "",
-      macToHkConv: parseFloat(r.macToHkConv)>0 ? parseFloat(r.macToHkConv) : 1,
+      hkUom: r.hkUom ? String(r.hkUom).trim().toUpperCase() : "",
       active: !["true", "1", "yes"].includes(String(r.active || "").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
@@ -5358,12 +5369,11 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px", marginBottom: "16px" }}>
             {FIELDS.map(f => {
               const isRequired = f==="code"||f==="description";
-              const isCurrent = branch==="CAN"&&f==="aiem";
-              const isMacField = ["macUom","hkUom","macToHkConv"].includes(f);
-              const isHoffField = f==="isHoff";
-              const labelColor = isRequired?T.gold:isCurrent?T.orange:(isMacField||isHoffField)?T.purple:T.muted;
+              const isAiem = f==="aiem";
+              const isMacKey = ["hkUom","isHoff"].includes(f);
+              const labelColor = isRequired?T.gold:isAiem?T.orange:isMacKey?T.purple:T.muted;
               return(
-              <div key={f} style={isCurrent?{border:`1px solid ${T.orange}33`,borderRadius:"6px",padding:"4px 6px",background:`${T.orange}08`}:{}}>
+              <div key={f} style={isAiem?{border:`1px solid ${T.orange}33`,borderRadius:"6px",padding:"4px 6px",background:`${T.orange}08`}:{}}>
                 <label style={{ fontSize: "10px", color: labelColor }}>{FLABELS[f]}</label>
                 <select
                   value={map[f] || ""}
