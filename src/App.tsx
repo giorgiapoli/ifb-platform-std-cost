@@ -927,180 +927,128 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
 
 // ─── NOTES PAGE ───────────────────────────────────────────────────────────────
 function NotesPage() {
-  const sections=[
-    {title:"🔴 Problemi noti",color:T.red,items:[
-      "Import Listini: il codice nel file PBI deve essere N HK o IFB N — usa XRef per il matching automatico.",
-      "Colonna 'No_' nel file CURRENT PRICELIST (ACQ) contiene a volte il codice HK (es. WCAN01-NV) — la mappatura automatica lo rileva.",
-      "I codici P_BC_xxx vengono filtrati automaticamente (ID interni Power BI).",
-      "Canarie (CAN), Macao (MAC) e Australia (AUS): calcoli costo non ancora attivati.",
-    ]},
-    {title:"🟡 Ambiguità",color:T.orange,items:[
-      "Formula DAP Final: SE(DAP Disc≠0, DAP Disc, SE(isX, SE(WINE, FCA+carriage, FCADisc+carriage), 0)). isX dipende da FOR_VENDORS hardcodato.",
-      "TASSA ALCOLICA: letta dalla colonna 'TASSA ALCOLICA' del Work_tab. Solo prodotti con GRADI ≥30° (SPIRITS).",
-      "LIC = (4100+3800) HKD / tasso cambio / totalUnits — confermare se cambia ogni mese.",
-      "Health Certificate: €80/container. Incluso se HEALTH CERTIFICATE = SI nel Work_tab.",
-      "Standard Cost calcolato SOLO per articoli Vendor = INALCA FOOD & BEVERAGE, trasporto SEA (non AIR).",
-    ]},
-    {title:"🟢 Future",color:T.green,items:[
-      "Export Standard Cost a Excel con struttura originale.",
-      "Grafico andamento prezzi per prodotto.",
-      "Gestione multi-container.",
-      "Backup/restore completo.",
-    ]},
+  const [open, setOpen] = React.useState<number|null>(null);
+  const toggle = (i:number) => setOpen(o=>o===i?null:i);
+
+  // ── FLUSSO SETUP (una tantum per filiale)
+  const setup = [
+    { icon:"◈", label:"Anagrafica", color:T.muted,
+      desc:"Carica il file export da BC/Navision con tutti gli articoli. Contiene: codice, UOM, dimensioni pallet, temperatura, fornitore, AIEM (CAN).",
+      steps:["Pagina Anagrafica → Carica anagrafica","Mappa le colonne (rilevamento automatico)","Preview → Importa","✓ Da rifare solo se cambiano i prodotti"] },
+    { icon:"⇄", label:"XRef", color:T.muted,
+      desc:"Collega il codice filiale (N HK / N COMIT) al codice IFB. Necessario per incrociare fatture e standard cost.",
+      steps:["Pagina XRef → Carica file con 2 colonne: N filiale + IFB N","Seleziona le colonne → Preview → Importa","✓ Da rifare solo se cambiano i codici"] },
+    { icon:"◎", label:"Work Tab (Logistica)", color:T.muted,
+      desc:"Parametri logistici per articolo: ubicazione MTS/MTO/FOR, MARE/GOMMA (CAN), numero pallet per container, area geografica.",
+      steps:["Pagina Work Tab (Logistica) → Carica Work Tab","Il sistema rileva automaticamente le colonne","Importa","✓ Da rifare se cambiano i parametri logistici"] },
+    { icon:"⚡", label:"Eccezioni Prezzi", color:T.muted,
+      desc:"Override manuale del prezzo per un articolo specifico, con priorità su listino e listino carne.",
+      steps:["Pagina Eccezioni Prezzi → cerca articolo per codice o descrizione","Inserisci il prezzo manuale e una nota","Salva → il prezzo verrà usato nel calcolo SC"] },
   ];
 
-  // ✅ NUOVA SEZIONE ISTRUZIONI
-  const instructions = [
-    {
-      title: "🏁 1. Selezione Filiale",
-      steps: [
-        "All'avvio, seleziona la filiale desiderata (Hong Kong è attualmente l'unica attiva)",
-        "Il mese viene impostato automaticamente sul mese corrente",
-        "Puoi cambiare filiale o mese in qualsiasi momento dalla sidebar sinistra"
-      ]
-    },
-    {
-      title: "📦 2. Importazione Anagrafica",
-      steps: [
-        "Vai su 'Anagrafica' → clicca '📂 Carica anagrafica (BC export)'",
-        "Seleziona il file Excel esportato da Business Central",
-        "Mappa le colonne se necessario (il sistema prova a farlo automaticamente)",
-        "Clicca 'Preview' per verificare i dati, poi 'Importa'",
-        "I dati vengono salvati automaticamente e rimangono disponibili al prossimo accesso"
-      ]
-    },
-    {
-      title: "💶 3. Importazione Listini",
-      steps: [
-        "Vai su 'Listini' → clicca '📂 Carica listini'",
-        "Seleziona il file PBI o CURRENT PRICELIST",
-        "Seleziona il mese di riferimento (se diverso da quello corrente)",
-        "Verifica il mapping automatico del codice articolo",
-        "Clicca 'Preview' per vedere i prezzi trovati, poi 'Importa'",
-        "I prezzi vengono salvati per mese e filiale"
-      ]
-    },
-    {
-      title: "🚚 4. Logistica (Work_tab)",
-      steps: [
-        "Vai su 'Logistica' → clicca '📂 Carica Work_tab'",
-        "Seleziona il file 08_Work_Tab.xlsx",
-        "Il sistema rileva automaticamente colonne: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica",
-        "Clicca 'Importa' per salvare i parametri logistici",
-        "⚠️ Le righe importate sono in SOLA LETTURA (colore dorato)",
-        "Le righe senza logistica sono modificabili (colore arancione)",
-        "Puoi svuotare tutti i dati con '🗑 Svuota tutti i dati'"
-      ]
-    },
-    {
-      title: "✈️ 5. Lista AIR Transport",
-      steps: [
-        "Vai su 'AIR Transport' → clicca '📂 Carica lista AIR'",
-        "Carica un file Excel con una colonna di codici articolo (N HK o IFB N)",
-        "Il sistema mostra quali codici sono trovati/non trovati in anagrafica",
-        "Clicca 'Salva' per marcare questi articoli come trasporto aereo",
-        "Questi articoli verranno ESCLUSI dal calcolo Standard Cost",
-        "Nota: anche la location 'NCJ' in fattura viene considerata AIR automaticamente"
-      ]
-    },
-    {
-      title: "📊 6. Calcolo Standard Cost",
-      steps: [
-        "Vai su 'Standard Cost' → clicca '⟳ Ricalcola & Salva'",
-        "Il sistema calcola il costo per tutti gli articoli INALCA F&B con trasporto SEA",
-        "Vedi la tabella con breakdown dettagliato: Prezzo, FOB, LIC, VGM, HC, Pallet, Tassa Alcolica, Magazzino",
-        "Clicca su una riga per vedere il dettaglio completo del calcolo",
-        "Le variazioni ≥ ±3% sono evidenziate",
-        "I costi vengono salvati come snapshot per confronti futuri"
-      ]
-    },
-    {
-      title: "📋 7. Sales Invoice (Fatture)",
-      steps: [
-        "Vai su 'Sales Invoice' → clicca '📂 Ricarica'",
-        "Carica il file fattura (Excel/CSV)",
-        "Mappa le colonne: Codice articolo, Descrizione, Data, Quantità, Prezzo, Location",
-        "Il trasporto AIR/SEA viene determinato automaticamente dalla lista AIR o dalla location 'NCJ'",
-        "Clicca 'Importa' per salvare i dati",
-        "Puoi filtrare per 'Solo AIR' o 'Solo SEA'"
-      ]
-    },
-    {
-      title: "📈 8. Dashboard & Monitoraggio",
-      steps: [
-        "La Dashboard mostra statistiche riassuntive: costi calcolati, variazioni, AIR esclusi, mancanti",
-        "Clicca su qualsiasi card per vedere la lista dettagliata degli articoli in quella categoria",
-        "Usa i filtri e la ricerca per trovare articoli specifici"
-      ]
-    },
-    {
-      title: "⏱️ 9. Storico & Snapshot",
-      steps: [
-        "Vai su 'Storico & Diff' per vedere tutti gli import effettuati",
-        "Clicca su uno snapshot per vedere le differenze rispetto alla versione precedente",
-        "Gli snapshot Standard Cost vengono creati ogni volta che clicchi 'Ricalcola & Salva'",
-        "Puoi eliminare snapshot singoli o tutti"
-      ]
-    },
-    {
-      title: "✉️ 10. Mail Mensile",
-      steps: [
-        "Vai su 'Mail Mensile' → il sistema prepara automaticamente il testo delle variazioni > ±3%",
-        "Clicca 'Copia testo' per copiare negli appunti e incollare nella mail"
-      ]
-    }
+  // ── FLUSSO MENSILE
+  const monthly = [
+    { icon:"💰", label:"1. Listino prezzi", color:T.green,
+      desc:"Prezzi DAP/FCA del mese dal sistema (Power BI / CURRENT PRICELIST). Necessario per calcolare il costo di acquisto.",
+      steps:["Pagina Listini → Carica file listino","Seleziona il mese di riferimento","Preview → Importa"] },
+    { icon:"🧾", label:"2. Fatture del mese", color:T.green,
+      desc:"Sales Invoice export da BC/Navision. L'app legge le posting date per filtrare per mese. I dati sono cumulativi — basta caricare il file più aggiornato.",
+      steps:["Pagina Fatture & Costi → Carica file","Mappa le colonne (rilevamento automatico)","Importa","✓ Le fatture vecchie vengono conservate, le nuove aggiunte"] },
+    { icon:"📊", label:"3. SC Attuali", color:T.green,
+      desc:"Report degli Standard Cost correnti dal sistema (BC per HK, Navision per CAN). Serve per il confronto ±3%.",
+      steps:["Pagina SC Attuali → Carica report","Il formato HK o CAN viene rilevato automaticamente","Importa","✓ Da aggiornare ogni mese"] },
+    { icon:"◆", label:"4. Calcola Standard Cost", color:T.blue,
+      desc:"Il calcolo usa listino + logistica + parametri fissi (FOB, LIC, VGM, PLT…) per produrre il costo unitario Step1 e Step2.",
+      steps:["Pagina Standard Cost → clicca ⟳ Ricalcola","Attendi il calcolo (pochi secondi)","Verifica la tabella: ogni riga mostra il breakdown completo","Clicca una riga per il dettaglio"] },
+    { icon:"📅", label:"5. Check Mensile → Export", color:T.gold,
+      desc:"Confronta lo SC calcolato con gli SC Attuali. Identifica articoli NUOVI (nessun SC in sistema) e DA AGGIORNARE (variazione > ±3%). Esporta il file Excel pronto.",
+      steps:["Pagina Check Mensile","Seleziona il mese dalla lista (derivato dalle fatture caricate)","Verifica la lista: NUOVO ARTICOLO / DA AGGIORNARE / OK","Clicca 📥 Esporta Excel → file STDC_Analisi_BRANCH_MESE.xlsx"] },
   ];
+
+  const Card = ({icon,label,color,desc,steps,idx,isOpen}:{icon:string,label:string,color:string,desc:string,steps:string[],idx:number,isOpen:boolean}) => (
+    <div style={{borderRadius:"8px",border:`1px solid ${isOpen?color:T.border}`,overflow:"hidden",transition:"border-color 0.15s"}}>
+      <button onClick={()=>toggle(idx)}
+        style={{width:"100%",display:"flex",alignItems:"center",gap:"10px",padding:"12px 16px",
+          background:isOpen?`${color}12`:"transparent",border:"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit"}}>
+        <span style={{fontSize:"15px",width:"22px",textAlign:"center"}}>{icon}</span>
+        <span style={{flex:1,fontSize:"13px",fontWeight:"bold",color:isOpen?color:T.text}}>{label}</span>
+        <span style={{fontSize:"10px",color:T.dim}}>{isOpen?"▲":"▼"}</span>
+      </button>
+      {isOpen&&(
+        <div style={{padding:"0 16px 14px 16px",borderTop:`1px solid ${color}22`}}>
+          <p style={{fontSize:"12px",color:T.muted,margin:"10px 0 10px",lineHeight:"1.6"}}>{desc}</p>
+          <ol style={{margin:0,paddingLeft:"18px",fontSize:"12px",color:T.text,lineHeight:"2"}}>
+            {steps.map((s,i)=><li key={i} style={{marginBottom:"2px"}}>{s}</li>)}
+          </ol>
+        </div>
+      )}
+    </div>
+  );
 
   return(
-    <div>
-      <PageHeader title="📝 Guida & Istruzioni" sub="Manuale d'uso · regole di calcolo · note tecniche"/>
+    <div style={{maxWidth:"800px"}}>
+      <PageHeader title="📝 Guida rapida" sub="Come si usa la piattaforma — passo per passo"/>
 
-      {/* ✅ NUOVA SEZIONE ISTRUZIONI */}
-      <Section title="" accent={T.gold}>
-        <div style={{display:"flex",flexDirection:"column",gap:"16px"}}>
-          {instructions.map((inst, idx) => (
-            <div key={idx} style={{
-              background:T.card,
-              borderLeft: `4px solid ${T.gold}`,
-              borderRadius:"8px",
-              padding:"12px 16px"
-            }}>
-              <div style={{
-                fontSize:"13px",
-                fontWeight:"bold",
-                color:T.gold,
-                marginBottom:"8px",
-                display:"flex",
-                alignItems:"center",
-                gap:"8px"
-              }}>
-                <span style={{fontSize:"16px"}}>📌</span>
-                {inst.title}
+      {/* FLUSSO VISIVO */}
+      <Section title="">
+        <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap",marginBottom:"8px"}}>
+          {[
+            {label:"Setup",sub:"una tantum",c:T.muted},
+            {label:"→"},
+            {label:"Listino",sub:"mensile",c:T.green},
+            {label:"→"},
+            {label:"Fatture",sub:"mensile",c:T.green},
+            {label:"→"},
+            {label:"SC Attuali",sub:"mensile",c:T.green},
+            {label:"→"},
+            {label:"Calcola SC",sub:"mensile",c:T.blue},
+            {label:"→"},
+            {label:"Check Mensile",sub:"export",c:T.gold},
+          ].map((item,i)=>item.label==="→"
+            ? <span key={i} style={{color:T.dim,fontSize:"14px"}}>→</span>
+            : <div key={i} style={{background:`${item.c}18`,border:`1px solid ${item.c}44`,borderRadius:"6px",padding:"5px 10px",textAlign:"center"}}>
+                <div style={{fontSize:"11px",fontWeight:"bold",color:item.c}}>{item.label}</div>
+                {item.sub&&<div style={{fontSize:"9px",color:T.dim}}>{item.sub}</div>}
               </div>
-              <ul style={{
-                margin:0,
-                paddingLeft:"20px",
-                fontSize:"12px",
-                color:T.muted,
-                lineHeight:"1.8"
-              }}>
-                {inst.steps.map((step, i) => (
-                  <li key={i}>{step}</li>
-                ))}
-              </ul>
+          )}
+        </div>
+        <p style={{fontSize:"12px",color:T.dim,margin:0}}>
+          Il <strong style={{color:T.muted}}>Setup</strong> si fa una volta sola per filiale. Ogni mese si ripetono solo i 5 step a destra.
+        </p>
+      </Section>
+
+      {/* SETUP */}
+      <Section title="Setup — da fare una volta per filiale" accent={T.muted}>
+        <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+          {setup.map((s,i)=><Card key={i} {...s} idx={i} isOpen={open===i}/>)}
+        </div>
+      </Section>
+
+      {/* MENSILE */}
+      <Section title="Flusso mensile — da ripetere ogni mese" accent={T.green}>
+        <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
+          {monthly.map((s,i)=><Card key={i+100} {...s} idx={i+100} isOpen={open===i+100}/>)}
+        </div>
+      </Section>
+
+      {/* NOTE RAPIDE */}
+      <Section title="Regole da sapere" accent={T.blue}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
+          {[
+            {t:"Solo INALCA F&B",d:"Il calcolo SC è attivo solo per articoli con fornitore INALCA FOOD & BEVERAGE."},
+            {t:"Soglia ±3%",d:"Una variazione di prezzo viene segnalata solo se superiore al 3% rispetto allo SC attuale."},
+            {t:"Step1 vs Step2",d:"Step1 = costo acquisto + trasporto. Step2 = Step1 + costo magazzino (MTS/MTO)."},
+            {t:"MARE vs GOMMA (CAN)",d:"MARE: costo container diviso per unità totali. GOMMA: costo per pallet diviso per unità/pallet."},
+            {t:"Eccezione prezzo",d:"Ha priorità assoluta su listino e listino carne. Usarla per accordi speciali o campioni."},
+            {t:"Fatture cumulative",d:"Il file fatture include tutti i mesi. L'app filtra per posting date — non serve caricare ogni mese un file diverso."},
+          ].map(({t,d},i)=>(
+            <div key={i} style={{background:T.card,borderRadius:"8px",padding:"12px 14px",border:`1px solid ${T.border}`}}>
+              <div style={{fontSize:"11px",fontWeight:"bold",color:T.text,marginBottom:"4px"}}>{t}</div>
+              <div style={{fontSize:"11px",color:T.muted,lineHeight:"1.6"}}>{d}</div>
             </div>
           ))}
         </div>
       </Section>
-
-      {/* Sezioni esistenti */}
-      {sections.map(s=>(
-        <Section key={s.title} title={s.title} accent={s.color}>
-          <ul style={{margin:0,padding:"0 0 0 18px"}}>
-            {s.items.map((item,i)=><li key={i} style={{fontSize:"12px",color:T.muted,lineHeight:"1.8",marginBottom:"4px"}}>{item}</li>)}
-          </ul>
-        </Section>
-      ))}
     </div>
   );
 }
