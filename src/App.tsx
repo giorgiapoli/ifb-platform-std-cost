@@ -1481,7 +1481,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item / BV No *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg/Cartone (Net Weight)",kgxplt:"Kg x PLT",temperature:"Product Type",aiem:"★ AIEM % (CAN — col. W anagrafica)",isHoff:"HOFF Flag (MAC: 1=HOFF)",macUom:"MAC UOM di vendita",hkUom:"HK/BV UOM di vendita",macToHkConv:"Fattore conversione MAC÷HK (es. 6 se HK=PCS e MAC=BOX6)",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
 
   const LOCAL_ALIASES = {
-    nHK:         ["no","no_"],          // Anagrafica 'no' column = N HK
+    nHK:         ["no","no_","macaono","macao no","macao_no","macaomastercode","macao mastercode","macaoitemno"],
     code:        ["ifbitem","ifb item","ifb no","ifb n","bvno","bv no","bvmastercode","bv mastercode"],
     description: ["description"],
     category:    ["sectiondescription","section description","section"],
@@ -1496,7 +1496,6 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     vendorName2: ["vendorname2","vendor name 2"],
     aiem:        ["aiem","igic","alim","aiem%","aiem_perc","aiem_canarie","aiemperc"],
     isHoff:      ["ishoff","hoff","hofflag","hoff flag","hoff_flag","is hoff"],
-    nHK:         ["no","no_","macaono","macao no","macao_no","macaomastercode","macao mastercode","macaoitemno"],
     macUom:      ["macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom","mac uom","macuom"],
     hkUom:       ["bvsalesunitofmeasure","bv salesunitofmeasure","bvuom","hk uom","hkuom"],
     macToHkConv: ["mactoHkconv","conversionfactor","conv factor","conversion","fattoreconv","macaotoHkconv"],
