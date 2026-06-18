@@ -736,12 +736,6 @@ export default function App() {
               {n.badge&&<span style={{marginLeft:"auto",fontSize:"7px",background:`${T.blue}33`,color:T.blue,padding:"1px 4px",borderRadius:"3px"}}>{n.badge}</span>}
             </button>
           ))}
-          <button onClick={()=>setPage("branchSelect")}
-            style={{padding:"7px 10px",background:"transparent",border:`1px solid transparent`,
-              borderRadius:"6px",color:T.dim,cursor:"pointer",fontFamily:"inherit",
-              fontSize:"11px",textAlign:"left",display:"flex",alignItems:"center",gap:"7px",marginTop:"8px"}}>
-            <span style={{fontSize:"10px"}}>⇦</span>Cambia filiale
-          </button>
         </nav>
         <div style={{padding:"10px 12px",borderTop:`1px solid ${T.border}`,fontSize:"9px",color:T.dim,lineHeight:1.5}}>
           Inalca Food & Beverage<br/>© 2026 · v4.0
@@ -955,13 +949,13 @@ function NotesPage() {
       desc:"Sales Invoice export da BC/Navision. L'app legge le posting date per filtrare per mese. I dati sono cumulativi — basta caricare il file più aggiornato.",
       steps:["Pagina Fatture & Costi → Carica file","Mappa le colonne (rilevamento automatico)","Importa","✓ Le fatture vecchie vengono conservate, le nuove aggiunte"] },
     { icon:"📊", label:"3. SC Attuali", color:T.green,
-      desc:"Report degli Standard Cost correnti dal sistema (BC per HK, Navision per CAN). Serve per il confronto ±3%.",
+      desc:"Report degli Standard Cost correnti dal sistema (BC per HK, Navision per CAN). Serve per il confronto mensile (soglia > +3% o < -3%).",
       steps:["Pagina SC Attuali → Carica report","Il formato HK o CAN viene rilevato automaticamente","Importa","✓ Da aggiornare ogni mese"] },
     { icon:"◆", label:"4. Calcola Standard Cost", color:T.blue,
       desc:"Il calcolo usa listino + logistica + parametri fissi (FOB, LIC, VGM, PLT…) per produrre il costo unitario Step1 e Step2.",
       steps:["Pagina Standard Cost → clicca ⟳ Ricalcola","Attendi il calcolo (pochi secondi)","Verifica la tabella: ogni riga mostra il breakdown completo","Clicca una riga per il dettaglio"] },
     { icon:"📅", label:"5. Check Mensile → Export", color:T.gold,
-      desc:"Confronta lo SC calcolato con gli SC Attuali. Identifica articoli NUOVI (nessun SC in sistema) e DA AGGIORNARE (variazione > ±3%). Esporta il file Excel pronto.",
+      desc:"Confronta lo SC calcolato con gli SC Attuali. Identifica articoli NUOVI (nessun SC in sistema) e DA AGGIORNARE (variazione > +3% o < -3%). Esporta il file Excel pronto.",
       steps:["Pagina Check Mensile","Seleziona il mese dalla lista (derivato dalle fatture caricate)","Verifica la lista: NUOVO ARTICOLO / DA AGGIORNARE / OK","Clicca 📥 Esporta Excel → file STDC_Analisi_BRANCH_MESE.xlsx"] },
   ];
 
@@ -1036,7 +1030,7 @@ function NotesPage() {
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
           {[
             {t:"Solo INALCA F&B",d:"Il calcolo SC è attivo solo per articoli con fornitore INALCA FOOD & BEVERAGE."},
-            {t:"Soglia ±3%",d:"Una variazione di prezzo viene segnalata solo se superiore al 3% rispetto allo SC attuale."},
+            {t:"Soglia > +3% o < -3%",d:"Una variazione viene segnalata come DA AGGIORNARE solo se superiore a +3% o inferiore a -3% rispetto allo SC attuale."},
             {t:"Step1 vs Step2",d:"Step1 = costo acquisto + trasporto. Step2 = Step1 + costo magazzino (MTS/MTO)."},
             {t:"MARE vs GOMMA (CAN)",d:"MARE: costo container diviso per unità totali. GOMMA: costo per pallet diviso per unità/pallet."},
             {t:"Eccezione prezzo",d:"Ha priorità assoluta su listino e listino carne. Usarla per accordi speciali o campioni."},
@@ -2962,7 +2956,7 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
       tableScroll.removeEventListener('scroll', handleTableScroll);
       ro.disconnect();
     };
-  }, [filtered.length]);
+  }, []);
 
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
@@ -4311,7 +4305,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
 
   return (
     <div>
-      <PageHeader title={`📅 Check Mensile · ${branch}`} sub="Confronto SC calcolato vs SC Attuali — soglia ±3%"/>
+      <PageHeader title={`📅 Check Mensile · ${branch}`} sub="Confronto SC calcolato vs SC Attuali — soglia: > +3% o < -3%"/>
 
       {/* Selezione mese + threshold */}
       <Section title="Filtri">
