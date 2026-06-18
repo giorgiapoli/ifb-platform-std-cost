@@ -1588,7 +1588,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
       aiem: parseFloat(r.aiem)||0,
-      isHoff: ["true","1","yes","hoff","si","sì"].includes(String(r.isHoff||"").toLowerCase()),
+      isHoff: ["true","1","yes","hoff","si","sì","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
       macUom: r.macUom ? String(r.macUom).trim().toUpperCase() : "",
       hkUom:  r.hkUom  ? String(r.hkUom).trim().toUpperCase()  : "",
       macToHkConv: parseFloat(r.macToHkConv)>0 ? parseFloat(r.macToHkConv) : 1,
@@ -5092,7 +5092,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     code:        ["ifbitem","ifb item","ifb no","ifb n","bvno","bv no","bvmastercode","bv mastercode"],
     description: ["description"],
     category:    ["sectiondescription","section description","section"],
-    uom:         ["salesunitofmeasure","sales unit of measure"],
+    uom:         ["salesunitofmeasure","sales unit of measure","macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom"],
     qtyPerBox:   ["quantityxpackaging","quantity x packaging"],
     boxPerPallet:["packagingxpallet","packaging x pallet"],
     kgPerBox:    ["netweight","net weight"],
@@ -5100,9 +5100,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     temperature: ["producttype","product type","product type rettificato"],
     aiem:        ["aiem","igic","alim","aiem%","aiem_perc","aiem_canarie","aiemperc"],
     isHoff:      ["ishoff","hoff","hofflag","hoff flag","hoff_flag","is hoff"],
-    macUom:      ["macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom","mac uom","macuom"],
     hkUom:       ["bvsalesunitofmeasure","bv salesunitofmeasure","bvuom","hk uom","hkuom"],
-    macToHkConv: ["mactoHkconv","conversionfactor","conv factor","conversion","fattoreconv","macaotoHkconv"],
     active:      ["blocked"],
     vendorName:  ["vendorname","vendor name"],
     vendorName2: ["vendorname2","vendor name 2"],
@@ -5243,7 +5241,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       temperature: mapBCVal("temperature", r.temperature),
       kgxplt: parseFloat(r.kgxplt) > 0 ? parseFloat(r.kgxplt) : roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.qtyPerBox) || 1) * (parseFloat(r.boxPerPallet) || 0)),
       aiem: parseFloat(r.aiem) || 0,
-      isHoff: ["true","1","yes","hoff","si","sì"].includes(String(r.isHoff||"").toLowerCase()),
+      isHoff: ["true","1","yes","hoff","si","sì","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
       hkUom: r.hkUom ? String(r.hkUom).trim().toUpperCase() : "",
       active: !["true", "1", "yes"].includes(String(r.active || "").toLowerCase()),
       vendorName: r.vendorName || "",
@@ -5378,7 +5376,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
                 <select
                   value={map[f] || ""}
                   onChange={e => setMap((m: any) => ({ ...m, [f]: e.target.value }))}
-                  style={{ ...inputStyle(), fontSize: "11px", padding: "4px 6px", borderColor: map[f]?T.gold:(isCurrent&&!map[f])?T.orange:T.border }}
+                  style={{ ...inputStyle(), fontSize: "11px", padding: "4px 6px", borderColor: map[f]?T.gold:(isAiem&&!map[f])?T.orange:T.border }}
                 >
                   <option value="">—</option>
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
