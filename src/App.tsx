@@ -921,7 +921,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
 
 // ─── NOTES PAGE ───────────────────────────────────────────────────────────────
 function NotesPage() {
-  const [open, setOpen] = React.useState<number|null>(null);
+  const [open, setOpen] = useState<number|null>(null);
   const toggle = (i:number) => setOpen(o=>o===i?null:i);
 
   // ── FLUSSO SETUP (una tantum per filiale)
