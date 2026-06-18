@@ -5052,8 +5052,8 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   // Storico import anagrafica
   const anagSnaps = snapshots.filter((s: any) => s.type === "anagrafica" && (!s.branch || s.branch === "ALL" || s.branch === branch));
 
-  const FIELDS = ["nHK", "code", "description", "category", "uom", "qtyPerBox", "boxPerPallet", "kgPerBox", "kgxplt", "temperature", "active", "vendorName", "vendorName2"];
-  const FLABELS = {
+  const FIELDS = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","isHoff","macUom","hkUom","macToHkConv","active","vendorName","vendorName2"];
+  const FLABELS: any = {
     nHK: `${branchN(branch)} (No_)`,
     code: "IFB Item *",
     description: "Descrizione *",
@@ -5062,26 +5062,37 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     qtyPerBox: "Qty/Cartone",
     boxPerPallet: "Cartoni/Pallet",
     kgPerBox: "Kg per Cartone",
+    kgxplt: "Kg x PLT",
     temperature: "Product Type",
+    aiem: "★ AIEM % (CAN — col. W anagrafica)",
+    isHoff: "HOFF Flag (MAC: 1=HOFF)",
+    macUom: "MAC UOM di vendita",
+    hkUom: "HK/BV UOM di vendita",
+    macToHkConv: "Fattore conversione MAC÷HK",
     active: "Bloccato",
     vendorName: "Vendor Name",
     vendorName2: "Vendor Name 2"
   };
 
-  const LOCAL_ALIASES = {
-    nHK: ["no", "no_"],
-    code: ["ifbitem", "ifb item", "ifb no", "ifb n"],
+  const LOCAL_ALIASES: any = {
+    nHK:         ["no","no_","macaono","macao no","macao_no","macaomastercode","macao mastercode","macaoitemno"],
+    code:        ["ifbitem","ifb item","ifb no","ifb n","bvno","bv no","bvmastercode","bv mastercode"],
     description: ["description"],
-    category: ["sectiondescription", "section description", "section"],
-    uom: ["salesunitofmeasure", "sales unit of measure"],
-    qtyPerBox: ["quantityxpackaging", "quantity x packaging"],
-    boxPerPallet: ["packagingxpallet", "packaging x pallet"],
-    kgPerBox: ["netweight", "net weight"],
-    kgxplt: ["kgxplt", "kg x pallet", "kg per pallet", "kgperpallet"],
-    temperature: ["producttype", "product type", "product type rettificato"],
-    active: ["blocked"],
-    vendorName: ["vendorname", "vendor name"],
-    vendorName2: ["vendorname2", "vendor name 2"],
+    category:    ["sectiondescription","section description","section"],
+    uom:         ["salesunitofmeasure","sales unit of measure"],
+    qtyPerBox:   ["quantityxpackaging","quantity x packaging"],
+    boxPerPallet:["packagingxpallet","packaging x pallet"],
+    kgPerBox:    ["netweight","net weight"],
+    kgxplt:      ["kgxplt","kg x pallet","kg per pallet","kgperpallet","kgplt"],
+    temperature: ["producttype","product type","product type rettificato"],
+    aiem:        ["aiem","igic","alim","aiem%","aiem_perc","aiem_canarie","aiemperc"],
+    isHoff:      ["ishoff","hoff","hofflag","hoff flag","hoff_flag","is hoff"],
+    macUom:      ["macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom","mac uom","macuom"],
+    hkUom:       ["bvsalesunitofmeasure","bv salesunitofmeasure","bvuom","hk uom","hkuom"],
+    macToHkConv: ["mactoHkconv","conversionfactor","conv factor","conversion","fattoreconv","macaotoHkconv"],
+    active:      ["blocked"],
+    vendorName:  ["vendorname","vendor name"],
+    vendorName2: ["vendorname2","vendor name 2"],
   };
 
   // ✅ MAPBCVAL DEFINITA DENTRO IL COMPONENTE
@@ -5218,6 +5229,11 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       kgPerBox: parseFloat(r.kgPerBox) || 0,
       temperature: mapBCVal("temperature", r.temperature),
       kgxplt: parseFloat(r.kgxplt) > 0 ? parseFloat(r.kgxplt) : roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.qtyPerBox) || 1) * (parseFloat(r.boxPerPallet) || 0)),
+      aiem: parseFloat(r.aiem) || 0,
+      isHoff: ["true","1","yes","hoff","si","sì"].includes(String(r.isHoff||"").toLowerCase()),
+      macUom: r.macUom ? String(r.macUom).trim().toUpperCase() : "",
+      hkUom:  r.hkUom  ? String(r.hkUom).trim().toUpperCase()  : "",
+      macToHkConv: parseFloat(r.macToHkConv)>0 ? parseFloat(r.macToHkConv) : 1,
       active: !["true", "1", "yes"].includes(String(r.active || "").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
@@ -5340,19 +5356,26 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
         <div style={{ background: T.card, border: `1px solid ${T.gold}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
           <div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne · {fileName}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px", marginBottom: "16px" }}>
-            {FIELDS.slice(0, 9).map(f => (
-              <div key={f}>
-                <label style={{ fontSize: "10px", color: T.muted }}>{FLABELS[f]}</label>
+            {FIELDS.map(f => {
+              const isRequired = f==="code"||f==="description";
+              const isCurrent = branch==="CAN"&&f==="aiem";
+              const isMacField = ["macUom","hkUom","macToHkConv"].includes(f);
+              const isHoffField = f==="isHoff";
+              const labelColor = isRequired?T.gold:isCurrent?T.orange:(isMacField||isHoffField)?T.purple:T.muted;
+              return(
+              <div key={f} style={isCurrent?{border:`1px solid ${T.orange}33`,borderRadius:"6px",padding:"4px 6px",background:`${T.orange}08`}:{}}>
+                <label style={{ fontSize: "10px", color: labelColor }}>{FLABELS[f]}</label>
                 <select
                   value={map[f] || ""}
                   onChange={e => setMap((m: any) => ({ ...m, [f]: e.target.value }))}
-                  style={{ ...inputStyle(), fontSize: "11px", padding: "4px 6px" }}
+                  style={{ ...inputStyle(), fontSize: "11px", padding: "4px 6px", borderColor: map[f]?T.gold:(isCurrent&&!map[f])?T.orange:T.border }}
                 >
                   <option value="">—</option>
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
-            ))}
+              );
+            })}
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
             <ActionBtn label="Annulla" onClick={() => setImportStep("idle")} />
