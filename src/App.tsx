@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import * as XLSX from "xlsx";
 
 const T = {
@@ -10,7 +10,7 @@ const T = {
 };
 const BRANCH_CFG = {
   HK:  { label:"Hong Kong", flag:"🇭🇰", color:T.gold,   currency:"HKD", defaultRate:9.1437, active:true  },
-  MAC: { label:"Macao",     flag:"🇲🇴", color:T.green,  currency:"MOP", defaultRate:9.08,   active:false },
+  MAC: { label:"Macao",     flag:"🇲🇴", color:T.green,  currency:"MOP", defaultRate:9.08,   active:true  },
   CAN: { label:"Canarie",   flag:"🇮🇨", color:T.blue,   currency:"EUR", defaultRate:1,      active:true },
   AUS: { label:"Australia", flag:"🇦🇺", color:T.orange, currency:"AUD", defaultRate:1.6420, active:false },
 };
@@ -301,6 +301,25 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   };
 }
 
+// ─── MACAO CONSTANTS & CALC ───────────────────────────────────────────────────
+const HKD_TO_MOP = 1.03;          // fixed exchange rate HKD → MOP
+const MAC_MARKUP = { hoff: 0.03, nonHoff: 0.10 };  // 3% HOFF, 10% non-HOFF
+
+function calcMAC({ hkCost, isHoff }: any) {
+  if (!hkCost?.step2Hkd) return null;
+  const markup = isHoff ? MAC_MARKUP.hoff : MAC_MARKUP.nonHoff;
+  const hkNewSC = hkCost.step2Hkd;
+  const macNewSC = hkNewSC * (1 + markup) * HKD_TO_MOP;
+  return {
+    hkNewSC, markup: markup * 100, isHoff, macNewSC,
+    step2Hkd: macNewSC,  // compat: used by delta calc
+    step2Eur: (hkCost.step2Eur || 0) * (1 + markup),
+    priceEur: hkCost.priceEur || 0,
+    unitsPerPlt: hkCost.unitsPerPlt || 0,
+    rate: HKD_TO_MOP,
+  };
+}
+
 function selectPrice(pr, ubicazione) {
   if(!pr) return 0;
   if(ubicazione==="FOR") return pr.fcaDiscounted || pr.dapFinal || 0;
@@ -425,6 +444,7 @@ export default function App() {
   const [meatPrices, setMeatPrices] = useState<any[]>(() => LS.get("ifb_meatprices", []));
   const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
   const [scAttuali, setScAttuali] = useState<any[]>([]);
+  const [macHkCostRows, setMacHkCostRows] = useState<any[]>([]); // HK costs loaded for MAC derivation
 
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
 
@@ -440,6 +460,10 @@ export default function App() {
   useEffect(()=>{ if(branch) LS.set(`ifb_airlist_${branch}`, airList); },[airList,branch]);
   useEffect(()=>{ if(branch) IDB.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
   useEffect(()=>{ if(branch) IDB.set(`ifb_scattuali_${branch}`, scAttuali); },[scAttuali,branch]);
+  // MAC: save HK costRows to IDB whenever they're computed (so MAC can derive from them)
+  useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
+  // MAC: load saved HK costRows when switching to MAC branch
+  useEffect(()=>{ if(branch==="MAC") IDB.get("ifb_hk_costrows_for_mac",[]).then((d:any[])=>setMacHkCostRows(d)); },[branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   useEffect(()=>{ if(meatPrices.length) LS.set("ifb_meatprices", meatPrices); }, [meatPrices]);
@@ -470,6 +494,19 @@ export default function App() {
   // ── Cost rows: only IFB vendor, only SEA (non-AIR)
   const costRows = useMemo(()=>{
     if(!branch) return [];
+
+    // MAC: derive from stored HK costRows, apply HOFF markup
+    if (branch === "MAC") {
+      const macProdMap = Object.fromEntries(products.map((p:any)=>[p.id||p.code, p]));
+      return macHkCostRows.map((hkRow:any)=>{
+        if (!hkRow.cost?.step2Hkd) return { ...hkRow, cost:null, skipReason:hkRow.skipReason||"NO HK COST" };
+        const macProd = macProdMap[hkRow.id] || macProdMap[hkRow.code];
+        const isHoff = macProd?.isHoff ?? false;
+        const macCost = calcMAC({ hkCost:hkRow.cost, isHoff });
+        return { ...hkRow, isHoff, cost:macCost };
+      });
+    }
+
     const fxRate = fx.find(f=>f.branch===branch&&f.month===month)?.rate || BRANCH_CFG[branch]?.defaultRate || 9.1437;
     const [yr,mo] = month.split("-").map(Number);
     const prevM = mo===1 ? `${yr-1}-12` : `${yr}-${String(mo-1).padStart(2,"0")}`;
@@ -570,20 +607,21 @@ export default function App() {
         flagged: delta!==null&&Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,macHkCostRows]);
 
   const isCAN = branch === "CAN";
+  const isMAC = branch === "MAC";
 
-  const NAV = [
+  const NAV_ALL = [
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
     {id:"products",   icon:"◈", label:"Anagrafica", badge:"⇪"},
     {id:"xref",       icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
-    {id:"logistics",  icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"},
-    {id:"prices",     icon:"◉", label:"Listini", badge:"💶"},
-    {id:"meatlist",   icon:"🥩", label:"Listino Carne"},
-    ...(!isCAN ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
-    ...(!isCAN ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
-    {id:"exceptions",  icon:"⚡", label:"Eccezioni Prezzi"},
+    ...(!isMAC ? [{id:"logistics", icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"}] : []),
+    ...(!isMAC ? [{id:"prices",    icon:"◉", label:"Listini", badge:"💶"}] : []),
+    ...(!isMAC ? [{id:"meatlist",  icon:"🥩", label:"Listino Carne"}] : []),
+    ...(!isCAN&&!isMAC ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
+    ...(!isCAN&&!isMAC ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
+    ...(!isMAC ? [{id:"exceptions", icon:"⚡", label:"Eccezioni Prezzi"}] : []),
     {id:"costs",      icon:"◆", label:"Standard Cost"},
     {id:"invoice",    icon:"📋", label:"Fatture & Costi", badge:"⇪"},
     {id:"scattuali",  icon:"📊", label:"SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined},
@@ -591,6 +629,7 @@ export default function App() {
     {id:"check",      icon:"📅", label:"Check Mensile"},
     {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
   ];
+  const NAV = NAV_ALL;
 
   // ── Page: branch selection splash ──────────────────────────────────────────
   if(page==="branchSelect") return (
@@ -1432,8 +1471,8 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   const[doneInfo,setDoneInfo]=useState(null);
   const[fileName,setFileName]=useState("");
 
-  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
-  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg/Cartone (Net Weight)",kgxplt:"Kg x PLT",temperature:"Product Type",aiem:"AIEM % (CAN, col. W)",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
+  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","isHoff","active","vendorName","vendorName2"];
+  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg/Cartone (Net Weight)",kgxplt:"Kg x PLT",temperature:"Product Type",aiem:"AIEM % (CAN, col. W)",isHoff:"HOFF Flag (MAC: 1=HOFF, 0=non-HOFF)",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
 
   const LOCAL_ALIASES = {
     nHK:         ["no","no_"],          // Anagrafica 'no' column = N HK
@@ -1450,6 +1489,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     vendorName:  ["vendorname","vendor name"],
     vendorName2: ["vendorname2","vendor name 2"],
     aiem:        ["aiem","igic","alim","aiem%","aiem_perc"],
+    isHoff:      ["ishoff","hoff","hofflag","hoff flag","hoff_flag","is hoff"],
   };
 
   function autoMap(hdrs) {
@@ -1510,6 +1550,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
       aiem: parseFloat(r.aiem)||0,
+      isHoff: ["true","1","yes","hoff","si","sì"].includes(String(r.isHoff||"").toLowerCase()),
     }));
     const prevMap=Object.fromEntries(products.map(p=>[p.id,p]));
     const diffs=[];
@@ -3072,7 +3113,17 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
       {/* ── toolbar ── */}
       <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px",flexWrap:"wrap"}}>
         <PageHeader title={`Standard Cost · ${branch} · ${month}`}
-          sub={`${calc.length} calcolati · INALCA F&B · SEA`}/>
+          sub={branch==="MAC"?`${calc.length} articoli · derivati da HK · tasso HKD→MOP ${HKD_TO_MOP}`:`${calc.length} calcolati · INALCA F&B · SEA`}/>
+      {branch==="MAC"&&costRows.filter((r:any)=>!r.cost&&r.skipReason==="NO HK COST").length>0&&(
+        <div style={{marginBottom:"12px",padding:"10px 14px",background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",fontSize:"12px",color:T.orange}}>
+          ⚠ {costRows.filter((r:any)=>!r.cost&&r.skipReason==="NO HK COST").length} articoli senza costo HK. Vai prima su <strong>HK</strong>, calcola lo Standard Cost, poi torna a Macao.
+        </div>
+      )}
+      {branch==="MAC"&&costRows.length===0&&(
+        <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
+          ⚠ Nessun dato HK disponibile. Seleziona la filiale <strong>HK</strong>, ricalcola lo Standard Cost, poi torna a <strong>MAC</strong>.
+        </div>
+      )}
                 <button onClick={saveSnapshot} disabled={!needsRecalc}
           style={{padding:"7px 16px",background:needsRecalc?T.gold:"#333",
             color:needsRecalc?"#000":T.muted,border:"none",borderRadius:"6px",
@@ -3204,19 +3255,40 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
           <thead>
             {/* riga gruppi */}
             <tr style={stickyTop0}>
-              <GH span={3}/>
-              <GH span={branch==="CAN"?5:4}/>
-              {branch==="CAN"
-                ? <GH span={4} accent={T.blue}>Costi trasporto (€/unit)</GH>
-                : <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>}
-              <GH span={1} accent={T.purple}>Magazzino</GH>
-              {branch==="CAN"
-                ? <GH span={4} accent={T.green}>New Standard Cost</GH>
-                : <GH span={2} accent={T.green}>New Standard Cost</GH>}
-              <GH span={2}/>
+              {branch==="MAC" ? <>
+                <GH span={3}/>
+                <GH span={2}/>
+                <GH span={1} accent={T.blue}>HK Reference</GH>
+                <GH span={1} accent={T.dim}>Markup</GH>
+                <GH span={1} accent={T.green}>New Standard Cost</GH>
+                <GH span={2}/>
+              </> : <>
+                <GH span={3}/>
+                <GH span={branch==="CAN"?5:4}/>
+                {branch==="CAN"
+                  ? <GH span={4} accent={T.blue}>Costi trasporto (€/unit)</GH>
+                  : <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>}
+                <GH span={1} accent={T.purple}>Magazzino</GH>
+                {branch==="CAN"
+                  ? <GH span={4} accent={T.green}>New Standard Cost</GH>
+                  : <GH span={2} accent={T.green}>New Standard Cost</GH>}
+                <GH span={2}/>
+              </>}
             </tr>
             {/* riga colonne */}
             <tr style={stickyTop22}>
+              {branch==="MAC" ? <>
+                <TH align="left" sticky w={70}>N HK</TH>
+                <TH align="left" w={70}>IFB No</TH>
+                <TH align="left" w={180}>Descrizione</TH>
+                <TH w={55}>UOM</TH>
+                <TH accent={T.orange} w={75} align="center">HOFF</TH>
+                <TH accent={T.blue} w={80}>HK SC (HKD)</TH>
+                <TH accent={T.dim} w={60}>Markup</TH>
+                <TH accent={T.green} w={90}>New SC (MOP) ✓</TH>
+                <TH w={60}>Δ%</TH>
+                <TH w={90}>Ultimo ordine</TH>
+              </> : <>
               <TH align="left" sticky w={70}>{branchN(branch)}</TH>
               <TH align="left" w={70}>IFB No</TH>
               <TH align="left" w={180}>Descrizione</TH>
@@ -3250,6 +3322,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               </>}
               <TH w={60}>Δ%</TH>
               <TH w={90}>Ultimo ordine</TH>
+              </>}
             </tr>
           </thead>
           <tbody>
@@ -3262,6 +3335,67 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               const isOld  = lastD&&lastD<sixMonthsAgo;
               const rowBg  = i%2===0?T.bg:T.surface;
               const isSelected = showDetail===r.id;
+
+              // ── MAC row ──────────────────────────────────────────────────
+              if (branch==="MAC") {
+                const mc = r.cost;
+                return (<React.Fragment key={r.id}>
+                  <tr style={{background:isSelected?`${T.gold}08`:rowBg,cursor:"pointer"}}
+                    onClick={()=>setShowDetail((v:any)=>v===r.id?null:r.id)}>
+                    <td style={{...cellL(true),background:isSelected?`${T.gold}08`:rowBg}}>
+                      <span style={{color:T.muted,fontFamily:"monospace",fontSize:"10px"}}>{r.nHK||r.code||"—"}</span>
+                    </td>
+                    <td style={cellL()}><span style={{color:T.gold,fontFamily:"monospace",fontSize:"10px"}}>{r.code}</span></td>
+                    <td style={{...cellL(),maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis"}}>{r.description}</td>
+                    <td style={cell()}>{r.uom||"—"}</td>
+                    <td style={{...cell(),textAlign:"center"}}>
+                      <Chip label={r.isHoff?"HOFF":"NON-HOFF"} color={r.isHoff?T.orange:T.blue}/>
+                    </td>
+                    <td style={cell(T.blue)}>{mc?`${mc.hkNewSC.toFixed(2)}`:"—"}</td>
+                    <td style={cell(T.dim)}>{mc?`+${mc.markup.toFixed(0)}%`:"—"}</td>
+                    <td style={cell(T.green,true)}>
+                      <span style={{fontSize:"11px",fontWeight:"bold"}}>
+                        {mc?`${mc.macNewSC.toFixed(2)}`:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}
+                      </span>
+                    </td>
+                    <td style={cell(pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,Math.abs(pct||0)>=3)}>
+                      {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
+                    </td>
+                    <td style={{...cell(),textAlign:"center"}}>
+                      {!lastD?<span style={{color:T.dim}}>—</span>:isOld?<div style={{lineHeight:1.2}}><div style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>⚠ KEEP OLD</div><div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div></div>:<span style={{color:T.muted}}>{lastD.toLocaleDateString("it-IT")}</span>}
+                    </td>
+                  </tr>
+                  {isSelected&&mc&&(
+                    <tr key={r.id+"_detail"}>
+                      <td colSpan={10} style={{padding:"10px 20px",background:`${T.gold}06`,borderBottom:`1px solid ${T.gold}33`}}>
+                        <div style={{fontSize:"9px",color:T.gold,letterSpacing:"2px",textTransform:"uppercase",marginBottom:"8px"}}>
+                          Breakdown New Standard Cost · Macao · {r.isHoff?"HOFF (House of Fine Foods)":"NON-HOFF"}
+                        </div>
+                        <table style={{borderCollapse:"collapse"}}>
+                          <tbody>
+                            {[
+                              ["HK New SC (HKD)",`HKD ${mc.hkNewSC.toFixed(4)}`,"Da calcolo Standard Cost HK",T.blue],
+                              [`Markup ${r.isHoff?"HOFF":"non-HOFF"}`,`+ ${mc.markup.toFixed(0)}%`,r.isHoff?"Prodotto HOFF (House of Fine Foods): BV SC +3%":"Prodotto senza flag HOFF: BV SC +10%",T.orange],
+                              ["Tasso HKD → MOP",`× ${HKD_TO_MOP}`,"Tasso di cambio fisso",T.muted],
+                              ["NEW SC (MOP)",`MOP ${mc.macNewSC.toFixed(4)}`,`HKD ${mc.hkNewSC.toFixed(4)} × ${(1+mc.markup/100).toFixed(2)} × ${HKD_TO_MOP}`,T.green],
+                            ].map(([k,v,f,col]:any[])=>(
+                              <tr key={String(k)}>
+                                <td style={{padding:"3px 12px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{k}</td>
+                                <td style={{padding:"3px 10px",fontSize:"11px",color:col,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{v}</td>
+                                <td style={{padding:"3px 0 3px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>{f}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                        <div style={{marginTop:"6px",fontSize:"9px",color:T.dim}}>
+                          u/plt: {(mc.unitsPerPlt||0).toFixed(2)} · {r.description}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>);
+              }
+              // ── END MAC row ───────────────────────────────────────────────
 
               return(<>
                                   <tr key={r.id}
