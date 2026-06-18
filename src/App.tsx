@@ -509,30 +509,32 @@ export default function App() {
   const costRows = useMemo(()=>{
     if(!branch) return [];
 
-    // MAC: derive from stored HK costRows, apply HOFF markup
+    // MAC: calcola da standardCostHkd importato nel file anagrafica MAC
     if (branch === "MAC") {
-      const macProdMap = Object.fromEntries(products.map((p:any)=>[p.id||p.code, p]));
-      return macHkCostRows.map((hkRow:any)=>{
-        if (!hkRow.cost?.step2Hkd) return { ...hkRow, cost:null, skipReason:hkRow.skipReason||"NO HK COST" };
-        const macProd = macProdMap[hkRow.id] || macProdMap[hkRow.code];
-        const isHoff = macProd?.isHoff ?? false;
-        // MAC UOM = UOM di vendita Macao (campo "uom" del prodotto MAC)
-        // HK UOM  = campo "hkUom" del prodotto MAC (UOM di vendita BV/HK)
-        const macUom = macProd?.uom  || "";
-        const hkUom  = macProd?.hkUom || hkRow.uom || "";
-        // Conversione automatica: se UOM diverse, usa qtyPerBox del prodotto HK
+      const eligible = products.filter((p:any) => p.active && p.standardCostHkd > 0);
+      return eligible.map((prod:any) => {
+        const isHoff = prod.isHoff ?? false;
+        const macUom = prod.uom  || "";
+        const hkUom  = prod.hkUom || "";
+        // Conversione automatica UOM: se MAC vende a BOX e HK a PCS, conv = qtyPerBox
         const uomDiffers = macUom && hkUom && macUom.toUpperCase() !== hkUom.toUpperCase();
         let macToHkConv = 1;
         if (uomDiffers) {
           const hkU = hkUom.toUpperCase();
           const mU  = macUom.toUpperCase();
-          const qty = Number(hkRow.qtyPerBox) || 1;
+          const qty = Number(prod.qtyPerBox) || 1;
           if (hkU==="PCS" && (mU==="BOX"||mU==="CTN")) macToHkConv = qty;
           else if ((hkU==="BOX"||hkU==="CTN") && mU==="PCS") macToHkConv = 1/qty;
-          // altri casi: conv=1 (non gestito automaticamente)
         }
-        const macCost = calcMAC({ hkCost:hkRow.cost, isHoff, macToHkConv });
-        return { ...hkRow, isHoff, macUom, hkUom, uomDiffers, macToHkConv, cost:macCost };
+        // Base = standardCostHkd dal file MAC (costo FOB che Macao paga a HK)
+        const hkCostBase = { step2Hkd: prod.standardCostHkd, step2Eur:0, priceEur:0, unitsPerPlt:0, rate: HKD_TO_MOP };
+        const macCost = calcMAC({ hkCost: hkCostBase, isHoff, macToHkConv });
+        return {
+          ...prod, id: prod.id||prod.code, code: prod.code, nHK: prod.nHK,
+          description: prod.description, uom: macUom,
+          isHoff, macUom, hkUom, uomDiffers, macToHkConv,
+          cost: macCost, prevCost: null,
+        };
       });
     }
 
@@ -636,7 +638,7 @@ export default function App() {
         flagged: delta!==null&&Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,macHkCostRows]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month]);
 
   // MAC: save HK costRows to IDB whenever they're computed (declared after costRows useMemo to avoid TDZ)
   useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
@@ -3162,15 +3164,10 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
       {/* ── toolbar ── */}
       <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px",flexWrap:"wrap"}}>
         <PageHeader title={`Standard Cost · ${branch} · ${month}`}
-          sub={branch==="MAC"?`${calc.length} articoli · derivati da HK · tasso HKD→MOP ${HKD_TO_MOP}`:`${calc.length} calcolati · INALCA F&B · SEA`}/>
-      {branch==="MAC"&&costRows.filter((r:any)=>!r.cost&&r.skipReason==="NO HK COST").length>0&&(
-        <div style={{marginBottom:"12px",padding:"10px 14px",background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",fontSize:"12px",color:T.orange}}>
-          ⚠ {costRows.filter((r:any)=>!r.cost&&r.skipReason==="NO HK COST").length} articoli senza costo HK. Vai prima su <strong>HK</strong>, calcola lo Standard Cost, poi torna a Macao.
-        </div>
-      )}
+          sub={branch==="MAC"?`${calc.length} articoli · SC HKD × markup × ${HKD_TO_MOP} HKD/MOP`:`${calc.length} calcolati · INALCA F&B · SEA`}/>
       {branch==="MAC"&&costRows.length===0&&(
         <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
-          ⚠ Nessun dato HK disponibile. Seleziona la filiale <strong>HK</strong>, ricalcola lo Standard Cost, poi torna a <strong>MAC</strong>.
+          ⚠ Nessun articolo MAC con Standard Cost. Vai in <strong>Anagrafica</strong> e importa il file Macao (con colonna <code>standardcost</code>).
         </div>
       )}
                 <button onClick={saveSnapshot} disabled={!needsRecalc}
@@ -5065,7 +5062,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   // Campi per branch: solo quelli rilevanti
   const FIELDS_HK  = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","active","vendorName","vendorName2"];
   const FIELDS_CAN = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
-  const FIELDS_MAC = ["nHK","code","description","isHoff","uom","hkUom","active","vendorName"];
+  const FIELDS_MAC = ["nHK","code","description","isHoff","uom","hkUom","standardCostHkd","active","vendorName"];
   const FIELDS = branch==="CAN" ? FIELDS_CAN : branch==="MAC" ? FIELDS_MAC : FIELDS_HK;
 
   const FLABELS: any = {
@@ -5081,7 +5078,8 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     temperature: "Product Type",
     aiem: "★ AIEM % (col. W anagrafica CAN)",
     isHoff: "HOFF Flag (1 = House of Fine Foods)",
-    hkUom: "HK/BV UOM (per calcolo conversione automatica)",
+    hkUom: "HK/BV UOM (per conversione automatica)",
+    standardCostHkd: "★ Standard Cost HK (HKD) — base calcolo MAC",
     active: "Bloccato",
     vendorName: "Vendor Name",
     vendorName2: "Vendor Name 2"
@@ -5100,8 +5098,9 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     temperature: ["producttype","product type","product type rettificato"],
     aiem:        ["aiem","igic","alim","aiem%","aiem_perc","aiem_canarie","aiemperc"],
     isHoff:      ["ishoff","hoff","hofflag","hoff flag","hoff_flag","is hoff"],
-    hkUom:       ["bvsalesunitofmeasure","bv salesunitofmeasure","bvuom","hk uom","hkuom"],
-    active:      ["blocked"],
+    hkUom:            ["bvsalesunitofmeasure","bv salesunitofmeasure","bvuom","hk uom","hkuom"],
+    standardCostHkd:  ["standardcost","standard cost","costo standard","costostandard","sc hkd","schkd","fob","fobprice","fob price"],
+    active:           ["blocked"],
     vendorName:  ["vendorname","vendor name"],
     vendorName2: ["vendorname2","vendor name 2"],
   };
@@ -5243,6 +5242,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       aiem: parseFloat(r.aiem) || 0,
       isHoff: ["true","1","yes","hoff","si","sì","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
       hkUom: r.hkUom ? String(r.hkUom).trim().toUpperCase() : "",
+      standardCostHkd: parseFloat(String(r.standardCostHkd||"").replace(",",".")) || 0,
       active: !["true", "1", "yes"].includes(String(r.active || "").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
