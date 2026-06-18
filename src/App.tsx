@@ -476,8 +476,6 @@ export default function App() {
   useEffect(()=>{ if(branch) LS.set(`ifb_airlist_${branch}`, airList); },[airList,branch]);
   useEffect(()=>{ if(branch) IDB.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
   useEffect(()=>{ if(branch) IDB.set(`ifb_scattuali_${branch}`, scAttuali); },[scAttuali,branch]);
-  // MAC: save HK costRows to IDB whenever they're computed (so MAC can derive from them)
-  useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
   // MAC: load saved HK costRows when switching to MAC branch
   useEffect(()=>{ if(branch==="MAC") IDB.get("ifb_hk_costrows_for_mac",[]).then((d:any[])=>setMacHkCostRows(d)); },[branch]);
   useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
@@ -629,6 +627,9 @@ export default function App() {
         temperatureOverride: log.temperatureOverride||null };
     });
   }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,macHkCostRows]);
+
+  // MAC: save HK costRows to IDB whenever they're computed (declared after costRows useMemo to avoid TDZ)
+  useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
 
   const isCAN = branch === "CAN";
   const isMAC = branch === "MAC";
