@@ -424,6 +424,21 @@ const SEED_FX = [
 ];
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
+class ErrorBoundary extends React.Component<{children:any},{err:any}> {
+  constructor(p:any){super(p);this.state={err:null};}
+  static getDerivedStateFromError(e:any){return{err:e};}
+  render(){
+    if(this.state.err) return(
+      <div style={{padding:"40px",fontFamily:"monospace",color:"#ff6b6b",background:"#0B0F14",minHeight:"100vh"}}>
+        <h2 style={{color:"#C9A84C"}}>⚠ Runtime Error</h2>
+        <pre style={{whiteSpace:"pre-wrap",wordBreak:"break-all",fontSize:"12px"}}>{String(this.state.err?.message||this.state.err)}</pre>
+        <pre style={{whiteSpace:"pre-wrap",wordBreak:"break-all",fontSize:"10px",color:"#aaa",marginTop:"12px"}}>{this.state.err?.stack}</pre>
+      </div>
+    );
+    return this.props.children;
+  }
+}
+
 export default function App() {
   const[products,setProducts]   = useState<any[]>([]);
   const[logistics,setLogistics] = useState(()=>LS.get("ifb_logistics",SEED_LOGISTIC));
@@ -745,6 +760,7 @@ export default function App() {
   };
 
   return (
+    <ErrorBoundary>
     <div style={{display:"flex",height:"100vh",width:"100vw",background:T.bg,fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif",color:T.text,overflow:"hidden"}}>
       {/* Sidebar */}
       <div style={{width:"200px",flexShrink:0,background:T.surface,borderRight:`1px solid ${T.border}`,display:"flex",flexDirection:"column",height:"100vh",overflow:"hidden"}}>
@@ -815,6 +831,7 @@ export default function App() {
       </div>
       {toast&&<div style={{position:"fixed",bottom:"24px",right:"24px",padding:"10px 18px",background:toast.color,borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:"bold",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",zIndex:1000}}>{toast.msg}</div>}
     </div>
+    </ErrorBoundary>
   );
 }
 
