@@ -195,6 +195,11 @@ function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
   return {
     priceEur, plt, aiemUnit, wh, transport: transport||"GOMMA", unitsPerPlt,
     veronaBarcUnit, barcUnitGC, assicUnit, freightGC, inlandGC,
+    // per-island breakdown (GC=TF share rates; LAN=FUE share rates)
+    freightLAN: freightPerIsland("LAN"),
+    barcUnitLAN: barcPerIsland("LAN"),
+    aiemGCTF, aiemLANFUE,
+    isMARE,
     step1GC: step1.GC, step1TF: step1.TF, step1LAN: step1.LAN, step1FUE: step1.FUE,
     step2GC: step2.GC, step2TF: step2.TF, step2LAN: step2.LAN, step2FUE: step2.FUE,
     // compat con codice esistente (GC come canonico)
@@ -952,7 +957,7 @@ function NotesPage() {
       desc:"Report degli Standard Cost correnti dal sistema (BC per HK, Navision per CAN). Serve per il confronto mensile (soglia > +3% o < -3%).",
       steps:["Pagina SC Attuali → Carica report","Il formato HK o CAN viene rilevato automaticamente","Importa","✓ Da aggiornare ogni mese"] },
     { icon:"◆", label:"4. Calcola Standard Cost", color:T.blue,
-      desc:"Il calcolo usa listino + logistica + parametri fissi (FOB, LIC, VGM, PLT…) per produrre il costo unitario Step1 e Step2.",
+      desc:"Il calcolo usa listino + logistica + parametri fissi (FOB, LIC, VGM, PLT…) per produrre il New Standard Cost per articolo, con dettaglio di ogni voce.",
       steps:["Pagina Standard Cost → clicca ⟳ Ricalcola","Attendi il calcolo (pochi secondi)","Verifica la tabella: ogni riga mostra il breakdown completo","Clicca una riga per il dettaglio"] },
     { icon:"📅", label:"5. Check Mensile → Export", color:T.gold,
       desc:"Confronta lo SC calcolato con gli SC Attuali. Identifica articoli NUOVI (nessun SC in sistema) e DA AGGIORNARE (variazione > +3% o < -3%). Esporta il file Excel pronto.",
@@ -1031,7 +1036,7 @@ function NotesPage() {
           {[
             {t:"Solo INALCA F&B",d:"Il calcolo SC è attivo solo per articoli con fornitore INALCA FOOD & BEVERAGE."},
             {t:"Soglia > +3% o < -3%",d:"Una variazione viene segnalata come DA AGGIORNARE solo se superiore a +3% o inferiore a -3% rispetto allo SC attuale."},
-            {t:"Step1 vs Step2",d:"Step1 = costo acquisto + trasporto. Step2 = Step1 + costo magazzino (MTS/MTO)."},
+            {t:"New Standard Cost",d:"New SC = costo acquisto + trasporti + dazi + pallet + AIEM (CAN) + costo magazzino (MTS/MTO). Clicca una riga per il breakdown completo."},
             {t:"MARE vs GOMMA (CAN)",d:"MARE: costo container diviso per unità totali. GOMMA: costo per pallet diviso per unità/pallet."},
             {t:"Eccezione prezzo",d:"Ha priorità assoluta su listino e listino carne. Usarla per accordi speciali o campioni."},
             {t:"Fatture cumulative",d:"Il file fatture include tutti i mesi. L'app filtra per posting date — non serve caricare ogni mese un file diverso."},
@@ -1890,7 +1895,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
   const STATS = [
     { id:"ok",      n:calcOk.length,   label:"Costi calcolati",       color:T.green,  rows:calcOk   },
-    { id:"flagged", n:flagged.length,  label:"Variazioni ≥3%",        color:T.orange, rows:flagged  },
+    { id:"flagged", n:flagged.length,  label:"Variazioni ≥3% New SC",        color:T.orange, rows:flagged  },
     { id:"air",     n:air.length,      label:"AIR (esclusi)",          color:T.blue,   rows:air      },
     { id:"noPrice", n:noPrice.length,  label:"Senza prezzo",           color:T.red,    rows:noPrice  },
     { id:"noLog",   n:noLog.length,    label:"No logistica",           color:T.red,    rows:noLog    },
@@ -3131,7 +3136,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
   <span style={{fontSize:"11px",color:T.muted,paddingTop:"6px"}}>🔍 Filtri:</span>
   {([
     {key:"costCalculated", label:"✅ Costi calcolati", col:T.gold},
-    {key:"flagged",        label:"Variazioni ≥3%",    col:T.orange},
+    {key:"flagged",        label:"Variazioni ≥3% New SC",    col:T.orange},
     ...(branch!=="CAN" ? [{key:"air", label:"✈ AIR", col:T.blue}] : []),
     {key:"noPrice",        label:"❌ Senza prezzo",   col:T.red},
     {key:"noLog",          label:"⚠ No logistica",    col:T.orange},
@@ -3204,13 +3209,10 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               {branch==="CAN"
                 ? <GH span={4} accent={T.blue}>Costi trasporto (€/unit)</GH>
                 : <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>}
-              {branch==="CAN"
-                ? <GH span={4} accent={T.gold}>Step 1 per isola</GH>
-                : <GH span={2} accent={T.gold}>Step 1</GH>}
               <GH span={1} accent={T.purple}>Magazzino</GH>
               {branch==="CAN"
-                ? <GH span={4} accent={T.green}>Step 2 per isola</GH>
-                : <GH span={2} accent={T.green}>Step 2 finale</GH>}
+                ? <GH span={4} accent={T.green}>New Standard Cost</GH>
+                : <GH span={2} accent={T.green}>New Standard Cost</GH>}
               <GH span={2}/>
             </tr>
             {/* riga colonne */}
@@ -3236,24 +3238,15 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 <TH accent={T.blue} w={60}>Pallet</TH>
                 <TH accent={T.blue} w={60}>Alc.Tax</TH>
               </>}
-              {branch==="CAN" ? <>
-                <TH accent={T.gold} w={72}>Step1 GC</TH>
-                <TH accent={T.gold} w={72}>Step1 TF</TH>
-                <TH accent={T.gold} w={72}>Step1 LAN</TH>
-                <TH accent={T.gold} w={72}>Step1 FUE</TH>
-              </> : <>
-                <TH accent={T.gold} w={72}>Step1 €</TH>
-                <TH accent={T.gold} w={80}>Step1 HKD</TH>
-              </>}
               <TH accent={T.purple} w={65}>WH €</TH>
               {branch==="CAN" ? <>
-                <TH accent={T.green} w={72}>Step2 GC</TH>
-                <TH accent={T.green} w={72}>Step2 TF</TH>
-                <TH accent={T.green} w={72}>Step2 LAN</TH>
-                <TH accent={T.green} w={85}>Step2 FUE ✓</TH>
+                <TH accent={T.green} w={72}>New SC GC</TH>
+                <TH accent={T.green} w={72}>New SC TF</TH>
+                <TH accent={T.green} w={72}>New SC LAN</TH>
+                <TH accent={T.green} w={85}>New SC FUE ✓</TH>
               </> : <>
-                <TH accent={T.green} w={72}>Step2 €</TH>
-                <TH accent={T.green} w={85}>Step2 HKD ✓</TH>
+                <TH accent={T.green} w={72}>New SC €</TH>
+                <TH accent={T.green} w={85}>New SC HKD ✓</TH>
               </>}
               <TH w={60}>Δ%</TH>
               <TH w={90}>Ultimo ordine</TH>
@@ -3338,17 +3331,6 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                     <td style={cell(c?.alc>0?T.orange:undefined)}>{c?(c.alc>0?f4(c.alc):"—"):"—"}</td>
                   </>}
 
-                  {/* step 1 */}
-                  {branch==="CAN" ? <>
-                    <td style={cell(T.gold,true)}>{c?`€${c.step1GC.toFixed(4)}`:"—"}</td>
-                    <td style={cell(T.gold,true)}>{c?`€${c.step1TF.toFixed(4)}`:"—"}</td>
-                    <td style={cell(T.gold,true)}>{c?`€${c.step1LAN.toFixed(4)}`:"—"}</td>
-                    <td style={cell(T.gold,true)}>{c?`€${c.step1FUE.toFixed(4)}`:"—"}</td>
-                  </> : <>
-                    <td style={cell(T.gold,true)}>{c?`€${c.step1Eur.toFixed(4)}`:"—"}</td>
-                    <td style={cell(T.gold,true)}>{c?`${c.step1Hkd.toFixed(2)}`:"—"}</td>
-                  </>}
-
                   {/* magazzino */}
                   <td style={cell(T.purple)}>{c?(c.wh>0?f4(c.wh):"—"):"—"}</td>
 
@@ -3394,52 +3376,134 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 {/* ── riga dettaglio espansa ── */}
                 {isSelected&&c&&(
                   <tr key={r.id+"_detail"}>
-                    <td colSpan={branch==="CAN"?23:21} style={{padding:"8px 16px",background:`${T.gold}06`,
+                    <td colSpan={branch==="CAN"?19:19} style={{padding:"10px 20px",background:`${T.gold}06`,
                       borderBottom:`1px solid ${T.gold}33`}}>
-                      <div style={{display:"flex",flexWrap:"wrap",gap:"6px",fontSize:"10px"}}>
-                        {(branch==="CAN" ? [
-                          ["Prezzo acquisto",`€ ${c.priceEur.toFixed(4)}`,T.text],
-                          ["Pallet/unit",`€ ${c.plt.toFixed(4)}`,T.blue],
-                          ["AIEM/unit",c.aiemUnit>0?`€ ${c.aiemUnit.toFixed(4)}`:"—",c.aiemUnit>0?T.orange:T.dim],
-                          ["Trasporto (VeronaBarc)",c.veronaBarcUnit>0?`€ ${c.veronaBarcUnit.toFixed(4)}`:"—",T.blue],
-                          ["Barc→GC/unit",c.barcUnitGC>0?`€ ${c.barcUnitGC.toFixed(4)}`:"—",T.blue],
-                          ["Assicurazione",c.assicUnit>0?`€ ${c.assicUnit.toFixed(4)}`:"—",T.blue],
-                          ["Freight GC",c.freightGC>0?`€ ${c.freightGC.toFixed(4)}`:"—",T.blue],
-                          ["Inland GC",c.inlandGC>0?`€ ${c.inlandGC.toFixed(4)}`:"—",T.blue],
-                          ["Step1 GC",`€ ${c.step1GC.toFixed(4)}`,T.gold],
-                          ["Step1 TF",`€ ${c.step1TF.toFixed(4)}`,T.gold],
-                          ["Step1 LAN",`€ ${c.step1LAN.toFixed(4)}`,T.gold],
-                          ["Step1 FUE",`€ ${c.step1FUE.toFixed(4)}`,T.gold],
-                          ["WH/unit",c.wh>0?`€ ${c.wh.toFixed(4)}`:"—",T.purple],
-                          ["Step2 GC ✓",`€ ${c.step2GC.toFixed(4)}`,T.green],
-                          ["Step2 TF ✓",`€ ${c.step2TF.toFixed(4)}`,T.green],
-                          ["Step2 LAN ✓",`€ ${c.step2LAN.toFixed(4)}`,T.green],
-                          ["Step2 FUE ✓",`€ ${c.step2FUE.toFixed(4)}`,T.green],
-                          ["Units/plt",`${c.unitsPerPlt||"—"}`,T.muted],
-                          ["Tratta",c.transport||"—",T.muted],
-                        ] : [
-                          ["Prezzo acquisto",`€ ${c.priceEur.toFixed(4)}`,T.text],
-                          ["FOB/unit",`€ ${c.fob.toFixed(4)}`,T.blue],
-                          ["LIC/unit",`€ ${c.lic.toFixed(4)}`,T.blue],
-                          ["VGM/unit",`€ ${c.vgm.toFixed(4)}`,T.blue],
-                          ["HC/unit",c.hc>0?`€ ${c.hc.toFixed(4)}`:"—",c.hc>0?T.orange:T.dim],
-                          ["Pallet/unit",`€ ${c.plt.toFixed(4)}`,T.blue],
-                          ["AlcTax/unit",c.alc>0?`€ ${c.alc.toFixed(4)}`:"—",c.alc>0?T.orange:T.dim],
-                          ["Step1 €",`€ ${c.step1Eur.toFixed(4)}`,T.gold],
-                          ["Step1 HKD",`${c.step1Hkd.toFixed(2)}`,T.gold],
-                          ["WH/unit",c.wh>0?`€ ${c.wh.toFixed(4)}`:"—",T.purple],
-                          ["Step2 €",`€ ${c.step2Eur.toFixed(4)}`,T.green],
-                          ["Step2 HKD ✓",`${c.step2Hkd.toFixed(2)}`,T.green],
-                          ["Rate",`${c.rate}`,T.muted],
-                          ["Units/plt",`${c.unitsPerPlt||"—"}`,T.muted],
-                        ]) .map(([k,v,col])=>(
-                          <div key={k} style={{padding:"3px 8px",background:T.card,
-                            borderRadius:"4px",border:`1px solid ${T.border}`}}>
-                            <span style={{color:T.dim}}>{k}: </span>
-                            <span style={{color:col,fontWeight:"bold"}}>{v}</span>
+                      {branch==="CAN" ? (() => {
+                        const isMARE = c.isMARE || c.transport==="MARE";
+                        const f4=(v:number)=>`€ ${v.toFixed(4)}`;
+                        const row=(label:string,gcTf:string,lanFue:string,formula:string,color=T.text)=>(
+                          <tr key={label}>
+                            <td style={{padding:"3px 10px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{label}</td>
+                            <td style={{padding:"3px 8px",fontSize:"11px",color:color,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{gcTf}</td>
+                            <td style={{padding:"3px 8px",fontSize:"11px",color:color,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{lanFue}</td>
+                            <td style={{padding:"3px 0 3px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>{formula}</td>
+                          </tr>
+                        );
+                        const sep=(label:string)=>(
+                          <tr key={"sep"+label}><td colSpan={4} style={{padding:"2px 0",borderTop:`1px solid ${T.border}`,fontSize:"9px",color:T.dim,letterSpacing:"1px",textTransform:"uppercase",paddingTop:"6px"}}>{label}</td></tr>
+                        );
+                        return (
+                          <div style={{display:"flex",gap:"32px",flexWrap:"wrap"}}>
+                            <div>
+                              <div style={{fontSize:"9px",color:T.gold,letterSpacing:"2px",textTransform:"uppercase",marginBottom:"8px"}}>Breakdown New Standard Cost · {c.transport||"GOMMA"} · {r.temperature||"DRY"} · {r.ubicazione||"MTS"}</div>
+                              <table style={{borderCollapse:"collapse"}}>
+                                <thead><tr>
+                                  <th style={{padding:"2px 10px 4px 0",fontSize:"9px",color:T.dim,textAlign:"left",letterSpacing:"1px"}}>VOCE</th>
+                                  <th style={{padding:"2px 8px 4px",fontSize:"9px",color:T.dim,textAlign:"right",letterSpacing:"1px"}}>GC / TF</th>
+                                  <th style={{padding:"2px 8px 4px",fontSize:"9px",color:T.dim,textAlign:"right",letterSpacing:"1px"}}>LAN / FUE</th>
+                                  <th style={{padding:"2px 0 4px 14px",fontSize:"9px",color:T.dim,textAlign:"left",letterSpacing:"1px"}}>FORMULA</th>
+                                </tr></thead>
+                                <tbody>
+                                  {sep("Costo acquisto")}
+                                  {row("Prezzo acquisto",f4(c.priceEur),f4(c.priceEur),"Da listino (DAP Verona)",T.text)}
+                                  {isMARE ? sep("Trasporto MARE") : sep("Trasporto GOMMA")}
+                                  {isMARE ? <>
+                                    {row("Freight MARE",f4(c.freightGC),f4(c.freightLAN||0),`MARE[${r.area||"NORD"}] ÷ (u/plt × plt/cont)`,T.blue)}
+                                    {row("Inland",f4(c.inlandGC),f4(c.freightLAN||0),"INLAND ÷ (u/plt × plt/cont)",T.blue)}
+                                  </> : <>
+                                    {row("Verona → Barcellona",f4(c.veronaBarcUnit),f4(c.veronaBarcUnit),"62,50 € ÷ u/plt (COSTS LOG!D5)",T.blue)}
+                                    {row("Barc → Isola",f4(c.barcUnitGC),f4(c.barcUnitLAN||0),"BARC[temp][isola] ÷ u/plt",T.blue)}
+                                    {row("Assicurazione",f4(c.assicUnit),f4(c.assicUnit),"Prezzo × 0,5%",T.blue)}
+                                  </>}
+                                  {sep("Pallet & AIEM")}
+                                  {row("Pallet",f4(c.plt),f4(c.plt),"15 € ÷ u/plt (COSTS LOG!I1)",T.blue)}
+                                  {c.aiemGCTF>0&&row("AIEM",f4(c.aiemGCTF),f4(c.aiemLANFUE||0),"(Prezzo + Trasporto isola) × AIEM%",T.orange)}
+                                  {sep("Magazzino")}
+                                  {row("WH / unit",c.wh>0?f4(c.wh):"—",c.wh>0?f4(c.wh):"—",
+                                    r.ubicazione==="MTO"?"MTO[temp] ÷ u/plt":r.ubicazione==="MTS"?"MTS-D + MTS-I ÷ u/plt + MTS-P ÷ collo":"—",T.purple)}
+                                  {sep("New Standard Cost")}
+                                  <tr>
+                                    <td style={{padding:"4px 10px 4px 0",fontSize:"12px",color:T.green,fontWeight:"bold"}}>NEW SC GC</td>
+                                    <td colSpan={2} style={{padding:"4px 8px",fontSize:"13px",color:T.green,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2GC)}</td>
+                                    <td style={{padding:"4px 0 4px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>Prezzo + Trasp.GC + Pallet + AIEM + WH</td>
+                                  </tr>
+                                  <tr>
+                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.green}}>NEW SC TF</td>
+                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.green,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2TF)}</td>
+                                    <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>= GC (stesse tariffe)</td>
+                                  </tr>
+                                  <tr>
+                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.green}}>NEW SC LAN</td>
+                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.green,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2LAN)}</td>
+                                    <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>Prezzo + Trasp.LAN + Pallet + AIEM + WH</td>
+                                  </tr>
+                                  <tr>
+                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.green}}>NEW SC FUE</td>
+                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.green,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2FUE)}</td>
+                                    <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>= LAN (stesse tariffe)</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                              <div style={{marginTop:"8px",fontSize:"9px",color:T.dim}}>
+                                u/plt: {(c.unitsPerPlt||0).toFixed(2)} · plt/cont: {r.pltPerContainer||"—"} · Temp: {r.temperature||"DRY"} · Area: {r.area||"NORD"}
+                              </div>
+                            </div>
                           </div>
-                        ))}
-                      </div>
+                        );
+                      })() : (() => {
+                        const f4=(v:number)=>`€ ${v.toFixed(4)}`;
+                        const row=(label:string,val:string,formula:string,color=T.text,bold=false)=>(
+                          <tr key={label}>
+                            <td style={{padding:"3px 12px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{label}</td>
+                            <td style={{padding:"3px 10px",fontSize:"11px",color,fontWeight:bold?"bold":"normal",fontFamily:"monospace",textAlign:"right"}}>{val}</td>
+                            <td style={{padding:"3px 0 3px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>{formula}</td>
+                          </tr>
+                        );
+                        const sep=(label:string)=>(
+                          <tr key={"sep"+label}><td colSpan={3} style={{padding:"6px 0 2px",borderTop:`1px solid ${T.border}`,fontSize:"9px",color:T.dim,letterSpacing:"1px",textTransform:"uppercase"}}>{label}</td></tr>
+                        );
+                        return (
+                          <div>
+                            <div style={{fontSize:"9px",color:T.gold,letterSpacing:"2px",textTransform:"uppercase",marginBottom:"8px"}}>Breakdown New Standard Cost · {r.ubicazione||"—"} · {r.temperature||"DRY"}</div>
+                            <table style={{borderCollapse:"collapse"}}>
+                              <thead><tr>
+                                <th style={{padding:"2px 12px 4px 0",fontSize:"9px",color:T.dim,textAlign:"left",letterSpacing:"1px"}}>VOCE</th>
+                                <th style={{padding:"2px 10px 4px",fontSize:"9px",color:T.dim,textAlign:"right",letterSpacing:"1px"}}>€ / UNIT</th>
+                                <th style={{padding:"2px 0 4px 14px",fontSize:"9px",color:T.dim,textAlign:"left",letterSpacing:"1px"}}>FORMULA</th>
+                              </tr></thead>
+                              <tbody>
+                                {sep("Costo acquisto")}
+                                {row("Prezzo acquisto",f4(c.priceEur),"Da listino (DAP/FCA del mese)",T.text)}
+                                {sep("Trasporto e dazi")}
+                                {row("FOB / unit",f4(c.fob),"Freight On Board — da tabella COSTS",T.blue)}
+                                {row("LIC / unit",f4(c.lic),"Local Import Charges — da tabella COSTS",T.blue)}
+                                {row("VGM / unit",f4(c.vgm),"Verified Gross Mass — da tabella COSTS",T.blue)}
+                                {c.hc>0&&row("Certificati / unit",f4(c.hc),"Health / import certificate — da tabella COSTS",T.blue)}
+                                {row("Pallet / unit",f4(c.plt),`Costo pallet ÷ ${(c.unitsPerPlt||0).toFixed(2)} u/plt`,T.blue)}
+                                {c.alc>0&&row("Alc. Tax / unit",f4(c.alc),"Tassa alcol — da anagrafica articolo",T.orange)}
+                                {sep("Magazzino")}
+                                {row("WH / unit",c.wh>0?f4(c.wh):"—",
+                                  r.ubicazione==="MTO"?"MTO[temp] ÷ u/plt":
+                                  r.ubicazione==="MTS"?"MTS-D + MTS-I ÷ u/plt + MTS-P ÷ collo":"—",T.purple)}
+                                {sep("New Standard Cost")}
+                                <tr>
+                                  <td style={{padding:"4px 12px 4px 0",fontSize:"12px",color:T.green,fontWeight:"bold"}}>NEW SC €</td>
+                                  <td style={{padding:"4px 10px",fontSize:"13px",color:T.green,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2Eur)}</td>
+                                  <td style={{padding:"4px 0 4px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>Prezzo + FOB + LIC + VGM + Cert. + Pallet + AlcTax + WH</td>
+                                </tr>
+                                <tr>
+                                  <td style={{padding:"2px 12px 2px 0",fontSize:"11px",color:T.green}}>NEW SC HKD</td>
+                                  <td style={{padding:"2px 10px",fontSize:"12px",color:T.green,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{`HKD ${c.step2Hkd.toFixed(2)}`}</td>
+                                  <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>{`New SC € × rate ${c.rate}`}</td>
+                                </tr>
+                              </tbody>
+                            </table>
+                            <div style={{marginTop:"8px",fontSize:"9px",color:T.dim}}>
+                              u/plt: {(c.unitsPerPlt||0).toFixed(2)} · Rate HKD: {c.rate} · {r.ubicazione||"—"}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </td>
                   </tr>
                 )}
