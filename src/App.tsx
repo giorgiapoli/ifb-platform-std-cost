@@ -1485,9 +1485,8 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   const[doneInfo,setDoneInfo]=useState(null);
   const[fileName,setFileName]=useState("");
 
-  // Added vendorName AND vendorName2 AND aiem
-  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","temperature","active","vendorName","vendorName2","aiem"];
-  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg per Cartone / Net Weight",temperature:"Product Type",active:"Bloccato",vendorName:"Vendor Name (es. INALCA FOOD & BEVERAGE SRL)",vendorName2:"Vendor Name 2 (fornitore reale)",aiem:"AIEM % (col. W Anagrafica, CAN)"};
+  const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
+  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg/Cartone (Net Weight)",kgxplt:"Kg x PLT",temperature:"Product Type",aiem:"AIEM % (CAN, col. W)",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
 
   const LOCAL_ALIASES = {
     nHK:         ["no","no_"],          // Anagrafica 'no' column = N HK
@@ -1500,7 +1499,8 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     kgPerBox:    ["netweight","net weight"],
     temperature: ["producttype","product type","product type rettificato","product type - anagrafica"],
     active:      ["blocked"],
-    vendorName:  ["vendorname","vendor name"],    // exact match: 'vendorname' col in Anagrafica
+    kgxplt:      ["kgxplt","kg x pallet","kg per pallet","kgperpallet","kgplt"],
+    vendorName:  ["vendorname","vendor name"],
     vendorName2: ["vendorname2","vendor name 2"],
     aiem:        ["aiem","igic","alim","aiem%","aiem_perc"],
   };
@@ -1556,9 +1556,9 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       category:mapBCVal("category",r.category), uom:mapBCVal("uom",r.uom),
       qtyPerBox:parseFloat(r.qtyPerBox)||0, boxPerPallet:parseFloat(r.boxPerPallet)||0,
       kgPerBox:parseFloat(r.kgPerBox)||0, temperature:mapBCVal("temperature",r.temperature),
-      kgxplt: parseFloat(r.kgxplt) > 0
-    ? parseFloat(r.kgxplt)
-    : roundN((parseFloat(r.kgPerBox)||0) * (parseFloat(r.qtyPerBox)||1) * (parseFloat(r.boxPerPallet)||0)),
+      kgxplt: parseFloat(r.kgxplt||"") > 0
+        ? parseFloat(r.kgxplt)
+        : roundN((parseFloat(r.kgPerBox)||0) * (parseFloat(r.qtyPerBox)||1) * (parseFloat(r.boxPerPallet)||0)),
       active:!["true","1","yes"].includes(String(r.active||"").toLowerCase()),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
@@ -1642,7 +1642,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   if(step==="map") return(
     <div>
       <PageHeader title={`Mappatura Anagrafica · ${fileName}`} sub={`${rows.length} righe · mappatura auto da export BC`}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"12px",maxWidth:"700px",marginBottom:"20px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",maxWidth:"960px",marginBottom:"20px"}}>
         {FIELDS.map(f=>(
           <div key={f}>
             <label style={{display:"block",fontSize:"11px",color:f==="code"||f==="description"?T.gold:T.muted,marginBottom:"5px"}}>{FLABELS[f]}</label>
