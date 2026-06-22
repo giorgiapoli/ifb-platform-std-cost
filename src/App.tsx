@@ -473,30 +473,35 @@ export default function App() {
 
   const branchRef = useRef(branch);
   useEffect(()=>{ branchRef.current = branch; },[branch]);
+  // Tracks when IDB load for current branch is complete — prevents save effects from
+  // overwriting IDB with empty state before the async load finishes on refresh/branch switch
+  const branchLoadedRef = useRef<string>("");
 
   // Reload price exceptions when branch changes
   useEffect(()=>{ if(branch) setPriceExceptions(LS.get(`ifb_exceptions_${branch}`,[])); },[branch]);
-  // Save price exceptions on change (keyed by branch)
+  // Save effects — only fire after load is complete for this branch
   useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
-  useEffect(()=>{ if(branchRef.current&&products.length) IDB.set(`ifb_products_${branchRef.current}`, products); },[products]);
-  useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics",      logistics); }, [logistics]);
-  useEffect(()=>{ if(branch) LS.set(`ifb_airlist_${branch}`, airList); },[airList,branch]);
-  useEffect(()=>{ if(branch) IDB.set(`ifb_sales_invoice_${branch}`, salesRows); },[salesRows,branch]);
-  useEffect(()=>{ if(branch) IDB.set(`ifb_scattuali_${branch}`, scAttuali); },[scAttuali,branch]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_products_${branchRef.current}`, products); },[products]);
+  useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics", logistics); }, [logistics]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) LS.set(`ifb_airlist_${branchRef.current}`, airList); },[airList]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_sales_invoice_${branchRef.current}`, salesRows); },[salesRows]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_scattuali_${branchRef.current}`, scAttuali); },[scAttuali]);
   // MAC: load saved HK costRows when switching to MAC branch
   useEffect(()=>{ if(branch==="MAC") IDB.get("ifb_hk_costrows_for_mac",[]).then((d:any[])=>setMacHkCostRows(d)); },[branch]);
-  useEffect(()=>{ if(prices.length)    LS.set("ifb_prices",         prices);    }, [prices]);
+  useEffect(()=>{ if(prices.length) LS.set("ifb_prices", prices); }, [prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   useEffect(()=>{ if(meatPrices.length) LS.set("ifb_meatprices", meatPrices); }, [meatPrices]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
+    branchLoadedRef.current = ""; // reset — block saves while loading
     (async()=>{
       setProducts(await IDB.get(`ifb_products_${branch}`,[]));
       setXrefs(LS.get(`ifb_xrefs_${branch}`,[]));
       setAirList(LS.get(`ifb_airlist_${branch}`,[]));
       setSalesRows(await IDB.get(`ifb_sales_invoice_${branch}`,[]));
       setScAttuali(await IDB.get(`ifb_scattuali_${branch}`,[]));
+      branchLoadedRef.current = branch; // unblock saves
     })();
   },[branch]);
 
@@ -604,7 +609,7 @@ export default function App() {
         const costE = calcCost(exc.price);
         const deltaE = costE ? null : null; // no prev for exceptions
         return { ...prod, cost:costE, prevCost:null, delta:null, priceInput:exc.price,
-          flagged:false, ubicazione:ub, pltUsed:plt,
+          flagged:false, ubicazione:ub, pltUsed:plt, area:log.area||"NORD", pltPerContainer:plt,
           temperatureOverride:log.temperatureOverride||null, _fromException:true, skipReason: costE?undefined:"CALC=0" };
       }
 
@@ -625,7 +630,8 @@ export default function App() {
         if(!mf) return { ...prod, cost:null, prevCost:null, priceInput:null, ubicazione:ub, skipReason:`NO PREZZO (${branch}/${month})` };
         const cost2 = calcCost(mf.pi);
         return { ...prod, cost:cost2, prevCost:null, delta:null, priceInput:mf.pi, isNew:true,
-          flagged:false, ubicazione:ub, pltUsed:plt, temperatureOverride:log.temperatureOverride||null,
+          flagged:false, ubicazione:ub, pltUsed:plt, area:log.area||"NORD", pltPerContainer:plt,
+          temperatureOverride:log.temperatureOverride||null,
           skipReason: cost2 ? undefined : "CALC=0", _fromMeatList:true };
       }
 
@@ -638,7 +644,8 @@ export default function App() {
         if (mf) {
           const costM = calcCost(mf.pi);
           return { ...prod, cost:costM, prevCost:null, delta:null, priceInput:mf.pi, isNew:true,
-            flagged:false, ubicazione:ub, pltUsed:plt, temperatureOverride:log.temperatureOverride||null,
+            flagged:false, ubicazione:ub, pltUsed:plt, area:log.area||"NORD", pltPerContainer:plt,
+            temperatureOverride:log.temperatureOverride||null,
             skipReason: costM ? undefined : "CALC=0", _fromMeatList:true };
         }
       }
@@ -651,6 +658,7 @@ export default function App() {
       const delta    = cost&&prevCost ? (cost.step2Hkd-prevCost.step2Hkd)/prevCost.step2Hkd*100 : null;
       return { ...prod, cost, prevCost, delta, priceInput:pi, isNew:!prPrev,
         flagged: delta!==null&&Math.abs(delta)>=3, ubicazione:ub, pltUsed:plt,
+        area:log.area||"NORD", pltPerContainer:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
   }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month]);
@@ -2016,7 +2024,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="ok"||activePanel==="flagged") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={[branchN(branch),"IFB No","Descrizione","Ubicaz.","Step2 HKD","Prec. HKD","Δ%"]}sticky/>
+        <THead cols={[branchN(branch),"IFB No","Descrizione","Ubicaz.",branch==="CAN"?"Area":"","Step2 HKD","Prec. HKD","Δ%"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>{
           const pct = r.cost&&r.prevCost&&r.prevCost.step2Hkd>0
             ? (r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100 : null;
@@ -2026,6 +2034,7 @@ function Dashboard({costRows, branch, month, navigate}) {
               <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
               <TD>{r.description}</TD>
               <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
+              {branch==="CAN" ? <TD><span style={{color:T.muted,fontSize:"11px"}}>{r.area||"NORD"}</span></TD> : <TD/>}
               <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost?.step2Hkd?.toFixed(2)||"—"}</span></TD>
               <TD mono><span style={{color:T.muted}}>{r.prevCost?.step2Hkd?.toFixed(2)||"—"}</span></TD>
               <TD>{pct!=null
@@ -3607,7 +3616,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                 </tr></thead>
                                 <tbody>
                                   {sep("Costo acquisto")}
-                                  {row("Prezzo acquisto",f4(c.priceEur),f4(c.priceEur),"Da listino (DAP Verona)",T.text)}
+                                  {row("Prezzo acquisto",f4(c.priceEur),f4(c.priceEur),r.ubicazione==="FOR"?"Da listino (FCA)":r.ubicazione==="MTS"?"Da listino (MTS)":"Da listino (DAP Verona)",T.text)}
                                   {isMARE ? sep("Trasporto MARE") : sep("Trasporto GOMMA")}
                                   {isMARE ? <>
                                     {row("Freight MARE",f4(c.freightGC),f4(c.freightLAN||0),`MARE[${r.area||"NORD"}] ÷ (u/plt × plt/cont)`,T.blue)}
@@ -3974,7 +3983,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
             "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"","Location":r.location||"",
             "Mismatch":r.mismatch?"⚠ "+( r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"",
             "Mag./Trasp.":r.isAir?"AIR":r.ubicazione||"",
-            "Old HKD":r.oldHkd!=null?roundN(r.oldHkd):"","New HKD":r.isAir?"AIR":r.newHkd!=null?roundN(r.newHkd):"MANCANTE",
+            "Old SC":r.oldHkd!=null?roundN(r.oldHkd):"","New SC":r.isAir?"AIR":(r.unitPrice===0||r.unitPrice===0.01)?"SAMPLE":r.newHkd!=null?roundN(r.newHkd):"MANCANTE",
             "Δ%":r.pct!=null?roundN(r.pct,1):"","Motivo":r.skipReason||"",
           })),
           "Fatture & Costi",`Fatture_${branch}.xlsx`
@@ -4022,7 +4031,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old HKD","New HKD ▾","Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old SC","New SC ▾","Δ%","Motivo"].map((c,ci)=>{
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4045,7 +4054,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
                       style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
-                      <option value="all">New HKD ▾</option>
+                      <option value="all">New SC ▾</option>
                       <option value="ok">✅ Con costo</option>
                       <option value="mancante">❌ MANCANTE</option>
                       <option value="air">✈ AIR</option>
@@ -4081,9 +4090,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}>
                       {r.isAir
                         ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
-                        : r.newHkd!=null
-                          ? <span style={{color:T.gold,fontWeight:"bold"}}>{r.newHkd.toFixed(2)}</span>
-                          : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
+                        : (r.unitPrice===0||r.unitPrice===0.01)
+                          ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
+                          : r.newHkd!=null
+                            ? <span style={{color:T.gold,fontWeight:"bold"}}>{r.newHkd.toFixed(2)}</span>
+                            : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
                       }
                     </td>
                     <td style={{padding:"6px 10px",fontSize:"11px",textAlign:"right"}}>
