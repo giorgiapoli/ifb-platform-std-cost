@@ -2168,7 +2168,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           iNHK: fi(["nhk","n hk","n comit","comit","ncomit"]),
           iIFB: fi(["no_(ifb)","noifb","ifb","no_"]),
           iUb: fi(["mts/mto","mtsmto","ubicazione","location","wh"]),
-          iArea: fi(["area"]),
+          iArea: fi(["area","zona","portoimbarco","porto imbarco","porto di partenza","nord/sud","nordsud"]),
           iPlt: fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt"]),
           iCert: fi(["healthcertificate","health certificate","cert"]),
           iTemp: fi(["rettificata","temperature","temp","trettificata","camion"]),
@@ -2265,6 +2265,10 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         hasAlcTax = alcTax > 0;
       }
   
+      // Se Area è valorizzata (NORD/SUD/CENTRO) → MARE; se vuota e transport non specificato → GOMMA
+      const effectiveTransport = transport || (area !== "NORD" || areaRaw ? (areaRaw ? "MARE" : "GOMMA") : "");
+      const finalTransport = areaRaw ? "MARE" : transport || "";
+
       const entry = {
         productId: prod.id,
         branch: currentBranch,
@@ -2277,7 +2281,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         convFactor: 1,
         carriage,
         temperatureOverride,
-        ...(transport ? { transport } : {}),
+        ...(finalTransport ? { transport: finalTransport } : {}),
       };
   
       const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
@@ -2318,9 +2322,12 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
     if(!search) return true;
     return p.description?.toLowerCase().includes(_sq) || p.code?.toLowerCase().includes(_sq) || p.nHK?.toLowerCase().includes(_sq);
   });
-  const displayed = showOnlyMissing
-  ? allProds.filter(p => !getLog(p.id))
-  : allProds.filter(p => !!getLog(p.id));
+  // Quando si cerca: mostra tutti i risultati. Senza ricerca: rispetta filtro missing/con logistica
+  const displayed = search
+    ? allProds
+    : showOnlyMissing
+      ? allProds.filter(p => !getLog(p.id))
+      : allProds.filter(p => !!getLog(p.id));
   const missingCount = allIFBProducts.filter(p => !getLog(p.id)).length;
   const withCount = allIFBProducts.filter(p => getLog(p.id) !== null).length;
 
