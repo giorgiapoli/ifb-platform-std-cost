@@ -2169,7 +2169,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           iIFB: fi(["no_(ifb)","noifb","ifb","no_"]),
           iUb: fi(["mts/mto","mtsmto","ubicazione","location","wh"]),
           iArea: fi(["area","zona","portoimbarco","porto imbarco","porto di partenza","nord/sud","nordsud"]),
-          iPlt: fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt"]),
+          iPlt: fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt","palletpercontainer","numeropallet","pallet per container","npalletcontainer","palletcontainer"]),
           iCert: fi(["healthcertificate","health certificate","cert"]),
           iTemp: fi(["rettificata","temperature","temp","trettificata","camion"]),
           iCarriage: fi(["pltcostmedio","plt cost medio","pltcost","carriage"]),
