@@ -584,11 +584,13 @@ export default function App() {
       const logRaw = logistics.find(l=>l.productId===prod.id&&l.branch===branch);
       if(!logRaw) return { ...prod, cost:null, prevCost:null, priceInput:null, skipReason:"NO LOGISTICA" };
 
-      // Apply pltPerContainer default formula if value from Work_tab is 0 or missing
-      // Formula: =SE(ProductType="DRY";25;SE(OR(ProductType="FRESH";ProductType="FROZEN");23;0))
+      // Apply pltPerContainer default: CAN uses fixed values (MARE=24, GOMMA=32); other branches use temp-based formula
       const pltFromFile = logRaw.pltPerContainer || 0;
       const effectiveTemp = logRaw.temperatureOverride || prod.temperature;
-      const plt = pltFromFile > 0 ? pltFromFile : pltDefault(effectiveTemp);
+      const canDefaultPlt = branch === "CAN"
+        ? (logRaw.transport === "MARE" ? 24 : 32)
+        : pltDefault(effectiveTemp);
+      const plt = pltFromFile > 0 ? pltFromFile : canDefaultPlt;
       const log = { ...logRaw, pltPerContainer: plt };
 
       const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month);
