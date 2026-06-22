@@ -448,7 +448,7 @@ class ErrorBoundary extends React.Component<{children:any},{err:any}> {
 
 export default function App() {
   const[products,setProducts]   = useState<any[]>([]);
-  const[logistics,setLogistics] = useState(()=>LS.get("ifb_logistics",SEED_LOGISTIC));
+  const[logistics,setLogistics] = useState<any[]>(SEED_LOGISTIC);
   const[prices,setPrices]       = useState(()=>LS.get("ifb_prices",SEED_PRICES));
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
   const[xrefs,setXrefs]         = useState<any[]>([]);
@@ -464,7 +464,7 @@ export default function App() {
   const[month,setMonth]   = useState(NOW());
   const[toast,setToast]   = useState(null);
   const[pageFilter, setPageFilter] = useState(null);
-  const [meatPrices, setMeatPrices] = useState<any[]>(() => LS.get("ifb_meatprices", []));
+  const [meatPrices, setMeatPrices] = useState<any[]>([]);
   const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
   const [scAttuali, setScAttuali] = useState<any[]>([]);
   const [macHkCostRows, setMacHkCostRows] = useState<any[]>([]); // HK costs loaded for MAC derivation
@@ -473,32 +473,41 @@ export default function App() {
 
   const branchRef = useRef(branch);
   useEffect(()=>{ branchRef.current = branch; },[branch]);
-  // Tracks when IDB load for current branch is complete — prevents save effects from
-  // overwriting IDB with empty state before the async load finishes on refresh/branch switch
   const branchLoadedRef = useRef<string>("");
+  const globalLoadedRef = useRef(false); // blocks global saves until IDB load completes
+
+  // Load global data (logistics, meatPrices) from IDB on mount
+  useEffect(()=>{
+    (async()=>{
+      setLogistics(await IDB.get("ifb_logistics", SEED_LOGISTIC));
+      setMeatPrices(await IDB.get("ifb_meatprices", []));
+      globalLoadedRef.current = true;
+    })();
+  },[]);
 
   // Reload price exceptions when branch changes
   useEffect(()=>{ if(branch) setPriceExceptions(LS.get(`ifb_exceptions_${branch}`,[])); },[branch]);
-  // Save effects — only fire after load is complete for this branch
+  // Save effects — only fire after load is complete
   useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_products_${branchRef.current}`, products); },[products]);
-  useEffect(()=>{ if(logistics.length) LS.set("ifb_logistics", logistics); }, [logistics]);
-  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) LS.set(`ifb_airlist_${branchRef.current}`, airList); },[airList]);
+  useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_logistics", logistics); }, [logistics]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_airlist_${branchRef.current}`, airList); },[airList]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_xrefs_${branchRef.current}`, xrefs); },[xrefs]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_sales_invoice_${branchRef.current}`, salesRows); },[salesRows]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_scattuali_${branchRef.current}`, scAttuali); },[scAttuali]);
   // MAC: load saved HK costRows when switching to MAC branch
   useEffect(()=>{ if(branch==="MAC") IDB.get("ifb_hk_costrows_for_mac",[]).then((d:any[])=>setMacHkCostRows(d)); },[branch]);
   useEffect(()=>{ if(prices.length) LS.set("ifb_prices", prices); }, [prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
-  useEffect(()=>{ if(meatPrices.length) LS.set("ifb_meatprices", meatPrices); }, [meatPrices]);
+  useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_meatprices", meatPrices); }, [meatPrices]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
     branchLoadedRef.current = ""; // reset — block saves while loading
     (async()=>{
       setProducts(await IDB.get(`ifb_products_${branch}`,[]));
-      setXrefs(LS.get(`ifb_xrefs_${branch}`,[]));
-      setAirList(LS.get(`ifb_airlist_${branch}`,[]));
+      setXrefs(await IDB.get(`ifb_xrefs_${branch}`,[]));
+      setAirList(await IDB.get(`ifb_airlist_${branch}`,[]));
       setSalesRows(await IDB.get(`ifb_sales_invoice_${branch}`,[]));
       setScAttuali(await IDB.get(`ifb_scattuali_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
@@ -925,7 +934,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
     const diffs=incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo,isNew:r._isNew,changed:r._changed,oldIFB:r._oldIFB}));
     const kept=xrefs.filter(x=>!incoming.find(i=>i.nHK===x.nHK));
     const next=[...incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo})),...kept];
-    setXrefs(next);LS.set(`ifb_xrefs_${branch}`,next);
+    setXrefs(next);IDB.set(`ifb_xrefs_${branch}`,next);
     const log={id,type:"xref",fileName,date:new Date(id).toISOString(),count:incoming.length,diffs,branch};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
@@ -998,7 +1007,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
           <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca per ${branchCode} o IFB N…`}/>
           {xrefs.length>0&&(
             <div style={{marginBottom:"10px",display:"flex",justifyContent:"flex-end"}}>
-              <button onClick={()=>{if(window.confirm(`Eliminare tutte le ${xrefs.length} XRef di ${branch}?`)){setXrefs([]);LS.set(`ifb_xrefs_${branch}`,[]);}}}
+              <button onClick={()=>{if(window.confirm(`Eliminare tutte le ${xrefs.length} XRef di ${branch}?`)){setXrefs([]);IDB.set(`ifb_xrefs_${branch}`,[]);}}}
                 style={{padding:"5px 14px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
                 ✕ Svuota lista ({xrefs.length})
               </button>
@@ -1012,7 +1021,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
                   <tr key={x.nHK+i} style={{borderBottom:`1px solid ${T.border}`}}>
                     <TD mono><span style={{color:T.gold}}>{x.nHK}</span></TD>
                     <TD mono>{x.ifbNo}</TD>
-                    <TD><MiniBtn label="✕" onClick={()=>{const n=xrefs.filter((_,j)=>j!==xrefs.indexOf(x));setXrefs(n);LS.set(`ifb_xrefs_${branch}`,n);}} color={T.red}/></TD>
+                    <TD><MiniBtn label="✕" onClick={()=>{const n=xrefs.filter((_,j)=>j!==xrefs.indexOf(x));setXrefs(n);IDB.set(`ifb_xrefs_${branch}`,n);}} color={T.red}/></TD>
                   </tr>
                 ))}</tbody>
               </table>
@@ -1789,7 +1798,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       productId: r.productId, code: r.code, nHK: r.nHK,
       description: r.description, transportation: "AIR", branch
     }));
-    setAirList(next); LS.set(`ifb_airlist_${branch}`, next);
+    setAirList(next); IDB.set(`ifb_airlist_${branch}`, next);
     const now = Date.now();
     IDB.set(`ifb_air_data_${now}`, next);
     const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch};
@@ -1913,7 +1922,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
             if(window.confirm(`Ripristinare la lista AIR del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} articoli)?`)){
               const next=await IDB.get(`ifb_air_data_${snap.id}`, null);
               if(!next?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
-              setAirList(next);LS.set(`ifb_airlist_${branch}`,next);
+              setAirList(next);IDB.set(`ifb_airlist_${branch}`,next);
               showToast(`Lista AIR ripristinata: ${snap.count} articoli ✓`,T.gold);
             }
             e.target.value="";
@@ -1966,7 +1975,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
  {airList.length>0&&(
    <button
    onClick={()=>{if(window.confirm(`Eliminare i ${branchAir.length} articoli AIR di ${branch}?`)){
-    setAirList([]);LS.set(`ifb_airlist_${branch}`,[]);
+    setAirList([]);IDB.set(`ifb_airlist_${branch}`,[]);
   }}}
      style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
      ✕ Svuota lista ({branchAir.length})
@@ -1985,7 +1994,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
                       <TD mono><span style={{color:T.gold}}>{a.code}</span></TD>
                       <TD mono><span style={{color:T.muted}}>{a.nHK||"—"}</span></TD>
                       <TD>{a.description}</TD>
-                      <TD><MiniBtn label="✕ Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);LS.set(`ifb_airlist_${branch}`,n);}} color={T.red}/></TD>
+                      <TD><MiniBtn label="✕ Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);IDB.set(`ifb_airlist_${branch}`,n);}} color={T.red}/></TD>
                     </tr>
                   ))}</tbody>
                 </table>
@@ -2145,7 +2154,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
                 (parseFloat(rawVal) || 0);
     const next = [...logistics, {...getOrDefault(productId), [field]: val}];
     setLogistics(next);
-    LS.set("ifb_logistics", next);
+    IDB.set("ifb_logistics", next);
   }
 
   function parseLogFile(e) {
@@ -2296,7 +2305,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
     });
   
     setLogistics(next);
-    LS.set("ifb_logistics", next);
+    IDB.set("ifb_logistics", next);
   
     if (countAir > 0) {
       showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
@@ -2363,7 +2372,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
             const other = logistics.filter((l:any) => l.branch !== branch);
             const newLog = [...other, ...branchEntries];
             setLogistics(newLog);
-            LS.set("ifb_logistics", newLog);
+            IDB.set("ifb_logistics", newLog);
             bumpImportTs();
             showToast(`Logistica ripristinata: ${branchEntries.length} righe ✓`, T.gold);
           }
@@ -2392,7 +2401,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}?`)) {
           const newLogistics = logistics.filter((l:any) => l.branch !== branch);
           setLogistics(newLogistics);
-          LS.set("ifb_logistics", newLogistics);
+          IDB.set("ifb_logistics", newLogistics);
           bumpImportTs();
           showToast(`Dati logistici per ${branch} cancellati ✓`, T.red);
         }
@@ -5473,7 +5482,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
       {/* Tabella */}
       <Section title={`${filtered.length} articoli`}>
-        <div style={{ overflowX: "auto" }}>
+        <SyncScrollTable>
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
@@ -5488,6 +5497,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
                 <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Kg/Box</th>
                 <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Kg/Plt</th>
                 <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Temp</th>
+                {branch==="CAN" && <th style={{ padding: "7px 12px", background: T.card, color: T.orange, textAlign: "right", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>AIEM%</th>}
                 <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Attivo</th>
               </tr>
             </thead>
@@ -5523,6 +5533,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
                     <td style={{ padding: "7px 12px", fontSize: "12px" }}>
                       <Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} />
                     </td>
+                    {branch==="CAN" && <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace", textAlign: "right", color: p.aiem>0?T.orange:T.dim }}>{p.aiem>0?`${p.aiem}%`:"—"}</td>}
                     <td style={{ padding: "7px 12px", fontSize: "12px" }}>
                       <Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} />
                     </td>
@@ -5531,7 +5542,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
               })}
             </tbody>
           </table>
-        </div>
+        </SyncScrollTable>
       </Section>
     </div>
   );
@@ -5622,7 +5633,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
       foglio: r.foglio,
     }));
     setMeatPrices(entries);
-    LS.set("ifb_meatprices", entries);
+    IDB.set("ifb_meatprices", entries);
     IDB.set(`ifb_meatprices_data_${now}`, entries);
     const log = {id:now, type:"meatlist", date:new Date(now).toISOString(), count:entries.length, diffs:[], branch:"ALL"};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
@@ -5659,7 +5670,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
             if(window.confirm(`Ripristinare listino del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} prezzi)?`)) {
               const data = await IDB.get(`ifb_meatprices_data_${snap.id}`, null);
               if(!data?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
-              setMeatPrices(data); LS.set("ifb_meatprices", data);
+              setMeatPrices(data); IDB.set("ifb_meatprices", data);
               showToast(`Listino carne: ${data.length} prezzi ripristinati ✓`, T.gold);
             }
             e.target.value="";
@@ -5672,7 +5683,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
         )}
 
         {meatPrices.length > 0 && (
-          <button onClick={()=>{if(window.confirm(`Eliminare tutti i ${meatPrices.length} prezzi del listino carne?`)){setMeatPrices([]);LS.set("ifb_meatprices",[]);}}}
+          <button onClick={()=>{if(window.confirm(`Eliminare tutti i ${meatPrices.length} prezzi del listino carne?`)){setMeatPrices([]);IDB.set("ifb_meatprices",[]);}}}
             style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
             🗑 Svuota ({meatPrices.length})
           </button>
@@ -5853,6 +5864,30 @@ function DropZone({onFile,label}){
 function SearchBar({value,onChange,placeholder}){
   return<input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||"Cerca..."}
     style={{...inputStyle(),maxWidth:"320px",marginBottom:"14px"}}/>;
+}
+
+// Scrollbar sincronizzata in cima e in fondo alla tabella
+function SyncScrollTable({children}:any){
+  const topRef = useRef<HTMLDivElement>(null);
+  const botRef = useRef<HTMLDivElement>(null);
+  const [w, setW] = useState(0);
+  useEffect(()=>{
+    const el = botRef.current?.querySelector("table") as HTMLElement;
+    if(!el) return;
+    const obs = new ResizeObserver(()=>setW(el.scrollWidth));
+    obs.observe(el);
+    return ()=>obs.disconnect();
+  },[]);
+  const syncTop = (e:any) => { if(botRef.current) botRef.current.scrollLeft = e.target.scrollLeft; };
+  const syncBot = (e:any) => { if(topRef.current) topRef.current.scrollLeft = e.target.scrollLeft; };
+  return(
+    <div>
+      <div ref={topRef} onScroll={syncTop} style={{overflowX:"auto",overflowY:"hidden",height:"12px",marginBottom:"2px"}}>
+        <div style={{width:w||"100%",height:"1px"}}/>
+      </div>
+      <div ref={botRef} onScroll={syncBot} style={{overflowX:"auto"}}>{children}</div>
+    </div>
+  );
 }
 function THead({cols, sticky=false}: any) {
   return (
