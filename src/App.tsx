@@ -107,7 +107,7 @@ const COSTS_CAN = {
 
 const CAN_ISLANDS = ["GC","TF","LAN","FUE"] as const;
 
-function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
+function calcCAN({ priceInput, ubicazione, product, logistic, bevData }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature, aiem: prodAiem } = product;
   const { pltPerContainer, area, hasAlcTax, alcTax, convFactor, transport } = logistic || {};
 
@@ -137,9 +137,11 @@ function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
   // Pallet (BO): COSTS(LOG)!I1 / Y6 = 15 / unitsPerPlt
   const plt = COSTS_CAN.PLT / unitsPerPlt;
 
-  // AIEM (W6): da product.aiem (col 23 Anagrafica) oppure logistic.alcTax se impostato
-  const aiemPct = (Number(prodAiem)||0) > 0
-    ? Number(prodAiem) / 100
+  // AIEM: se bevData fornisce TOTALE BOTTIGLIA (importo fisso/unit per alcolici), usa quello.
+  // Altrimenti usa la % da Anagrafica (prodAiem) o logistic (alcTax).
+  const aiemFixed: number = (bevData?.totaleBottiglia ?? 0) > 0 ? Number(bevData.totaleBottiglia) : 0;
+  const aiemPct = aiemFixed > 0 ? 0
+    : (Number(prodAiem)||0) > 0 ? Number(prodAiem) / 100
     : (hasAlcTax ? (Number(alcTax)||0) / 100 : 0);
 
   // Costi MARE per isola (AM/AO/AQ/AS + AU/AW/AY/BA)
@@ -151,22 +153,18 @@ function calcCAN({ priceInput, ubicazione, product, logistic }: any) {
     isMARE ? (inlandTbl[isl] ?? 0) / totalUnits : 0;
 
   // Costi GOMMA (BC/BE/BG/BI/BK + BM)
-  // VeronaBarc (BC): COSTS(LOG)!D5 / Y6 = 62.5 / unitsPerPlt
   const veronaBarcUnit = isMARE ? 0 : COSTS_CAN.VERONA_BARC_PLT / unitsPerPlt;
-  // BarcIsland (BE/BG/BI/BK): rate / Y6 = rate / unitsPerPlt
   const barcPerIsland = (isl: string): number =>
     isMARE ? 0 : (COSTS_CAN.BARC[temp]?.[isl] ?? 0) / unitsPerPlt;
-  // Assicurazione (BM): prezzo × 0.5% (solo GOMMA)
   const assicUnit = isMARE ? 0 : priceEur * COSTS_CAN.ASSICURAZIONE;
 
-  // Trasporto per isola (somma dei costi sopra, escluso pallet e AIEM)
+  // Trasporto per isola (escluso pallet e AIEM)
   const transpPerIsland = (isl: string): number =>
     freightPerIsland(isl) + inlandPerIsland(isl) + veronaBarcUnit + barcPerIsland(isl) + assicUnit;
 
-  // AIEM per gruppo isola (BR per GC-TF, BT per LAN-FUE)
-  // Formula: (AL6 + CR6) × (W6/100) dove CR6≈0 (nessun trasporto inter-isola)
-  const aiemGCTF  = (priceEur + transpPerIsland("GC"))  * aiemPct;
-  const aiemLANFUE= (priceEur + transpPerIsland("LAN")) * aiemPct;
+  // AIEM per isola: fisso (alcolici) o % su (prezzo + trasporto)
+  const aiemGCTF   = aiemFixed > 0 ? aiemFixed : (priceEur + transpPerIsland("GC"))  * aiemPct;
+  const aiemLANFUE = aiemFixed > 0 ? aiemFixed : (priceEur + transpPerIsland("LAN")) * aiemPct;
   const aiemForIsl = (isl: string) => (isl==="LAN"||isl==="FUE") ? aiemLANFUE : aiemGCTF;
 
   // Step1 per isola: BV=AL+AM+AU+BC+BE+BM+BO+BR (MARE o GOMMA, appropriato)
@@ -465,6 +463,7 @@ export default function App() {
   const[toast,setToast]   = useState(null);
   const[pageFilter, setPageFilter] = useState(null);
   const [meatPrices, setMeatPrices] = useState<any[]>([]);
+  const [bevInfo, setBevInfo] = useState<any[]>([]); // CAN: dati alcolici per AIEM fisso
   const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
   const [scAttuali, setScAttuali] = useState<any[]>([]);
   const [macHkCostRows, setMacHkCostRows] = useState<any[]>([]); // HK costs loaded for MAC derivation
@@ -481,6 +480,7 @@ export default function App() {
     (async()=>{
       setLogistics(await IDB.get("ifb_logistics", SEED_LOGISTIC));
       setMeatPrices(await IDB.get("ifb_meatprices", []));
+      setBevInfo(await IDB.get("ifb_bevinfo", []));
       globalLoadedRef.current = true;
     })();
   },[]);
@@ -500,6 +500,7 @@ export default function App() {
   useEffect(()=>{ if(prices.length) LS.set("ifb_prices", prices); }, [prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_meatprices", meatPrices); }, [meatPrices]);
+  useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_bevinfo", bevInfo); }, [bevInfo]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
@@ -610,9 +611,10 @@ export default function App() {
 
       // Branch-agnostic calc helper
       const isCAN_b = branch === "CAN";
+      const bevData = isCAN_b ? bevInfo.find((b:any) => b.ifbNo === prod.code) : null;
       const calcCost = (pi: number) =>
         isCAN_b
-          ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log })
+          ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log, bevData })
           : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
 
       // Eccezione prezzo: bypassa listino e carne
@@ -672,7 +674,7 @@ export default function App() {
         area:log.area||"NORD", pltPerContainer:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo]);
 
   // MAC: save HK costRows to IDB whenever they're computed (declared after costRows useMemo to avoid TDZ)
   useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
@@ -687,6 +689,7 @@ export default function App() {
     ...(!isMAC ? [{id:"logistics", icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"}] : []),
     ...(!isMAC ? [{id:"prices",    icon:"◉", label:"Listini", badge:"💶"}] : []),
     ...(!isMAC ? [{id:"meatlist",  icon:"🥩", label:"Listino Carne"}] : []),
+    ...(isCAN ? [{id:"bevinfo", icon:"🍷", label:"Beverage Info (AIEM)"}] : []),
     ...(!isCAN&&!isMAC ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
     ...(!isCAN&&!isMAC ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
     ...(!isMAC ? [{id:"exceptions", icon:"⚡", label:"Eccezioni Prezzi"}] : []),
@@ -789,6 +792,7 @@ export default function App() {
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} showToast={showToast}/>,
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
@@ -5581,6 +5585,203 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
           </table>
         </SyncScrollTable>
       </Section>
+    </div>
+  );
+}
+
+// ─── BEVERAGE INFO (CAN — AIEM alcolici) ──────────────────────────────────────
+function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
+  const [step, setStep] = useState<"main"|"map"|"preview">("main");
+  const [headers, setHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<any[]>([]);
+  const [map, setMap] = useState<any>({});
+  const [preview, setPreview] = useState<any[]>([]);
+  const [fileName, setFileName] = useState("");
+  const [search, setSearch] = useState("");
+
+  const FIELDS = ["ifbNo","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"];
+  const FLABELS: any = {
+    ifbNo: "IFB No * (codice articolo)",
+    ltPerUnit: "LT (litri per unità)",
+    gradoAlcolico: "Grado Alcolico (°)",
+    eurPerLt: "€/LT (tariffa AIEM per litro)",
+    totaleBottiglia: "Totale Bottiglia € (se già calcolato)",
+  };
+  const ALIASES: any = {
+    ifbNo:          ["ifb n","ifb no","ifbno","bv no","codice","code","item no","ifb item","ifbitem"],
+    ltPerUnit:      ["lt","litri","liters","volume","lt per unit","lt/unit","litri per unità"],
+    gradoAlcolico:  ["grado alcolico","grado","gradi","abv","alcol","alcohol","alc %","degree","gradalcolico"],
+    eurPerLt:       ["eur/lt","€/lt","euro/lt","tariffa","rate","eur lt","eurlt","tariffalit"],
+    totaleBottiglia:["totale bottiglia","totale","total","totbottiglia","totalebottiglia","tot bott","totbott","totale bottiglia eur"],
+  };
+
+  function fi(aliases: string[], hdrs: string[]): string {
+    const norm = (s: string) => s.toLowerCase().replace(/[€°\s_/]/g,"");
+    return hdrs.find(h => aliases.some(a => norm(h)===norm(a))) ||
+           hdrs.find(h => aliases.some(a => norm(h).includes(norm(a)))) || "";
+  }
+
+  function parseFile(file: File) {
+    setFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(e.target.result, {type:"binary"});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const data: any[][] = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
+        // Cerca la riga header (quella con "IFB" o "LT")
+        const hdrIdx = data.findIndex(row =>
+          row.some((c:any) => String(c).toUpperCase().includes("IFB") || String(c).toUpperCase()==="LT")
+        );
+        if(hdrIdx < 0) { showToast("Intestazione non trovata", T.red); return; }
+        const hdrs = data[hdrIdx].map((h:any) => String(h).trim()).filter((h:string) => h);
+        const rows = data.slice(hdrIdx+1).filter(r => r.some((c:any) => c !== ""));
+        setHeaders(hdrs); setRawRows(rows);
+        const autoMap: any = {};
+        FIELDS.forEach(f => { autoMap[f] = fi(ALIASES[f], hdrs); });
+        setMap(autoMap); setStep("map");
+      } catch(err:any) { showToast("Errore: "+err.message, T.red); }
+    };
+    reader.readAsBinaryString(file);
+  }
+
+  function buildPreview() {
+    const idx: any = {};
+    FIELDS.forEach(f => { idx[f] = headers.indexOf(map[f]); });
+    const rows = rawRows.map(row => {
+      const ifbNo = String(row[idx.ifbNo]||"").trim();
+      if(!ifbNo) return null;
+      const lt = parseFloat(String(row[idx.ltPerUnit]||"").replace(",",".")) || 0;
+      const grado = parseFloat(String(row[idx.gradoAlcolico]||"").replace(",",".")) || 0;
+      const eurLt = parseFloat(String(row[idx.eurPerLt]||"").replace(",",".")) || 0;
+      const totRaw = idx.totaleBottiglia>=0 ? parseFloat(String(row[idx.totaleBottiglia]||"").replace(",",".")) : 0;
+      const totCalc = lt > 0 && eurLt > 0 ? roundN(lt * eurLt, 4) : 0;
+      const totaleBottiglia = totRaw > 0 ? totRaw : totCalc;
+      if(totaleBottiglia <= 0 && lt <= 0) return null;
+      const prod = products.find((p:any) => p.code === ifbNo);
+      return { ifbNo, ltPerUnit:lt, gradoAlcolico:grado, eurPerLt:eurLt, totaleBottiglia, _found:!!prod, _desc:prod?.description||"—" };
+    }).filter(Boolean);
+    setPreview(rows); setStep("preview");
+  }
+
+  function executeImport() {
+    const kept = bevInfo.filter((b:any) => !preview.find((p:any) => p.ifbNo===b.ifbNo));
+    const next = [...preview.map((r:any) => ({ifbNo:r.ifbNo,ltPerUnit:r.ltPerUnit,gradoAlcolico:r.gradoAlcolico,eurPerLt:r.eurPerLt,totaleBottiglia:r.totaleBottiglia})), ...kept];
+    setBevInfo(next); IDB.set("ifb_bevinfo", next);
+    showToast(`Beverage Info: ${preview.length} articoli importati ✓`, T.gold);
+    setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
+  }
+
+  const q = search.trim().toLowerCase();
+  const displayed = q
+    ? bevInfo.filter((b:any) => b.ifbNo?.toLowerCase().includes(q) || products.find((p:any)=>p.code===b.ifbNo)?.description?.toLowerCase().includes(q))
+    : bevInfo;
+
+  return (
+    <div>
+      <PageHeader title="🍷 Beverage Info · AIEM Alcolici (CAN)" sub="Importa dati alcolici: LT, Grado, €/LT → Totale AIEM fisso per unità"/>
+
+      <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
+        <label style={{display:"inline-block",padding:"8px 16px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold",fontSize:"12px"}}>
+          📂 Carica file Beverage Info
+          <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
+        </label>
+        {bevInfo.length>0&&<button onClick={()=>{if(window.confirm(`Eliminare tutti i ${bevInfo.length} dati beverage?`)){setBevInfo([]);IDB.set("ifb_bevinfo",[]);}}}
+          style={{padding:"5px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
+          🗑 Svuota ({bevInfo.length})
+        </button>}
+      </div>
+
+      {step==="map"&&(
+        <Section title={`Mappatura — ${fileName}`}>
+          <div style={{background:`${T.orange}10`,border:`1px solid ${T.orange}33`,borderRadius:"8px",padding:"10px 14px",marginBottom:"12px",fontSize:"11px",color:T.orange}}>
+            ★ Se il file ha già la colonna "Totale Bottiglia", verrà usata. Altrimenti verrà calcolata come LT × €/LT.
+          </div>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"16px"}}>
+            {FIELDS.map(f=>(
+              <div key={f}>
+                <label style={{fontSize:"10px",color:f==="ifbNo"?T.gold:T.muted}}>{FLABELS[f]}</label>
+                <select value={map[f]||""} onChange={e=>setMap((m:any)=>({...m,[f]:e.target.value}))}
+                  style={{...inputStyle(),fontSize:"11px",padding:"4px 6px",borderColor:map[f]?T.gold:T.border}}>
+                  <option value="">—</option>
+                  {headers.map(h=><option key={h} value={h}>{h}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+          <div style={{display:"flex",gap:"10px"}}>
+            <ActionBtn label="Annulla" onClick={()=>setStep("main")}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!map.ifbNo}/>
+          </div>
+        </Section>
+      )}
+
+      {step==="preview"&&(
+        <Section title={`Preview · ${preview.length} articoli`}>
+          <div style={{maxHeight:"200px",overflow:"auto",marginBottom:"12px",fontSize:"11px"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>
+                {["IFB No","Descrizione","LT","Grado","€/LT","Totale €/unit"].map(h=>
+                  <th key={h} style={{padding:"4px 8px",textAlign:"left",color:T.muted,borderBottom:`1px solid ${T.border}`}}>{h}</th>)}
+              </tr></thead>
+              <tbody>
+                {preview.map((r:any,i:number)=>(
+                  <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r._found?undefined:`${T.orange}10`}}>
+                    <td style={{padding:"3px 8px",color:T.gold,fontFamily:"monospace"}}>{r.ifbNo}</td>
+                    <td style={{padding:"3px 8px",color:r._found?T.text:T.orange,fontSize:"11px"}}>{r._desc}</td>
+                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.ltPerUnit||"—"}</td>
+                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.gradoAlcolico||"—"}°</td>
+                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.eurPerLt>0?r.eurPerLt.toFixed(2):"—"}</td>
+                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{r.totaleBottiglia>0?r.totaleBottiglia.toFixed(4):"—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div style={{display:"flex",gap:"10px"}}>
+            <ActionBtn label="← Indietro" onClick={()=>setStep("map")}/>
+            <ActionBtn label={`✓ Importa ${preview.length} articoli`} onClick={executeImport} primary/>
+          </div>
+        </Section>
+      )}
+
+      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca IFB No o descrizione…"/>
+
+      {displayed.length>0 ? (
+        <Section title={`${displayed.length} articoli con AIEM alcolico`}>
+          <div style={{overflowX:"auto"}}>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr>
+                {["IFB No","Descrizione","LT/unit","Grado","€/LT","AIEM €/unit"].map(h=>
+                  <th key={h} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px"}}>{h}</th>)}
+                <th style={{padding:"7px 12px",background:T.card,borderBottom:`1px solid ${T.border}`,fontSize:"11px"}}/>
+              </tr></thead>
+              <tbody>
+                {displayed.map((b:any,i:number)=>{
+                  const prod = products.find((p:any)=>p.code===b.ifbNo);
+                  return(
+                    <tr key={b.ifbNo} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                      <td style={{padding:"7px 12px",fontFamily:"monospace",color:T.gold}}>{b.ifbNo}</td>
+                      <td style={{padding:"7px 12px",fontSize:"12px"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
+                      <td style={{padding:"7px 12px",fontFamily:"monospace",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
+                      <td style={{padding:"7px 12px",fontFamily:"monospace",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
+                      <td style={{padding:"7px 12px",fontFamily:"monospace",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
+                      <td style={{padding:"7px 12px",fontFamily:"monospace",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
+                      <td style={{padding:"7px 12px"}}>
+                        <MiniBtn label="✕" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==bevInfo.indexOf(b));setBevInfo(n);IDB.set("ifb_bevinfo",n);}} color={T.red}/>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      ) : (
+        <div style={{color:T.muted,textAlign:"center",padding:"40px",fontSize:"13px"}}>
+          Nessun dato beverage. Carica il file con LT, Grado Alcolico e €/LT.
+        </div>
+      )}
     </div>
   );
 }
