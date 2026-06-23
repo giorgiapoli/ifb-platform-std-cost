@@ -448,7 +448,7 @@ class ErrorBoundary extends React.Component<{children:any},{err:any}> {
 export default function App() {
   const[products,setProducts]   = useState<any[]>([]);
   const[logistics,setLogistics] = useState<any[]>(SEED_LOGISTIC);
-  const[prices,setPrices]       = useState(()=>LS.get("ifb_prices",SEED_PRICES));
+  const[prices,setPrices]       = useState<any[]>([]);
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
   const[xrefs,setXrefs]         = useState<any[]>([]);
   const[airList,setAirList]     = useState<any[]>([]);
@@ -498,7 +498,7 @@ export default function App() {
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_scattuali_${branchRef.current}`, scAttuali); },[scAttuali]);
   // MAC: load saved HK costRows when switching to MAC branch
   useEffect(()=>{ if(branch==="MAC") IDB.get("ifb_hk_costrows_for_mac",[]).then((d:any[])=>setMacHkCostRows(d)); },[branch]);
-  useEffect(()=>{ if(prices.length) LS.set("ifb_prices", prices); }, [prices]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_prices_${branchRef.current}`, prices); },[prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_meatprices", meatPrices); }, [meatPrices]);
   useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_bevinfo", bevInfo); }, [bevInfo]);
@@ -512,6 +512,7 @@ export default function App() {
       setAirList(await IDB.get(`ifb_airlist_${branch}`,[]));
       setSalesRows(await IDB.get(`ifb_sales_invoice_${branch}`,[]));
       setScAttuali(await IDB.get(`ifb_scattuali_${branch}`,[]));
+      setPrices(await IDB.get(`ifb_prices_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
     })();
   },[branch]);
@@ -1374,7 +1375,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
     });
     
     setPrices(updated);
-    LS.set("ifb_prices", updated);
+    IDB.set(`ifb_prices_${branch}`, updated);
     
     const log = {
       id: snId,
@@ -3773,7 +3774,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [excludeAir,setExcludeAir]     = useState(false);
   const [last30,setLast30]             = useState(false);
   const [newHkdFilter,setNewHkdFilter] = useState<"all"|"ok"|"mancante"|"air">("all");
-  const [scFilter,setScFilter]         = useState<"all"|"ok"|"mancante"|"sample"|"air">("all");
+  const [scFilter,setScFilter]         = useState<"all"|"ok"|"mancante"|"sample">("all");
   const [filterTransport,setFilterTransport] = useState("all");
   const [filterNHK,setFilterNHK]   = useState("");
   const [filterIFBNo,setFilterIFBNo] = useState("");
@@ -3898,10 +3899,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(newHkdFilter==="mancante")displayed=displayed.filter(r=>r.newHkd===null&&!r.isAir);
   else if(newHkdFilter==="air")    displayed=displayed.filter(r=>r.isAir);
   const isSample = (r:any) => r.unitPrice===0||r.unitPrice===0.01;
-  if(scFilter==="ok")       displayed=displayed.filter(r=>r.scGC!=null&&!r.isAir&&!isSample(r));
-  else if(scFilter==="mancante") displayed=displayed.filter(r=>r.scGC===null&&!r.isAir&&!isSample(r));
+  if(scFilter==="ok")            displayed=displayed.filter(r=>r.scGC!=null&&!isSample(r));
+  else if(scFilter==="mancante") displayed=displayed.filter(r=>r.scGC===null&&!isSample(r));
   else if(scFilter==="sample")   displayed=displayed.filter(r=>isSample(r));
-  else if(scFilter==="air")      displayed=displayed.filter(r=>r.isAir);
   if(last30){ const cut=Date.now()-30*24*60*60*1000; displayed=displayed.filter(r=>{ const d=new Date(r.date); return !isNaN(d.getTime())&&d.getTime()>=cut; }); }
   if(filterNHK)   displayed=displayed.filter(r=>r.nHK===filterNHK);
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
@@ -4126,7 +4126,6 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                       <option value="ok">✅ Con costo</option>
                       <option value="mancante">❌ MANCANTE</option>
                       <option value="sample">📦 SAMPLE</option>
-                      <option value="air">✈ AIR</option>
                     </select>
                   </th>
                 );
