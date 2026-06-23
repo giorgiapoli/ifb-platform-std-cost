@@ -3856,15 +3856,20 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const isAir=r.transport==="AIR"||cr?.isAir===true||cr?.skipReason==="AIR";
         const locationIsNCJ=String(r.location||"").toUpperCase().includes("NCJ");
         const mismatch=(isAir&&!locationIsNCJ)||(!isAir&&locationIsNCJ);
-        const newHkd=cr?.cost?.step2Hkd??null;
+        const newHkd=cr?.cost?.step2Hkd??null; // GC canonico (usato per filtri)
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
         const skipReason=isAir?"AIR":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
         const logTransport=logEntry?.transport||"";
+        // CAN: 4 isole
+        const scGC  = cr?.cost?.step2GC  ?? null;
+        const scTF  = cr?.cost?.step2TF  ?? null;
+        const scLAN = cr?.cost?.step2LAN ?? null;
+        const scFUE = cr?.cost?.step2FUE ?? null;
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
-          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason};
+          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason,scGC,scTF,scLAN,scFUE};
       });
   },[activeRows,costRows,products,xrefs,sortDir]);
 
@@ -4010,7 +4015,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
             "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"","Location":r.location||"",
             "Mismatch":r.mismatch?"⚠ "+( r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"",
             "Mag./Trasp.":r.isAir?"AIR":r.ubicazione||"",
-            "Old SC":r.oldHkd!=null?roundN(r.oldHkd):"","New SC":r.isAir?"AIR":(r.unitPrice===0||r.unitPrice===0.01)?"SAMPLE":r.newHkd!=null?roundN(r.newHkd):"MANCANTE",
+            "Old SC":r.oldHkd!=null?roundN(r.oldHkd):"",
+            ...(branch==="CAN"
+              ? {"SC GC":r.isAir?"AIR":r.scGC!=null?roundN(r.scGC):"MANCANTE",
+                 "SC TF":r.isAir?"AIR":r.scTF!=null?roundN(r.scTF):"MANCANTE",
+                 "SC LAN":r.isAir?"AIR":r.scLAN!=null?roundN(r.scLAN):"MANCANTE",
+                 "SC FUE":r.isAir?"AIR":r.scFUE!=null?roundN(r.scFUE):"MANCANTE"}
+              : {"New SC":r.isAir?"AIR":(r.unitPrice===0||r.unitPrice===0.01)?"SAMPLE":r.newHkd!=null?roundN(r.newHkd):"MANCANTE"}),
             "Δ%":r.pct!=null?roundN(r.pct,1):"","Motivo":r.skipReason||"",
           })),
           "Fatture & Costi",`Fatture_${branch}.xlsx`
@@ -4058,7 +4069,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old SC","New SC ▾","Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC","SC TF","SC LAN","SC FUE"]:["New SC ▾"]),"Δ%","Motivo"].map((c,ci)=>{
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4077,7 +4088,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     </select>
                   </th>
                 );
-                if(c==="New HKD ▾") return(
+                if(c==="New SC ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
                       style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
@@ -4114,16 +4125,33 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                       }
                     </td>
                     <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></td>
-                    <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}>
-                      {r.isAir
-                        ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
-                        : (r.unitPrice===0||r.unitPrice===0.01)
-                          ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
-                          : r.newHkd!=null
-                            ? <span style={{color:T.gold,fontWeight:"bold"}}>{r.newHkd.toFixed(2)}</span>
-                            : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
-                      }
-                    </td>
+                    {branch==="CAN" ? (
+                      <>
+                        {([r.scGC,r.scTF,r.scLAN,r.scFUE] as (number|null)[]).map((v,i)=>(
+                          <td key={i} style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}>
+                            {r.isAir
+                              ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
+                              : (r.unitPrice===0||r.unitPrice===0.01)
+                                ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
+                                : v!=null
+                                  ? <span style={{color:T.gold,fontWeight:"bold"}}>{v.toFixed(2)}</span>
+                                  : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
+                            }
+                          </td>
+                        ))}
+                      </>
+                    ) : (
+                      <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}>
+                        {r.isAir
+                          ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
+                          : (r.unitPrice===0||r.unitPrice===0.01)
+                            ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
+                            : r.newHkd!=null
+                              ? <span style={{color:T.gold,fontWeight:"bold"}}>{r.newHkd.toFixed(2)}</span>
+                              : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
+                        }
+                      </td>
+                    )}
                     <td style={{padding:"6px 10px",fontSize:"11px",textAlign:"right"}}>
                       {r.pct!=null?<span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:Math.abs(r.pct)>3?"bold":"normal"}}>{r.pct>0?"+":""}{r.pct.toFixed(1)}%</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
