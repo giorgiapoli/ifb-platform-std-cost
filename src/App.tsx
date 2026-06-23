@@ -635,7 +635,7 @@ export default function App() {
           prod.uom==="KG" ? 1 :
           prod.uom==="BOX" ? (Number(prod.kgPerBox)||0) :
           (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1,1);
-        return { pi: meat.pricePerKg * kgPerUnit };
+        return { pi: meat.pricePerKg * kgPerUnit * 1.01 }; // +1% intercompany
       };
 
       if(!pr) {
