@@ -3768,6 +3768,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [rawRows,setRawRows]   = useState<any[]>([]);
   const [fileName,setFileName] = useState("");
   const [excludeAir,setExcludeAir]     = useState(false);
+  const [last30,setLast30]             = useState(false);
   const [newHkdFilter,setNewHkdFilter] = useState<"all"|"ok"|"mancante"|"air">("all");
   const [filterTransport,setFilterTransport] = useState("all");
   const [filterNHK,setFilterNHK]   = useState("");
@@ -3892,6 +3893,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(newHkdFilter==="ok")          displayed=displayed.filter(r=>r.newHkd!==null&&!r.isAir);
   else if(newHkdFilter==="mancante")displayed=displayed.filter(r=>r.newHkd===null&&!r.isAir);
   else if(newHkdFilter==="air")    displayed=displayed.filter(r=>r.isAir);
+  if(last30){ const cut=Date.now()-30*24*60*60*1000; displayed=displayed.filter(r=>{ const d=new Date(r.date); return !isNaN(d.getTime())&&d.getTime()>=cut; }); }
   if(filterNHK)   displayed=displayed.filter(r=>r.nHK===filterNHK);
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
@@ -4036,6 +4038,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           style={{padding:"6px 14px",background:excludeAir?`${T.orange}20`:T.surface,color:excludeAir?T.orange:T.muted,border:`1px solid ${excludeAir?T.orange:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeAir?"bold":"normal"}}>
           {excludeAir?`✓ AIR esclusi (${airCount})`:`✈ Escludi AIR (${airCount})`}
         </button>}
+        <button onClick={()=>setLast30(v=>!v)}
+          style={{padding:"6px 14px",background:last30?`${T.blue}25`:T.surface,color:last30?T.blue:T.muted,border:`1px solid ${last30?T.blue:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:last30?"bold":"normal"}}>
+          {last30?"✓ Ultimi 30gg":"📅 Ultimi 30gg"}
+        </button>
         <button onClick={()=>setSortDir(d=>d==="desc"?"asc":"desc")}
           style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
           Data {sortDir==="desc"?"↓":"↑"}
