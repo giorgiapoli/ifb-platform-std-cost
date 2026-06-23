@@ -189,9 +189,10 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData }: any) {
   const inlandGC  = inlandPerIsland("GC");
   const barcUnitGC = barcPerIsland("GC");
   const aiemUnit = aiemGCTF; // GC canonical
+  const tassaAlcolica = aiemFixed; // importo fisso da Beverage Info (0 se non alcolico)
 
   return {
-    priceEur, plt, aiemUnit, wh, transport: transport||"GOMMA", unitsPerPlt,
+    priceEur, plt, aiemUnit, tassaAlcolica, wh, transport: transport||"GOMMA", unitsPerPlt,
     veronaBarcUnit, barcUnitGC, assicUnit, freightGC, inlandGC,
     // per-island breakdown (GC=TF share rates; LAN=FUE share rates)
     freightLAN: freightPerIsland("LAN"),
@@ -3657,9 +3658,11 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                     {row("Barc → Isola",f4(c.barcUnitGC),f4(c.barcUnitLAN||0),"BARC[temp][isola] ÷ u/plt",T.blue)}
                                     {row("Assicurazione",f4(c.assicUnit),f4(c.assicUnit),"Prezzo × 0,5%",T.blue)}
                                   </>}
-                                  {sep("Pallet & AIEM")}
+                                  {sep("Pallet & AIEM / Tassa Alcolica")}
                                   {row("Pallet",f4(c.plt),f4(c.plt),"15 € ÷ u/plt (COSTS LOG!I1)",T.blue)}
-                                  {c.aiemGCTF>0&&row("AIEM",f4(c.aiemGCTF),f4(c.aiemLANFUE||0),"(Prezzo + Trasporto isola) × AIEM%",T.orange)}
+                                  {c.tassaAlcolica>0
+                                    ? row("Tassa Alcolica",f4(c.tassaAlcolica),f4(c.tassaAlcolica),"LT × €/LT (Beverage Info — fisso/unit)",T.orange)
+                                    : c.aiemGCTF>0&&row("AIEM",f4(c.aiemGCTF),f4(c.aiemLANFUE||0),"(Prezzo + Trasporto isola) × AIEM%",T.orange)}
                                   {sep("Magazzino")}
                                   {row("WH / unit",c.wh>0?f4(c.wh):"—",c.wh>0?f4(c.wh):"—",
                                     r.ubicazione==="MTO"?"MTO[temp] ÷ u/plt":r.ubicazione==="MTS"?"MTS-D + MTS-I ÷ u/plt + MTS-P ÷ collo":"—",T.purple)}
@@ -5615,10 +5618,10 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
   };
   const ALIASES: any = {
     ifbNo:          ["ifb n","ifb no","ifbno","bv no","codice","code","item no","ifb item","ifbitem"],
-    ltPerUnit:      ["lt","litri","liters","volume","lt per unit","lt/unit","litri per unità"],
-    gradoAlcolico:  ["grado alcolico","grado","gradi","abv","alcol","alcohol","alc %","degree","gradalcolico"],
-    eurPerLt:       ["eur/lt","€/lt","euro/lt","tariffa","rate","eur lt","eurlt","tariffalit"],
-    totaleBottiglia:["totale bottiglia","totale","total","totbottiglia","totalebottiglia","tot bott","totbott","totale bottiglia eur"],
+    ltPerUnit:      ["quantità x plt","quantity x plt","lt","litri","liters","volume","lt per unit","lt/unit","litri per unità","litriper"],
+    gradoAlcolico:  ["grado alcolico","gradoalcolico","grado","gradi","abv","alcohol degree","degree","alc degree"],
+    eurPerLt:       ["eur/lt","€/lt","euro/lt","eur/l","eur lt","eurlt","tariffa","rate","price per lt"],
+    totaleBottiglia:["totale bottiglia","totale bottiglia eur","tot bott","totbott","totalebottiglia","totale","total","total bottle"],
   };
 
   function fi(aliases: string[], hdrs: string[]): string {
@@ -5635,11 +5638,18 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
         const wb = XLSX.read(e.target.result, {type:"binary"});
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data: any[][] = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
-        // Cerca la riga header (quella con "IFB" o "LT")
-        const hdrIdx = data.findIndex(row =>
-          row.some((c:any) => String(c).toUpperCase().includes("IFB") || String(c).toUpperCase()==="LT")
-        );
-        if(hdrIdx < 0) { showToast("Intestazione non trovata", T.red); return; }
+        // Cerca la riga header: deve contenere "IFB" (codice articolo) oppure
+        // avere almeno 3 celle valorizzate tra cui "LT", "GRADO", "EUR" (evita righe calc singole)
+        const norm = (s:string) => String(s).trim().toUpperCase();
+        const hdrIdx = data.findIndex(row => {
+          const cells = row.map((c:any) => norm(c)).filter(Boolean);
+          if(cells.length < 2) return false;
+          const hasIFB = cells.some(c => c.includes("IFB") || c==="NO_" || c==="ITEM");
+          const hasLT  = cells.some(c => c==="LT");
+          const hasAlc = cells.some(c => c.includes("ALCOLICO") || c.includes("GRADO") || c.includes("EUR/LT") || c.includes("EUR/L"));
+          return hasIFB || (hasLT && hasAlc);
+        });
+        if(hdrIdx < 0) { showToast("Intestazione non trovata — il file deve avere una colonna 'IFB Item' o 'IFB No'", T.red); return; }
         const hdrs = data[hdrIdx].map((h:any) => String(h).trim()).filter((h:string) => h);
         const rows = data.slice(hdrIdx+1).filter(r => r.some((c:any) => c !== ""));
         setHeaders(hdrs); setRawRows(rows);
@@ -5758,7 +5768,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                {["IFB No","Descrizione","LT/unit","Grado","€/LT","AIEM €/unit"].map(h=>
+                {["IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit"].map(h=>
                   <th key={h} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px"}}>{h}</th>)}
                 <th style={{padding:"7px 12px",background:T.card,borderBottom:`1px solid ${T.border}`,fontSize:"11px"}}/>
               </tr></thead>
