@@ -4823,6 +4823,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
   const[showNew,setShowNew]=useState(false);
   const[selCostSnap,setSelCostSnap]=useState<any>(null);
   const[macProds,setMacProds]=useState<any[]>([]);
+  const[typeFilter,setTypeFilter]=useState("all");
 
   // Per HK: carica prodotti MAC (servono HOFF flag e macToHkConv per derivare costi MAC affianco)
   useEffect(()=>{
@@ -5007,10 +5008,22 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
 
       {/* ── IMPORT SNAPSHOTS LIST ── */}
       <Section title="📥 Storico Import">
+        {/* Filtro per tipo */}
+        <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}}>
+          {[["all","Tutti"],["anagrafica","Anagrafica"],["prices","Listini"],["xref","XRef"],["air","AIR"],["sales","Fatture"]].map(([v,l])=>{
+            const count = v==="all" ? branchSnaps.length : branchSnaps.filter((s:any)=>s.type===v).length;
+            if(count===0 && v!=="all") return null;
+            return <button key={v} onClick={()=>{setTypeFilter(v);setSel(null);}}
+              style={{padding:"4px 10px",background:typeFilter===v?T.gold:T.surface,color:typeFilter===v?"#000":T.muted,
+                border:`1px solid ${typeFilter===v?T.gold:T.border}`,borderRadius:"4px",cursor:"pointer",fontSize:"10px",fontWeight:typeFilter===v?"bold":"normal"}}>
+              {l} ({count})
+            </button>;
+          })}
+        </div>
         {snapshots.length===0
           ? <div style={{padding:"24px",textAlign:"center",color:T.dim,fontSize:"13px"}}>Nessuno snapshot ancora.</div>
           : <div style={{display:"flex",flexDirection:"column",gap:"6px",maxHeight:"320px",overflowY:"auto"}}>
-              {snapshots.map((s:any)=>(
+              {branchSnaps.filter((s:any)=>typeFilter==="all"||s.type===typeFilter).map((s:any)=>(
                 <div key={s.id}
                   style={{display:"flex",alignItems:"center",gap:"8px",padding:"8px 12px",
                     background:sel?.id===s.id?`${T.gold}15`:T.card,
@@ -5049,13 +5062,16 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
         const newItems=diffs.filter((d:any)=>d.isNew);
         const priceFields=["fcaPrice","fcaDiscounted","dapPrice","dapDiscounted","mtsPrice","dapFinal"];
 
-        const realModified=diffs
-          .filter((d:any)=>!d.isNew&&d.fields?.length>0)
-          .map((d:any)=>({...d,fields:d.fields.filter((f:any)=>{
-            if(!priceFields.includes(f.field)) return true;
-            return Math.abs(roundN(f.new||0)-roundN(f.old||0))>=0.005;
-          })}))
-          .filter((d:any)=>d.fields.length>0);
+        const isXRef = sel.type==="xref";
+        const realModified = isXRef
+          ? diffs.filter((d:any)=>!d.isNew&&d.changed)
+          : diffs
+              .filter((d:any)=>!d.isNew&&d.fields?.length>0)
+              .map((d:any)=>({...d,fields:d.fields.filter((f:any)=>{
+                if(!priceFields.includes(f.field)) return true;
+                return Math.abs(roundN(f.new||0)-roundN(f.old||0))>=0.005;
+              })}))
+              .filter((d:any)=>d.fields.length>0);
 
         const getPct=(d:any)=>{
           const pf=d.fields.find((f:any)=>f.field==="dapFinal")||d.fields[0];
@@ -5091,7 +5107,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                   borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
                 ✏️ {realModified.length} modificati
               </button>
-              {showModified&&<>
+              {showModified&&!isXRef&&<>
                 <button onClick={()=>setDeltaFilter(f=>f==="minus"?"all":"minus")}
                   style={{padding:"4px 10px",background:deltaFilter==="minus"?T.red:T.surface,
                     color:deltaFilter==="minus"?"#fff":T.red,border:`1px solid ${T.red}`,
@@ -5114,15 +5130,25 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                 <div style={{color:T.green,fontSize:"12px",fontWeight:"bold",marginBottom:"8px"}}>Nuovi ({newItems.length})</div>
                 {newItems.length===0
                   ? <div style={{color:T.dim,fontSize:"12px"}}>Nessuno.</div>
-                  : <table style={{width:"100%",borderCollapse:"collapse"}}>
-                      <THead cols={["IFB No","Descrizione"]} sticky />
-                      <tbody>{newItems.map((d:any,i:number)=>(
-                        <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
-                          <TD mono><span style={{color:T.gold}}>{d.id||d.productId}</span></TD>
-                          <TD>{d.description}</TD>
-                        </tr>
-                      ))}</tbody>
-                    </table>
+                  : sel.type==="xref"
+                    ? <table style={{width:"100%",borderCollapse:"collapse"}}>
+                        <THead cols={[branchN(branch),"IFB No"]} sticky />
+                        <tbody>{newItems.map((d:any,i:number)=>(
+                          <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
+                            <TD mono><span style={{color:T.muted}}>{d.nHK}</span></TD>
+                            <TD mono><span style={{color:T.gold}}>{d.ifbNo}</span></TD>
+                          </tr>
+                        ))}</tbody>
+                      </table>
+                    : <table style={{width:"100%",borderCollapse:"collapse"}}>
+                        <THead cols={["IFB No","Descrizione"]} sticky />
+                        <tbody>{newItems.map((d:any,i:number)=>(
+                          <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
+                            <TD mono><span style={{color:T.gold}}>{d.id||d.productId}</span></TD>
+                            <TD>{d.description}</TD>
+                          </tr>
+                        ))}</tbody>
+                      </table>
                 }
               </div>
             )}
@@ -5132,38 +5158,50 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                 <div style={{color:T.orange,fontSize:"12px",fontWeight:"bold",marginBottom:"8px"}}>Modifiche ({shownDiffs.length})</div>
                 {shownDiffs.length===0
                   ? <div style={{color:T.dim,fontSize:"12px"}}>Nessuna variazione reale.</div>
-                  : <div style={{overflowX:"auto"}}>
-                      <table style={{width:"100%",borderCollapse:"collapse"}}>
-                        <THead cols={[`IFB No / ${branchN(branch)}`,"Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]} sticky />
-                        <tbody>{shownDiffs.map((d:any,i:number)=>
-                          d.fields.map((f:any,j:number)=>{
-                            const oldR=roundN(f.old||0),newR=roundN(f.new||0);
-                            const pct=oldR!==0?(newR-oldR)/Math.abs(oldR)*100:null;
-                            return(
-                              <tr key={`${i}-${j}`} style={{
-                                borderBottom:j===d.fields.length-1?`1px solid ${T.border}`:`1px solid ${T.border}44`,
-                                background:i%2===0?T.bg:T.surface}}>
-                                {j===0&&<>
-                                  <td rowSpan={d.fields.length} style={{padding:"6px 12px",borderBottom:`1px solid ${T.border}`,verticalAlign:"top",fontFamily:"monospace",fontSize:"12px",color:T.gold}}>
-                                    {d.ifbNo||d.id}<br/>
-                                    <span style={{color:T.muted,fontSize:"10px"}}>{d.nHK||""}</span>
-                                  </td>
-                                  <td rowSpan={d.fields.length} style={{padding:"6px 12px",borderBottom:`1px solid ${T.border}`,verticalAlign:"top",fontSize:"12px",color:T.text}}>
-                                    {d.description}
-                                  </td>
-                                </>}
-                                <TD><span style={{color:T.muted,fontSize:"11px"}}>{f.field}</span></TD>
-                                <TD mono>{oldR.toFixed(2)}</TD>
-                                <TD mono>{newR.toFixed(2)}</TD>
-                                <TD><span style={{color:pct==null?T.dim:pct>0?T.red:T.green,fontWeight:"bold"}}>
-                                  {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
-                                </span></TD>
-                              </tr>
-                            );
-                          })
-                        )}</tbody>
+                  : sel.type==="xref"
+                    ? <table style={{width:"100%",borderCollapse:"collapse"}}>
+                        <THead cols={[branchN(branch),"IFB No vecchio","IFB No nuovo"]} sticky />
+                        <tbody>{diffs.filter((d:any)=>!d.isNew&&d.changed).map((d:any,i:number)=>(
+                          <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
+                            <TD mono><span style={{color:T.muted}}>{d.nHK}</span></TD>
+                            <TD mono><span style={{color:T.red,textDecoration:"line-through"}}>{d.oldIFB}</span></TD>
+                            <TD mono><span style={{color:T.green}}>{d.ifbNo}</span></TD>
+                          </tr>
+                        ))}</tbody>
                       </table>
-                    </div>
+                    : <div style={{overflowX:"auto"}}>
+                        <table style={{width:"100%",borderCollapse:"collapse"}}>
+                          <THead cols={[`IFB No / ${branchN(branch)}`,"Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]} sticky />
+                          <tbody>{shownDiffs.map((d:any,i:number)=>
+                            d.fields.map((f:any,j:number)=>{
+                              const oldR=roundN(f.old||0),newR=roundN(f.new||0);
+                              const isPriceF=["fcaPrice","fcaDiscounted","dapPrice","dapDiscounted","mtsPrice","dapFinal"].includes(f.field);
+                              const pct=isPriceF&&oldR!==0?(newR-oldR)/Math.abs(oldR)*100:null;
+                              return(
+                                <tr key={`${i}-${j}`} style={{
+                                  borderBottom:j===d.fields.length-1?`1px solid ${T.border}`:`1px solid ${T.border}44`,
+                                  background:i%2===0?T.bg:T.surface}}>
+                                  {j===0&&<>
+                                    <td rowSpan={d.fields.length} style={{padding:"3px 6px",borderBottom:`1px solid ${T.border}`,verticalAlign:"top",fontFamily:"monospace",fontSize:"11px",color:T.gold}}>
+                                      {d.ifbNo||d.id}<br/>
+                                      <span style={{color:T.muted,fontSize:"10px"}}>{d.nHK||""}</span>
+                                    </td>
+                                    <td rowSpan={d.fields.length} style={{padding:"3px 6px",borderBottom:`1px solid ${T.border}`,verticalAlign:"top",fontSize:"11px",color:T.text}}>
+                                      {d.description}
+                                    </td>
+                                  </>}
+                                  <TD><span style={{color:T.muted,fontSize:"10px"}}>{f.field}</span></TD>
+                                  <TD mono><span style={{color:T.red}}>{isPriceF?roundN(f.old||0).toFixed(2):String(f.old??"")}</span></TD>
+                                  <TD mono><span style={{color:T.green}}>{isPriceF?roundN(f.new||0).toFixed(2):String(f.new??"")}</span></TD>
+                                  <TD><span style={{color:pct==null?T.dim:pct>0?T.red:T.green,fontWeight:"bold"}}>
+                                    {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
+                                  </span></TD>
+                                </tr>
+                              );
+                            })
+                          )}</tbody>
+                        </table>
+                      </div>
                 }
               </div>
             )}
@@ -5386,10 +5424,24 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       vendorName2: r.vendorName2 || "",
     }));
   
+    // Calcola diff rispetto all'anagrafica attuale
+    const prevMap = Object.fromEntries(products.map((p:any)=>[p.id,p]));
+    const diffs:any[] = [];
+    newProds.forEach((p:any)=>{
+      const old = prevMap[p.id];
+      if(!old){ diffs.push({id:p.id,isNew:true,description:p.description,fields:[]}); return; }
+      const fields:any[]=[];
+      for(const k of["description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","temperature","aiem","active","vendorName"]){
+        const ov=String(old[k]??""), nv=String(p[k]??"");
+        if(ov!==nv) fields.push({field:k,old:ov,new:nv});
+      }
+      if(fields.length) diffs.push({id:p.id,isNew:false,description:p.description,fields});
+    });
+
     setProducts(newProds);
     IDB.set(`ifb_products_${branch}`, newProds);
     IDB.set(`ifb_anag_data_${now}`, newProds);
-    const log = { id:now, type:"anagrafica", date:new Date(now).toISOString(), count:newProds.length, branch };
+    const log = { id:now, type:"anagrafica", date:new Date(now).toISOString(), count:newProds.length, branch, diffs };
     const newLogs = [log,...importLogs];
     setImportLogs(newLogs); LS.set("ifb_importlogs", newLogs);
     const newSnaps = [log,...snapshots].slice(0,50);
