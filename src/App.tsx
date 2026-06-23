@@ -2757,7 +2757,7 @@ count++;
 });
 
 setPrices(updated);
-LS.set("ifb_prices", updated);
+IDB.set(`ifb_prices_${branch}`, updated);
 
 const log = {
 id: snId,
