@@ -907,10 +907,19 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
         const hdrs=data[0].map(h=>String(h).trim()).filter(h=>h);
         const rows=data.slice(1).filter(r=>r.some(c=>c!==""));
         setHeaders(hdrs);setRawRows(rows);
-        const nhkA=["n hk","nhk","hk","n_hk","gc code","gc no","hk code","hk no","hong kong"];
-        const ifbA=["ifb n","ifb no","ifb no.","no_","no.","no","codice","code","item no"];
-        setColNHK(hdrs.find(h=>nhkA.some(a=>h.toLowerCase().includes(a)))||"");
-        setColIFB(hdrs.find(h=>ifbA.some(a=>h.toLowerCase()===a||h.toLowerCase().includes(a)))||"");
+        // Alias per la colonna filiale (N COMIT per CAN, N HK per altri)
+        const nhkA = branch==="CAN"
+          ? ["n comit","ncomit","comit","canarie","can no","can n","n°","numero comit","codice comit","cod comit","codcan","n_comit"]
+          : ["n hk","nhk","hk","n_hk","gc code","gc no","hk code","hk no","hong kong"];
+        // Alias per colonna IFB (espliciti prima, generici dopo)
+        const ifbA=["ifb n","ifb no","ifb no.","ifb item","bv no","bv n","no_ifb","ifb","no_","code","item no"];
+        // Match esatto o inclusione, alias filiale prima degli alias IFB (evita false positiv)
+        const normH = (h:string) => h.toLowerCase().replace(/[°\s_]/g,"");
+        const pickCol = (aliases:string[]) =>
+          hdrs.find(h=>aliases.some(a=>normH(h)===normH(a))) ||
+          hdrs.find(h=>aliases.some(a=>normH(h).includes(normH(a))));
+        setColNHK(pickCol(nhkA)||"");
+        setColIFB(pickCol(ifbA)||"");
         setStep("map");
       }catch(err){showToast("Errore: "+err.message,T.red);}
     };
