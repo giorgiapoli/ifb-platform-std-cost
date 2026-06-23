@@ -5416,11 +5416,13 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
   const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
   const q = search.trim().toLowerCase();
-  const filtered = !q ? base : base.filter((p: any) =>
+  // quando c'è una ricerca attiva, cerca su TUTTI i prodotti (non solo IFB)
+  const searchPool = q ? products : base;
+  const filtered = !q ? base : searchPool.filter((p: any) =>
     String(p.description||"").toLowerCase().includes(q) ||
     String(p.code||"").toLowerCase().includes(q) ||
     String(p.nHK||"").toLowerCase().includes(q) ||
-    String(p.id||"").toLowerCase().includes(q)
+    String(p.vendorName||"").toLowerCase().includes(q)
   );
 
   return (
@@ -5589,7 +5591,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
                   <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
                     <td style={tdM}><span style={{ color: T.muted }}>{p.nHK || "—"}</span></td>
                     <td style={tdM}><span style={{ color: T.gold }}>{p.code}</span></td>
-                    <td style={{...tdS,maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis"}}>{p.description}</td>
+                    <td style={{...tdS,maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis"}} title={p.description}>{p.description}</td>
                     <td style={{...tdS,maxWidth:"110px",overflow:"hidden",textOverflow:"ellipsis"}}>
                       <span style={{ color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>{p.vendorName || "—"}</span>
                     </td>
