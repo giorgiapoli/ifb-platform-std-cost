@@ -3914,7 +3914,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     });
     displayed=[...best.values()];
   }
-  if(filterNHK)   displayed=displayed.filter(r=>r.nHK===filterNHK);
+  if(filterNHK==="__MISSING__") displayed=displayed.filter(r=>!r.nHK);
+  else if(filterNHK)            displayed=displayed.filter(r=>r.nHK===filterNHK);
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
 
@@ -4109,6 +4110,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
                       style={{background:filterNHK?`${T.gold}22`:T.card,color:filterNHK?T.gold:T.muted,border:`1px solid ${filterNHK?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"110px"}}>
                       <option value="">{branchN(branch)} ▾</option>
+                      <option value="__MISSING__">❌ Senza {branchN(branch)}</option>
                       {uniqueNHK.map(v=><option key={v} value={v}>{v}</option>)}
                     </select>
                   </th>
