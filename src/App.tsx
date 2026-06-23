@@ -576,7 +576,8 @@ export default function App() {
     const fxRate = fx.find(f=>f.branch===branch&&f.month===month)?.rate || BRANCH_CFG[branch]?.defaultRate || 9.1437;
     const [yr,mo] = month.split("-").map(Number);
     const prevM = mo===1 ? `${yr-1}-12` : `${yr}-${String(mo-1).padStart(2,"0")}`;
-    const eligible = products.filter(p => p.active && isIFBVendor(p.vendorName));
+    // Per CAN, Navision non esporta "Blocked" in modo affidabile → non filtrare per active
+    const eligible = products.filter(p => (branch==="CAN" || p.active) && isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
       // Eccezione prezzo manuale: ha priorità assoluta su listino e carne
