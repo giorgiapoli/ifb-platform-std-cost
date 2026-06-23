@@ -5468,16 +5468,17 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     }
   }
 
-  const base = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
   const q = search.trim().toLowerCase();
-  // quando c'è una ricerca attiva, cerca su TUTTI i prodotti (non solo IFB)
-  const searchPool = q ? products : base;
-  const filtered = !q ? base : searchPool.filter((p: any) =>
-    String(p.description||"").toLowerCase().includes(q) ||
-    String(p.code||"").toLowerCase().includes(q) ||
-    String(p.nHK||"").toLowerCase().includes(q) ||
-    String(p.vendorName||"").toLowerCase().includes(q)
-  );
+  // Applica prima il filtro vendor, poi la ricerca testuale
+  const baseList = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
+  const filtered = q
+    ? products.filter((p: any) =>
+        String(p.description||"").toLowerCase().includes(q) ||
+        String(p.code||"").toLowerCase().includes(q) ||
+        String(p.nHK||"").toLowerCase().includes(q) ||
+        String(p.vendorName||"").toLowerCase().includes(q)
+      )
+    : baseList;
 
   return (
     <div>
@@ -5548,7 +5549,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
             fontSize: "11px"
           }}
         >
-          {onlyIFB ? `✓ Solo IF&B (${base.length})` : `Mostra tutti (${products.length})`}
+          {onlyIFB ? `✓ Solo IF&B (${baseList.length})` : `Mostra tutti (${products.length})`}
         </button>
       </div>
 
