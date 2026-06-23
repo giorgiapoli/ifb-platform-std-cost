@@ -467,6 +467,7 @@ export default function App() {
   const [bevInfo, setBevInfo] = useState<any[]>([]); // CAN: dati alcolici per AIEM fisso
   const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
   const [scAttuali, setScAttuali] = useState<any[]>([]);
+  const [scHistory, setScHistory] = useState<any[]>([]); // storico SC Attuali per branch
   const [macHkCostRows, setMacHkCostRows] = useState<any[]>([]); // HK costs loaded for MAC derivation
 
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
@@ -496,6 +497,7 @@ export default function App() {
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_xrefs_${branchRef.current}`, xrefs); },[xrefs]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_sales_invoice_${branchRef.current}`, salesRows); },[salesRows]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_scattuali_${branchRef.current}`, scAttuali); },[scAttuali]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_schistory_${branchRef.current}`, scHistory); },[scHistory]);
   // MAC: load saved HK costRows when switching to MAC branch
   useEffect(()=>{ if(branch==="MAC") IDB.get("ifb_hk_costrows_for_mac",[]).then((d:any[])=>setMacHkCostRows(d)); },[branch]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_prices_${branchRef.current}`, prices); },[prices]);
@@ -512,6 +514,7 @@ export default function App() {
       setAirList(await IDB.get(`ifb_airlist_${branch}`,[]));
       setSalesRows(await IDB.get(`ifb_sales_invoice_${branch}`,[]));
       setScAttuali(await IDB.get(`ifb_scattuali_${branch}`,[]));
+      setScHistory(await IDB.get(`ifb_schistory_${branch}`,[]));
       setPrices(await IDB.get(`ifb_prices_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
     })();
@@ -798,7 +801,7 @@ export default function App() {
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} branch={branch} showToast={showToast}/>,
+    scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast}/>,
     storico: <Storico
       snapshots={snapshots}
       setSnapshots={setSnapshots}
@@ -4417,11 +4420,16 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
 // ─── MAIL GEN ─────────────────────────────────────────────────────────────────
 // Only shows items with |delta| > 3% (point 7)
 // ─── SC ATTUALI ───────────────────────────────────────────────────────────────
-function ScAttualiPage({scAttuali, setScAttuali, branch, showToast}) {
+function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch, showToast}) {
   const [step, setStep] = useState("main");
   const [fileName, setFileName] = useState("");
   const [preview, setPreview] = useState<any[]>([]);
   const [search, setSearch] = useState("");
+  const [importMonth, setImportMonth] = useState(()=>{
+    const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  });
+  const [selEntry, setSelEntry] = useState<any>(null); // entry storico selezionata
+  const [histOpen, setHistOpen] = useState(true);
 
   function parseFile(file) {
     setFileName(file.name);
@@ -4479,79 +4487,155 @@ function ScAttualiPage({scAttuali, setScAttuali, branch, showToast}) {
   }
 
   function executeImport() {
+    const entry = {
+      id: Date.now(),
+      month: importMonth,
+      fileName,
+      date: new Date().toISOString(),
+      branch,
+      count: preview.length,
+      rows: preview,
+    };
     setScAttuali(preview);
-    showToast(`SC Attuali: ${preview.length} articoli importati ✓`, T.gold);
+    const newHist = [entry, ...scHistory].slice(0, 24); // max 24 snapshot
+    setScHistory(newHist);
+    IDB.set(`ifb_schistory_${branch}`, newHist);
+    setSelEntry(entry);
+    showToast(`SC Attuali ${importMonth}: ${preview.length} articoli importati ✓`, T.gold);
     setStep("main");
     setPreview([]);
   }
 
-  const displayed = (step==="main"?scAttuali:preview).filter((r:any)=>
-    !search || r.code.toLowerCase().includes(search.toLowerCase()) || r.description.toLowerCase().includes(search.toLowerCase())
+  const isHKReport = branch !== "CAN";
+  const viewRows = selEntry ? selEntry.rows : (step==="preview" ? preview : scAttuali);
+  const displayed = viewRows.filter((r:any)=>
+    !search ||
+    String(r.code||"").toLowerCase().includes(search.toLowerCase()) ||
+    String(r.description||"").toLowerCase().includes(search.toLowerCase())
   );
 
-  const isHKReport = branch !== "CAN";
+  function renderTable(rows: any[]) {
+    return (
+      <div style={{overflowX:"auto"}}>
+        <table style={{borderCollapse:"collapse",width:"100%"}}>
+          <THead cols={isHKReport
+            ? ["Codice","Descrizione","SC Attuale €","FIFO unit €","Vendite 3m","Last Purchase","Stock Qty"]
+            : ["N COMIT","Descrizione","SC Standard €","FIFO unit €","SC GC €","SC LAN €","Last Purchase","Stock Qty"]}
+          />
+          <tbody>
+            {rows.slice(0,400).map((r:any,i:number)=>(
+              <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:i%2?"transparent":`${T.surface}33`}}>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,fontFamily:"monospace",whiteSpace:"nowrap"}}>{r.code}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.lastSC>0?`€ ${r.lastSC.toFixed(2)}`:"—"}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"—"}</td>
+                {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
+                {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
+                {isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.stockQty!=null?r.stockQty:"—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        {rows.length>400&&<div style={{padding:"6px",fontSize:"11px",color:T.muted,textAlign:"center"}}>Mostrati 400 su {rows.length}</div>}
+      </div>
+    );
+  }
 
   return (
     <div>
       <PageHeader title={`📊 SC Attuali · ${branch}`}
-        sub={scAttuali.length>0 ? `${scAttuali.length} articoli in memoria` : "Nessun report caricato"}/>
+        sub={scHistory.length>0 ? `${scHistory.length} import salvati` : "Nessun report salvato"}/>
 
+      {/* ── IMPORT ── */}
       {step==="preview" ? (
-        <Section title={`Preview — ${fileName} · ${preview.length} articoli`}>
-          <div style={{display:"flex",gap:"10px",marginBottom:"14px"}}>
+        <Section title={`Anteprima — ${fileName} · ${preview.length} articoli`}>
+          <div style={{display:"flex",gap:"12px",alignItems:"center",flexWrap:"wrap",marginBottom:"14px"}}>
+            <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+              <label style={{fontSize:"10px",color:T.muted}}>Mese di valenza</label>
+              <input value={importMonth} onChange={e=>setImportMonth(e.target.value)}
+                placeholder="es. 2026-06"
+                style={{...inputStyle(),width:"140px",fontFamily:"monospace"}}/>
+            </div>
+            <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+              <label style={{fontSize:"10px",color:T.muted}}>File</label>
+              <span style={{fontSize:"12px",color:T.muted,fontFamily:"monospace"}}>{fileName}</span>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:"10px"}}>
             <ActionBtn label="← Annulla" onClick={()=>{setStep("main");setPreview([]);}}/>
-            <ActionBtn label={`✓ Importa ${preview.length} articoli`} onClick={executeImport} primary/>
+            <ActionBtn label={`✓ Salva come ${importMonth} (${preview.length} art.)`} onClick={executeImport} primary/>
           </div>
         </Section>
       ) : (
         <Section title="Carica report SC da BC / Navision">
-          <div style={{fontSize:"12px",color:T.muted,marginBottom:"10px",lineHeight:"1.7"}}>
-            {branch==="CAN"
-              ? "Formato Navision: Item No · Description · STANDARD COST · SC GRANCANARIA · SC LANZAROTE · Last Purchase Date · Stock Quantity"
-              : "Formato BC: Item No · Description · unitcost (FIFO) · Last Standard Cost · Sales Last 3 Months · Last Purchase Date · Stock Quantity"}
+          <div style={{display:"flex",gap:"12px",alignItems:"center",flexWrap:"wrap"}}>
+            <label style={{display:"inline-block",padding:"8px 16px",background:`${T.gold}22`,border:`1px solid ${T.gold}44`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.gold}}>
+              📂 Carica Report SC ({branch})
+              <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>e.target.files?.[0]&&parseFile(e.target.files[0])}/>
+            </label>
+            <div style={{fontSize:"11px",color:T.muted,lineHeight:"1.6"}}>
+              {branch==="CAN"
+                ? "Navision: Item No · STANDARD COST · SC GRANCANARIA · SC LANZAROTE · Stock Qty"
+                : "BC: Item No · Last Standard Cost · FIFO · Sales 3m · Stock Qty"}
+            </div>
           </div>
-          <label style={{display:"inline-block",padding:"8px 16px",background:`${T.gold}22`,border:`1px solid ${T.gold}44`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.gold}}>
-            ⇪ Carica Report SC ({branch})
-            <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>e.target.files?.[0]&&parseFile(e.target.files[0])}/>
-          </label>
-          {scAttuali.length>0&&<span style={{marginLeft:"14px",fontSize:"11px",color:T.muted}}>Ultima importazione: {scAttuali.length} articoli in memoria</span>}
         </Section>
       )}
 
-      {(step==="main"?scAttuali:preview).length>0&&(
-        <Section title={step==="preview"?"Anteprima dati":"Dati SC Attuali in memoria"}>
-          <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px"}}>
-            <input placeholder="Cerca articolo..." value={search} onChange={e=>setSearch(e.target.value)}
-              style={{...inputStyle(),width:"280px"}}/>
+      {/* ── STORICO LIST ── */}
+      {scHistory.length>0&&(
+        <Section title="">
+          <button onClick={()=>setHistOpen(v=>!v)}
+            style={{display:"flex",alignItems:"center",gap:"8px",background:"none",border:"none",cursor:"pointer",padding:"0",marginBottom:histOpen?"12px":"0"}}>
+            <span style={{fontSize:"11px",fontWeight:"bold",color:T.muted,letterSpacing:"0.08em",textTransform:"uppercase"}}>
+              {histOpen?"▾":"▸"} Storico import ({scHistory.length})
+            </span>
+          </button>
+          {histOpen&&(
+            <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
+              {scHistory.map((e:any)=>{
+                const isSel = selEntry?.id===e.id;
+                return (
+                  <div key={e.id} style={{display:"flex",alignItems:"center",gap:"8px",padding:"6px 10px",
+                    background:isSel?`${T.gold}18`:T.card,
+                    border:`1px solid ${isSel?T.gold:T.border}`,
+                    borderRadius:"6px",cursor:"pointer"}}
+                    onClick={()=>{ setSelEntry(isSel?null:e); setSearch(""); }}>
+                    <span style={{fontFamily:"monospace",fontSize:"12px",color:isSel?T.gold:T.text,fontWeight:"bold",minWidth:"70px"}}>{e.month}</span>
+                    <span style={{fontSize:"11px",color:T.muted,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={e.fileName}>
+                      📄 {e.fileName}
+                    </span>
+                    <span style={{fontSize:"10px",color:T.dim,whiteSpace:"nowrap"}}>
+                      {new Date(e.date).toLocaleDateString("it-IT")} · {e.count} art.
+                    </span>
+                    <button onClick={ev=>{ev.stopPropagation();
+                      if(!window.confirm(`Eliminare import ${e.month}?`)) return;
+                      const nh=scHistory.filter((x:any)=>x.id!==e.id);
+                      setScHistory(nh); IDB.set(`ifb_schistory_${branch}`,nh);
+                      if(isSel) setSelEntry(null);
+                    }} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"12px",padding:"2px 4px"}}>✕</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Section>
+      )}
+
+      {/* ── TABELLA DATI ── */}
+      {viewRows.length>0&&(
+        <Section title={selEntry
+          ? `${selEntry.month} · ${selEntry.fileName} · ${selEntry.count} articoli`
+          : step==="preview"?"Anteprima":"SC Attuali correnti"}>
+          <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"10px"}}>
+            <input placeholder="🔍 Cerca articolo..." value={search} onChange={e=>setSearch(e.target.value)}
+              style={{...inputStyle(),width:"260px"}}/>
             {search&&<span style={{fontSize:"11px",color:T.muted}}>{displayed.length} risultati</span>}
-            {search&&<button onClick={()=>setSearch("")} style={{fontSize:"11px",color:T.muted,background:"none",border:"none",cursor:"pointer"}}>✕ cancella</button>}
+            {search&&<button onClick={()=>setSearch("")} style={{fontSize:"11px",color:T.muted,background:"none",border:"none",cursor:"pointer"}}>✕</button>}
           </div>
-          <div style={{overflowX:"auto"}}>
-            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>
-                {(isHKReport
-                  ? ["Codice (N HK)","Descrizione","SC Attuale €","FIFO unit €","Vendite 3m","Last Purchase","Stock Qty"]
-                  : ["Codice (N COMIT)","Descrizione","SC Standard €","FIFO unit €","SC Gran Can €","SC Lanzarote €","Last Purchase","Stock Qty"]
-                ).map(h=><th key={h} style={{padding:"3px 6px",fontSize:"9px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>)}
-              </tr></thead>
-              <tbody>
-                {displayed.slice(0,300).map((r:any,i:number)=>(
-                  <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:i%2?"transparent":`${T.surface}33`}}>
-                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,fontFamily:"monospace"}}>{r.code}</td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.lastSC>0?`€ ${r.lastSC.toFixed(2)}`:"—"}</td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"—"}</td>
-                    {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
-                    {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
-                    {isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
-                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.stockQty!=null?r.stockQty:"—"}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {displayed.length>300&&<div style={{padding:"8px",fontSize:"11px",color:T.muted,textAlign:"center"}}>Mostrati 300 su {displayed.length}</div>}
+          {renderTable(displayed)}
         </Section>
       )}
     </div>
