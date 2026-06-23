@@ -4518,10 +4518,14 @@ function ScAttualiPage({scAttuali, setScAttuali, branch, showToast}) {
         </Section>
       )}
 
-      {displayed.length>0&&(
+      {(step==="main"?scAttuali:preview).length>0&&(
         <Section title={step==="preview"?"Anteprima dati":"Dati SC Attuali in memoria"}>
-          <input placeholder="Cerca articolo..." value={search} onChange={e=>setSearch(e.target.value)}
-            style={{...inputStyle(),marginBottom:"12px",width:"280px"}}/>
+          <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px"}}>
+            <input placeholder="Cerca articolo..." value={search} onChange={e=>setSearch(e.target.value)}
+              style={{...inputStyle(),width:"280px"}}/>
+            {search&&<span style={{fontSize:"11px",color:T.muted}}>{displayed.length} risultati</span>}
+            {search&&<button onClick={()=>setSearch("")} style={{fontSize:"11px",color:T.muted,background:"none",border:"none",cursor:"pointer"}}>✕ cancella</button>}
+          </div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
               <thead><tr>
@@ -5400,6 +5404,16 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
   function executeImport() {
     const now = Date.now();
+    // Se la colonna mappata è "blocked/bloccato" il valore va invertito; se è "active/attivo" va usato direttamente
+    const activeColName = (map["active"] || "").toLowerCase();
+    const isBlockedCol = activeColName.includes("blocked") || activeColName.includes("bloccato");
+    const truthyVals = ["true","1","yes","si","sì","x","y"];
+    const parseActive = (v: any) => {
+      const s = String(v || "").toLowerCase().trim();
+      if (!s) return true; // campo vuoto → attivo per default
+      const truthy = truthyVals.includes(s);
+      return isBlockedCol ? !truthy : truthy;
+    };
     const newProds = preview.map((r: any) => ({
       id: r.code || r.nHK,
       code: r.code,
@@ -5407,19 +5421,16 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       description: r.description,
       category: mapBCVal("category", r.category),
       uom: mapBCVal("uom", r.uom),
-      qtyPerBox: parseFloat(r.qtyPerBox) || 0,
+      qtyPerBox: parseFloat(String(r.qtyPerBox||"").replace(",",".")) || 0,
       boxPerPallet: parseFloat(r.boxPerPallet) || 0,
-      kgPerBox: parseFloat(r.kgPerBox) || 0,
-      temperature: mapBCVal("temperature", r.temperature),
+      kgPerBox: parseFloat(String(r.kgPerBox||"").replace(",",".")) || 0,
+      temperature: mapBCVal("temperature", r.temperature) || "DRY",
       kgxplt: parseFloat(r.kgxplt) > 0 ? parseFloat(r.kgxplt) : roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.qtyPerBox) || 1) * (parseFloat(r.boxPerPallet) || 0)),
       aiem: parseFloat(r.aiem) || 0,
       isHoff: ["true","1","yes","hoff","si","sì","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
       hkUom: r.hkUom ? String(r.hkUom).trim().toUpperCase() : "",
       standardCostHkd: parseFloat(String(r.standardCostHkd||"").replace(",",".")) || 0,
-      temperature: mapBCVal("temperature", r.temperature) || "DRY",
-      kgPerBox: parseFloat(String(r.kgPerBox||"").replace(",",".")) || 0,
-      qtyPerBox: parseFloat(String(r.qtyPerBox||"").replace(",",".")) || 0,
-      active: !["true", "1", "yes"].includes(String(r.active || "").toLowerCase()),
+      active: parseActive(r.active),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
     }));
