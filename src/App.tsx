@@ -4130,7 +4130,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     </select>
                   </th>
                 );
-                return <th key={c} style={{padding:"7px 10px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>;
+                return <th key={c} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>;
               })}
             </tr></thead>
             <tbody>
@@ -4138,28 +4138,28 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                 const mismatchType=r.mismatch?(r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"";
                 return(
                   <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r.mismatch?`${T.purple}10`:i%2===0?T.bg:T.surface}}>
-                    <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",whiteSpace:"nowrap"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
-                    <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
-                    <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
-                    <td style={{padding:"6px 10px",fontSize:"12px",maxWidth:"220px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"170px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       <span style={{color:r._prodFound===false?T.orange:T.text}}>{r.description}</span>
                     </td>
-                    <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
-                    <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
                       {r.isSample?<Chip label="SAMPLE" color={T.purple}/>:<span style={{color:T.muted}}>{r.unitPrice>0?r.unitPrice.toFixed(2):"—"}</span>}
                     </td>
-                    <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace"}}><span style={{color:r.mismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
-                    <td style={{padding:"6px 10px",fontSize:"11px",whiteSpace:"nowrap"}}>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:r.mismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",whiteSpace:"nowrap"}}>
                       {r.isAir
                         ? <><Chip label="✈ AIR" color={r.locationIsNCJ?T.green:T.orange}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
                         : <><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
                       }
                     </td>
-                    <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></td>
                     {branch==="CAN" ? (
                       <>
                         {([r.scGC,r.scTF,r.scLAN,r.scFUE] as (number|null)[]).map((v,i)=>(
-                          <td key={i} style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}>
+                          <td key={i} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
                             {r.isAir
                               ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
                               : (r.unitPrice===0||r.unitPrice===0.01)
@@ -4172,7 +4172,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                         ))}
                       </>
                     ) : (
-                      <td style={{padding:"6px 10px",fontSize:"11px",fontFamily:"monospace",textAlign:"right"}}>
+                      <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
                         {r.isAir
                           ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
                           : (r.unitPrice===0||r.unitPrice===0.01)
@@ -4183,10 +4183,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                         }
                       </td>
                     )}
-                    <td style={{padding:"6px 10px",fontSize:"11px",textAlign:"right"}}>
+                    <td style={{padding:"3px 6px",fontSize:"10px",textAlign:"right"}}>
                       {r.pct!=null?<span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:Math.abs(r.pct)>3?"bold":"normal"}}>{r.pct>0?"+":""}{r.pct.toFixed(1)}%</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
-                    <td style={{padding:"6px 10px",fontSize:"10px",maxWidth:"160px"}}>
+                    <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"130px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {r.skipReason?<span style={{color:r.skipReason==="AIR"?T.orange:T.orange,fontStyle:"italic"}}>{r.skipReason}</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
                   </tr>
@@ -4364,11 +4364,11 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
         </div>
       ) : (
         <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:"10px",overflow:"hidden"}}>
-          <table style={{width:"100%",borderCollapse:"collapse",fontSize:"12px"}}>
+          <table style={{width:"100%",borderCollapse:"collapse",fontSize:"10px"}}>
             <thead>
               <tr style={{background:T.surface}}>
                 {["IFB No", isCAN?"N COMIT":"N HK", "Descrizione", "Prezzo (€/unit)", "Nota", "·"].map(h=>(
-                  <th key={h} style={{padding:"8px 12px",textAlign:"left",fontSize:"10px",letterSpacing:"1px",
+                  <th key={h} style={{padding:"3px 6px",textAlign:"left",fontSize:"9px",letterSpacing:"1px",
                     color:T.muted,textTransform:"uppercase",fontWeight:"normal",borderBottom:`1px solid ${T.border}`}}>{h}</th>
                 ))}
               </tr>
@@ -4376,12 +4376,12 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
             <tbody>
               {branchExc.map((exc:any, i:number)=>(
                 <tr key={i} style={{borderTop:`1px solid ${T.border}`}}>
-                  <td style={{padding:"8px 12px",color:T.gold}}>{exc.productId}</td>
-                  <td style={{padding:"8px 12px",color:T.muted}}>{exc.nHK||"-"}</td>
-                  <td style={{padding:"8px 12px"}}>{exc.description||exc.code||"-"}</td>
-                  <td style={{padding:"8px 12px",color:T.green,fontWeight:"bold"}}>€ {Number(exc.price).toFixed(4)}</td>
-                  <td style={{padding:"8px 12px",color:T.muted,fontStyle:"italic"}}>{exc.note||"-"}</td>
-                  <td style={{padding:"8px 12px",textAlign:"center"}}>
+                  <td style={{padding:"3px 6px",color:T.gold,fontFamily:"monospace"}}>{exc.productId}</td>
+                  <td style={{padding:"3px 6px",color:T.muted,fontFamily:"monospace"}}>{exc.nHK||"-"}</td>
+                  <td style={{padding:"3px 6px",maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exc.description||exc.code||"-"}</td>
+                  <td style={{padding:"3px 6px",color:T.green,fontWeight:"bold",fontFamily:"monospace"}}>€ {Number(exc.price).toFixed(4)}</td>
+                  <td style={{padding:"3px 6px",color:T.muted,fontStyle:"italic"}}>{exc.note||"-"}</td>
+                  <td style={{padding:"3px 6px",textAlign:"center"}}>
                     <button onClick={()=>removeException(i)}
                       style={{background:"transparent",border:`1px solid ${T.red||"#c55"}`,color:T.red||"#c55",
                         borderRadius:"4px",padding:"2px 8px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>
@@ -4512,20 +4512,20 @@ function ScAttualiPage({scAttuali, setScAttuali, branch, showToast}) {
                 {(isHKReport
                   ? ["Codice (N HK)","Descrizione","SC Attuale €","FIFO unit €","Vendite 3m","Last Purchase","Stock Qty"]
                   : ["Codice (N COMIT)","Descrizione","SC Standard €","FIFO unit €","SC Gran Can €","SC Lanzarote €","Last Purchase","Stock Qty"]
-                ).map(h=><th key={h} style={{padding:"6px 10px",fontSize:"10px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>)}
+                ).map(h=><th key={h} style={{padding:"3px 6px",fontSize:"9px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>)}
               </tr></thead>
               <tbody>
                 {displayed.slice(0,300).map((r:any,i:number)=>(
                   <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:i%2?"transparent":`${T.surface}33`}}>
-                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.text,fontFamily:"monospace"}}>{r.code}</td>
-                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,maxWidth:"260px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
-                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.lastSC>0?`€ ${r.lastSC.toFixed(2)}`:"—"}</td>
-                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"—"}</td>
-                    {!isHKReport&&<td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
-                    {!isHKReport&&<td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
-                    {isHKReport&&<td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
-                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>
-                    <td style={{padding:"4px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.stockQty!=null?r.stockQty:"—"}</td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,fontFamily:"monospace"}}>{r.code}</td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.lastSC>0?`€ ${r.lastSC.toFixed(2)}`:"—"}</td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"—"}</td>
+                    {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
+                    {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
+                    {isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
+                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.stockQty!=null?r.stockQty:"—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -4727,7 +4727,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
               <thead><tr>
                 {["Codice","IFB","Descrizione","NUOVO","Old SC €","New SC €","Δ %","SC FINALE €","Last Date","Stock","AZIONE","NOTE"].map(h=>(
-                  <th key={h} style={{padding:"6px 10px",fontSize:"10px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>
+                  <th key={h} style={{padding:"3px 6px",fontSize:"9px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr></thead>
               <tbody>
@@ -4737,24 +4737,24 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
                   const isDa    = r.azione==="DA AGGIORNARE";
                   return (
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${ac}09`}}>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.text,fontFamily:"monospace",whiteSpace:"nowrap"}}>{r.codice}</td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.muted,fontFamily:"monospace"}}>{r.ifbNo}</td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.text,maxWidth:"230px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.blue,textAlign:"center",fontWeight:"bold"}}>{isNuovo?"SI":""}</td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.oldSC>0?`€ ${r.oldSC.toFixed(2)}`:"—"}</td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.newSC>0?`€ ${r.newSC.toFixed(2)}`:r.noCalc?"NC":"—"}</td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",textAlign:"right",fontWeight:"bold",
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,fontFamily:"monospace",whiteSpace:"nowrap"}}>{r.codice}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>{r.ifbNo}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.blue,textAlign:"center",fontWeight:"bold"}}>{isNuovo?"SI":""}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.oldSC>0?`€ ${r.oldSC.toFixed(2)}`:"—"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.newSC>0?`€ ${r.newSC.toFixed(2)}`:r.noCalc?"NC":"—"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",textAlign:"right",fontWeight:"bold",
                         color:r.deltaPct>0?T.orange:r.deltaPct<0?"#e05a5a":T.muted}}>
                         {r.oldSC>0?(r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%":"—"}
                       </td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.green,textAlign:"right",fontWeight:"bold"}}>{r.scFinale>0?`€ ${r.scFinale.toFixed(2)}`:"—"}</td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastDate||"—"}</td>
-                      <td style={{padding:"5px 10px",fontSize:"11px",color:T.muted,textAlign:"right"}}>{r.stockQty!==""?r.stockQty:"—"}</td>
-                      <td style={{padding:"5px 10px",textAlign:"center"}}>
-                        <span style={{padding:"2px 7px",borderRadius:"4px",fontSize:"10px",fontWeight:"bold",whiteSpace:"nowrap",
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.green,textAlign:"right",fontWeight:"bold"}}>{r.scFinale>0?`€ ${r.scFinale.toFixed(2)}`:"—"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastDate||"—"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.stockQty!==""?r.stockQty:"—"}</td>
+                      <td style={{padding:"3px 6px",textAlign:"center"}}>
+                        <span style={{padding:"2px 6px",borderRadius:"4px",fontSize:"9px",fontWeight:"bold",whiteSpace:"nowrap",
                           background:`${ac}22`,color:ac}}>{r.azione}</span>
                       </td>
-                      <td style={{padding:"5px 10px",fontSize:"10px",color:T.muted,fontStyle:"italic",whiteSpace:"nowrap"}}>{r.note}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,fontStyle:"italic",whiteSpace:"nowrap"}}>{r.note}</td>
                     </tr>
                   );
                 })}
@@ -5554,57 +5554,40 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>{branchN(branch)}</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>IFB No</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Descrizione</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Vendor</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Categoria</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>UOM</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Qty/Box</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Box/Plt</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Kg/Box</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Kg/Plt</th>
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Temp</th>
-                {branch==="CAN" && <th style={{ padding: "7px 12px", background: T.card, color: T.orange, textAlign: "right", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>AIEM%</th>}
-                <th style={{ padding: "7px 12px", background: T.card, color: T.muted, textAlign: "left", borderBottom: `1px solid ${T.border}`, fontSize: "11px" }}>Attivo</th>
+                {([
+                  [branchN(branch),"left","muted"],["IFB No","left","muted"],["Descrizione","left","muted"],
+                  ["Vendor","left","muted"],["Cat.","left","muted"],["UOM","left","muted"],
+                  ["Qty/Box","right","muted"],["Box/Plt","right","muted"],["Kg/Box","right","muted"],
+                  ["Kg/Plt","right","muted"],["Temp","left","muted"],
+                  ...(branch==="CAN"?[["AIEM%","right","orange"]]:[]),
+                  ["Attivo","left","muted"],
+                ] as [string,string,string][]).map(([label,align,col])=>(
+                  <th key={label} style={{padding:"3px 6px",background:T.card,color:(T as any)[col]||T.muted,textAlign:align as any,borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap"}}>{label}</th>
+                ))}
               </tr>
             </thead>
             <tbody>
               {filtered.map((p: any, i: number) => {
                 const kgxplt = p.kgxplt || roundN((parseFloat(p.kgPerBox) || 0) * (parseFloat(p.boxPerPallet) || 0));
+                const tdS: React.CSSProperties = {padding:"3px 6px",fontSize:"10px",whiteSpace:"nowrap"};
+                const tdM: React.CSSProperties = {...tdS,fontFamily:"monospace"};
                 return (
                   <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
-                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>
-                      <span style={{ color: T.muted }}>{p.nHK || "—"}</span>
+                    <td style={tdM}><span style={{ color: T.muted }}>{p.nHK || "—"}</span></td>
+                    <td style={tdM}><span style={{ color: T.gold }}>{p.code}</span></td>
+                    <td style={{...tdS,maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis"}}>{p.description}</td>
+                    <td style={{...tdS,maxWidth:"110px",overflow:"hidden",textOverflow:"ellipsis"}}>
+                      <span style={{ color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>{p.vendorName || "—"}</span>
                     </td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>
-                      <span style={{ color: T.gold }}>{p.code}</span>
-                    </td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>{p.description}</td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
-                      <span style={{ fontSize: "11px", color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>
-                        {p.vendorName || "—"}
-                      </span>
-                    </td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
-                      <Chip label={p.category || "—"} color={p.category === "WINE" ? T.purple : p.category === "MEAT" ? T.red : T.blue} />
-                    </td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
-                      <Chip label={p.uom || "—"} color={T.muted} />
-                    </td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>{p.qtyPerBox || "—"}</td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>{p.boxPerPallet || "—"}</td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>{p.kgPerBox || "—"}</td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace" }}>
-                      <span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span>
-                    </td>
-                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
-                      <Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} />
-                    </td>
-                    {branch==="CAN" && <td style={{ padding: "7px 12px", fontSize: "12px", fontFamily: "monospace", textAlign: "right", color: p.aiem>0?T.orange:T.dim }}>{p.aiem>0?`${p.aiem}%`:"—"}</td>}
-                    <td style={{ padding: "7px 12px", fontSize: "12px" }}>
-                      <Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} />
-                    </td>
+                    <td style={tdS}><Chip label={p.category || "—"} color={p.category === "WINE" ? T.purple : p.category === "MEAT" ? T.red : T.blue} /></td>
+                    <td style={tdS}><Chip label={p.uom || "—"} color={T.muted} /></td>
+                    <td style={{...tdM,textAlign:"right"}}>{p.qtyPerBox || "—"}</td>
+                    <td style={{...tdM,textAlign:"right"}}>{p.boxPerPallet || "—"}</td>
+                    <td style={{...tdM,textAlign:"right"}}>{p.kgPerBox || "—"}</td>
+                    <td style={{...tdM,textAlign:"right"}}><span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span></td>
+                    <td style={tdS}><Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></td>
+                    {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.aiem>0?T.orange:T.dim}}>{p.aiem>0?`${p.aiem}%`:"—"}</td>}
+                    <td style={tdS}><Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} /></td>
                   </tr>
                 );
               })}
@@ -5787,21 +5770,21 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
                 {["IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit"].map(h=>
-                  <th key={h} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px"}}>{h}</th>)}
-                <th style={{padding:"7px 12px",background:T.card,borderBottom:`1px solid ${T.border}`,fontSize:"11px"}}/>
+                  <th key={h} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}>{h}</th>)}
+                <th style={{padding:"3px 6px",background:T.card,borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}/>
               </tr></thead>
               <tbody>
                 {displayed.map((b:any,i:number)=>{
                   const prod = products.find((p:any)=>p.code===b.ifbNo);
                   return(
                     <tr key={b.ifbNo} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                      <td style={{padding:"7px 12px",fontFamily:"monospace",color:T.gold}}>{b.ifbNo}</td>
-                      <td style={{padding:"7px 12px",fontSize:"12px"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
-                      <td style={{padding:"7px 12px",fontFamily:"monospace",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
-                      <td style={{padding:"7px 12px",fontFamily:"monospace",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
-                      <td style={{padding:"7px 12px",fontFamily:"monospace",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
-                      <td style={{padding:"7px 12px",fontFamily:"monospace",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
-                      <td style={{padding:"7px 12px"}}>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
+                      <td style={{padding:"3px 6px"}}>
                         <MiniBtn label="✕" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==bevInfo.indexOf(b));setBevInfo(n);IDB.set("ifb_bevinfo",n);}} color={T.red}/>
                       </td>
                     </tr>
@@ -6054,18 +6037,18 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
                       const prod = findProduct(m.code, products, xrefs);
                       return(
                         <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                          <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}>
+                          <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap"}}>
                             <span style={{color:T.gold}}>{m.code}</span>
                             {prod && <span style={{marginLeft:"6px",fontSize:"9px",color:T.green}}>✓ {prod.code}</span>}
                           </td>
-                          <td style={{padding:"7px 12px",fontSize:"12px"}}>{m.description}</td>
-                          <td style={{padding:"7px 12px",fontSize:"12px",fontFamily:"monospace"}}>
+                          <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.description}</td>
+                          <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap"}}>
                             <span style={{color:T.green,fontWeight:"bold"}}>€ {m.pricePerKg?.toFixed(2)||"—"}</span>
                           </td>
-                          <td style={{padding:"7px 12px",fontSize:"12px"}}>
+                          <td style={{padding:"3px 6px",fontSize:"10px"}}>
                             {m.foglio && <Chip label={m.foglio} color={T.blue}/>}
                           </td>
-                          <td style={{padding:"7px 12px",fontSize:"11px",color:T.muted}}>{m.fonte||"—"}</td>
+                          <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted}}>{m.fonte||"—"}</td>
                         </tr>
                       );
                     })}
@@ -6167,12 +6150,12 @@ function THead({cols, sticky=false}: any) {
       <tr>
         {cols.map(c => (
           <th key={c} style={{
-            padding: "7px 12px",
+            padding: "3px 6px",
             background: T.card,
             color: T.muted,
             textAlign: "left",
             borderBottom: `1px solid ${T.border}`,
-            fontSize: "11px",
+            fontSize: "10px",
             fontWeight: "normal",
             letterSpacing: "0.05em",
             whiteSpace: "nowrap",
@@ -6186,7 +6169,7 @@ function THead({cols, sticky=false}: any) {
   );
 }
 function TD({children,mono=false}){
-  return<td style={{padding:"7px 12px",borderBottom:`1px solid ${T.border}`,fontSize:"12px",fontFamily:mono?"monospace":"inherit",verticalAlign:"middle"}}>{children}</td>;
+  return<td style={{padding:"3px 6px",borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontFamily:mono?"monospace":"inherit",verticalAlign:"middle",whiteSpace:"nowrap"}}>{children}</td>;
 }
 function Chip({label,color}){
   return<span style={{padding:"2px 7px",background:`${color}22`,color,borderRadius:"4px",fontSize:"10px",fontWeight:"bold",letterSpacing:"0.04em"}}>{label}</span>;
