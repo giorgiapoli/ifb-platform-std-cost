@@ -2029,8 +2029,13 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
 function Dashboard({costRows, branch, month, navigate}) {
   const [activePanel, setActivePanel] = useState<string|null>(null);
 
-  const calcOk   = costRows.filter((r:any)=>r.cost?.step2Hkd!=null);
-  const flagged  = costRows.filter((r:any)=>r.cost?.step2Hkd!=null&&r.prevCost?.step2Hkd!=null&&r.prevCost.step2Hkd>0&&Math.abs((r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd)>=0.03);
+  const isCAN = branch === "CAN";
+  const costKey = isCAN ? "step2GC" : "step2Hkd";
+  const costLabel = isCAN ? "New SC GC (€)" : "Step2 HKD";
+  const prevLabel = isCAN ? "SC prec. GC (€)" : "Prec. HKD";
+
+  const calcOk   = costRows.filter((r:any)=>r.cost?.[costKey]!=null);
+  const flagged  = costRows.filter((r:any)=>r.cost?.[costKey]!=null&&r.prevCost?.[costKey]!=null&&r.prevCost[costKey]>0&&Math.abs((r.cost[costKey]-r.prevCost[costKey])/r.prevCost[costKey])>=0.03);
   const air      = costRows.filter((r:any)=>r.isAir);
   const noPrice  = costRows.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
   const noLog    = costRows.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
@@ -2038,11 +2043,11 @@ function Dashboard({costRows, branch, month, navigate}) {
 
   const STATS = [
     { id:"ok",      n:calcOk.length,   label:"Costi calcolati",       color:T.green,  rows:calcOk   },
-    { id:"flagged", n:flagged.length,  label:"Variazioni ≥3% New SC",        color:T.orange, rows:flagged  },
-    { id:"air",     n:air.length,      label:"AIR (esclusi)",          color:T.blue,   rows:air      },
-    { id:"noPrice", n:noPrice.length,  label:"Senza prezzo",           color:T.red,    rows:noPrice  },
-    { id:"noLog",   n:noLog.length,    label:"No logistica",           color:T.red,    rows:noLog    },
-    { id:"calc0",   n:calcZero.length, label:"Calc=0 (UOM/qty)",       color:T.orange, rows:calcZero },
+    { id:"flagged", n:flagged.length,  label:"Variazioni ≥3%",        color:T.orange, rows:flagged  },
+    ...(!isCAN ? [{ id:"air", n:air.length, label:"AIR (esclusi)", color:T.blue, rows:air }] : []),
+    { id:"noPrice", n:noPrice.length,  label:"Senza prezzo",          color:T.red,    rows:noPrice  },
+    { id:"noLog",   n:noLog.length,    label:"No logistica",          color:T.red,    rows:noLog    },
+    { id:"calc0",   n:calcZero.length, label:"Calc=0 (UOM/qty)",      color:T.orange, rows:calcZero },
   ];
 
   const panel = STATS.find(s=>s.id===activePanel);
@@ -2053,19 +2058,20 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="ok"||activePanel==="flagged") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={[branchN(branch),"IFB No","Descrizione","Ubicaz.",branch==="CAN"?"Area":"","Step2 HKD","Prec. HKD","Δ%"]}sticky/>
+        <THead cols={[branchN(branch),"IFB No","Descrizione","Ubicaz.",isCAN?"Area":"",costLabel,prevLabel,"Δ%"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>{
-          const pct = r.cost&&r.prevCost&&r.prevCost.step2Hkd>0
-            ? (r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100 : null;
+          const cv = r.cost?.[costKey];
+          const pv = r.prevCost?.[costKey];
+          const pct = cv!=null&&pv!=null&&pv>0?(cv-pv)/pv*100:null;
           return(
             <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
               <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
               <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
               <TD>{r.description}</TD>
               <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
-              {branch==="CAN" ? <TD><span style={{color:T.muted,fontSize:"11px"}}>{r.area||"NORD"}</span></TD> : <TD/>}
-              <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost?.step2Hkd?.toFixed(2)||"—"}</span></TD>
-              <TD mono><span style={{color:T.muted}}>{r.prevCost?.step2Hkd?.toFixed(2)||"—"}</span></TD>
+              {isCAN ? <TD><span style={{color:T.muted,fontSize:"11px"}}>{r.area||"NORD"}</span></TD> : <TD/>}
+              <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{cv!=null?cv.toFixed(2):"—"}</span></TD>
+              <TD mono><span style={{color:T.muted}}>{pv!=null?pv.toFixed(2):"—"}</span></TD>
               <TD>{pct!=null
                 ? <span style={{color:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.text,fontWeight:Math.abs(pct)>=3?"bold":"normal"}}>
                     {pct>0?"+":""}{pct.toFixed(1)}%{Math.abs(pct)>=3?" ⚡":""}
