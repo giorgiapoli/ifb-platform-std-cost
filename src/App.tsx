@@ -3773,6 +3773,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [excludeAir,setExcludeAir]     = useState(false);
   const [last30,setLast30]             = useState(false);
   const [newHkdFilter,setNewHkdFilter] = useState<"all"|"ok"|"mancante"|"air">("all");
+  const [scFilter,setScFilter]         = useState<"all"|"ok"|"mancante"|"sample"|"air">("all");
   const [filterTransport,setFilterTransport] = useState("all");
   const [filterNHK,setFilterNHK]   = useState("");
   const [filterIFBNo,setFilterIFBNo] = useState("");
@@ -3896,6 +3897,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(newHkdFilter==="ok")          displayed=displayed.filter(r=>r.newHkd!==null&&!r.isAir);
   else if(newHkdFilter==="mancante")displayed=displayed.filter(r=>r.newHkd===null&&!r.isAir);
   else if(newHkdFilter==="air")    displayed=displayed.filter(r=>r.isAir);
+  const isSample = (r:any) => r.unitPrice===0||r.unitPrice===0.01;
+  if(scFilter==="ok")       displayed=displayed.filter(r=>r.scGC!=null&&!r.isAir&&!isSample(r));
+  else if(scFilter==="mancante") displayed=displayed.filter(r=>r.scGC===null&&!r.isAir&&!isSample(r));
+  else if(scFilter==="sample")   displayed=displayed.filter(r=>isSample(r));
+  else if(scFilter==="air")      displayed=displayed.filter(r=>r.isAir);
   if(last30){ const cut=Date.now()-30*24*60*60*1000; displayed=displayed.filter(r=>{ const d=new Date(r.date); return !isNaN(d.getTime())&&d.getTime()>=cut; }); }
   if(filterNHK)   displayed=displayed.filter(r=>r.nHK===filterNHK);
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
@@ -4082,7 +4088,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC","SC TF","SC LAN","SC FUE"]:["New SC ▾"]),"Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC ▾","SC TF","SC LAN","SC FUE"]:["New SC ▾"]),"Δ%","Motivo"].map((c,ci)=>{
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4108,6 +4114,18 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                       <option value="all">New SC ▾</option>
                       <option value="ok">✅ Con costo</option>
                       <option value="mancante">❌ MANCANTE</option>
+                      <option value="air">✈ AIR</option>
+                    </select>
+                  </th>
+                );
+                if(c==="SC GC ▾") return(
+                  <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                    <select value={scFilter} onChange={e=>setScFilter(e.target.value as any)}
+                      style={{background:scFilter!=="all"?`${T.gold}22`:T.card,color:scFilter!=="all"?T.gold:T.muted,border:`1px solid ${scFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
+                      <option value="all">SC GC ▾</option>
+                      <option value="ok">✅ Con costo</option>
+                      <option value="mancante">❌ MANCANTE</option>
+                      <option value="sample">📦 SAMPLE</option>
                       <option value="air">✈ AIR</option>
                     </select>
                   </th>
