@@ -521,24 +521,24 @@ export default function App() {
       // Auto-fetch dati BC aggiornati da GitHub (solo HK, silent)
       if(branch === "HK") {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+        const t = Date.now();
         try {
-          const [rxref, rsc] = await Promise.all([
-            fetch(`${base}data/hk_xref.json?t=${Date.now()}`),
-            fetch(`${base}data/hk_sc.json?t=${Date.now()}`),
+          const [rxref, rsc, rana] = await Promise.all([
+            fetch(`${base}data/hk_xref.json?t=${t}`),
+            fetch(`${base}data/hk_sc.json?t=${t}`),
+            fetch(`${base}data/hk_anagrafica.json?t=${t}`),
           ]);
           if(rxref.ok) {
-            const xrefData = await rxref.json();
-            if(Array.isArray(xrefData) && xrefData.length > 0) {
-              setXrefs(xrefData);
-              IDB.set(`ifb_xrefs_${branch}`, xrefData);
-            }
+            const d = await rxref.json();
+            if(Array.isArray(d) && d.length > 0) { setXrefs(d); IDB.set(`ifb_xrefs_${branch}`, d); }
           }
           if(rsc.ok) {
-            const scData = await rsc.json();
-            if(Array.isArray(scData) && scData.length > 0) {
-              setScAttuali(scData);
-              IDB.set(`ifb_scattuali_${branch}`, scData);
-            }
+            const d = await rsc.json();
+            if(Array.isArray(d) && d.length > 0) { setScAttuali(d); IDB.set(`ifb_scattuali_${branch}`, d); }
+          }
+          if(rana.ok) {
+            const d = await rana.json();
+            if(Array.isArray(d) && d.length > 0) { setProducts(d); IDB.set(`ifb_products_${branch}`, d); }
           }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
