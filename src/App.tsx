@@ -542,6 +542,49 @@ export default function App() {
           }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
+
+      // Auto-fetch fatture IFB da GitHub (HK + CAN + MAC, sempre aggiornato)
+      if(["HK","CAN","MAC"].includes(branch)) {
+        const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+        try {
+          const r = await fetch(`${base}data/ifb_fatture.json?t=${Date.now()}`);
+          if(r.ok) {
+            const all = await r.json();
+            if(Array.isArray(all) && all.length > 0) {
+              // Legge prodotti e xrefs già caricati da IDB in questa stessa esecuzione
+              const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
+              const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
+              const airl: any[]  = await IDB.get(`ifb_airlist_${branch}`, []);
+              const branchRows = all
+                .filter((row: any) => row.Branch === branch)
+                .map((row: any) => {
+                  const code = String(row["No_"] || "").trim();
+                  const prod = prods.find((p: any) => p.code === code || p.nHK === code)
+                            || (xrs.find((x: any) => x.ifbNo === code) ? prods.find((p: any) => p.nHK === xrs.find((x: any) => x.ifbNo === code)?.nHK) : null);
+                  const nHK = prod?.nHK || xrs.find((x: any) => x.ifbNo === code)?.nHK || "";
+                  const isAirProd = prod && airl.some((a: any) => a.productId === prod.id || (a.code && a.code === prod.code) || (a.nHK && prod.nHK && a.nHK === prod.nHK));
+                  return {
+                    itemCode:   code,
+                    description: String(row["Description"] || "").trim(),
+                    date:       String(row["Last Posting Date"] || ""),
+                    qty:        Number(row["Quantity"] || 0),
+                    unitPrice:  Number(row["Price"] || 0),
+                    location:   String(row["Location Code"] || "").trim(),
+                    nHK,
+                    transport:  isAirProd ? "AIR" : "SEA",
+                    _prodFound: !!prod,
+                    branch,
+                    _fromBC:    true,
+                  };
+                });
+              if(branchRows.length > 0) {
+                setSalesRows(branchRows);
+                IDB.set(`ifb_sales_invoice_${branch}`, branchRows);
+              }
+            }
+          }
+        } catch(_) { /* offline — usa dati IDB */ }
+      }
     })();
   },[branch]);
 
