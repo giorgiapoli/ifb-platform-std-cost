@@ -2868,7 +2868,7 @@
     "fifoUnit": 8.85589,
     "salesLast3m": -1914.0,
     "lastPurchaseDate": "2026-05-29",
-    "stockQty": 1566.0
+    "stockQty": 1556.0
   },
   {
     "code": "GC0068",
@@ -5160,10 +5160,10 @@
     "code": "HA8013-IB",
     "description": "Guanciale with Pepper +/- 1.5kg (2)",
     "lastSC": 83.3,
-    "fifoUnit": 78.20741,
+    "fifoUnit": 78.20186,
     "salesLast3m": -2946.606,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 1353.927
+    "stockQty": 1348.565
   },
   {
     "code": "HA8014-IB",
@@ -7761,10 +7761,10 @@
     "code": "OL0509-IF",
     "description": "Extra Virgin Olive Oil 5lt    (4)",
     "lastSC": 238.28,
-    "fifoUnit": 230.31445,
+    "fifoUnit": 230.3159,
     "salesLast3m": -778.0,
     "lastPurchaseDate": "2026-05-21",
-    "stockQty": 1062.0
+    "stockQty": 1061.0
   },
   {
     "code": "OL0510-IF",
@@ -8463,10 +8463,10 @@
     "code": "PT6001-S",
     "description": "SPAGHETTI \"Mancini\" 1kg/bag (6)",
     "lastSC": 33.77,
-    "fifoUnit": 31.95814,
+    "fifoUnit": 31.95569,
     "salesLast3m": -1854.0,
     "lastPurchaseDate": "2026-06-05",
-    "stockQty": 1945.0
+    "stockQty": 1939.0
   },
   {
     "code": "PT6002-S",
