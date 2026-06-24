@@ -2,7 +2,7 @@ name: Update BC Data (HK)
 
 on:
   schedule:
-    - cron: '0 5 * * 1'   # Ogni lunedì alle 07:00 ora italiana (05:00 UTC)
+    - cron: '0 5 * * *'   # Ogni giorno alle 07:00 ora italiana (05:00 UTC)
   workflow_dispatch:        # Trigger manuale dal tab Actions su GitHub
 
 jobs:
