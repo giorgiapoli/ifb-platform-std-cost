@@ -45,11 +45,8 @@ def bc_get(token, endpoint):
 
 
 def get_fatture(token):
-    endpoint = (
-        f"IFB_Sales_Invoice_Line"
-        f"?$filter=Posting_Date ge {DATE_FROM}"
-        f"&$top=50000"
-    )
+    # Nessun filtro: scopriamo prima i campi disponibili
+    endpoint = "IFB_Sales_Invoice_Line?$top=10"
     return bc_get(token, endpoint)
 
 
