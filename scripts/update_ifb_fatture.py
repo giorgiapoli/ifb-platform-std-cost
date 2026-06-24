@@ -13,8 +13,8 @@ BC_ENV        = "Production"
 BC_COMPANY    = "Inalca%20Food%20%26%20Beverage%20s.r.l."
 OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "ifb_fatture.json"
 
-# Ultimi 12 mesi
-DATE_FROM = (datetime.today() - timedelta(days=365)).strftime("%Y-%m-%d")
+# Ultimi 6 mesi
+DATE_FROM = (datetime.today() - timedelta(days=182)).strftime("%Y-%m-%d")
 
 
 def get_token():
@@ -91,7 +91,9 @@ if __name__ == "__main__":
     if rows:
         print(f"  Esempio: {rows[0]}")
         locs = sorted(set(r["Location Code"] for r in rows))
-        print(f"  Location codes trovati: {locs[:20]}")
+        print(f"  Location codes trovati ({len(locs)} totali):")
+        for loc in locs:
+            print(f"    '{loc}'")
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
