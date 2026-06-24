@@ -2170,14 +2170,16 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   
   function update(productId, field, rawVal) {
     const existing = getLog(productId);
-    if(existing) {
+    if(existing?.fromImport) {
       showToast(`❌ ${field} non modificabile: dato importato da Work_tab`, T.red);
       return;
     }
-    const val = ["ubicazione","area"].includes(field) ? rawVal : 
-                ["hasCert","hasAlcTax"].includes(field) ? (rawVal === "true") : 
+    const val = ["ubicazione","area","transport"].includes(field) ? rawVal :
+                ["hasCert","hasAlcTax"].includes(field) ? (rawVal === "true") :
                 (parseFloat(rawVal) || 0);
-    const next = [...logistics, {...getOrDefault(productId), [field]: val}];
+    const next = existing
+      ? logistics.map(l => l.productId===productId&&l.branch===branch ? {...l, [field]:val} : l)
+      : [...logistics, {...getOrDefault(productId), [field]: val}];
     setLogistics(next);
     IDB.set("ifb_logistics", next);
   }
@@ -2317,6 +2319,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         convFactor: 1,
         carriage,
         temperatureOverride,
+        fromImport: true,
         ...(finalTransport ? { transport: finalTransport } : {}),
       };
   
@@ -2490,7 +2493,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area","Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."].map(c=>(
+              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto"]:[]),"Plt/Cont","Cert.","Alcol >30°","Carriage","Conv."].map(c=>(
                 <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
               ))}
               </tr>
@@ -2511,6 +2514,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                       <>
                         <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"—"}</td>
+                        {branch==="CAN"&&<td style={{padding:"7px 12px"}}><Chip label={l.transport||"GOMMA"} color={l.transport==="MARE"?T.blue:T.muted}/></td>}
                         <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.gold}}>{l.pltPerContainer||"—"}</td>
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasCert?"Sì":"No"}</td>
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
@@ -2531,6 +2535,12 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                             {["NORD","CENTRO","SUD"].map(v=><option key={v} value={v}>{v}</option>)}
                           </select>
                         </td>
+                        {branch==="CAN"&&<td style={{padding:"7px 12px"}}>
+                          <select value={l.transport||"GOMMA"} onChange={e=>update(prod.id,"transport",e.target.value)}
+                            style={{background:T.card,color:T.blue,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
+                            {["GOMMA","MARE"].map(v=><option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </td>}
                         <td style={{padding:"7px 12px"}}>
                           <input type="number" defaultValue={l.pltPerContainer||20}
                             onBlur={e=>update(prod.id,"pltPerContainer",e.target.value)}
