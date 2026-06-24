@@ -78,7 +78,9 @@ if __name__ == "__main__":
     items = get_anagrafica(token)
     print(f"  {len(items)} items trovati")
     if items:
-        print("  Campi disponibili:", sorted(k for k in items[0].keys() if not k.startswith("@")))
+        print("  Campi disponibili (tutti):")
+        for k in sorted(k for k in items[0].keys() if not k.startswith("@")):
+            print(f"    {k} = {repr(items[0][k])[:80]}")
 
     products = []
     for item in items:
