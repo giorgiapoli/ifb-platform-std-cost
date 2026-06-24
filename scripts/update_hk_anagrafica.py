@@ -58,11 +58,23 @@ def bc_get(token, endpoint):
 
 def get_anagrafica(token):
     vendor = "INALCA FOOD %26 BEVERAGE SRL"
-    # Nessun $select: recupera tutti i campi disponibili
+    fields = ",".join([
+        "No", "AltICMIFB_Item", "Description",
+        "AltICMSection_Description",   # category
+        "Sales_Unit_of_Measure",       # uom
+        "AltICMQuantity_x_Packaging",  # qtyPerBox
+        "AltICMPackaging_x_Pallet",    # boxPerPallet
+        "AltICMNet_Weight",            # kgPerBox
+        "AltICMKg_x_PLT",             # kgxplt
+        "AltICMProduct_Type",          # temperature
+        "Blocked",
+        "AltICMVendor_Name", "AltICMVendor_Name_2",
+        "AltICMHOFF",
+    ])
     endpoint = (
         f"Item_Card_Excel"
         f"?$filter=Gen_Prod_Posting_Group eq 'DS' and AltICMVendor_Name eq '{vendor}'"
-        f"&$top=5000"
+        f"&$select={fields}&$top=5000"
     )
     return bc_get(token, endpoint)
 
@@ -77,18 +89,13 @@ if __name__ == "__main__":
     print("Leggo anagrafica da BC...")
     items = get_anagrafica(token)
     print(f"  {len(items)} items trovati")
-    if items:
-        print("  Campi disponibili (tutti):")
-        for k in sorted(k for k in items[0].keys() if not k.startswith("@")):
-            print(f"    {k} = {repr(items[0][k])[:80]}")
-
     products = []
     for item in items:
         code = str(item.get("AltICMIFB_Item") or "").strip()
         nHK  = str(item.get("No") or "").strip()
         if not code and not nHK:
             continue
-        blocked = str(item.get("Blocked") or "").lower() in ("true", "1", "yes")
+        blocked = item.get("Blocked") is True
         products.append({
             "id":          code or nHK,
             "code":        code,
@@ -96,13 +103,15 @@ if __name__ == "__main__":
             "description": str(item.get("Description") or "").strip(),
             "category":    norm(item.get("AltICMSection_Description"), CAT_MAP),
             "uom":         norm(item.get("Sales_Unit_of_Measure"), UOM_MAP),
-            "qtyPerBox":   float(item.get("AltICMQtyxPackaging") or 0),
-            "boxPerPallet":float(item.get("AltICMBoxxPallet") or 0),
-            "kgPerBox":    float(item.get("Net_Weight") or 0),
-            "temperature": norm(item.get("AltICMProductType"), TEMP_MAP),
+            "qtyPerBox":   float(item.get("AltICMQuantity_x_Packaging") or 0),
+            "boxPerPallet":float(item.get("AltICMPackaging_x_Pallet") or 0),
+            "kgPerBox":    float(item.get("AltICMNet_Weight") or 0),
+            "kgxplt":      float(item.get("AltICMKg_x_PLT") or 0),
+            "temperature": norm(item.get("AltICMProduct_Type"), TEMP_MAP),
+            "isHoff":      bool(item.get("AltICMHOFF")),
             "active":      not blocked,
             "vendorName":  str(item.get("AltICMVendor_Name") or "").strip(),
-            "vendorName2": "",
+            "vendorName2": str(item.get("AltICMVendor_Name_2") or "").strip(),
             "aiem":        0,
         })
 
