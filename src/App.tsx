@@ -517,6 +517,31 @@ export default function App() {
       setScHistory(await IDB.get(`ifb_schistory_${branch}`,[]));
       setPrices(await IDB.get(`ifb_prices_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
+
+      // Auto-fetch dati BC aggiornati da GitHub (solo HK, silent)
+      if(branch === "HK") {
+        const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+        try {
+          const [rxref, rsc] = await Promise.all([
+            fetch(`${base}data/hk_xref.json?t=${Date.now()}`),
+            fetch(`${base}data/hk_sc.json?t=${Date.now()}`),
+          ]);
+          if(rxref.ok) {
+            const xrefData = await rxref.json();
+            if(Array.isArray(xrefData) && xrefData.length > 0) {
+              setXrefs(xrefData);
+              IDB.set(`ifb_xrefs_${branch}`, xrefData);
+            }
+          }
+          if(rsc.ok) {
+            const scData = await rsc.json();
+            if(Array.isArray(scData) && scData.length > 0) {
+              setScAttuali(scData);
+              IDB.set(`ifb_scattuali_${branch}`, scData);
+            }
+          }
+        } catch(_) { /* offline o errore fetch — usa dati IDB */ }
+      }
     })();
   },[branch]);
 
