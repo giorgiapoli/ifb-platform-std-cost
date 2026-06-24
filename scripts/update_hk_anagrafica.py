@@ -58,24 +58,11 @@ def bc_get(token, endpoint):
 
 def get_anagrafica(token):
     vendor = "INALCA FOOD %26 BEVERAGE SRL"
-    # Adatta i nomi dei campi BC se necessario (colonne di Item_Card_Excel)
-    fields = ",".join([
-        "No",                        # → nHK
-        "AltICMIFB_Item",            # → code (IFB No)
-        "Description",               # → description
-        "AltICMSection_Description", # → category  (BC field? verifica)
-        "Sales_Unit_of_Measure",     # → uom       (BC field? verifica)
-        "AltICMQtyxPackaging",       # → qtyPerBox (BC field? verifica)
-        "AltICMBoxxPallet",          # → boxPerPallet (BC field? verifica)
-        "Net_Weight",                # → kgPerBox  (BC field? verifica)
-        "AltICMProductType",         # → temperature (BC field? verifica)
-        "Blocked",                   # → active (invertito)
-        "AltICMVendor_Name",         # → vendorName
-    ])
+    # Nessun $select: recupera tutti i campi disponibili
     endpoint = (
         f"Item_Card_Excel"
         f"?$filter=Gen_Prod_Posting_Group eq 'DS' and AltICMVendor_Name eq '{vendor}'"
-        f"&$select={fields}&$top=5000"
+        f"&$top=5000"
     )
     return bc_get(token, endpoint)
 
@@ -90,6 +77,8 @@ if __name__ == "__main__":
     print("Leggo anagrafica da BC...")
     items = get_anagrafica(token)
     print(f"  {len(items)} items trovati")
+    if items:
+        print("  Campi disponibili:", sorted(k for k in items[0].keys() if not k.startswith("@")))
 
     products = []
     for item in items:
