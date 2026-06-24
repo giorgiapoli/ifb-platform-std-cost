@@ -45,8 +45,17 @@ def bc_get(token, endpoint):
 
 
 def get_fatture(token):
-    # Nessun filtro: scopriamo prima i campi disponibili
-    endpoint = "IFB_Sales_Invoice_Line?$top=10"
+    fields = ",".join([
+        "no", "description", "postingdate",
+        "quantity", "unitprice", "locationcode",
+        "shortcutdimension1code",  # section code (no description disponibile via OData)
+        "documentno",
+    ])
+    endpoint = (
+        f"IFB_Sales_Invoice_Line"
+        f"?$filter=postingdate ge {DATE_FROM} and type eq 'Item'"
+        f"&$select={fields}&$top=50000"
+    )
     return bc_get(token, endpoint)
 
 
@@ -61,11 +70,29 @@ if __name__ == "__main__":
     items = get_fatture(token)
     print(f"  {len(items)} righe trovate")
 
-    if items:
-        print("  Campi disponibili:")
-        for k in sorted(k for k in items[0].keys() if not k.startswith("@")):
-            print(f"    {k} = {repr(items[0][k])[:80]}")
+    # Mappa nel formato atteso dall'app (compatibile con Excel Ultime_Fatture_HK)
+    rows = []
+    for item in items:
+        no = str(item.get("no") or "").strip()
+        if not no:
+            continue
+        rows.append({
+            "No_":              no,
+            "Description":      str(item.get("description") or "").strip(),
+            "Vendor Name":      "",  # non disponibile via OData senza join
+            "Last Posting Date": str(item.get("postingdate") or ""),
+            "Quantity":         float(item.get("quantity") or 0),
+            "Price":            float(item.get("unitprice") or 0),
+            "Location Code":    str(item.get("locationcode") or "").strip(),
+            "Section Description": str(item.get("shortcutdimension1code") or "").strip(),
+        })
+
+    print(f"  {len(rows)} righe valide (type=Item, con No_)")
+    if rows:
+        print(f"  Esempio: {rows[0]}")
+        locs = sorted(set(r["Location Code"] for r in rows))
+        print(f"  Location codes trovati: {locs[:20]}")
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUT_PATH.write_text(json.dumps(items, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"Scritto {len(items)} righe in {OUT_PATH}")
+    OUT_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"Scritto {len(rows)} righe in {OUT_PATH}")
