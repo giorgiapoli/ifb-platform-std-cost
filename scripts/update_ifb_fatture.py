@@ -13,8 +13,15 @@ BC_ENV        = "Production"
 BC_COMPANY    = "Inalca%20Food%20%26%20Beverage%20s.r.l."
 OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "ifb_fatture.json"
 
-# Ultimi 6 mesi
-DATE_FROM = (datetime.today() - timedelta(days=182)).strftime("%Y-%m-%d")
+# Ultimi 12 mesi
+DATE_FROM = (datetime.today() - timedelta(days=365)).strftime("%Y-%m-%d")
+
+# Clienti per branch
+CUSTOMERS = {
+    "HK":  "40000854",  # BRIGHT VIEW TRADING HK LIMITED
+    "CAN": "40000175",  # COMERCIAL ITALIANA DE ALIMENTACION S.
+    # MAC: da aggiungere quando disponibile il numero cliente
+}
 
 
 def get_token():
@@ -44,19 +51,23 @@ def bc_get(token, endpoint):
     return results
 
 
-def get_fatture(token):
+def get_fatture_for_customer(token, customer_no, branch):
     fields = ",".join([
         "no", "description", "postingdate",
         "quantity", "unitprice", "locationcode",
-        "shortcutdimension1code",  # section code (no description disponibile via OData)
-        "documentno",
+        "documentno", "billtocustomerno",
     ])
     endpoint = (
         f"IFB_Sales_Invoice_Line"
-        f"?$filter=postingdate ge {DATE_FROM} and type eq 'Item'"
+        f"?$filter=postingdate ge {DATE_FROM}"
+        f" and type eq 'Item'"
+        f" and billtocustomerno eq '{customer_no}'"
         f"&$select={fields}&$top=50000"
     )
-    return bc_get(token, endpoint)
+    print(f"  Fetching {branch} (customer {customer_no})...")
+    rows = bc_get(token, endpoint)
+    print(f"    {len(rows)} righe trovate")
+    return rows, branch
 
 
 if __name__ == "__main__":
@@ -67,33 +78,29 @@ if __name__ == "__main__":
     token = get_token()
 
     print(f"Leggo fatture da BC Italia (da {DATE_FROM})...")
-    items = get_fatture(token)
-    print(f"  {len(items)} righe trovate")
-
-    # Mappa nel formato atteso dall'app (compatibile con Excel Ultime_Fatture_HK)
     rows = []
-    for item in items:
-        no = str(item.get("no") or "").strip()
-        if not no:
-            continue
-        rows.append({
-            "No_":              no,
-            "Description":      str(item.get("description") or "").strip(),
-            "Vendor Name":      "",  # non disponibile via OData senza join
-            "Last Posting Date": str(item.get("postingdate") or ""),
-            "Quantity":         float(item.get("quantity") or 0),
-            "Price":            float(item.get("unitprice") or 0),
-            "Location Code":    str(item.get("locationcode") or "").strip(),
-            "Section Description": str(item.get("shortcutdimension1code") or "").strip(),
-        })
+    for branch, customer_no in CUSTOMERS.items():
+        items, br = get_fatture_for_customer(token, customer_no, branch)
+        for item in items:
+            no = str(item.get("no") or "").strip()
+            if not no:
+                continue
+            rows.append({
+                "No_":               no,
+                "Description":       str(item.get("description") or "").strip(),
+                "Vendor Name":       "",
+                "Last Posting Date": str(item.get("postingdate") or ""),
+                "Quantity":          float(item.get("quantity") or 0),
+                "Price":             float(item.get("unitprice") or 0),
+                "Location Code":     str(item.get("locationcode") or "").strip(),
+                "Section Description": "",
+                "Branch":            br,
+            })
 
-    print(f"  {len(rows)} righe valide (type=Item, con No_)")
+    print(f"Totale {len(rows)} righe valide")
     if rows:
-        print(f"  Esempio: {rows[0]}")
-        locs = sorted(set(r["Location Code"] for r in rows))
-        print(f"  Location codes trovati ({len(locs)} totali):")
-        for loc in locs:
-            print(f"    '{loc}'")
+        print(f"  Esempio HK: {next((r for r in rows if r['Branch']=='HK'), None)}")
+        print(f"  Esempio CAN: {next((r for r in rows if r['Branch']=='CAN'), None)}")
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
