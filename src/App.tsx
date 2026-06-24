@@ -530,15 +530,15 @@ export default function App() {
           ]);
           if(rxref.ok) {
             const d = await rxref.json();
-            if(Array.isArray(d) && d.length > 0) { setXrefs(d); IDB.set(`ifb_xrefs_${branch}`, d); }
+            if(Array.isArray(d) && d.length > 0) { setXrefs(d); IDB.set(`ifb_xrefs_${branch}`, d); setDataSource(`xref_${branch}`,"bc"); }
           }
           if(rsc.ok) {
             const d = await rsc.json();
-            if(Array.isArray(d) && d.length > 0) { setScAttuali(d); IDB.set(`ifb_scattuali_${branch}`, d); }
+            if(Array.isArray(d) && d.length > 0) { setScAttuali(d); IDB.set(`ifb_scattuali_${branch}`, d); setDataSource(`scattuali_${branch}`,"bc"); }
           }
           if(rana.ok) {
             const d = await rana.json();
-            if(Array.isArray(d) && d.length > 0) { setProducts(d); IDB.set(`ifb_products_${branch}`, d); }
+            if(Array.isArray(d) && d.length > 0) { setProducts(d); IDB.set(`ifb_products_${branch}`, d); setDataSource(`anagrafica_${branch}`,"bc"); }
           }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
@@ -580,6 +580,7 @@ export default function App() {
               if(branchRows.length > 0) {
                 setSalesRows(branchRows);
                 IDB.set(`ifb_sales_invoice_${branch}`, branchRows);
+                setDataSource(`fatture_${branch}`,"bc");
               }
             }
           }
@@ -1021,7 +1022,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
     const diffs=incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo,isNew:r._isNew,changed:r._changed,oldIFB:r._oldIFB}));
     const kept=xrefs.filter(x=>!incoming.find(i=>i.nHK===x.nHK));
     const next=[...incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo})),...kept];
-    setXrefs(next);IDB.set(`ifb_xrefs_${branch}`,next);
+    setXrefs(next);IDB.set(`ifb_xrefs_${branch}`,next);setDataSource(`xref_${branch}`,"manual");
     const log={id,type:"xref",fileName,date:new Date(id).toISOString(),count:incoming.length,diffs,branch};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
@@ -1033,7 +1034,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
 
   return(
     <div>
-      <PageHeader title={`⇄ XRef ${branchCode} / IFB N · ${branch}`} sub="Codici filiale ↔ IFB N — ogni filiale ha la propria tabella"/>
+      <PageHeader title={`⇄ XRef ${branchCode} / IFB N · ${branch}`} sub="Codici filiale ↔ IFB N — ogni filiale ha la propria tabella" srcKey={`xref_${branch}`}/>
       {step==="map"&&(
         <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
@@ -3875,6 +3876,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   function saveRows(data:any[]) {
     setRows(data);
     IDB.set(`ifb_sales_invoice_${branch}`, data);
+    setDataSource(`fatture_${branch}`,"manual");
   }
 
   function parseFile(e:any) {
@@ -4084,7 +4086,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   // ── VIEW ─────────────────────────────────────────────────────────────────
   return(
     <div>
-      <PageHeader title={`Fatture & Costi · ${branch}`} sub={`${enriched.length} righe · ${fileName||"dati caricati"}`}/>
+      <PageHeader title={`Fatture & Costi · ${branch}`} sub={`${enriched.length} righe · ${fileName||"dati caricati"}`} srcKey={`fatture_${branch}`}/>
 
       {/* Mismatch banner */}
       {mismatches.length>0&&(
@@ -4582,6 +4584,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
       rows: preview,
     };
     setScAttuali(preview);
+    setDataSource(`scattuali_${branch}`,"manual");
     const newHist = [entry, ...scHistory].slice(0, 24); // max 24 snapshot
     setScHistory(newHist);
     IDB.set(`ifb_schistory_${branch}`, newHist);
@@ -4631,7 +4634,8 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
   return (
     <div>
       <PageHeader title={`📊 SC Attuali · ${branch}`}
-        sub={scHistory.length>0 ? `${scHistory.length} import salvati` : "Nessun report salvato"}/>
+        sub={scHistory.length>0 ? `${scHistory.length} import salvati` : "Nessun report salvato"}
+        srcKey={`scattuali_${branch}`}/>
 
       {/* ── IMPORT ── */}
       {step==="preview" ? (
@@ -5618,6 +5622,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     setProducts(newProds);
     IDB.set(`ifb_products_${branch}`, newProds);
     IDB.set(`ifb_anag_data_${now}`, newProds);
+    setDataSource(`anagrafica_${branch}`,"manual");
     const log = { id:now, type:"anagrafica", date:new Date(now).toISOString(), count:newProds.length, branch, diffs };
     const newLogs = [log,...importLogs];
     setImportLogs(newLogs); LS.set("ifb_importlogs", newLogs);
@@ -5659,7 +5664,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
   return (
     <div>
-      <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli · ${products.filter((p: any) => isIFBVendor(p.vendorName)).length} INALCA F&B`} />
+      <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli · ${products.filter((p: any) => isIFBVendor(p.vendorName)).length} INALCA F&B`} srcKey={`anagrafica_${branch}`}/>
 
       {/* Toolbar import */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center", flexWrap: "wrap" }}>
@@ -6319,12 +6324,43 @@ const inputStyle = () => ({
   fontFamily:"inherit",fontSize:"12px",outline:"none",boxSizing:"border-box",
 });
 
-function PageHeader({title,sub}){
+function PageHeader({title,sub,srcKey=null}:any){
   return(
     <div style={{marginBottom:"20px"}}>
-      <h2 style={{color:T.gold,margin:"0 0 4px",fontSize:"18px"}}>{title}</h2>
+      <h2 style={{color:T.gold,margin:"0 0 4px",fontSize:"18px",display:"flex",alignItems:"center",flexWrap:"wrap",gap:"6px"}}>
+        {title}
+        {srcKey&&<SourceBadge dataKey={srcKey}/>}
+      </h2>
       {sub&&<div style={{fontSize:"12px",color:T.muted}}>{sub}</div>}
     </div>
+  );
+}
+
+// Helper: salva sorgente dati in localStorage
+function setDataSource(key:string, src:"bc"|"manual") {
+  LS.set(`ifb_dsrc_${key}`, JSON.stringify({src, ts: Date.now()}));
+}
+function getDataSource(key:string):{src:"bc"|"manual",ts:number}|null {
+  try { return JSON.parse(LS.get(`ifb_dsrc_${key}`) || "null"); } catch { return null; }
+}
+
+function SourceBadge({dataKey}:{dataKey:string}) {
+  const info = getDataSource(dataKey);
+  if(!info) return null;
+  const date = new Date(info.ts).toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"2-digit"});
+  const isBc = info.src === "bc";
+  return(
+    <span style={{
+      display:"inline-flex",alignItems:"center",gap:"4px",
+      fontSize:"10px",fontWeight:600,letterSpacing:"0.04em",
+      padding:"2px 8px",borderRadius:"12px",marginLeft:"10px",
+      background: isBc ? `${T.blue}22` : `${T.muted}22`,
+      color: isBc ? T.blue : T.muted,
+      border: `1px solid ${isBc ? T.blue+"55" : T.muted+"55"}`,
+      verticalAlign:"middle",
+    }}>
+      {isBc ? "🔄 BC" : "📁 Manuale"} · {date}
+    </span>
   );
 }
 function Section({title,children,accent,mb,mt}){
