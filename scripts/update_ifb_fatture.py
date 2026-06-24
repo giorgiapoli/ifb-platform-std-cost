@@ -20,7 +20,7 @@ DATE_FROM = (datetime.today() - timedelta(days=365)).strftime("%Y-%m-%d")
 CUSTOMERS = {
     "HK":  "40000854",  # BRIGHT VIEW TRADING HK LIMITED
     "CAN": "40000175",  # COMERCIAL ITALIANA DE ALIMENTACION S.
-    # MAC: da aggiungere quando disponibile il numero cliente
+    "MAC": "40001358",  # THE HOUSE OF FINE FOODS (MACAO)
 }
 
 
