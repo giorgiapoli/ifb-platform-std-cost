@@ -2498,7 +2498,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
               ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody key={_sq}>
               {displayed.map((prod, i) => {
                 const l = getOrDefault(prod.id);
                 const hasEntry = !!getLog(prod.id);
@@ -5746,7 +5746,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody key={q}>
               {filtered.map((p: any, i: number) => {
                 const kgxplt = p.kgxplt || roundN((parseFloat(p.kgPerBox) || 0) * (parseFloat(p.boxPerPallet) || 0));
                 const tdS: React.CSSProperties = {padding:"3px 6px",fontSize:"10px",whiteSpace:"nowrap"};
@@ -6296,9 +6296,13 @@ function DropZone({onFile,label}){
     </div>
   );
 }
-function SearchBar({value,onChange,placeholder}){
-  return<input value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder||"Cerca..."}
-    style={{...inputStyle(),maxWidth:"320px",marginBottom:"14px"}}/>;
+function SearchBar({value,onChange,placeholder,style:extraStyle}:any){
+  return<input value={value}
+    onChange={e=>onChange(e.target.value)}
+    onInput={e=>onChange((e.target as HTMLInputElement).value)}
+    placeholder={placeholder||"Cerca..."}
+    autoComplete="off" autoCorrect="off" spellCheck={false}
+    style={{...inputStyle(),maxWidth:"320px",marginBottom:"14px",...(extraStyle||{})}}/>;
 }
 
 // Scrollbar sincronizzata in cima e in fondo alla tabella
