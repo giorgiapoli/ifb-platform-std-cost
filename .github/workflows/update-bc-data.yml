@@ -43,10 +43,20 @@ jobs:
           BC_CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
         run: python scripts/update_ifb_fatture.py
 
+      - name: Update IFB Listini (Italia)
+        env:
+          BC_CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
+        run: python scripts/update_ifb_listini.py
+
       - name: Commit and push JSON
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/data/hk_xref.json docs/data/hk_sc.json docs/data/hk_anagrafica.json docs/data/ifb_fatture.json
-          git diff --cached --quiet && echo "Nessuna modifica" || \
-            git commit -m "Auto-update BC data $(date +'%Y-%m-%d')" && git push
+          git add docs/data/hk_xref.json docs/data/hk_sc.json docs/data/hk_anagrafica.json docs/data/ifb_fatture.json docs/data/ifb_listini.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Auto-update BC data $(date +'%Y-%m-%d')"
+            git pull --rebase origin main || { git rebase --abort; exit 1; }
+            git push origin main
+          else
+            echo "Nessuna modifica"
+          fi
