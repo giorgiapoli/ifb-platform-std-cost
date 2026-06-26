@@ -23,7 +23,13 @@ if __name__ == "__main__":
 
     # Fetch service document (JSON) — lista tutti gli EntitySet disponibili
     r = requests.get(base, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
-    data = r.json()
+    print(f"Status: {r.status_code}")
+    print(f"Response (primi 2000 chars): {r.text[:2000]}")
+    try:
+        data = r.json()
+    except Exception as e:
+        print(f"Errore parsing JSON: {e}")
+        data = {}
     entities = [e["name"] for e in data.get("value", []) if "name" in e]
     print(f"Totale entità: {len(entities)}\n")
 
