@@ -257,10 +257,10 @@ def compute_row(branch, code, sale_slots, purch):
     ed   = (fca_sale.get("enddate") or mts_sale.get("enddate")
             or dap_sale.get("enddate") or "")
 
-    # Campi minimi usati dall'app (meno è più veloce da parsare)
     return {
         "b":  branch,
         "n":  code,
+        "d":  desc[:60] if desc else "",  # descrizione troncata (per articoli senza anagrafica)
         "fp": round(fca_price, 6),
         "fd": round(fca_disc, 4),
         "fc": round(fca_discounted, 6),

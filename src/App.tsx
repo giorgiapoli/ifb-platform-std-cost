@@ -617,14 +617,16 @@ export default function App() {
               const nowMonth = new Date().toISOString().slice(0,7);
               const newEntries: any[] = [];
               all.forEach((row: any) => {
-                // Formato compatto (n) o vecchio (No_)
                 const code = String(row["n"] || row["No_"] || "").trim();
                 if(!code) return;
                 const prod = byCode[code] || byNHK[code]
                           || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
-                if(!prod) return;
+                // Includi TUTTI (prod può essere null — articoli BC senza anagrafica locale)
                 newEntries.push({
-                  productId:     prod.id, branch, month: nowMonth,
+                  productId:     prod?.id ?? `BC_${code}`,
+                  itemCode:      code,
+                  bcDesc:        String(row["d"] || row["Description"] || "").trim(),
+                  branch, month: nowMonth,
                   fcaPrice:      Number(row["fp"] ?? row["FCA_Price"]      ?? 0),
                   fcaDiscounted: Number(row["fc"] ?? row["FCA_Discounted"] ?? 0),
                   dapPrice:      Number(row["dp"] ?? row["DAP_Price"]      ?? 0),
@@ -3000,7 +3002,6 @@ const filtered = useMemo(() => {
     ? bcListini.filter((p: any) => p.branch === branch)
     : prices.filter((p: any) => p.branch === branch && p.month === month);
   return baseList.filter((p: any) => {
-    if (/^P_BC_/i.test(p.productId)) return false;
     if (invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
     return true;
   });
@@ -3014,7 +3015,8 @@ const displayed = useMemo(() => {
     return prod?.description?.toLowerCase().includes(q) ||
       prod?.code?.toLowerCase().includes(q) ||
       prod?.nHK?.toLowerCase().includes(q) ||
-      String(p.productId).toLowerCase().includes(q);
+      (p.itemCode || "").toLowerCase().includes(q) ||
+      (p.bcDesc  || "").toLowerCase().includes(q);
   });
 }, [filtered, search, prodById]);
 
@@ -3179,10 +3181,10 @@ return (
   <tr key={p.productId} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
     <TD mono><span style={{ color: T.muted }}>{prod?.nHK || "—"}</span></TD>
     <TD mono>
-      <span style={{ color: T.gold }}>{prod?.code || p.productId}</span>
+      <span style={{ color: T.gold }}>{prod?.code || p.itemCode || p.productId}</span>
       {inInvoice && <span style={{ marginLeft: "5px", fontSize: "9px", color: T.blue }}>📋</span>}
     </TD>
-    <TD>{prod?.description || <span style={{ color: T.orange, fontSize: "11px" }}>⚠ {p.productId}</span>}</TD>
+    <TD>{prod?.description || p.bcDesc || <span style={{ color: T.dim, fontSize: "11px" }}>{p.itemCode}</span>}</TD>
     {COLS.map(f => (
       <TD key={f} mono>
         <span style={{ color: (p[f] || 0) > 0 ? T.text : T.dim }}>
