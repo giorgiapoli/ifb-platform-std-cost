@@ -315,14 +315,19 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     # Se DAP=0 e FCA>0: calcola carriage da tabella costi trasporto
     if dap_price == 0 and fca_price > 0 and item_card and transport_costs:
         ic = item_card.get(code, {})
-        vendor   = ic.get("vendorName", "")
-        temp     = ic.get("temperature", "")
-        pallet1  = transport_costs.get((vendor, temp), 0)
+        vendor         = ic.get("vendorName", "")
+        temp           = ic.get("temperature", "")
+        pallet1        = transport_costs.get((vendor, temp), 0)
         qty_per_box    = ic.get("qtyPerBox", 0)
         box_per_pallet = ic.get("boxPerPallet", 0)
         pcs_per_pallet = qty_per_box * box_per_pallet
-        if pallet1 > 0 and pcs_per_pallet > 0:
-            carriage  = round(pallet1 / pcs_per_pallet, 6)
+        # UoM del listino calcolato (da riga vendita o acquisto)
+        sale_uom = (fca_sale.get("uom") or mts_sale.get("uom") or
+                    pur.get("uom") or "PCS").upper().strip()
+        # Unità di listino per pallet: BOX→boxPerPallet, altrimenti PCS→pcs_per_pallet
+        units_per_pallet = box_per_pallet if sale_uom == "BOX" else pcs_per_pallet
+        if pallet1 > 0 and units_per_pallet > 0:
+            carriage  = round(pallet1 / units_per_pallet, 6)
             dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
