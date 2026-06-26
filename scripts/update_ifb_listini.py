@@ -227,10 +227,14 @@ if __name__ == "__main__":
         rows = fetch_price_lines(token, f"assigntono eq '{cust_no}' and status eq 'Active'")
         print(f"  {len(rows)} righe trovate")
 
-        item_codes, active_discounts = build_item_prices(rows)
-        print(f"  {len(item_codes)} articoli unici ({len(active_discounts)} con sconto attivo)")
+        _item_codes, active_discounts = build_item_prices(rows)
+        print(f"  {len(active_discounts)} articoli con sconto attivo")
 
-        for code in item_codes:
+        # Tutti gli articoli con prezzo acquisto (non solo quelli nel listino vendita)
+        all_codes = set(purch.keys())
+        print(f"  {len(all_codes)} articoli con prezzo acquisto → usati come base listino")
+
+        for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
             row = compute_row(branch, code, slots, purch)
             all_rows.append(row)
