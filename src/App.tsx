@@ -449,6 +449,7 @@ export default function App() {
   const[products,setProducts]   = useState<any[]>([]);
   const[logistics,setLogistics] = useState<any[]>(SEED_LOGISTIC);
   const[prices,setPrices]       = useState<any[]>([]);
+  const[bcListini,setBcListini] = useState<any[]>([]); // prezzi BC listini — separati da prices per evitare re-render globali
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
   const[xrefs,setXrefs]         = useState<any[]>([]);
   const[airList,setAirList]     = useState<any[]>([]);
@@ -610,35 +611,25 @@ export default function App() {
                 xrs.forEach((x: any) => { if(x.ifbNo && x.nHK) xrByIfb[String(x.ifbNo)] = String(x.nHK); });
 
                 const nowMonth = new Date().toISOString().slice(0,7);
-                // Costruisci mappa prezzi correnti per aggiornamento O(1)
-                const priceMap: Record<string,any> = {};
-                const existing: any[] = await IDB.get(`ifb_prices_${branch}`, []);
-                existing.forEach((p: any) => {
-                  priceMap[`${p.productId}|${p.branch}|${p.month}`] = p;
-                });
-
+                const newEntries: any[] = [];
                 branchRows.forEach((row: any) => {
                   const code = String(row["No_"] || "").trim();
                   if(!code) return;
                   const prod = byCode[code] || byNHK[code]
                             || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
                   if(!prod) return;
-                  const month = row["StartDate"]?.slice(0,7) || nowMonth;
-                  const key   = `${prod.id}|${branch}|${month}`;
-                  priceMap[key] = {
-                    ...(priceMap[key] || {}),
-                    productId:     prod.id, branch, month,
+                  newEntries.push({
+                    productId:     prod.id, branch, month: nowMonth,
                     fcaPrice:      Number(row["FCA_Price"]      || 0),
                     fcaDiscounted: Number(row["FCA_Discounted"] || 0),
                     dapPrice:      Number(row["DAP_Price"]      || 0),
                     dapDiscounted: Number(row["DAP_Discounted"] || 0),
                     dapFinal:      Number(row["DAP_Final"]      || row["DAP_Discounted"] || 0),
                     mtsPrice:      Number(row["MTS_Price"]      || 0),
-                  };
+                  });
                 });
-                const updated = Object.values(priceMap);
-                setPrices(updated);
-                IDB.set(`ifb_prices_${branch}`, updated);
+                // Usa state separato — non tocca prices (globale) per evitare re-render di tutto l'app
+                setBcListini(newEntries);
                 setDataSource(`listini_${branch}`, "bc");
               }
             }
@@ -905,13 +896,14 @@ export default function App() {
   setImportLogs={setImportLogs}
   xrefs={xrefs}  
 />,
-    prices: <Prices 
-  prices={prices} 
-  setPrices={setPrices} 
-  products={products} 
-  branch={branch} 
+    prices: <Prices
+  prices={prices}
+  setPrices={setPrices}
+  bcListini={bcListini}
+  products={products}
+  branch={branch}
   month={month}
-  salesRows={salesRows} 
+  salesRows={salesRows}
   xrefs={xrefs}
   importLogs={importLogs}
   setImportLogs={setImportLogs}
@@ -2710,7 +2702,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
 }
 
 // ─── PRICES (con import integrato e storico) ─────────────────────────────────
-function Prices({ prices, setPrices, products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [], 
+function Prices({ prices, setPrices, bcListini = [], products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [],
   importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
 const [search, setSearch] = useState("");
 const [invoiceOnly, setInvoiceOnly] = useState(false);
@@ -2992,8 +2984,11 @@ if (prod) s.add(prod.id);
 return s;
 }, [salesRows, products, xrefs]);
 
-const filtered = prices.filter(p => {
-if (p.branch !== branch || p.month !== month) return false;
+// Usa bcListini (dati BC in memoria) se disponibili, altrimenti prices importati manualmente
+const baseList = bcListini.length > 0
+  ? bcListini.filter((p: any) => p.branch === branch)
+  : prices.filter((p: any) => p.branch === branch && p.month === month);
+const filtered = baseList.filter((p: any) => {
 if (/^P_BC_/i.test(p.productId)) return false;
 if (invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
 return true;
