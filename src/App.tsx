@@ -613,6 +613,7 @@ export default function App() {
                     fcaPrice:      Number(row["FCA_Price"]      || 0),
                     fcaDiscounted: Number(row["FCA_Discounted"] || 0),
                     dapPrice:      Number(row["DAP_Price"]      || 0),
+                    dapDiscounted: Number(row["DAP_Discounted"] || 0),
                     dapFinal:      Number(row["DAP_Final"]      || row["DAP_Discounted"] || 0),
                     mtsPrice:      Number(row["MTS_Price"]      || 0),
                   };
@@ -2721,6 +2722,7 @@ function exportToExcel() {
       "FCA Price":    p.fcaPrice   || "",
       "FCA Disc.":    p.fcaDiscounted || "",
       "DAP Price":    p.dapPrice   || "",
+      "DAP Disc.":    p.dapDiscounted || "",
       "DAP Final":    p.dapFinal   || "",
       "Mese":         p.month      || month,
     };
@@ -2992,8 +2994,8 @@ prod?.nHK?.toLowerCase().includes(q) ||
 String(p.productId).toLowerCase().includes(q);
 });
 
-const COLS = ["fcaPrice", "fcaDiscounted", "dapPrice", "mtsPrice", "dapFinal"];
-const LABELS = ["FCA Price", "FCA Disc.", "DAP Price", "MTS Price", "DAP Final"];
+const COLS = ["fcaPrice", "fcaDiscounted", "dapPrice", "mtsPrice", "dapDiscounted", "dapFinal"];
+const LABELS = ["FCA Price", "FCA Disc.", "DAP Price", "MTS Price", "DAP Disc.", "DAP Final"];
 
 // Schermata import completato
 if (importStep === "done" && doneInfo) {
@@ -3144,7 +3146,7 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={[branchN(branch),"IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Final"]} sticky />
+<THead cols={[branchN(branch),"IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
 <tbody>
 {displayed.slice(0, 300).map((p, i) => {
 const prod = products.find(pr => pr.id === p.productId);
