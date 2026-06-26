@@ -91,41 +91,49 @@ def is_valid_purchase(startdate_str, enddate_str):
 def build_item_prices(rows):
     """
     Price list lines di vendita per un cliente.
-    Restituisce: (item_codes, active_discounts)
+    Restituisce: (item_codes, sale_slots)
       - item_codes: set di assetno presenti nel listino (anche scaduti)
-      - active_discounts: assetno -> {FCA/MTS/DAP: {...}} solo record NON scaduti
+      - sale_slots: assetno -> {FCA/MTS/DAP: {unitprice, discount, ...}}
+        * unitprice (prezzo assoluto): preso anche da righe scadute (il più recente per startdate)
+        * discount  (sconto %):        solo da righe NON scadute
     """
     item_codes = set()
-    active = defaultdict(lambda: {"FCA": {}, "MTS": {}, "DAP": {}})
+    sale_slots = defaultdict(lambda: {"FCA": {}, "MTS": {}, "DAP": {}})
 
     for r in rows:
         code = str(r.get("assetno") or "").strip()
         if not code:
             continue
         item_codes.add(code)
-        ed = str(r.get("endingdate") or "")
-        if is_expired(ed):
-            continue
+        ed   = str(r.get("endingdate") or "")
+        sd   = str(r.get("startingdate") or "")
         ship = classify_ship(r.get("shipmentmethodcode"))
-        slot = active[code][ship]
+        slot = sale_slots[code][ship]
         up   = float(r.get("unitprice")      or 0)
         dc   = float(r.get("directunitcost") or 0)
         disc = float(r.get("linediscount")   or 0)
-        sd   = str(r.get("startingdate") or "")
-        if slot.get("_sd", "") <= sd:
+        # Prezzo assoluto: includi anche righe scadute (PowerBI le usa come riferimento)
+        if up > 0 and slot.get("_sd_price", "") <= sd:
             slot.update({
                 "unitprice":   up,
                 "directcost":  dc,
-                "discount":    disc,
                 "description": str(r.get("description") or "").strip(),
                 "uom":         str(r.get("unitofmeasurecode") or "").strip(),
                 "startdate":   sd,
                 "enddate":     ed,
                 "amounttype":  str(r.get("amounttype") or ""),
-                "_sd":         sd,
+                "_sd_price":   sd,
             })
+        # Sconto %: solo righe non scadute
+        if disc > 0 and not is_expired(ed) and slot.get("_sd_disc", "") <= sd:
+            slot.update({"discount": disc, "_sd_disc": sd})
+        # Metadata (desc/uom) da qualsiasi riga
+        if not slot.get("description"):
+            slot["description"] = str(r.get("description") or "").strip()
+        if not slot.get("uom"):
+            slot["uom"] = str(r.get("unitofmeasurecode") or "").strip()
 
-    return item_codes, active
+    return item_codes, sale_slots
 
 
 def build_purchase_prices(token):
@@ -262,7 +270,9 @@ if __name__ == "__main__":
         print(f"  {len(rows)} righe trovate")
 
         _item_codes, active_discounts = build_item_prices(rows)
-        print(f"  {len(active_discounts)} articoli con sconto attivo")
+        with_price = sum(1 for s in active_discounts.values() for sh in s.values() if sh.get("unitprice",0) > 0)
+        with_disc  = sum(1 for s in active_discounts.values() for sh in s.values() if sh.get("discount",0) > 0)
+        print(f"  {with_price} slot con prezzo assoluto, {with_disc} con sconto attivo")
 
         # Tutti gli articoli nel listino acquisto (anche quelli con solo record scaduti)
         all_codes = all_purchase_codes
