@@ -76,10 +76,6 @@ def is_expired(enddate_str):
     ed = (enddate_str or "").split("T")[0]
     return ed not in ("", "0001-01-01") and ed < TODAY
 
-def has_end_date(enddate_str):
-    """Righe di acquisto: valide solo quelle senza data fine (aperte/permanenti)."""
-    ed = (enddate_str or "").split("T")[0]
-    return ed not in ("", "0001-01-01")
 
 
 def build_item_prices(rows):
@@ -145,11 +141,8 @@ def build_purchase_prices(token):
         ship  = classify_ship(r.get("shipmentmethodcode"))
         sd    = str(r.get("startingdate") or "")
         slot  = result[code][ship]
-        is_open = ed in ("", "0001-01-01")
-        slot_is_open = slot.get("_open", False)
-        # Preferisci record senza data fine; a parità, prendi il più recente
-        if (is_open and not slot_is_open) or (is_open == slot_is_open and slot.get("_sd", "") <= sd):
-            slot.update({"price": price, "_sd": sd, "_open": is_open})
+        if slot.get("_sd", "") <= sd:
+            slot.update({"price": price, "_sd": sd})
         if not result[code]["uom"]:
             result[code]["uom"]  = str(r.get("unitofmeasurecode") or "").strip()
             result[code]["desc"] = str(r.get("description") or "").strip()
