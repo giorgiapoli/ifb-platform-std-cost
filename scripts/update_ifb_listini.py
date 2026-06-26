@@ -144,7 +144,7 @@ def build_purchase_prices(token):
             continue
         sd_r  = str(r.get("startingdate") or "")
         ed    = str(r.get("endingdate") or "")
-        if not is_valid_purchase(sd_r, ed):
+        if is_expired(ed):
             continue
         dc    = float(r.get("directunitcost") or 0)
         up    = float(r.get("unitprice")      or 0)
@@ -152,8 +152,11 @@ def build_purchase_prices(token):
         ship  = classify_ship(r.get("shipmentmethodcode"))
         sd    = str(r.get("startingdate") or "")
         slot  = result[code][ship]
-        if slot.get("_sd", "") <= sd:
-            slot.update({"price": price, "_sd": sd})
+        is_open = ed in ("", "0001-01-01") and (not sd_r or sd_r <= TODAY)
+        slot_open = slot.get("_open", False)
+        # Preferisci record senza data fine (aperto); a parità, il più recente per startingdate
+        if (is_open and not slot_open) or (is_open == slot_open and slot.get("_sd", "") <= sd_r):
+            slot.update({"price": price, "_sd": sd_r, "_open": is_open})
         if not result[code]["uom"]:
             result[code]["uom"]  = str(r.get("unitofmeasurecode") or "").strip()
             result[code]["desc"] = str(r.get("description") or "").strip()
