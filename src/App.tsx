@@ -3020,8 +3020,8 @@ const displayed = useMemo(() => {
   });
 }, [filtered, search, prodById]);
 
-const COLS = ["fcaPrice", "fcaDiscounted", "dapPrice", "mtsPrice", "dapFinal"];
-const LABELS = ["FCA Price", "FCA Disc.", "DAP Price", "MTS Price", "DAP Final"];
+const COLS = ["fcaPrice", "fcaDiscounted", "dapPrice", "mtsPrice", "dapDiscounted", "dapFinal"];
+const LABELS = ["FCA Price", "FCA Disc.", "DAP Price", "MTS Price", "DAP Disc.", "DAP Final"];
 
 // Schermata import completato
 if (importStep === "done" && doneInfo) {
@@ -3172,7 +3172,7 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={[branchN(branch),"IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Final"]} sticky />
+<THead cols={[branchN(branch),"IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
 <tbody>
 {displayed.slice(0, 300).map((p: any, i: number) => {
 const prod = prodById[String(p.productId)];
