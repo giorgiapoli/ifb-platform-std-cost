@@ -131,36 +131,45 @@ def build_item_prices(rows):
 def build_purchase_prices(token):
     """
     Listini acquisto fornitore (pricetype=Purchase, Active).
-    Restituisce: assetno -> {FCA: {price, _sd}, DAP: {price, _sd}, MTS: {price, _sd}, uom, desc}
-    Usa il record più recente per startingdate (senza filtrare su endingdate).
+    Restituisce: (purch_dict, all_codes)
+      - purch_dict: assetno -> {FCA/DAP/MTS: {price}, uom, desc}
+        prezzo: preferisce record aperti (no end date, start<=oggi), poi non-scaduti, poi il più recente
+      - all_codes: TUTTI i codici nel listino acquisto (anche solo con record scaduti)
     """
     print("  Fetch listini acquisto (pricetype=Purchase)...")
     rows = fetch_price_lines(token, "pricetype eq 'Purchase' and status eq 'Active'")
     print(f"    {len(rows)} righe totali acquisto")
-    result = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
+    result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
+    all_codes = set()
     for r in rows:
         code = str(r.get("assetno") or "").strip()
         if not code:
             continue
-        sd_r  = str(r.get("startingdate") or "")
-        ed    = str(r.get("endingdate") or "")
-        if is_expired(ed):
-            continue
-        dc    = float(r.get("directunitcost") or 0)
-        up    = float(r.get("unitprice")      or 0)
-        price = dc or up
-        ship  = classify_ship(r.get("shipmentmethodcode"))
-        sd    = str(r.get("startingdate") or "")
-        slot  = result[code][ship]
-        is_open = ed in ("", "0001-01-01") and (not sd_r or sd_r <= TODAY)
-        slot_open = slot.get("_open", False)
-        # Preferisci record senza data fine (aperto); a parità, il più recente per startingdate
-        if (is_open and not slot_open) or (is_open == slot_open and slot.get("_sd", "") <= sd_r):
-            slot.update({"price": price, "_sd": sd_r, "_open": is_open})
+        all_codes.add(code)
+        sd_r     = str(r.get("startingdate") or "")
+        ed       = str(r.get("endingdate") or "")
+        dc       = float(r.get("directunitcost") or 0)
+        up       = float(r.get("unitprice")      or 0)
+        price    = dc or up
+        ship     = classify_ship(r.get("shipmentmethodcode"))
+        slot     = result[code][ship]
+        expired  = is_expired(ed)
+        is_open  = not expired and ed in ("", "0001-01-01") and (not sd_r or sd_r <= TODAY)
+        slot_open    = slot.get("_open", False)
+        slot_expired = slot.get("_expired", True)
+        # Priorità: open > non-scaduto > scaduto; a parità, startingdate più recente
+        def better(io=is_open, exp=expired, so=slot_open, se=slot_expired, sd=sd_r, sl=slot):
+            if io and not so:           return True
+            if not exp and se:          return True
+            if exp and not se:          return False
+            return sl.get("_sd", "") <= sd
+        if better():
+            slot.update({"price": price, "_sd": sd_r, "_open": is_open, "_expired": expired})
         if not result[code]["uom"]:
             result[code]["uom"]  = str(r.get("unitofmeasurecode") or "").strip()
             result[code]["desc"] = str(r.get("description") or "").strip()
-    return dict(result)
+    print(f"    {len(all_codes)} codici unici ({len(result)} con almeno un record processato)")
+    return dict(result), all_codes
 
 
 def compute_row(branch, code, sale_slots, purch):
@@ -235,8 +244,9 @@ if __name__ == "__main__":
     print("Ottengo token BC...")
     token = get_token()
 
-    purch = build_purchase_prices(token)
-    print(f"  Articoli con prezzo acquisto: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
+    purch, all_purchase_codes = build_purchase_prices(token)
+    print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
+    print(f"  Articoli totali nel listino acquisto: {len(all_purchase_codes)}")
 
     all_rows = []
 
@@ -248,9 +258,9 @@ if __name__ == "__main__":
         _item_codes, active_discounts = build_item_prices(rows)
         print(f"  {len(active_discounts)} articoli con sconto attivo")
 
-        # Tutti gli articoli con prezzo acquisto (non solo quelli nel listino vendita)
-        all_codes = set(purch.keys())
-        print(f"  {len(all_codes)} articoli con prezzo acquisto → usati come base listino")
+        # Tutti gli articoli nel listino acquisto (anche quelli con solo record scaduti)
+        all_codes = all_purchase_codes
+        print(f"  {len(all_codes)} articoli totali nel listino acquisto → usati come base listino")
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
