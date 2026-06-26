@@ -22,6 +22,13 @@ OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "ifb_listini.js
 TODAY  = date.today().isoformat()
 MARKUP = 100 / 99  # markup IFB su costo acquisto (~1%)
 
+# Mappa temperatura BC → chiave interna
+TEMP_NORM = {
+    "congelato": "FROZEN", "frozen": "FROZEN",
+    "fresco": "FRESH", "fresh": "FRESH", "refrigerato": "FRESH", "refrigerated": "FRESH",
+    "secco": "DRY", "dry": "DRY", "ambient": "DRY", "ambiente": "DRY",
+}
+
 CUSTOMERS = {
     "HK":  "40000854",
     "CAN": "40000175",
@@ -86,6 +93,45 @@ def is_valid_purchase(startdate_str, enddate_str):
         return False  # non ancora attivo → salta
     return True
 
+
+
+def build_item_card_data(token):
+    """Fetch dati articolo: fornitore, temperatura, pz/box, box/pallet."""
+    print("  Fetch Item Card data (fornitore, temp, uom)...")
+    sel = "No,AltICMIFB_Item,AltICMQuantity_x_Packaging,AltICMPackaging_x_Pallet,AltICMProduct_Type,AltICMVendor_Name"
+    rows = bc_fetch_all(token, f"Item_Card_Excel?$select={sel}")
+    result = {}
+    for r in rows:
+        ifb_code = str(r.get("AltICMIFB_Item") or "").strip()
+        hk_code  = str(r.get("No") or "").strip()
+        key = ifb_code or hk_code
+        if not key:
+            continue
+        temp_raw = str(r.get("AltICMProduct_Type") or "").strip().lower()
+        result[key] = {
+            "vendorName":   str(r.get("AltICMVendor_Name") or "").strip(),
+            "temperature":  TEMP_NORM.get(temp_raw, temp_raw.upper()),
+            "qtyPerBox":    float(r.get("AltICMQuantity_x_Packaging") or 0),
+            "boxPerPallet": float(r.get("AltICMPackaging_x_Pallet") or 0),
+        }
+    print(f"    {len(result)} articoli con dati card")
+    return result
+
+
+def build_transport_costs(token):
+    """Fetch Tabella_Costi_di_Trasporto_Excel → {(vendor_name, temp): pallet1_cost}"""
+    print("  Fetch Tabella Costi Trasporto...")
+    rows = bc_fetch_all(token, "Tabella_Costi_di_Trasporto_Excel")
+    costs = {}
+    for r in rows:
+        vendor   = str(r.get("Vendor_Name") or "").strip()
+        temp_raw = str(r.get("Temperature") or "").strip().lower()
+        temp     = TEMP_NORM.get(temp_raw, temp_raw.upper())
+        pallet1  = float(r.get("Pallet1") or 0)
+        if vendor and pallet1 > 0:
+            costs[(vendor, temp)] = pallet1
+    print(f"    {len(costs)} combinazioni (fornitore, temperatura) con Pallet1 > 0")
+    return costs
 
 
 def build_item_prices(rows):
@@ -229,10 +275,10 @@ def build_purchase_prices(token, uom_conv=None):
     return dict(result), all_codes
 
 
-def compute_row(branch, code, sale_slots, purch):
+def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None):
     """
     FCA/DAP Price = purchase * MARKUP (100/99)
-    Carriage      = DAP_sell - FCA_sell
+    Carriage      = Pallet1 / (qtyPerBox × boxPerPallet) quando DAP=0
     Discount      = da listino vendita (solo non scaduti)
     Discounted    = Price * (1 - Discount/100)
     """
@@ -265,6 +311,19 @@ def compute_row(branch, code, sale_slots, purch):
 
     def apply(price, disc):
         return round(price * (1 - disc / 100), 6) if price else 0.0
+
+    # Se DAP=0 e FCA>0: calcola carriage da tabella costi trasporto
+    if dap_price == 0 and fca_price > 0 and item_card and transport_costs:
+        ic = item_card.get(code, {})
+        vendor   = ic.get("vendorName", "")
+        temp     = ic.get("temperature", "")
+        pallet1  = transport_costs.get((vendor, temp), 0)
+        qty_per_box    = ic.get("qtyPerBox", 0)
+        box_per_pallet = ic.get("boxPerPallet", 0)
+        pcs_per_pallet = qty_per_box * box_per_pallet
+        if pallet1 > 0 and pcs_per_pallet > 0:
+            carriage  = round(pallet1 / pcs_per_pallet, 6)
+            dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
     mts_discounted = apply(mts_price, mts_disc)
@@ -308,6 +367,19 @@ if __name__ == "__main__":
         uom_conv = build_uom_conversions(token)
     except Exception as e:
         print(f"  Warning: UoM conversioni non disponibili ({e}) — prezzi senza conversione")
+
+    item_card = {}
+    try:
+        item_card = build_item_card_data(token)
+    except Exception as e:
+        print(f"  Warning: Item Card data non disponibile ({e})")
+
+    transport_costs = {}
+    try:
+        transport_costs = build_transport_costs(token)
+    except Exception as e:
+        print(f"  Warning: Costi trasporto non disponibili ({e})")
+
     purch, all_purchase_codes = build_purchase_prices(token, uom_conv)
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
     print(f"  Articoli totali nel listino acquisto: {len(all_purchase_codes)}")
@@ -330,7 +402,7 @@ if __name__ == "__main__":
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
-            row = compute_row(branch, code, slots, purch)
+            row = compute_row(branch, code, slots, purch, item_card, transport_costs)
             all_rows.append(row)
 
     print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
