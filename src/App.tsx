@@ -595,38 +595,37 @@ export default function App() {
 
       // Auto-fetch listini IFB da GitHub (HK + CAN + MAC, prezzi aggiornati da BC)
       if(["HK","CAN","MAC"].includes(branch)) {
-        // Salta se già caricato in questa sessione per questo branch
-        if(bcListini.length > 0 && bcListini[0]?.branch === branch) return;
+        const IDB_KEY = `ifb_listini_entries_${branch}`;
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+
+        // 1) Carica subito da IDB (cache locale) — nessun parsing, nessun network
+        const cached: any[] = await IDB.get(IDB_KEY, []);
+        if(cached.length > 0) {
+          startTransition(() => { setBcListini(cached); setDataSource(`listini_${branch}`, "bc"); });
+        }
+
+        // 2) Fetch in background per aggiornare la cache
         try {
-          // File per-branch; fallback al file unico se non ancora generato
           let resp = await fetch(`${base}data/ifb_listini_${branch}.json?t=${Date.now()}`);
           if(!resp.ok) resp = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`);
           if(resp.ok) {
             const raw = await resp.json();
-            // Supporta sia formato compatto {b,n,...} sia vecchio {Branch,No_,...}
-            const all = Array.isArray(raw) ? raw.filter((r:any) => !r.b && !r.Branch ? false : (r.b || r.Branch) === branch) : [];
+            const all = Array.isArray(raw) ? raw.filter((r:any) => (r.b || r.Branch) === branch) : [];
             if(all.length > 0) {
               const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
               const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
-              // Lookup maps O(1)
               const byCode: Record<string,any> = {};
               const byNHK:  Record<string,any> = {};
-              prods.forEach((p: any) => {
-                if(p.code) byCode[String(p.code)] = p;
-                if(p.nHK)  byNHK[String(p.nHK)]  = p;
-              });
+              prods.forEach((p: any) => { if(p.code) byCode[String(p.code)]=p; if(p.nHK) byNHK[String(p.nHK)]=p; });
               const xrByIfb: Record<string,string> = {};
-              xrs.forEach((x: any) => { if(x.ifbNo && x.nHK) xrByIfb[String(x.ifbNo)] = String(x.nHK); });
+              xrs.forEach((x: any) => { if(x.ifbNo && x.nHK) xrByIfb[String(x.ifbNo)]=String(x.nHK); });
 
               const nowMonth = new Date().toISOString().slice(0,7);
               const newEntries: any[] = [];
               all.forEach((row: any) => {
                 const code = String(row["n"] || row["No_"] || "").trim();
                 if(!code) return;
-                const prod = byCode[code] || byNHK[code]
-                          || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
-                // Includi TUTTI (prod può essere null — articoli BC senza anagrafica locale)
+                const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
                 newEntries.push({
                   productId:     prod?.id ?? `BC_${code}`,
                   itemCode:      code,
@@ -640,13 +639,12 @@ export default function App() {
                   mtsPrice:      Number(row["mp"] ?? row["MTS_Price"]      ?? 0),
                 });
               });
-              startTransition(() => {
-                setBcListini(newEntries);
-                setDataSource(`listini_${branch}`, "bc");
-              });
+              // Salva in IDB per il prossimo hard refresh (nessun parsing la volta dopo)
+              IDB.set(IDB_KEY, newEntries);
+              startTransition(() => { setBcListini(newEntries); setDataSource(`listini_${branch}`, "bc"); });
             }
           }
-        } catch(_) { /* offline */ }
+        } catch(_) { /* offline — usa dati IDB già caricati sopra */ }
       }
     })();
   },[branch]);
