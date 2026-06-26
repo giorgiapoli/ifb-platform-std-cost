@@ -76,6 +76,11 @@ def is_expired(enddate_str):
     ed = (enddate_str or "").split("T")[0]
     return ed not in ("", "0001-01-01") and ed < TODAY
 
+def has_end_date(enddate_str):
+    """Righe di acquisto: valide solo quelle senza data fine (aperte/permanenti)."""
+    ed = (enddate_str or "").split("T")[0]
+    return ed not in ("", "0001-01-01")
+
 
 def build_item_prices(rows):
     """
@@ -132,7 +137,7 @@ def build_purchase_prices(token):
         if not code:
             continue
         ed = str(r.get("endingdate") or "")
-        if is_expired(ed):
+        if has_end_date(ed):
             continue
         dc    = float(r.get("directunitcost") or 0)
         up    = float(r.get("unitprice")      or 0)
