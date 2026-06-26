@@ -590,15 +590,18 @@ export default function App() {
 
       // Auto-fetch listini IFB da GitHub (HK + CAN + MAC, prezzi aggiornati da BC)
       if(["HK","CAN","MAC"].includes(branch)) {
+        // Salta se già caricato in questa sessione per questo branch
+        if(bcListini.length > 0 && bcListini[0]?.branch === branch) return;
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         try {
-          const r = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`);
+          // File per-branch (~1/3 della size del file unico)
+          const r = await fetch(`${base}data/ifb_listini_${branch}.json?t=${Date.now()}`);
           if(r.ok) {
             const all = await r.json();
             if(Array.isArray(all) && all.length > 0) {
               const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
               const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
-              const branchRows   = all.filter((row: any) => row.Branch === branch);
+              const branchRows   = all; // file già filtrato per branch
               if(branchRows.length > 0) {
                 // Lookup maps O(1) invece di .find() O(n) ad ogni riga
                 const byCode: Record<string,any> = {};

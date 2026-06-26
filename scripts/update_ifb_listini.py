@@ -285,16 +285,16 @@ if __name__ == "__main__":
 
     print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
 
-    hk_ex  = next((r for r in all_rows if r["Branch"] == "HK"  and r["FCA_Price"] > 0), None)
-    can_ex = next((r for r in all_rows if r["Branch"] == "CAN" and r["FCA_Price"] > 0), None)
-    if hk_ex:  print(f"  Esempio HK:  {hk_ex}")
-    if can_ex: print(f"  Esempio CAN: {can_ex}")
-
-    with_price = sum(1 for r in all_rows if r["FCA_Price"] > 0 or r["DAP_Price"] > 0)
-    disc_only  = sum(1 for r in all_rows if r["FCA_Price"] == 0 and r["FCA_Discount"] > 0)
-    print(f"  Con prezzo assoluto: {with_price}")
-    print(f"  Solo sconto (prezzo base non in BC): {disc_only}")
-
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+
+    # Scrivi un file per branch (più leggero da caricare sul client)
+    for br in CUSTOMERS:
+        br_rows = [r for r in all_rows if r["Branch"] == br]
+        br_path = OUT_PATH.parent / f"ifb_listini_{br}.json"
+        br_path.write_text(json.dumps(br_rows, ensure_ascii=False, indent=2), encoding="utf-8")
+        with_price = sum(1 for r in br_rows if r["FCA_Price"] > 0 or r["DAP_Price"] > 0)
+        print(f"  {br}: {len(br_rows)} righe ({with_price} con prezzo) → {br_path.name}")
+
+    # Mantieni anche il file unico per compatibilità
     OUT_PATH.write_text(json.dumps(all_rows, ensure_ascii=False, indent=2), encoding="utf-8")
-    print(f"\nScritto {len(all_rows)} righe in {OUT_PATH}")
+    print(f"Scritto {len(all_rows)} righe in {OUT_PATH.name}")
