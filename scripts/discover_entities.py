@@ -21,24 +21,24 @@ if __name__ == "__main__":
     token = get_token()
     base  = f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/"
 
-    # Fetch metadata ($metadata ritorna XML con tutte le entità)
-    r = requests.get(base + "$metadata",
-                     headers={"Authorization": f"Bearer {token}", "Accept": "application/xml"})
-
-    # Estrai nomi EntitySet dal XML
-    import re
-    entities = re.findall(r'EntitySet Name="([^"]+)"', r.text)
+    # Fetch service document (JSON) — lista tutti gli EntitySet disponibili
+    r = requests.get(base, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+    data = r.json()
+    entities = [e["name"] for e in data.get("value", []) if "name" in e]
     print(f"Totale entità: {len(entities)}\n")
 
-    # Filtra per keyword rilevanti
-    keywords = ["carriage","freight","logistic","cost","transport","nolo","spese","shipping","collo"]
-    print("=== Entità con keyword logistiche ===")
-    for e in entities:
+    keywords = ["carriage","freight","logistic","cost","transport","nolo","spese","shipping","collo","dap","fca"]
+    print("=== Entità con keyword logistiche/prezzi ===")
+    for e in sorted(entities):
         el = e.lower()
         if any(k in el for k in keywords):
             print(f"  {e}")
 
     print("\n=== Tutte le entità IFB_ ===")
     for e in sorted(entities):
-        if e.startswith("IFB_"):
+        if e.upper().startswith("IFB_"):
             print(f"  {e}")
+
+    print("\n=== Tutte le entità (ordinate) ===")
+    for e in sorted(entities):
+        print(f"  {e}")
