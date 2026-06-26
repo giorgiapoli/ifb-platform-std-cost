@@ -586,6 +586,48 @@ export default function App() {
           }
         } catch(_) { /* offline — usa dati IDB */ }
       }
+
+      // Auto-fetch listini IFB da GitHub (HK + CAN + MAC, prezzi aggiornati da BC)
+      if(["HK","CAN","MAC"].includes(branch)) {
+        const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+        try {
+          const r = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`);
+          if(r.ok) {
+            const all = await r.json();
+            if(Array.isArray(all) && all.length > 0) {
+              const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
+              const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
+              const branchRows   = all.filter((row: any) => row.Branch === branch);
+              if(branchRows.length > 0) {
+                const nowMonth = new Date().toISOString().slice(0,7);
+                const updated: any[] = await IDB.get(`ifb_prices_${branch}`, []);
+                branchRows.forEach((row: any) => {
+                  const code = String(row["No_"] || "").trim();
+                  if(!code) return;
+                  const prod = prods.find((p: any) => p.code === code || p.nHK === code)
+                            || (() => { const x = xrs.find((x: any) => x.ifbNo === code); return x ? prods.find((p: any) => p.nHK === x.nHK) : null; })();
+                  if(!prod) return;
+                  const month = row["StartDate"]?.slice(0,7) || nowMonth;
+                  const entry = {
+                    productId:     prod.id, branch, month,
+                    fcaPrice:      Number(row["FCA_Price"]      || 0),
+                    fcaDiscounted: Number(row["FCA_Discounted"] || 0),
+                    dapPrice:      Number(row["DAP_Price"]      || 0),
+                    dapFinal:      Number(row["DAP_Final"]      || row["DAP_Discounted"] || 0),
+                    mtsPrice:      Number(row["MTS_Price"]      || 0),
+                  };
+                  const idx = updated.findIndex((p: any) => p.productId===prod.id && p.branch===branch && p.month===month);
+                  if(idx >= 0) updated[idx] = { ...updated[idx], ...entry };
+                  else updated.push(entry);
+                });
+                setPrices(updated);
+                IDB.set(`ifb_prices_${branch}`, updated);
+                setDataSource(`listini_${branch}`, "bc");
+              }
+            }
+          }
+        } catch(_) { /* offline */ }
+      }
     })();
   },[branch]);
 
