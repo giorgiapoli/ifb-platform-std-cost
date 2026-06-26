@@ -136,7 +136,26 @@ def build_item_prices(rows):
     return item_codes, sale_slots
 
 
-def build_purchase_prices(token):
+def build_uom_conversions(token):
+    """
+    Fetch tabella unità di misura articoli (IFB BC).
+    Restituisce: { item_no: { uom_code: qty_per_base_uom } }
+    La base UoM ha qty=1. Es: Z3774 → {BOX: 6, KG: 1, PCS: 1, PLT: 432}
+    """
+    print("  Fetch UoM conversioni articoli...")
+    rows = bc_fetch_all(token, "IFB_Item_Unit_of_Measure")
+    print(f"    {len(rows)} righe UoM")
+    conv = {}
+    for r in rows:
+        item = str(r.get("itemno") or r.get("item_no") or r.get("No_") or "").strip()
+        code = str(r.get("code") or r.get("uomcode") or "").strip().upper()
+        qty  = float(r.get("qtyperunitofmeasure") or r.get("qty_per_unit_of_measure") or 1)
+        if item and code:
+            conv.setdefault(item, {})[code] = qty
+    return conv
+
+
+def build_purchase_prices(token, uom_conv=None):
     """
     Listini acquisto fornitore (pricetype=Purchase, Active).
     Restituisce: (purch_dict, all_codes)
@@ -159,6 +178,12 @@ def build_purchase_prices(token):
         dc       = float(r.get("directunitcost") or 0)
         up       = float(r.get("unitprice")      or 0)
         price    = dc or up
+        # Converti in base UoM (PCS): se il listino ha UoM=BOX e BOX=6 PCS → dividi per 6
+        puom = str(r.get("unitofmeasurecode") or "").strip().upper()
+        if price and puom and puom != "PCS" and uom_conv:
+            qty = (uom_conv.get(code) or {}).get(puom)
+            if qty and qty > 1:
+                price = price / qty
         ship     = classify_ship(r.get("shipmentmethodcode"))
         slot     = result[code][ship]
         expired  = is_expired(ed)
@@ -260,7 +285,12 @@ if __name__ == "__main__":
     print("Ottengo token BC...")
     token = get_token()
 
-    purch, all_purchase_codes = build_purchase_prices(token)
+    uom_conv = {}
+    try:
+        uom_conv = build_uom_conversions(token)
+    except Exception as e:
+        print(f"  Warning: UoM conversioni non disponibili ({e}) — prezzi senza conversione")
+    purch, all_purchase_codes = build_purchase_prices(token, uom_conv)
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
     print(f"  Articoli totali nel listino acquisto: {len(all_purchase_codes)}")
 
