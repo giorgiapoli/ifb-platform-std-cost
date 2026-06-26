@@ -55,7 +55,12 @@ jobs:
           git add docs/data/hk_xref.json docs/data/hk_sc.json docs/data/hk_anagrafica.json docs/data/ifb_fatture.json docs/data/ifb_listini.json
           if ! git diff --cached --quiet; then
             git commit -m "Auto-update BC data $(date +'%Y-%m-%d')"
-            git pull --rebase origin main || { git rebase --abort; exit 1; }
+            git fetch origin main
+            git rebase origin/main || {
+              git checkout --theirs docs/data/
+              git add docs/data/
+              git rebase --continue
+            }
             git push origin main
           else
             echo "Nessuna modifica"
