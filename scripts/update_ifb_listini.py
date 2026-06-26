@@ -191,9 +191,15 @@ def compute_row(branch, code, sale_slots, purch):
     def to_sell(p):
         return round(p * MARKUP, 2) if p else 0.0
 
-    fca_price = to_sell(purch_fca)
-    dap_price = to_sell(purch_dap)
-    mts_price = to_sell(purch_mts)
+    # Se il listino vendita ha un prezzo assoluto (amounttype=Price, unitprice>0), usalo direttamente.
+    # Altrimenti calcola da acquisto × markup.
+    sale_fca_abs = float(fca_sale.get("unitprice") or 0)
+    sale_dap_abs = float(dap_sale.get("unitprice") or 0)
+    sale_mts_abs = float(mts_sale.get("unitprice") or 0)
+
+    fca_price = sale_fca_abs if sale_fca_abs > 0 else to_sell(purch_fca)
+    dap_price = sale_dap_abs if sale_dap_abs > 0 else to_sell(purch_dap)
+    mts_price = sale_mts_abs if sale_mts_abs > 0 else to_sell(purch_mts)
     carriage  = round(dap_price - fca_price, 4) if dap_price and fca_price else 0.0
 
     fca_disc = fca_sale.get("discount") or 0.0
