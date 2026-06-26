@@ -594,11 +594,13 @@ export default function App() {
         if(bcListini.length > 0 && bcListini[0]?.branch === branch) return;
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         try {
-          // File per-branch (~1/3 della size del file unico)
-          const r = await fetch(`${base}data/ifb_listini_${branch}.json?t=${Date.now()}`);
-          if(r.ok) {
-            const all = await r.json();
-            if(Array.isArray(all) && all.length > 0) {
+          // File per-branch; fallback al file unico se non ancora generato
+          let resp = await fetch(`${base}data/ifb_listini_${branch}.json?t=${Date.now()}`);
+          if(!resp.ok) resp = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`);
+          if(resp.ok) {
+            const raw = await resp.json();
+            const all = Array.isArray(raw) ? raw.filter((r:any) => !r.Branch || r.Branch === branch) : [];
+            if(all.length > 0) {
               const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
               const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
               const branchRows   = all; // file già filtrato per branch
