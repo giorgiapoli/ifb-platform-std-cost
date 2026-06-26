@@ -222,8 +222,9 @@ def build_purchase_prices(token, uom_conv=None):
         if better():
             slot.update({"price": price, "_sd": sd_r, "_open": is_open, "_expired": expired})
         if not result[code]["uom"]:
-            result[code]["uom"]  = str(r.get("unitofmeasurecode") or "").strip()
-            result[code]["desc"] = str(r.get("description") or "").strip()
+            result[code]["uom"]   = str(r.get("unitofmeasurecode") or "").strip()
+            result[code]["desc"]  = str(r.get("description") or "").strip()
+            result[code]["puom"]  = puom  # UoM del prezzo di acquisto (BOX/PCS/KG)
     print(f"    {len(all_codes)} codici unici ({len(result)} con almeno un record processato)")
     return dict(result), all_codes
 
@@ -278,10 +279,12 @@ def compute_row(branch, code, sale_slots, purch):
     ed   = (fca_sale.get("enddate") or mts_sale.get("enddate")
             or dap_sale.get("enddate") or "")
 
+    puom = pur.get("puom", "") if pur else ""
     return {
         "b":  branch,
         "n":  code,
-        "d":  desc[:60] if desc else "",  # descrizione troncata (per articoli senza anagrafica)
+        "d":  desc[:60] if desc else "",
+        "pu": puom,  # UoM acquisto (BOX/PCS/KG) — serve per conversione in app
         "fp": round(fca_price, 6),
         "fd": round(fca_disc, 4),
         "fc": round(fca_discounted, 6),

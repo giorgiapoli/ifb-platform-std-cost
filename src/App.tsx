@@ -626,17 +626,21 @@ export default function App() {
                 const code = String(row["n"] || row["No_"] || "").trim();
                 if(!code) return;
                 const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
+                // Conversione UoM: se prezzo BC è per BOX e anagrafica ha qtyPerBox → dividi per PCS/BOX
+                const purchUom  = String(row["pu"] || "").trim().toUpperCase();
+                const qtyPerBox = (purchUom === "BOX" && prod?.qtyPerBox > 1) ? Number(prod.qtyPerBox) : 1;
+                const div = (p: number) => qtyPerBox > 1 ? p / qtyPerBox : p;
                 newEntries.push({
                   productId:     prod?.id ?? `BC_${code}`,
                   itemCode:      code,
                   bcDesc:        String(row["d"] || row["Description"] || "").trim(),
                   branch, month: nowMonth,
-                  fcaPrice:      Number(row["fp"] ?? row["FCA_Price"]      ?? 0),
-                  fcaDiscounted: Number(row["fc"] ?? row["FCA_Discounted"] ?? 0),
-                  dapPrice:      Number(row["dp"] ?? row["DAP_Price"]      ?? 0),
-                  dapDiscounted: Number(row["dc"] ?? row["DAP_Discounted"] ?? 0),
-                  dapFinal:      Number(row["dc"] ?? row["DAP_Final"]      ?? row["DAP_Discounted"] ?? 0),
-                  mtsPrice:      Number(row["mp"] ?? row["MTS_Price"]      ?? 0),
+                  fcaPrice:      div(Number(row["fp"] ?? row["FCA_Price"]      ?? 0)),
+                  fcaDiscounted: div(Number(row["fc"] ?? row["FCA_Discounted"] ?? 0)),
+                  dapPrice:      div(Number(row["dp"] ?? row["DAP_Price"]      ?? 0)),
+                  dapDiscounted: div(Number(row["dc"] ?? row["DAP_Discounted"] ?? 0)),
+                  dapFinal:      div(Number(row["dc"] ?? row["DAP_Final"]      ?? row["DAP_Discounted"] ?? 0)),
+                  mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
                 });
               });
               // Salva in IDB per il prossimo hard refresh (nessun parsing la volta dopo)
