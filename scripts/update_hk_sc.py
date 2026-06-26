@@ -32,6 +32,10 @@ def bc_get(token, endpoint):
     url = f"{BASE}/{endpoint}"
     while url:
         r = requests.get(url, headers=headers)
+        if r.status_code == 409:
+            # BC skiptoken conflict: restituisce i dati già raccolti
+            print(f"    409 Conflict su paginazione — dati parziali: {len(results)} righe")
+            break
         r.raise_for_status()
         data = r.json()
         results.extend(data.get("value", []))
