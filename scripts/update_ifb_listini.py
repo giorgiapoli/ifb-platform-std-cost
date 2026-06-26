@@ -131,6 +131,9 @@ def build_purchase_prices(token):
         code = str(r.get("assetno") or "").strip()
         if not code:
             continue
+        ed = str(r.get("endingdate") or "")
+        if is_expired(ed):
+            continue
         dc    = float(r.get("directunitcost") or 0)
         up    = float(r.get("unitprice")      or 0)
         price = dc or up
