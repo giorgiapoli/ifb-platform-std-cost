@@ -165,12 +165,14 @@ def build_purchase_prices(token):
         is_open  = not expired and ed in ("", "0001-01-01") and (not sd_r or sd_r <= TODAY)
         slot_open    = slot.get("_open", False)
         slot_expired = slot.get("_expired", True)
-        # Priorità: open > non-scaduto > scaduto; a parità, startingdate più recente
+        # Priorità: open (no end, start<=oggi) > futuro (no end, start>oggi) > non-scaduto-con-end > scaduto
+        # Un record "open" non viene mai sostituito da uno futuro o non-open
         def better(io=is_open, exp=expired, so=slot_open, se=slot_expired, sd=sd_r, sl=slot):
-            if io and not so:           return True
-            if not exp and se:          return True
-            if exp and not se:          return False
-            return sl.get("_sd", "") <= sd
+            if io and not so:  return True   # nuovo open, slot non-open → sostituisci
+            if not io and so:  return False  # nuovo non-open, slot open → tieni
+            if not exp and se: return True   # nuovo non-scaduto, slot scaduto → sostituisci
+            if exp and not se: return False  # nuovo scaduto, slot non-scaduto → tieni
+            return sl.get("_sd", "") <= sd   # stessa categoria: più recente per startdate
         if better():
             slot.update({"price": price, "_sd": sd_r, "_open": is_open, "_expired": expired})
         if not result[code]["uom"]:
