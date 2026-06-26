@@ -2723,7 +2723,7 @@ const priceSnaps = snapshots.filter((s: any) => s.type === "prices" && s.branch 
 
 function exportToExcel() {
   const rows = displayed.map((p: any) => {
-    const prod = products.find((pr: any) => pr.id === p.productId);
+    const prod = prodById[String(p.productId)];
     return {
       "N HK":         prod?.nHK    || "",
       "IFB No":       prod?.code   || p.productId || "",
@@ -2987,25 +2987,36 @@ if (prod) s.add(prod.id);
 return s;
 }, [salesRows, products, xrefs]);
 
-// Usa bcListini (dati BC in memoria) se disponibili, altrimenti prices importati manualmente
-const baseList = bcListini.length > 0
-  ? bcListini.filter((p: any) => p.branch === branch)
-  : prices.filter((p: any) => p.branch === branch && p.month === month);
-const filtered = baseList.filter((p: any) => {
-if (/^P_BC_/i.test(p.productId)) return false;
-if (invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
-return true;
-});
+// Lookup map prodotti O(1) — costruita una volta sola
+const prodById = useMemo(() => {
+  const m: Record<string,any> = {};
+  products.forEach((p: any) => { if(p.id) m[String(p.id)] = p; });
+  return m;
+}, [products]);
 
-const displayed = filtered.filter(p => {
-const prod = products.find(pr => pr.id === p.productId);
-if (!search) return true;
-const q = search.toLowerCase();
-return prod?.description?.toLowerCase().includes(q) ||
-prod?.code?.toLowerCase().includes(q) ||
-prod?.nHK?.toLowerCase().includes(q) ||
-String(p.productId).toLowerCase().includes(q);
-});
+// Usa bcListini (dati BC in memoria) se disponibili, altrimenti prices importati manualmente
+const filtered = useMemo(() => {
+  const baseList = bcListini.length > 0
+    ? bcListini.filter((p: any) => p.branch === branch)
+    : prices.filter((p: any) => p.branch === branch && p.month === month);
+  return baseList.filter((p: any) => {
+    if (/^P_BC_/i.test(p.productId)) return false;
+    if (invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
+    return true;
+  });
+}, [bcListini, prices, branch, month, invoiceOnly, invoiceProductIds]);
+
+const displayed = useMemo(() => {
+  if (!search) return filtered;
+  const q = search.toLowerCase();
+  return filtered.filter((p: any) => {
+    const prod = prodById[String(p.productId)];
+    return prod?.description?.toLowerCase().includes(q) ||
+      prod?.code?.toLowerCase().includes(q) ||
+      prod?.nHK?.toLowerCase().includes(q) ||
+      String(p.productId).toLowerCase().includes(q);
+  });
+}, [filtered, search, prodById]);
 
 const COLS = ["fcaPrice", "fcaDiscounted", "dapPrice", "mtsPrice", "dapFinal"];
 const LABELS = ["FCA Price", "FCA Disc.", "DAP Price", "MTS Price", "DAP Final"];
@@ -3161,8 +3172,8 @@ return (
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
 <THead cols={[branchN(branch),"IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Final"]} sticky />
 <tbody>
-{displayed.slice(0, 300).map((p, i) => {
-const prod = products.find(pr => pr.id === p.productId);
+{displayed.slice(0, 300).map((p: any, i: number) => {
+const prod = prodById[String(p.productId)];
 const inInvoice = invoiceProductIds.has(p.productId);
 return (
   <tr key={p.productId} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
