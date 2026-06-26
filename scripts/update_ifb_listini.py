@@ -145,13 +145,32 @@ def build_uom_conversions(token):
     print("  Fetch UoM conversioni articoli...")
     rows = bc_fetch_all(token, "IFB_Item_Unit_of_Measure")
     print(f"    {len(rows)} righe UoM")
+    if rows:
+        # Debug: mostra campi disponibili della prima riga
+        sample = {k: v for k, v in rows[0].items() if not k.startswith("@")}
+        print(f"    Campi disponibili: {list(sample.keys())}")
+        print(f"    Esempio prima riga: {sample}")
     conv = {}
     for r in rows:
-        item = str(r.get("itemno") or r.get("item_no") or r.get("No_") or "").strip()
-        code = str(r.get("code") or r.get("uomcode") or "").strip().upper()
-        qty  = float(r.get("qtyperunitofmeasure") or r.get("qty_per_unit_of_measure") or 1)
+        # Prova tutti i possibili nomi campo per item code
+        item = str(r.get("itemno") or r.get("Item_No") or r.get("item_no") or
+                   r.get("No_") or r.get("assetno") or "").strip()
+        # Prova tutti i possibili nomi campo per uom code
+        code = str(r.get("code") or r.get("Code") or r.get("uomcode") or
+                   r.get("UoM") or "").strip().upper()
+        # Prova tutti i possibili nomi campo per qty
+        qty_raw = (r.get("qtyperunitofmeasure") or r.get("QtyPerUnitOfMeasure") or
+                   r.get("qty_per_unit_of_measure") or r.get("Qty") or 1)
+        qty = float(qty_raw)
         if item and code:
             conv.setdefault(item, {})[code] = qty
+    # Debug: verifica conversioni per articoli chiave
+    for test_code in ["HA7021-IB", "Z3774", "BD0501", "CF0051-IFA"]:
+        if test_code in conv:
+            print(f"    {test_code}: {conv[test_code]}")
+        else:
+            print(f"    {test_code}: NON TROVATO in UoM table")
+    print(f"    Totale articoli con conversioni UoM: {len(conv)}")
     return conv
 
 
@@ -180,7 +199,9 @@ def build_purchase_prices(token, uom_conv=None):
         price    = dc or up
         # Converti in base UoM (PCS): se il listino ha UoM=BOX e BOX=6 PCS → dividi per 6
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
-        if price and puom and puom != "PCS" and uom_conv:
+        if code in ("HA7021-IB", "Z3774", "BD0501", "CF0051-IFA"):
+            print(f"    DEBUG {code}: price={price}, puom={puom}, uom_conv_entry={( uom_conv or {}).get(code)}")
+        if price and puom and puom not in ("PCS", "", " ") and uom_conv:
             qty = (uom_conv.get(code) or {}).get(puom)
             if qty and qty > 1:
                 price = price / qty
