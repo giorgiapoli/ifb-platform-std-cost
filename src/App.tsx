@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 
 const T = {
@@ -640,8 +640,10 @@ export default function App() {
                   mtsPrice:      Number(row["mp"] ?? row["MTS_Price"]      ?? 0),
                 });
               });
-              setBcListini(newEntries);
-              setDataSource(`listini_${branch}`, "bc");
+              startTransition(() => {
+                setBcListini(newEntries);
+                setDataSource(`listini_${branch}`, "bc");
+              });
             }
           }
         } catch(_) { /* offline */ }
@@ -3179,7 +3181,7 @@ return (
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
 <THead cols={[branchN(branch),"IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
 <tbody>
-{displayed.slice(0, 300).map((p: any, i: number) => {
+{displayed.slice(0, 150).map((p: any, i: number) => {
 const prod = prodById[String(p.productId)];
 const inInvoice = invoiceProductIds.has(p.productId);
 return (
