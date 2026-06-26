@@ -257,24 +257,18 @@ def compute_row(branch, code, sale_slots, purch):
     ed   = (fca_sale.get("enddate") or mts_sale.get("enddate")
             or dap_sale.get("enddate") or "")
 
+    # Campi minimi usati dall'app (meno è più veloce da parsare)
     return {
-        "Branch":         branch,
-        "No_":            code,
-        "Description":    desc,
-        "UoM":            uom,
-        "MTS_Price":      round(mts_price, 6),
-        "MTS_Discount":   round(mts_disc, 4),
-        "MTS_Discounted": round(mts_discounted, 6),
-        "FCA_Price":      round(fca_price, 6),
-        "FCA_Discount":   round(fca_disc, 4),
-        "FCA_Discounted": round(fca_discounted, 6),
-        "Carriage":       round(carriage, 6),
-        "DAP_Price":      round(dap_price, 6),
-        "DAP_Discount":   round(dap_disc, 4),
-        "DAP_Discounted": round(dap_discounted, 6),
-        "DAP_Final":      round(dap_discounted, 6),
-        "StartDate":      sd,
-        "EndDate":        ed,
+        "b":  branch,
+        "n":  code,
+        "fp": round(fca_price, 6),
+        "fd": round(fca_disc, 4),
+        "fc": round(fca_discounted, 6),
+        "mp": round(mts_price, 6),
+        "dp": round(dap_price, 6),
+        "dd": round(dap_disc, 4),
+        "dc": round(dap_discounted, 6),
+        "cr": round(carriage, 6),
     }
 
 
@@ -323,10 +317,10 @@ if __name__ == "__main__":
     for br in CUSTOMERS:
         br_rows = [r for r in all_rows if r["Branch"] == br]
         br_path = OUT_PATH.parent / f"ifb_listini_{br}.json"
-        br_path.write_text(json.dumps(br_rows, ensure_ascii=False, indent=2), encoding="utf-8")
-        with_price = sum(1 for r in br_rows if r["FCA_Price"] > 0 or r["DAP_Price"] > 0)
+        br_path.write_text(json.dumps(br_rows, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
+        with_price = sum(1 for r in br_rows if r["fp"] > 0 or r["dp"] > 0)
         print(f"  {br}: {len(br_rows)} righe ({with_price} con prezzo) → {br_path.name}")
 
     # Mantieni anche il file unico per compatibilità
-    OUT_PATH.write_text(json.dumps(all_rows, ensure_ascii=False, indent=2), encoding="utf-8")
+    OUT_PATH.write_text(json.dumps(all_rows, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
     print(f"Scritto {len(all_rows)} righe in {OUT_PATH.name}")

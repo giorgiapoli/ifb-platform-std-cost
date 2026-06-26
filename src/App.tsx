@@ -599,44 +599,42 @@ export default function App() {
           if(!resp.ok) resp = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`);
           if(resp.ok) {
             const raw = await resp.json();
-            const all = Array.isArray(raw) ? raw.filter((r:any) => !r.Branch || r.Branch === branch) : [];
+            // Supporta sia formato compatto {b,n,...} sia vecchio {Branch,No_,...}
+            const all = Array.isArray(raw) ? raw.filter((r:any) => !r.b && !r.Branch ? false : (r.b || r.Branch) === branch) : [];
             if(all.length > 0) {
               const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
               const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
-              const branchRows   = all; // file già filtrato per branch
-              if(branchRows.length > 0) {
-                // Lookup maps O(1) invece di .find() O(n) ad ogni riga
-                const byCode: Record<string,any> = {};
-                const byNHK:  Record<string,any> = {};
-                prods.forEach((p: any) => {
-                  if(p.code) byCode[String(p.code)] = p;
-                  if(p.nHK)  byNHK[String(p.nHK)]  = p;
-                });
-                const xrByIfb: Record<string,string> = {};
-                xrs.forEach((x: any) => { if(x.ifbNo && x.nHK) xrByIfb[String(x.ifbNo)] = String(x.nHK); });
+              // Lookup maps O(1)
+              const byCode: Record<string,any> = {};
+              const byNHK:  Record<string,any> = {};
+              prods.forEach((p: any) => {
+                if(p.code) byCode[String(p.code)] = p;
+                if(p.nHK)  byNHK[String(p.nHK)]  = p;
+              });
+              const xrByIfb: Record<string,string> = {};
+              xrs.forEach((x: any) => { if(x.ifbNo && x.nHK) xrByIfb[String(x.ifbNo)] = String(x.nHK); });
 
-                const nowMonth = new Date().toISOString().slice(0,7);
-                const newEntries: any[] = [];
-                branchRows.forEach((row: any) => {
-                  const code = String(row["No_"] || "").trim();
-                  if(!code) return;
-                  const prod = byCode[code] || byNHK[code]
-                            || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
-                  if(!prod) return;
-                  newEntries.push({
-                    productId:     prod.id, branch, month: nowMonth,
-                    fcaPrice:      Number(row["FCA_Price"]      || 0),
-                    fcaDiscounted: Number(row["FCA_Discounted"] || 0),
-                    dapPrice:      Number(row["DAP_Price"]      || 0),
-                    dapDiscounted: Number(row["DAP_Discounted"] || 0),
-                    dapFinal:      Number(row["DAP_Final"]      || row["DAP_Discounted"] || 0),
-                    mtsPrice:      Number(row["MTS_Price"]      || 0),
-                  });
+              const nowMonth = new Date().toISOString().slice(0,7);
+              const newEntries: any[] = [];
+              all.forEach((row: any) => {
+                // Formato compatto (n) o vecchio (No_)
+                const code = String(row["n"] || row["No_"] || "").trim();
+                if(!code) return;
+                const prod = byCode[code] || byNHK[code]
+                          || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
+                if(!prod) return;
+                newEntries.push({
+                  productId:     prod.id, branch, month: nowMonth,
+                  fcaPrice:      Number(row["fp"] ?? row["FCA_Price"]      ?? 0),
+                  fcaDiscounted: Number(row["fc"] ?? row["FCA_Discounted"] ?? 0),
+                  dapPrice:      Number(row["dp"] ?? row["DAP_Price"]      ?? 0),
+                  dapDiscounted: Number(row["dc"] ?? row["DAP_Discounted"] ?? 0),
+                  dapFinal:      Number(row["dc"] ?? row["DAP_Final"]      ?? row["DAP_Discounted"] ?? 0),
+                  mtsPrice:      Number(row["mp"] ?? row["MTS_Price"]      ?? 0),
                 });
-                // Usa state separato — non tocca prices (globale) per evitare re-render di tutto l'app
-                setBcListini(newEntries);
-                setDataSource(`listini_${branch}`, "bc");
-              }
+              });
+              setBcListini(newEntries);
+              setDataSource(`listini_${branch}`, "bc");
             }
           }
         } catch(_) { /* offline */ }
