@@ -552,18 +552,23 @@ export default function App() {
           if(r.ok) {
             const all = await r.json();
             if(Array.isArray(all) && all.length > 0) {
-              // Legge prodotti e xrefs già caricati da IDB in questa stessa esecuzione
               const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
               const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
               const airl: any[]  = await IDB.get(`ifb_airlist_${branch}`, []);
+              // Lookup maps O(1) per fatture
+              const fByCode: Record<string,any> = {};
+              const fByNHK:  Record<string,any> = {};
+              prods.forEach((p: any) => { if(p.code) fByCode[p.code]=p; if(p.nHK) fByNHK[p.nHK]=p; });
+              const fXrByIfb: Record<string,string> = {};
+              xrs.forEach((x: any) => { if(x.ifbNo && x.nHK) fXrByIfb[x.ifbNo]=x.nHK; });
+              const airSet = new Set(airl.flatMap((a: any) => [a.productId, a.code, a.nHK].filter(Boolean)));
               const branchRows = all
                 .filter((row: any) => row.Branch === branch)
                 .map((row: any) => {
                   const code = String(row["No_"] || "").trim();
-                  const prod = prods.find((p: any) => p.code === code || p.nHK === code)
-                            || (xrs.find((x: any) => x.ifbNo === code) ? prods.find((p: any) => p.nHK === xrs.find((x: any) => x.ifbNo === code)?.nHK) : null);
-                  const nHK = prod?.nHK || xrs.find((x: any) => x.ifbNo === code)?.nHK || "";
-                  const isAirProd = prod && airl.some((a: any) => a.productId === prod.id || (a.code && a.code === prod.code) || (a.nHK && prod.nHK && a.nHK === prod.nHK));
+                  const prod = fByCode[code] || fByNHK[code] || (fXrByIfb[code] ? fByNHK[fXrByIfb[code]] : null);
+                  const nHK  = prod?.nHK || fXrByIfb[code] || "";
+                  const isAirProd = prod && (airSet.has(prod.id) || airSet.has(prod.code) || airSet.has(prod.nHK));
                   return {
                     itemCode:   code,
                     description: String(row["Description"] || "").trim(),
