@@ -5,6 +5,10 @@ on:
     - cron: '0 5 * * *'   # Ogni giorno alle 07:00 ora italiana (05:00 UTC)
   workflow_dispatch:        # Trigger manuale dal tab Actions su GitHub
 
+concurrency:
+  group: update-bc-data
+  cancel-in-progress: true
+
 jobs:
   update-data:
     runs-on: ubuntu-latest
@@ -14,6 +18,8 @@ jobs:
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Python
         uses: actions/setup-python@v5

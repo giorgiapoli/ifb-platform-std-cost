@@ -76,6 +76,16 @@ def is_expired(enddate_str):
     ed = (enddate_str or "").split("T")[0]
     return ed not in ("", "0001-01-01") and ed < TODAY
 
+def is_valid_purchase(startdate_str, enddate_str):
+    """Righe acquisto valide: senza data fine E con data inizio <= oggi."""
+    ed = (enddate_str or "").split("T")[0]
+    sd = (startdate_str or "").split("T")[0]
+    if ed not in ("", "0001-01-01"):
+        return False  # ha data fine → salta
+    if sd and sd > TODAY:
+        return False  # non ancora attivo → salta
+    return True
+
 
 
 def build_item_prices(rows):
@@ -132,8 +142,9 @@ def build_purchase_prices(token):
         code = str(r.get("assetno") or "").strip()
         if not code:
             continue
-        ed = str(r.get("endingdate") or "")
-        if is_expired(ed):
+        sd_r  = str(r.get("startingdate") or "")
+        ed    = str(r.get("endingdate") or "")
+        if not is_valid_purchase(sd_r, ed):
             continue
         dc    = float(r.get("directunitcost") or 0)
         up    = float(r.get("unitprice")      or 0)
