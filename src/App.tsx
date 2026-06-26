@@ -2733,13 +2733,14 @@ function exportToExcel() {
     const prod = prodById[String(p.productId)];
     return {
       "N HK":         prod?.nHK    || "",
-      "IFB No":       prod?.code   || p.productId || "",
-      "Descrizione":  prod?.description || "",
+      "IFB No":       prod?.code   || p.itemCode  || "",
+      "Descrizione":  prod?.description || p.bcDesc || "",
       "UoM":          prod?.uom    || "",
       "MTS Price":    p.mtsPrice   || "",
       "FCA Price":    p.fcaPrice   || "",
       "FCA Disc.":    p.fcaDiscounted || "",
       "DAP Price":    p.dapPrice   || "",
+      "DAP Disc.":    p.dapDiscounted || "",
       "DAP Final":    p.dapFinal   || "",
       "Mese":         p.month      || month,
     };
