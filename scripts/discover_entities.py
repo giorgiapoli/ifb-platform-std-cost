@@ -46,6 +46,18 @@ if __name__ == "__main__":
         if e.upper().startswith("IFB_"):
             print(f"  {e}")
 
-    print("\n=== Tutte le entità (ordinate) ===")
-    for e in sorted(entities):
-        print(f"  {e}")
+    # Esplora entità carriage
+    company_base = f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/"
+    for entity in ["Tabella_Costi_di_Trasporto_Excel", "TransportCostsLines_Excel", "Costi_Trasporto_Lista_Excel"]:
+        print(f"\n=== {entity} ===")
+        try:
+            r2 = requests.get(company_base + entity + "?$top=3",
+                              headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+            d2 = r2.json()
+            rows = d2.get("value", [])
+            print(f"  Status: {r2.status_code}, Righe (top 3): {len(rows)}")
+            for row in rows:
+                clean = {k: v for k, v in row.items() if not k.startswith("@")}
+                print(f"  {clean}")
+        except Exception as e:
+            print(f"  Errore: {e}")
