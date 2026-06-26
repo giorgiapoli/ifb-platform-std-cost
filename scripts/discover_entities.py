@@ -19,10 +19,11 @@ def get_token():
 
 if __name__ == "__main__":
     token = get_token()
-    base  = f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/"
+    base         = f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/"
+    service_root = f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV}/ODataV4/"
 
-    # Fetch service document (JSON) — lista tutti gli EntitySet disponibili
-    r = requests.get(base, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
+    # Il service document root (senza Company) lista tutti gli EntitySet
+    r = requests.get(service_root, headers={"Authorization": f"Bearer {token}", "Accept": "application/json"})
     print(f"Status: {r.status_code}")
     print(f"Response (primi 2000 chars): {r.text[:2000]}")
     try:
