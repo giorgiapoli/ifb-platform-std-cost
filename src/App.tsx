@@ -2709,6 +2709,28 @@ const [doneInfo, setDoneInfo] = useState<any>(null);
 // Storico import listini
 const priceSnaps = snapshots.filter((s: any) => s.type === "prices" && s.branch === branch);
 
+function exportToExcel() {
+  const rows = displayed.map((p: any) => {
+    const prod = products.find((pr: any) => pr.id === p.productId);
+    return {
+      "N HK":         prod?.nHK    || "",
+      "IFB No":       prod?.code   || p.productId || "",
+      "Descrizione":  prod?.description || "",
+      "UoM":          prod?.uom    || "",
+      "MTS Price":    p.mtsPrice   || "",
+      "FCA Price":    p.fcaPrice   || "",
+      "FCA Disc.":    p.fcaDiscounted || "",
+      "DAP Price":    p.dapPrice   || "",
+      "DAP Final":    p.dapFinal   || "",
+      "Mese":         p.month      || month,
+    };
+  });
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, `Listini ${branch}`);
+  XLSX.writeFile(wb, `Listini_${branch}_${month}.xlsx`);
+}
+
 // Funzione per verificare se un codice è valido (NON Power BI)
 function isValidCode(code: string) {
 if (!code) return false;
@@ -3036,6 +3058,10 @@ return (
 
 <button onClick={() => setInvoiceOnly(v => !v)} style={{ padding: "5px 12px", background: invoiceOnly ? `${T.gold}20` : T.surface, color: invoiceOnly ? T.gold : T.muted, border: `1px solid ${invoiceOnly ? T.gold : T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px", whiteSpace: "nowrap" }}>
 {invoiceOnly ? `✓ Solo fatturati (${displayed.length})` : `📋 Solo Sales Invoice (${invoiceProductIds.size} prod.)`}
+</button>
+
+<button onClick={exportToExcel} disabled={displayed.length === 0} style={{ padding: "5px 12px", background: "none", border: `1px solid ${T.green}66`, borderRadius: "6px", color: T.green, cursor: "pointer", fontSize: "11px" }}>
+⬇ Excel
 </button>
 
 {setPricesParent && (
