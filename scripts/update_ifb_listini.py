@@ -315,7 +315,7 @@ if __name__ == "__main__":
 
     # Scrivi un file per branch (più leggero da caricare sul client)
     for br in CUSTOMERS:
-        br_rows = [r for r in all_rows if r["Branch"] == br]
+        br_rows = [r for r in all_rows if r["b"] == br]
         br_path = OUT_PATH.parent / f"ifb_listini_{br}.json"
         br_path.write_text(json.dumps(br_rows, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
         with_price = sum(1 for r in br_rows if r["fp"] > 0 or r["dp"] > 0)
