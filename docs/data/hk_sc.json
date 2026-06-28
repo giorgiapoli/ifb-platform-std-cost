@@ -1632,10 +1632,10 @@
     "code": "FB5004",
     "description": "FRZ. Burrata Fresco Gourmet1.5KG (125gx12)",
     "lastSC": 142.01,
-    "fifoUnit": 154.64192,
+    "fifoUnit": 154.66481,
     "salesLast3m": -1275.3,
     "lastPurchaseDate": "2026-05-13",
-    "stockQty": 485.9
+    "stockQty": 476.9
   },
   {
     "code": "FB5004-DEF",
@@ -1650,10 +1650,10 @@
     "code": "FB5004-DEFL",
     "description": "Burrata Fresco Gourmet 1.5KG (125gx12)",
     "lastSC": 150.63,
-    "fifoUnit": 153.42921,
+    "fifoUnit": 153.42919,
     "salesLast3m": -1804.0,
     "lastPurchaseDate": "",
-    "stockQty": 127.0
+    "stockQty": 136.0
   },
   {
     "code": "FB5006",
