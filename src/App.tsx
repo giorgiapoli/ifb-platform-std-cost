@@ -822,12 +822,11 @@ export default function App() {
 
   const isCAN = branch === "CAN";
   const isMAC = branch === "MAC";
-  const isHK  = branch === "HK";
 
   const NAV_ALL = [
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
     {id:"products",   icon:"◈", label:"Anagrafica", badge:"⇪"},
-    ...(!isHK ? [{id:"xref", icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"}] : []),
+    {id:"xref",       icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
     ...(!isMAC ? [{id:"logistics", icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"}] : []),
     ...(!isMAC ? [{id:"prices",    icon:"◉", label:"Listini", badge:"💶"}] : []),
     ...(!isMAC ? [{id:"meatlist",  icon:"🥩", label:"Listino Carne"}] : []),
