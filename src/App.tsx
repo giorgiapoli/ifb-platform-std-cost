@@ -3976,6 +3976,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterTransport,setFilterTransport] = useState("all");
   const [filterNHK,setFilterNHK]   = useState("");
   const [filterIFBNo,setFilterIFBNo] = useState("");
+  const [filterLocation,setFilterLocation] = useState<"all"|"ncj"|"non-ncj">("all");
   const [search,setSearch]     = useState("");
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
 
@@ -4118,6 +4119,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   }
   if(filterNHK==="__MISSING__") displayed=displayed.filter(r=>!r.nHK);
   else if(filterNHK)            displayed=displayed.filter(r=>r.nHK===filterNHK);
+  if(filterLocation==="ncj")     displayed=displayed.filter(r=>String(r.location||"").toUpperCase().includes("NCJ"));
+  else if(filterLocation==="non-ncj") displayed=displayed.filter(r=>!String(r.location||"").toUpperCase().includes("NCJ"));
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
 
@@ -4308,7 +4311,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC ▾","SC TF","SC LAN","SC FUE"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC ▾","SC TF","SC LAN","SC FUE"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4336,6 +4339,16 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                       <option value="ok">✅ Con costo</option>
                       <option value="mancante">❌ MANCANTE</option>
                       <option value="air">✈ AIR</option>
+                    </select>
+                  </th>
+                );
+                if(c==="Location ▾") return(
+                  <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                    <select value={filterLocation} onChange={e=>setFilterLocation(e.target.value as any)}
+                      style={{background:filterLocation!=="all"?`${T.gold}22`:T.card,color:filterLocation!=="all"?T.gold:T.muted,border:`1px solid ${filterLocation!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
+                      <option value="all">Location ▾</option>
+                      <option value="ncj">NCJ</option>
+                      <option value="non-ncj">Non NCJ</option>
                     </select>
                   </th>
                 );
