@@ -1966,9 +1966,9 @@
     "description": "Frozen Stracciatella Fresco Gourmet 250gr (8)",
     "lastSC": 21.97,
     "fifoUnit": 23.42734,
-    "salesLast3m": -429.0,
+    "salesLast3m": -657.0,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 4999.0
+    "stockQty": 4771.0
   },
   {
     "code": "FL204",
@@ -2317,7 +2317,7 @@
     "description": "FRZ. Egg Yolk Super Yellow 1Lt (6)",
     "lastSC": 75.23,
     "fifoUnit": 73.58486,
-    "salesLast3m": -6863.0,
+    "salesLast3m": -6862.0,
     "lastPurchaseDate": "2026-06-29",
     "stockQty": 2069.0
   },
@@ -4036,7 +4036,7 @@
     "description": "Chickpeas  800g  (6)",
     "lastSC": 13.47,
     "fifoUnit": 12.48412,
-    "salesLast3m": -533.0,
+    "salesLast3m": -532.0,
     "lastPurchaseDate": "2026-06-26",
     "stockQty": 148.0
   },
@@ -4054,7 +4054,7 @@
     "description": "Grilled Piquillo Peppers 660g/tin  (6)",
     "lastSC": 52.58,
     "fifoUnit": 51.499,
-    "salesLast3m": -2336.0,
+    "salesLast3m": -2335.0,
     "lastPurchaseDate": "2026-06-26",
     "stockQty": 1125.0
   },
@@ -5197,7 +5197,7 @@
     "description": "Guanciale with Pepper +/- 1.5kg (2)",
     "lastSC": 83.3,
     "fifoUnit": 78.85729,
-    "salesLast3m": -3016.612,
+    "salesLast3m": -3013.312,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 1155.037
   },
@@ -5259,10 +5259,10 @@
     "code": "HA8022-IB",
     "description": "SLICED Cured Ham 500g (6)",
     "lastSC": 65.87,
-    "fifoUnit": 72.65412,
-    "salesLast3m": -2058.0,
+    "fifoUnit": 72.96754,
+    "salesLast3m": -2068.0,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 291.0
+    "stockQty": 281.0
   },
   {
     "code": "HA8023-IB",
@@ -7618,7 +7618,7 @@
     "description": "Frozen Mozzarella Shredded Mamma Tina 3kg/tray (4)[MT333]",
     "lastSC": 131.35,
     "fifoUnit": 115.59456,
-    "salesLast3m": -154.0,
+    "salesLast3m": -153.0,
     "lastPurchaseDate": "2026-06-04",
     "stockQty": 1388.0
   },
@@ -7843,7 +7843,7 @@
     "description": "Pomace Olive Oil \"Olitalia\" 5Lt (2)",
     "lastSC": 121.47,
     "fifoUnit": 115.83961,
-    "salesLast3m": -630.0,
+    "salesLast3m": -629.0,
     "lastPurchaseDate": "2026-06-26",
     "stockQty": 1972.0
   },
@@ -8995,7 +8995,7 @@
     "description": "#Arborio Rice 'Don Luigi'  1Kg   (10)",
     "lastSC": 180.47,
     "fifoUnit": 182.2284,
-    "salesLast3m": -236.7,
+    "salesLast3m": -235.7,
     "lastPurchaseDate": "2026-05-26",
     "stockQty": 337.0
   },
