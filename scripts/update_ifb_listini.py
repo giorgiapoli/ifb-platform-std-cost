@@ -245,8 +245,8 @@ def build_purchase_prices(token, uom_conv=None):
         price    = dc or up
         # Converti in base UoM (PCS): se il listino ha UoM=BOX e BOX=6 PCS → dividi per 6
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
-        if code in ("HA7021-IB", "Z3774", "BD0501", "CF0051-IFA"):
-            print(f"    DEBUG {code}: price={price}, puom={puom}, uom_conv_entry={( uom_conv or {}).get(code)}")
+        if code in ("HA7021-IB", "Z3774", "BD0501", "CF0051-IFA", "LSM30", "CW0015"):
+            print(f"    DEBUG {code}: price={price}, puom={puom}, sd={sd_r}, ed={ed}, ship={ship}, uom_conv_entry={( uom_conv or {}).get(code)}")
         if price and puom and puom not in ("PCS", "", " ") and uom_conv:
             qty = (uom_conv.get(code) or {}).get(puom)
             if qty and qty > 1:
@@ -272,6 +272,11 @@ def build_purchase_prices(token, uom_conv=None):
             result[code]["desc"]  = str(r.get("description") or "").strip()
             result[code]["puom"]  = puom  # UoM del prezzo di acquisto (BOX/PCS/KG)
     print(f"    {len(all_codes)} codici unici ({len(result)} con almeno un record processato)")
+    for chk in ("LSM30", "CW0015"):
+        if chk in all_codes:
+            print(f"    DEBUG {chk} in all_codes: {result.get(chk)}")
+        else:
+            print(f"    DEBUG {chk} NON TROVATO in all_codes (purchase list)")
     return dict(result), all_codes
 
 
