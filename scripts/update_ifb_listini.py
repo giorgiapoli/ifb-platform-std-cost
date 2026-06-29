@@ -17,6 +17,8 @@ CLIENT_ID     = "925de6e4-e71f-4c24-9e0a-f3ae544ae644"
 CLIENT_SECRET = os.environ.get("BC_CLIENT_SECRET", "")
 BC_ENV        = "Production"
 BC_COMPANY    = "Inalca%20Food%20%26%20Beverage%20s.r.l."
+BC_ENV_HK     = "Production_HK"
+BC_COMPANY_HK = "BRIGHT%20VIEW%20TRADING%20HK%20LIMITED"
 OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "ifb_listini.json"
 
 TODAY  = date.today().isoformat()
@@ -66,10 +68,10 @@ def bc_fetch_all(token, entity, filt=None):
     return results
 
 
-def bc_fetch_webservice(token, entity, filt=None):
-    """Come bc_fetch_all ma usa endpoint /OData/ (WebServices) invece di /ODataV4/."""
+def bc_fetch_hk(token, entity, filt=None):
+    """Fetch da BC Brightview HK (Production_HK)."""
     base = (f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}"
-            f"/{BC_ENV}/OData/Company('{BC_COMPANY}')/")
+            f"/{BC_ENV_HK}/ODataV4/Company('{BC_COMPANY_HK}')/")
     url = base + entity
     params = {"$top": 5000}
     if filt:
@@ -88,14 +90,7 @@ def bc_fetch_webservice(token, entity, filt=None):
 
 
 def fetch_price_lines(token, filt):
-    # Prova prima WebService (/OData/) come fa PowerBI, fallback su ODataV4
-    try:
-        rows = bc_fetch_webservice(token, "IFB_Price_List_Line", filt=filt)
-        print(f"    [WebService] {len(rows)} righe")
-        return rows
-    except Exception as e:
-        print(f"    WebService fallito ({e}), uso ODataV4...")
-        return bc_fetch_all(token, "IFB_Price_List_Line", filt=filt)
+    return bc_fetch_all(token, "IFB_Price_List_Line", filt=filt)
 
 
 def classify_ship(code):
@@ -315,6 +310,67 @@ def build_purchase_prices(token, uom_conv=None):
     return dict(result), all_codes
 
 
+def build_hk_purchase_prices(token, hk_ifb_map, uom_conv=None):
+    """
+    Listini acquisto da BC HK (Brightview) — stessa logica del report IFB Pricelist Bright View.
+    hk_ifb_map: {hk_code: ifb_code}  es. {"CW0015": "LSM30"}
+    Restituisce la stessa struttura di build_purchase_prices.
+    """
+    print("  Fetch listini acquisto HK (BC Brightview)...")
+    rows = bc_fetch_hk(token, "IFB_Price_List_Line",
+                       "status eq 'Active' and (shipmentmethodcode eq 'DAP' or shipmentmethodcode eq 'FCA')")
+    rows = [r for r in rows if str(r.get("pricetype") or "").strip().lower() == "purchase"]
+    print(f"    {len(rows)} righe purchase da BC HK")
+
+    result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
+    all_codes = set()
+
+    for r in rows:
+        hk_code = str(r.get("assetno") or "").strip()
+        if not hk_code:
+            continue
+        ifb_code = hk_ifb_map.get(hk_code, hk_code)
+        all_codes.add(ifb_code)
+
+        sd_r  = str(r.get("startingdate") or "")
+        ed    = str(r.get("endingdate") or "")
+        dc    = float(r.get("directunitcost") or 0)
+        up    = float(r.get("unitprice") or 0)
+        price = dc or up
+        puom  = str(r.get("unitofmeasurecode") or "").strip().upper()
+
+        if price and puom and puom not in ("PCS", "", " ") and uom_conv:
+            qty = (uom_conv.get(ifb_code) or {}).get(puom)
+            if qty and qty > 1:
+                price = price / qty
+
+        ship     = classify_ship(r.get("shipmentmethodcode"))
+        slot     = result[ifb_code][ship]
+        expired  = not is_active_date(ed)
+        is_open  = is_active_date(ed) and (not sd_r or sd_r <= TODAY)
+        slot_open    = slot.get("_open", False)
+        slot_expired = slot.get("_expired", True)
+
+        def better(io=is_open, exp=expired, so=slot_open, se=slot_expired, sd=sd_r, sl=slot):
+            if io and not so:  return True
+            if not io and so:  return False
+            if not exp and se: return True
+            if exp and not se: return False
+            return sl.get("_sd", "") <= sd
+
+        if better():
+            slot.update({"price": price, "_sd": sd_r, "_open": is_open, "_expired": expired})
+        if not result[ifb_code]["uom"]:
+            result[ifb_code]["uom"]  = str(r.get("unitofmeasurecode") or "").strip()
+            result[ifb_code]["desc"] = str(r.get("description") or "").strip()
+            result[ifb_code]["puom"] = puom
+
+    print(f"    {len(all_codes)} codici IFB unici da BC HK")
+    if "LSM30" in all_codes:
+        print(f"    LSM30: {dict(result['LSM30'])}")
+    return dict(result), all_codes
+
+
 def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None):
     """
     FCA/DAP Price = purchase * MARKUP (100/99)
@@ -420,28 +476,29 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"  Warning: Costi trasporto non disponibili ({e})")
 
-    # ── DEBUG LSM30: query diretta senza filtri di esclusione ────────────────
-    print("\n  === DIAGNOSI LSM30 ===")
-    for filt, fdesc in [
-        ("assetno eq 'LSM30'",  "assetno=LSM30"),
-        ("assetno eq 'CW0015'", "assetno=CW0015"),
-        (None,                  "NESSUN filtro"),
-    ]:
-        try:
-            rr = bc_fetch_webservice(token, "IFB_Price_List_Line", filt=filt)
-            lsm = [r for r in rr if str(r.get("assetno","")).upper() in ("LSM30","CW0015")]
-            print(f"  [{fdesc}] {len(rr)} righe totali, LSM30/CW0015 trovati={len(lsm)}")
-            for r in lsm[:3]:
-                clean = {k:v for k,v in r.items() if not k.startswith("@")}
-                print(f"    {clean}")
-        except Exception as e:
-            print(f"  [{fdesc}] ERRORE: {e}")
-    print("  === FINE DIAGNOSI ===\n")
-    # ─────────────────────────────────────────────────────────────────────────
-
     purch, all_purchase_codes = build_purchase_prices(token, uom_conv)
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
-    print(f"  Articoli totali nel listino acquisto: {len(all_purchase_codes)}")
+    print(f"  Articoli totali nel listino acquisto BC Italia: {len(all_purchase_codes)}")
+
+    # Supplementa con prezzi da BC HK (Brightview) per articoli non presenti in BC Italia
+    try:
+        hk_ana_path = OUT_PATH.parent / "hk_anagrafica.json"
+        hk_ana = json.loads(hk_ana_path.read_text(encoding="utf-8"))
+        # Mappa nHK → IFB code
+        hk_ifb_map = {
+            str(a.get("nHK") or ""): str(a.get("code") or a.get("id") or "")
+            for a in hk_ana if a.get("nHK") and (a.get("code") or a.get("id"))
+        }
+        print(f"  Mappa HK→IFB: {len(hk_ifb_map)} articoli da hk_anagrafica.json")
+        purch_hk, codes_hk = build_hk_purchase_prices(token, hk_ifb_map, uom_conv)
+        new_codes = codes_hk - all_purchase_codes
+        print(f"  {len(new_codes)} articoli nuovi da BC HK (non in BC Italia)")
+        for code in new_codes:
+            purch[code] = purch_hk[code]
+        all_purchase_codes = all_purchase_codes | codes_hk
+        print(f"  Totale articoli dopo merge HK: {len(all_purchase_codes)}")
+    except Exception as e:
+        print(f"  Warning: fetch BC HK fallito ({e})")
 
     all_rows = []
 
