@@ -1,4 +1,4 @@
-﻿import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
+import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 
 const T = {
@@ -746,7 +746,8 @@ export default function App() {
       const plt = pltFromFile > 0 ? pltFromFile : canDefaultPlt;
       const log = { ...logRaw, pltPerContainer: plt };
 
-      const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month);
+      const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month)
+                  || bcListini.find((p:any)=>(p.productId===prod.id||(p.itemCode||p.n)===prod.code)&&(p.branch||p.b)===branch);
       const prPrev = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
 
       const ub = log.ubicazione;
