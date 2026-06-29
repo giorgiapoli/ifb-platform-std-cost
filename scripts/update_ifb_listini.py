@@ -287,22 +287,6 @@ def build_purchase_prices(token, uom_conv=None):
     return dict(result), all_codes
 
 
-def debug_lsm30(token):
-    """Query diretta per LSM30 senza filtri — mostra tutto quello che BC restituisce."""
-    print("\n  === DIAGNOSI LSM30 ===")
-    for filt, label in [
-        ("assetno eq 'LSM30'", "assetno=LSM30 (no altri filtri)"),
-        ("assetno eq 'LSM30' and status eq 'Active'", "assetno=LSM30 + Active"),
-        ("assetno eq 'LSM30' and pricetype eq 'Purchase'", "assetno=LSM30 + Purchase"),
-    ]:
-        rows = fetch_price_lines(token, filt)
-        print(f"  Filtro [{label}]: {len(rows)} righe")
-        for r in rows[:3]:
-            clean = {k: v for k, v in r.items() if not k.startswith("@")}
-            print(f"    {clean}")
-    print("  === FINE DIAGNOSI ===\n")
-
-
 def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None):
     """
     FCA/DAP Price = purchase * MARKUP (100/99)
@@ -408,7 +392,6 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"  Warning: Costi trasporto non disponibili ({e})")
 
-    debug_lsm30(token)
     purch, all_purchase_codes = build_purchase_prices(token, uom_conv)
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
     print(f"  Articoli totali nel listino acquisto: {len(all_purchase_codes)}")
