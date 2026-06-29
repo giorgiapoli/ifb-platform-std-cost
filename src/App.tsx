@@ -33,7 +33,7 @@ const branchN = (branch: string) => branch === "CAN" ? "N COMIT" : "N HK";
 const AIR_TYPES = ["air","sea"];
 const isAirTransport = t => {
   const val = String(t||"").toLowerCase().trim();
-  return val === "air";
+  return val.includes("air");
 };
 const isIFBVendor = v => String(v||"").toUpperCase().includes("INALCA FOOD");
 
@@ -568,7 +568,10 @@ export default function App() {
                   const code = String(row["No_"] || "").trim();
                   const prod = fByCode[code] || fByNHK[code] || (fXrByIfb[code] ? fByNHK[fXrByIfb[code]] : null);
                   const nHK  = prod?.nHK || fXrByIfb[code] || "";
-                  const isAirProd = prod && (airSet.has(prod.id) || airSet.has(prod.code) || airSet.has(prod.nHK));
+                  const isAirProd = prod && (
+                    airSet.has(prod.id) || airSet.has(prod.code) || airSet.has(prod.nHK) ||
+                    isAirTransport(prod.bcTransportation)
+                  );
                   return {
                     itemCode:   code,
                     description: String(row["Description"] || "").trim(),
@@ -727,7 +730,7 @@ export default function App() {
           (a.code && a.code === prod.code) ||
           (a.nHK && prod.nHK && a.nHK === prod.nHK)
         );
-      if(airEntry && isAirTransport(airEntry.transportation))
+      if((airEntry && isAirTransport(airEntry.transportation)) || isAirTransport(prod.bcTransportation))
         return { ...prod, cost:null, prevCost:null, priceInput:null, isAir:true, skipReason:"AIR" };
 
       const logRaw = logistics.find(l=>l.productId===prod.id&&l.branch===branch);

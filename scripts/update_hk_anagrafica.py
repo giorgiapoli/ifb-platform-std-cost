@@ -67,6 +67,7 @@ def get_anagrafica(token):
         "AltICMNet_Weight",            # kgPerBox
         "AltICMKg_x_PLT",             # kgxplt
         "AltICMProduct_Type",          # temperature
+        "Transportation",              # modalità trasporto (CH AIR / DRY AIR / FR AIR / SEA ...)
         "Blocked",
         "AltICMVendor_Name", "AltICMVendor_Name_2",
         "AltICMHOFF",
@@ -107,8 +108,9 @@ if __name__ == "__main__":
             "boxPerPallet":float(item.get("AltICMPackaging_x_Pallet") or 0),
             "kgPerBox":    float(item.get("AltICMNet_Weight") or 0),
             "kgxplt":      float(item.get("AltICMKg_x_PLT") or 0),
-            "temperature": norm(item.get("AltICMProduct_Type"), TEMP_MAP),
-            "isHoff":      bool(item.get("AltICMHOFF")),
+            "temperature":      norm(item.get("AltICMProduct_Type"), TEMP_MAP),
+            "bcTransportation": str(item.get("Transportation") or "").strip().upper(),
+            "isHoff":           bool(item.get("AltICMHOFF")),
             "active":      not blocked,
             "vendorName":  str(item.get("AltICMVendor_Name") or "").strip(),
             "vendorName2": str(item.get("AltICMVendor_Name_2") or "").strip(),
