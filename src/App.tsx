@@ -2652,6 +2652,17 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         </div>
       )}
 
+      <div style={{marginBottom:"12px"}}>
+        <button
+          onClick={()=>{
+            IDB.set("ifb_logistics", logistics);
+            showToast("Salvato ✓", T.green);
+          }}
+          style={{padding:"8px 18px",background:`${T.green}20`,border:`1px solid ${T.green}66`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
+          💾 Salva dati logistici
+        </button>
+      </div>
+
       {displayed.length > 0 && (
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
@@ -3216,11 +3227,13 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={[branchN(branch),"IFB No","Descrizione","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
+<THead cols={[branchN(branch),"IFB No","Descrizione","UoM","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
 <tbody>
 {displayed.slice(0, 150).map((p: any, i: number) => {
 const prod = prodById[String(p.productId)];
 const inInvoice = invoiceProductIds.has(p.productId);
+const puom = p.pu || "";
+const qtyPerBox = puom === "BOX" ? (products.find((pr:any) => pr.code === (p.n || p.itemCode))?.qtyPerBox || 1) : 1;
 return (
   <tr key={p.productId} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
     <TD mono><span style={{ color: T.muted }}>{prod?.nHK || "—"}</span></TD>
@@ -3229,10 +3242,11 @@ return (
       {inInvoice && <span style={{ marginLeft: "5px", fontSize: "9px", color: T.blue }}>📋</span>}
     </TD>
     <TD>{prod?.description || p.bcDesc || <span style={{ color: T.dim, fontSize: "11px" }}>{p.itemCode}</span>}</TD>
+    <TD mono><span style={{ color: puom ? T.gold : T.dim, fontSize: "10px" }}>{puom || "—"}</span></TD>
     {COLS.map(f => (
       <TD key={f} mono>
         <span style={{ color: (p[f] || 0) > 0 ? T.text : T.dim }}>
-          {(p[f] || 0) > 0 ? `€ ${roundN(p[f]).toFixed(2)}` : "—"}
+          {(p[f] || 0) > 0 ? `€ ${roundN((p[f] || 0) * qtyPerBox).toFixed(2)}` : "—"}
         </span>
       </TD>
     ))}
@@ -4010,6 +4024,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterNHK,setFilterNHK]   = useState("");
   const [filterIFBNo,setFilterIFBNo] = useState("");
   const [filterLocation,setFilterLocation] = useState<"all"|"ncj"|"non-ncj">("all");
+  const [filterScBC,setFilterScBC] = useState<"all"|"assente">("all");
   const [search,setSearch]     = useState("");
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
 
@@ -4155,7 +4170,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(filterLocation==="ncj")     displayed=displayed.filter(r=>String(r.location||"").toUpperCase().includes("NCJ"));
   else if(filterLocation==="non-ncj") displayed=displayed.filter(r=>!String(r.location||"").toUpperCase().includes("NCJ"));
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
+  if(filterScBC==="assente") displayed=displayed.filter(r=>!r.bcStdCost||r.bcStdCost===0);
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
+  displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
 
   // ── STEPS IMPORT ──────────────────────────────────────────────────────────
   if(step==="map") return(
@@ -4344,6 +4361,17 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
       </div>
 
       <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca codice, ${branchN(branch)}, descrizione, location…`}/>
+
+      {branch!=="CAN"&&(
+        <div style={{display:"flex",gap:"6px",marginBottom:"10px",alignItems:"center"}}>
+          <span style={{fontSize:"11px",color:T.muted}}>SC BC:</span>
+          <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
+            style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
+            <option value="all">SC BC: Tutte</option>
+            <option value="assente">SC BC: assente (-)</option>
+          </select>
+        </div>
+      )}
 
       <Section title={`${displayed.length} righe`}>
         <div style={{overflowX:"auto"}}>

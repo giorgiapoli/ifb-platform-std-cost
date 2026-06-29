@@ -49,22 +49,32 @@ def get_token():
 
 
 def bc_fetch_all(token, entity, filt=None):
-    base = (f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}"
-            f"/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/")
-    url = base + entity
-    params = {"$top": 5000}
+    base_url = (f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}"
+                f"/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/{entity}")
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    base_params = {"$top": 5000}
     if filt:
-        params["$filter"] = filt
+        base_params["$filter"] = filt
     results = []
-    while url:
-        r = requests.get(url,
-                         headers={"Authorization": f"Bearer {token}",
-                                  "Accept": "application/json"},
-                         params=params if url == base + entity else {})
+    next_url = None
+    skip = 0
+    while True:
+        if next_url:
+            r = requests.get(next_url, headers=headers)
+        else:
+            r = requests.get(base_url, headers=headers, params={**base_params, "$skip": skip})
         r.raise_for_status()
         data = r.json()
-        results.extend(data.get("value", []))
-        url = data.get("@odata.nextLink")
+        batch = data.get("value", [])
+        results.extend(batch)
+        next_url = data.get("@odata.nextLink")
+        if next_url:
+            skip = 0
+        elif len(batch) == 5000:
+            # BC non ha restituito nextLink ma potrebbe esserci un batch successivo
+            skip += 5000
+        else:
+            break
     return results
 
 
