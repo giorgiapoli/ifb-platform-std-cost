@@ -519,27 +519,27 @@ export default function App() {
       setPrices(await IDB.get(`ifb_prices_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
 
-      // Auto-fetch dati BC aggiornati da GitHub (solo HK, silent)
-      if(branch === "HK") {
+      // Auto-fetch dati BC aggiornati da GitHub (HK + CAN usano stessa anagrafica IFB)
+      if(branch === "HK" || branch === "CAN") {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         const t = Date.now();
         try {
-          const [rxref, rsc, rana] = await Promise.all([
-            fetch(`${base}data/hk_xref.json?t=${t}`),
-            fetch(`${base}data/hk_sc.json?t=${t}`),
-            fetch(`${base}data/hk_anagrafica.json?t=${t}`),
-          ]);
-          if(rxref.ok) {
-            const d = await rxref.json();
-            if(Array.isArray(d) && d.length > 0) { setXrefs(d); IDB.set(`ifb_xrefs_${branch}`, d); setDataSource(`xref_${branch}`,"bc"); }
+          const fetches: Promise<Response>[] = [fetch(`${base}data/hk_anagrafica.json?t=${t}`)];
+          if(branch === "HK") {
+            fetches.unshift(
+              fetch(`${base}data/hk_xref.json?t=${t}`),
+              fetch(`${base}data/hk_sc.json?t=${t}`),
+            );
           }
-          if(rsc.ok) {
-            const d = await rsc.json();
-            if(Array.isArray(d) && d.length > 0) { setScAttuali(d); IDB.set(`ifb_scattuali_${branch}`, d); setDataSource(`scattuali_${branch}`,"bc"); }
-          }
-          if(rana.ok) {
-            const d = await rana.json();
-            if(Array.isArray(d) && d.length > 0) { setProducts(d); IDB.set(`ifb_products_${branch}`, d); setDataSource(`anagrafica_${branch}`,"bc"); }
+          const results = await Promise.all(fetches);
+          if(branch === "HK") {
+            const [rxref, rsc, rana] = results;
+            if(rxref.ok) { const d=await rxref.json(); if(Array.isArray(d)&&d.length>0){setXrefs(d);IDB.set(`ifb_xrefs_${branch}`,d);setDataSource(`xref_${branch}`,"bc");} }
+            if(rsc.ok)  { const d=await rsc.json();  if(Array.isArray(d)&&d.length>0){setScAttuali(d);IDB.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
+            if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);IDB.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
+          } else {
+            const [rana] = results;
+            if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);IDB.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
           }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
@@ -4034,6 +4034,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterIFBNo,setFilterIFBNo] = useState("");
   const [filterLocation,setFilterLocation] = useState<"all"|"ncj"|"non-ncj">("all");
   const [filterScBC,setFilterScBC] = useState<"all"|"assente">("all");
+  const [filterMotivo,setFilterMotivo] = useState<"all"|"no-log"|"no-price">("all");
   const [search,setSearch]     = useState("");
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
 
@@ -4180,6 +4181,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(filterLocation==="non-ncj") displayed=displayed.filter(r=>!String(r.location||"").toUpperCase().includes("NCJ"));
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
   if(filterScBC==="assente") displayed=displayed.filter(r=>!r.bcStdCost||r.bcStdCost===0);
+  if(filterMotivo==="no-log") displayed=displayed.filter(r=>r.skipReason==="NO LOGISTICA");
+  else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
 
@@ -4371,16 +4374,25 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
       <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca codice, ${branchN(branch)}, descrizione, location…`}/>
 
-      {branch!=="CAN"&&(
-        <div style={{display:"flex",gap:"6px",marginBottom:"10px",alignItems:"center"}}>
-          <span style={{fontSize:"11px",color:T.muted}}>SC BC:</span>
-          <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
-            style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
-            <option value="all">SC BC: Tutte</option>
-            <option value="assente">SC BC: assente (-)</option>
-          </select>
-        </div>
-      )}
+      <div style={{display:"flex",gap:"12px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
+        {branch!=="CAN"&&(
+          <>
+            <span style={{fontSize:"11px",color:T.muted}}>SC BC:</span>
+            <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
+              style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
+              <option value="all">SC BC: Tutte</option>
+              <option value="assente">SC BC: assente (-)</option>
+            </select>
+          </>
+        )}
+        <span style={{fontSize:"11px",color:T.muted}}>Motivo:</span>
+        <select value={filterMotivo} onChange={e=>setFilterMotivo(e.target.value as any)}
+          style={{background:filterMotivo!=="all"?`${T.orange}22`:T.surface,color:filterMotivo!=="all"?T.orange:T.muted,border:`1px solid ${filterMotivo!=="all"?T.orange:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
+          <option value="all">Motivo: Tutti</option>
+          <option value="no-log">Senza Logistica</option>
+          <option value="no-price">Senza Prezzo</option>
+        </select>
+      </div>
 
       <Section title={`${displayed.length} righe`}>
         <div style={{overflowX:"auto"}}>
@@ -5879,8 +5891,11 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   return (
     <div>
       <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli · ${products.filter((p: any) => isIFBVendor(p.vendorName)).length} INALCA F&B`} srcKey={`anagrafica_${branch}`}/>
-      <BcBanner title="Dati aggiornati automaticamente da BC Brightview (HK)">
-        Anagrafica articoli caricata ogni giorno alle 07:00 dall'item card di <b style={{color:T.text}}>Business Central Brightview</b>: descrizione, categoria, UoM, kg/box, pz/box, box/pallet, temperatura, fornitore, <b style={{color:T.text}}>Transportation</b> (AIR/SEA) e <b style={{color:T.text}}>Standard Cost</b> a sistema. È possibile importare manualmente da file per sovrascrivere.
+      <BcBanner title={branch==="CAN" ? "Anagrafica prodotti IFB (codici da BC Brightview HK)" : "Dati aggiornati automaticamente da BC Brightview (HK)"}>
+        {branch==="CAN"
+          ? <>Anagrafica caricata da <b style={{color:T.text}}>Business Central Brightview HK</b> — usata <b style={{color:T.orange}}>solo per codici IFB, descrizioni, UoM e specifiche logistiche</b> (kg/box, pz/box, temperatura). I <b style={{color:T.text}}>prezzi e costi</b> vengono esclusivamente da <b style={{color:T.text}}>BC IFB Italia</b> (listino acquisto). È possibile importare manualmente da file per sovrascrivere.</>
+          : <>Anagrafica articoli caricata ogni giorno alle 07:00 dall'item card di <b style={{color:T.text}}>Business Central Brightview</b>: descrizione, categoria, UoM, kg/box, pz/box, box/pallet, temperatura, fornitore, <b style={{color:T.text}}>Transportation</b> (AIR/SEA) e <b style={{color:T.text}}>Standard Cost</b> a sistema. È possibile importare manualmente da file per sovrascrivere.</>
+        }
       </BcBanner>
 
       {/* Toolbar import */}
