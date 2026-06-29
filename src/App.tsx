@@ -3374,9 +3374,12 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
     setLastCalcTs(ts);LS.set("ifb_last_calc_ts",ts);
   }
 
+  const searchLow = search.toLowerCase();
   let filtered: any[] = costRows.filter((r:any)=>
-  !search||r.description?.toLowerCase().includes(search.toLowerCase())||
-  r.code?.includes(search)||r.nHK?.includes(search));
+    !search
+    ||r.description?.toLowerCase().includes(searchLow)
+    ||r.code?.toLowerCase().includes(searchLow)
+    ||r.nHK?.toLowerCase().includes(searchLow));
 
 // APPLICA FILTRI MULTIPLI (include = mostra solo questi; exclude = nascondi questi)
   const applyFlag = (flag:false|"include"|"exclude", test:(r:any)=>boolean) => {
