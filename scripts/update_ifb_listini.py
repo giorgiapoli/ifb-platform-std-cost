@@ -420,6 +420,25 @@ if __name__ == "__main__":
     except Exception as e:
         print(f"  Warning: Costi trasporto non disponibili ({e})")
 
+    # ── DEBUG LSM30: query diretta senza filtri di esclusione ────────────────
+    print("\n  === DIAGNOSI LSM30 ===")
+    for filt, fdesc in [
+        ("assetno eq 'LSM30'",  "assetno=LSM30"),
+        ("assetno eq 'CW0015'", "assetno=CW0015"),
+        (None,                  "NESSUN filtro"),
+    ]:
+        try:
+            rr = bc_fetch_webservice(token, "IFB_Price_List_Line", filt=filt)
+            lsm = [r for r in rr if str(r.get("assetno","")).upper() in ("LSM30","CW0015")]
+            print(f"  [{fdesc}] {len(rr)} righe totali, LSM30/CW0015 trovati={len(lsm)}")
+            for r in lsm[:3]:
+                clean = {k:v for k,v in r.items() if not k.startswith("@")}
+                print(f"    {clean}")
+        except Exception as e:
+            print(f"  [{fdesc}] ERRORE: {e}")
+    print("  === FINE DIAGNOSI ===\n")
+    # ─────────────────────────────────────────────────────────────────────────
+
     purch, all_purchase_codes = build_purchase_prices(token, uom_conv)
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
     print(f"  Articoli totali nel listino acquisto: {len(all_purchase_codes)}")
