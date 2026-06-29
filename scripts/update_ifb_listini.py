@@ -66,8 +66,36 @@ def bc_fetch_all(token, entity, filt=None):
     return results
 
 
+def bc_fetch_webservice(token, entity, filt=None):
+    """Come bc_fetch_all ma usa endpoint /OData/ (WebServices) invece di /ODataV4/."""
+    base = (f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}"
+            f"/{BC_ENV}/OData/Company('{BC_COMPANY}')/")
+    url = base + entity
+    params = {"$top": 5000}
+    if filt:
+        params["$filter"] = filt
+    results = []
+    while url:
+        r = requests.get(url,
+                         headers={"Authorization": f"Bearer {token}",
+                                  "Accept": "application/json"},
+                         params=params if url == base + entity else {})
+        r.raise_for_status()
+        data = r.json()
+        results.extend(data.get("value", []))
+        url = data.get("@odata.nextLink")
+    return results
+
+
 def fetch_price_lines(token, filt):
-    return bc_fetch_all(token, "IFB_Price_List_Line", filt=filt)
+    # Prova prima WebService (/OData/) come fa PowerBI, fallback su ODataV4
+    try:
+        rows = bc_fetch_webservice(token, "IFB_Price_List_Line", filt=filt)
+        print(f"    [WebService] {len(rows)} righe")
+        return rows
+    except Exception as e:
+        print(f"    WebService fallito ({e}), uso ODataV4...")
+        return bc_fetch_all(token, "IFB_Price_List_Line", filt=filt)
 
 
 def classify_ship(code):
