@@ -273,10 +273,10 @@
     "code": "BA1007",
     "description": "White Gourmet Dressing-Nocturne 250ml(6)",
     "lastSC": 49.16,
-    "fifoUnit": 47.88,
-    "salesLast3m": -315.0,
+    "fifoUnit": 47.88056,
+    "salesLast3m": -317.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 449.0
+    "stockQty": 447.0
   },
   {
     "code": "BA1007-AM",
@@ -651,10 +651,10 @@
     "code": "CAA18",
     "description": "GRANA PADANO DOP 14 MONTHS 1/16",
     "lastSC": 111.35,
-    "fifoUnit": 112.59843,
-    "salesLast3m": -674.996,
+    "fifoUnit": 112.59575,
+    "salesLast3m": -677.373,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 1223.289
+    "stockQty": 1220.912
   },
   {
     "code": "CCF01",
@@ -984,10 +984,10 @@
     "code": "CPS03-HK",
     "description": "BURRATA FRESCO GOURMET 2 X125 G HK (8)",
     "lastSC": 39.64,
-    "fifoUnit": 20.67326,
-    "salesLast3m": -2043.0,
+    "fifoUnit": 20.70189,
+    "salesLast3m": -2049.0,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 466.0
+    "stockQty": 460.0
   },
   {
     "code": "CPS03-HKFRZ",
@@ -1642,7 +1642,7 @@
     "description": "FRZ. Burrata Fresco Gourmet1.5KG (125gx12)",
     "lastSC": 142.01,
     "fifoUnit": 154.81093,
-    "salesLast3m": -1172.3,
+    "salesLast3m": -1170.3,
     "lastPurchaseDate": "2026-05-13",
     "stockQty": 400.9
   },
@@ -2353,7 +2353,7 @@
     "description": "#Cappelletti with Ham 3kg (1)",
     "lastSC": 213.46,
     "fifoUnit": 182.70961,
-    "salesLast3m": -87.1,
+    "salesLast3m": -86.1,
     "lastPurchaseDate": "2026-06-29",
     "stockQty": 176.9
   },
@@ -3837,10 +3837,10 @@
     "code": "GCMA-3707",
     "description": "*Vanilla Pod    2pc x 2.5g (20)",
     "lastSC": 52.32212,
-    "fifoUnit": 29.84518,
+    "fifoUnit": 29.84509,
     "salesLast3m": -19.0,
     "lastPurchaseDate": "2026-05-18",
-    "stockQty": 56.0
+    "stockQty": 53.0
   },
   {
     "code": "GCMA-4018",
@@ -4018,7 +4018,7 @@
     "description": "Grilled Red & Yellow Peppers 800g (6)",
     "lastSC": 50.88,
     "fifoUnit": 50.30719,
-    "salesLast3m": -782.0,
+    "salesLast3m": -781.0,
     "lastPurchaseDate": "2026-05-26",
     "stockQty": 1048.0
   },
@@ -4098,10 +4098,10 @@
     "code": "GCRI-1017",
     "description": "Anchovies in Fillets 700g  (6)",
     "lastSC": 100.17,
-    "fifoUnit": 99.63046,
-    "salesLast3m": -1106.0,
+    "fifoUnit": 99.63586,
+    "salesLast3m": -1118.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 1156.0
+    "stockQty": 1144.0
   },
   {
     "code": "GCRI-1018",
@@ -4972,7 +4972,7 @@
     "description": "Mortadella PISTACHIO 2,5Kg - Ø14cm (2)",
     "lastSC": 49.83,
     "fifoUnit": 48.23794,
-    "salesLast3m": -2270.27,
+    "salesLast3m": -2261.54,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 509.79
   },
@@ -7078,7 +7078,7 @@
     "description": "Selected Minced Beef IQF 1kg (6)",
     "lastSC": 84.34,
     "fifoUnit": 81.88204,
-    "salesLast3m": -870.0,
+    "salesLast3m": -868.0,
     "lastPurchaseDate": "2026-06-22",
     "stockQty": 972.0
   },
@@ -7735,7 +7735,7 @@
     "description": "Parmesan Grated Mix 1KG (10)",
     "lastSC": 97.0,
     "fifoUnit": 93.87662,
-    "salesLast3m": -3522.0,
+    "salesLast3m": -3520.0,
     "lastPurchaseDate": "2026-06-22",
     "stockQty": 760.0
   },
@@ -7842,10 +7842,10 @@
     "code": "OL0509-IF",
     "description": "Extra Virgin Olive Oil 5lt    (4)",
     "lastSC": 238.28,
-    "fifoUnit": 226.18233,
-    "salesLast3m": -793.0,
+    "fifoUnit": 226.18082,
+    "salesLast3m": -794.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 1724.0
+    "stockQty": 1723.0
   },
   {
     "code": "OL0510-IF",
@@ -10272,10 +10272,10 @@
     "code": "TMRI-2007-V1",
     "description": "Tomato Pulp 10kg (1)",
     "lastSC": 125.31,
-    "fifoUnit": 118.3634,
-    "salesLast3m": -121.0,
+    "fifoUnit": 118.38413,
+    "salesLast3m": -125.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 159.0
+    "stockQty": 155.0
   },
   {
     "code": "TMRI-2008",
