@@ -1970,9 +1970,18 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
     ||a.code?.toLowerCase().includes(_sq)
     ||a.nHK?.toLowerCase().includes(_sq));
 
+  const bcAirCount = products.filter((p:any)=>isAirTransport(p.bcTransportation)).length;
+
   return(
     <div>
       <PageHeader title="✈ AIR Transport" sub="Articoli trasportati via aerea — esclusi da Standard Cost (calcolo solo SEA)"/>
+      <div style={{background:`${T.blue}15`,border:`1px solid ${T.blue}44`,borderRadius:"8px",padding:"12px 16px",marginBottom:"16px",fontSize:"12px",color:T.text}}>
+        <div style={{fontWeight:"bold",color:T.blue,marginBottom:"6px"}}>ℹ Classificazione automatica da BC Brightview</div>
+        <div style={{color:T.muted,lineHeight:"1.6"}}>
+          Gli articoli con campo <b style={{color:T.text}}>Transportation</b> impostato a <b style={{color:T.orange}}>CH AIR</b>, <b style={{color:T.orange}}>DRY AIR</b> o <b style={{color:T.orange}}>FR AIR</b> nell'item card di BC Brightview vengono classificati automaticamente come AIR ({bcAirCount} articoli da BC).
+          La lista manuale qui sotto integra o sovrascrive per gli articoli non presenti in BC.
+        </div>
+      </div>
 
       {step==="map"&&(
         <Section title={`Mappatura — ${fileName}`}>
