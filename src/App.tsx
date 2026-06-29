@@ -1975,13 +1975,10 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
   return(
     <div>
       <PageHeader title="✈ AIR Transport" sub="Articoli trasportati via aerea — esclusi da Standard Cost (calcolo solo SEA)"/>
-      <div style={{background:`${T.blue}15`,border:`1px solid ${T.blue}44`,borderRadius:"8px",padding:"12px 16px",marginBottom:"16px",fontSize:"12px",color:T.text}}>
-        <div style={{fontWeight:"bold",color:T.blue,marginBottom:"6px"}}>ℹ Classificazione automatica da BC Brightview</div>
-        <div style={{color:T.muted,lineHeight:"1.6"}}>
-          Gli articoli con campo <b style={{color:T.text}}>Transportation</b> impostato a <b style={{color:T.orange}}>CH AIR</b>, <b style={{color:T.orange}}>DRY AIR</b> o <b style={{color:T.orange}}>FR AIR</b> nell'item card di BC Brightview vengono classificati automaticamente come AIR ({bcAirCount} articoli da BC).
-          La lista manuale qui sotto integra o sovrascrive per gli articoli non presenti in BC.
-        </div>
-      </div>
+      <BcBanner title="Classificazione automatica da BC Brightview">
+        Gli articoli con campo <b style={{color:T.text}}>Transportation</b> impostato a <b style={{color:T.orange}}>CH AIR</b>, <b style={{color:T.orange}}>DRY AIR</b> o <b style={{color:T.orange}}>FR AIR</b> nell'item card di BC Brightview vengono classificati automaticamente come AIR ({bcAirCount} articoli da BC).
+        La lista manuale qui sotto integra o sovrascrive per gli articoli non presenti in BC.
+      </BcBanner>
 
       {step==="map"&&(
         <Section title={`Mappatura — ${fileName}`}>
@@ -3082,6 +3079,9 @@ Nessun prezzo per {branch} · {month}.
 return (
 <div>
 <PageHeader title={`Listini · ${branch} · ${month}`} sub={`${filtered.length} prezzi caricati`} />
+<BcBanner title="Dati aggiornati automaticamente da BC IFB Italia">
+  Listini prezzi FCA / DAP / MTS caricati ogni giorno alle 07:00 dal listino acquisto e vendita di <b style={{color:T.text}}>Business Central IFB Italia</b>. Il campo <b style={{color:T.text}}>DAP</b> viene calcolato dalla tabella costi trasporto BC quando non è presente un prezzo DAP esplicito (Pallet1 ÷ pz/pallet).
+</BcBanner>
 
 {/* Toolbar import */}
 <div style={{ display: "flex", gap: "10px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
@@ -4211,6 +4211,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   return(
     <div>
       <PageHeader title={`Fatture & Costi · ${branch}`} sub={`${enriched.length} righe · ${fileName||"dati caricati"}`} srcKey={`fatture_${branch}`}/>
+      {activeRows.some((r:any)=>r._fromBC) && (
+        <BcBanner title="Dati caricati automaticamente da BC IFB Italia">
+          Le righe fattura sono importate direttamente da <b style={{color:T.text}}>Business Central IFB Italia</b> (Item Ledger Entry). La colonna <b style={{color:T.text}}>SC BC</b> mostra lo Standard Cost a sistema su BC Brightview; <b style={{color:T.text}}>Δ SC</b> è la differenza rispetto al costo calcolato dall'app.
+        </BcBanner>
+      )}
 
       {/* Mismatch banner */}
       {mismatches.length>0&&(
@@ -5813,6 +5818,9 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   return (
     <div>
       <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli · ${products.filter((p: any) => isIFBVendor(p.vendorName)).length} INALCA F&B`} srcKey={`anagrafica_${branch}`}/>
+      <BcBanner title="Dati aggiornati automaticamente da BC Brightview (HK)">
+        Anagrafica articoli caricata ogni giorno alle 07:00 dall'item card di <b style={{color:T.text}}>Business Central Brightview</b>: descrizione, categoria, UoM, kg/box, pz/box, box/pallet, temperatura, fornitore, <b style={{color:T.text}}>Transportation</b> (AIR/SEA) e <b style={{color:T.text}}>Standard Cost</b> a sistema. È possibile importare manualmente da file per sovrascrivere.
+      </BcBanner>
 
       {/* Toolbar import */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center", flexWrap: "wrap" }}>
@@ -6471,6 +6479,15 @@ const inputStyle = () => ({
   border:`1px solid ${T.border}`,borderRadius:"6px",color:T.text,
   fontFamily:"inherit",fontSize:"12px",outline:"none",boxSizing:"border-box",
 });
+
+function BcBanner({icon="ℹ", title, children}:any){
+  return(
+    <div style={{background:`${T.blue}15`,border:`1px solid ${T.blue}44`,borderRadius:"8px",padding:"12px 16px",marginBottom:"16px",fontSize:"12px",color:T.text}}>
+      <div style={{fontWeight:"bold",color:T.blue,marginBottom:"6px"}}>{icon} {title}</div>
+      <div style={{color:T.muted,lineHeight:"1.6"}}>{children}</div>
+    </div>
+  );
+}
 
 function PageHeader({title,sub,srcKey=null}:any){
   return(
