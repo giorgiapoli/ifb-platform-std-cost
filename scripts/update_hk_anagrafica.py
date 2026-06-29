@@ -68,6 +68,7 @@ def get_anagrafica(token):
         "AltICMKg_x_PLT",             # kgxplt
         "AltICMProduct_Type",          # temperature
         "Transportation",              # modalità trasporto (CH AIR / DRY AIR / FR AIR / SEA ...)
+        "Standard_Cost",               # standard cost HKD su BC Brightview
         "Blocked",
         "AltICMVendor_Name", "AltICMVendor_Name_2",
         "AltICMHOFF",
@@ -110,6 +111,7 @@ if __name__ == "__main__":
             "kgxplt":      float(item.get("AltICMKg_x_PLT") or 0),
             "temperature":      norm(item.get("AltICMProduct_Type"), TEMP_MAP),
             "bcTransportation": str(item.get("Transportation") or "").strip().upper(),
+            "standardCostHkd": float(item.get("Standard_Cost") or 0),
             "isHoff":           bool(item.get("AltICMHOFF")),
             "active":      not blocked,
             "vendorName":  str(item.get("AltICMVendor_Name") or "").strip(),

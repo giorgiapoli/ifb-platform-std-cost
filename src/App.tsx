@@ -712,8 +712,7 @@ export default function App() {
     const fxRate = fx.find(f=>f.branch===branch&&f.month===month)?.rate || BRANCH_CFG[branch]?.defaultRate || 9.1437;
     const [yr,mo] = month.split("-").map(Number);
     const prevM = mo===1 ? `${yr-1}-12` : `${yr}-${String(mo-1).padStart(2,"0")}`;
-    // Per CAN, Navision non esporta "Blocked" in modo affidabile → non filtrare per active
-    const eligible = products.filter(p => (branch==="CAN" || p.active) && isIFBVendor(p.vendorName));
+    const eligible = products.filter(p => isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
       // Eccezione prezzo manuale: ha priorità assoluta su listino e carne
@@ -4077,9 +4076,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const scTF  = cr?.cost?.step2TF  ?? null;
         const scLAN = cr?.cost?.step2LAN ?? null;
         const scFUE = cr?.cost?.step2FUE ?? null;
+        const bcStdCost = prod?.standardCostHkd || null;
+        const deltaSC = (newHkd != null && bcStdCost != null && bcStdCost > 0)
+          ? newHkd - bcStdCost : null;
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
-          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason,scGC,scTF,scLAN,scFUE};
+          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason,scGC,scTF,scLAN,scFUE,
+          bcStdCost,deltaSC};
       });
   },[activeRows,costRows,products,xrefs,sortDir]);
 
@@ -4247,7 +4250,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                  "SC TF":r.isAir?"AIR":r.scTF!=null?roundN(r.scTF):"MANCANTE",
                  "SC LAN":r.isAir?"AIR":r.scLAN!=null?roundN(r.scLAN):"MANCANTE",
                  "SC FUE":r.isAir?"AIR":r.scFUE!=null?roundN(r.scFUE):"MANCANTE"}
-              : {"New SC":r.isAir?"AIR":(r.unitPrice===0||r.unitPrice===0.01)?"SAMPLE":r.newHkd!=null?roundN(r.newHkd):"MANCANTE"}),
+              : {"New SC":r.isAir?"AIR":(r.unitPrice===0||r.unitPrice===0.01)?"SAMPLE":r.newHkd!=null?roundN(r.newHkd):"MANCANTE",
+                 "SC BC":r.bcStdCost>0?roundN(r.bcStdCost):"",
+                 "Δ SC":r.deltaSC!=null?roundN(r.deltaSC):""}),
             "Δ%":r.pct!=null?roundN(r.pct,1):"","Motivo":r.skipReason||"",
           })),
           "Fatture & Costi",`Fatture_${branch}.xlsx`
@@ -4303,7 +4308,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC ▾","SC TF","SC LAN","SC FUE"]:["New SC ▾"]),"Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC ▾","SC TF","SC LAN","SC FUE"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4387,16 +4392,28 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                         ))}
                       </>
                     ) : (
-                      <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                        {r.isAir
-                          ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
-                          : (r.unitPrice===0||r.unitPrice===0.01)
-                            ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
-                            : r.newHkd!=null
-                              ? <span style={{color:T.gold,fontWeight:"bold"}}>{r.newHkd.toFixed(2)}</span>
-                              : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
-                        }
-                      </td>
+                      <>
+                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                          {r.isAir
+                            ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
+                            : (r.unitPrice===0||r.unitPrice===0.01)
+                              ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
+                              : r.newHkd!=null
+                                ? <span style={{color:T.gold,fontWeight:"bold"}}>{r.newHkd.toFixed(2)}</span>
+                                : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
+                          }
+                        </td>
+                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                          <span style={{color:T.muted}}>{r.bcStdCost>0?r.bcStdCost.toFixed(2):"—"}</span>
+                        </td>
+                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                          {r.deltaSC!=null
+                            ? <span style={{color:r.deltaSC>1?T.red:r.deltaSC<-1?T.green:T.text,fontWeight:Math.abs(r.deltaSC)>1?"bold":"normal"}}>
+                                {r.deltaSC>0?"+":""}{r.deltaSC.toFixed(2)}
+                              </span>
+                            : <span style={{color:T.dim}}>—</span>}
+                        </td>
+                      </>
                     )}
                     <td style={{padding:"3px 6px",fontSize:"10px",textAlign:"right"}}>
                       {r.pct!=null?<span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:Math.abs(r.pct)>3?"bold":"normal"}}>{r.pct>0?"+":""}{r.pct.toFixed(1)}%</span>:<span style={{color:T.dim}}>—</span>}
