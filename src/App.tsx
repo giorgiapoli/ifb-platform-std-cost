@@ -9,10 +9,10 @@ const T = {
   blue:"#4A8FB5", green:"#4BA87A", red:"#B5534A", orange:"#C47A3B", purple:"#7B5AC4",
 };
 const BRANCH_CFG = {
-  HK:  { label:"Hong Kong", flag:"ðŸ‡­ðŸ‡°", color:T.gold,   currency:"HKD", defaultRate:9.1437, active:true  },
-  MAC: { label:"Macao",     flag:"ðŸ‡²ðŸ‡´", color:T.green,  currency:"MOP", defaultRate:9.08,   active:true  },
-  CAN: { label:"Canarie",   flag:"ðŸ‡®ðŸ‡¨", color:T.blue,   currency:"EUR", defaultRate:1,      active:true },
-  AUS: { label:"Australia", flag:"ðŸ‡¦ðŸ‡º", color:T.orange, currency:"AUD", defaultRate:1.6420, active:false },
+  HK:  { label:"Hong Kong", flag:"🇭🇰", color:T.gold,   currency:"HKD", defaultRate:9.1437, active:true  },
+  MAC: { label:"Macao",     flag:"🇲🇴", color:T.green,  currency:"MOP", defaultRate:9.08,   active:true  },
+  CAN: { label:"Canarie",   flag:"🇮🇨", color:T.blue,   currency:"EUR", defaultRate:1,      active:true },
+  AUS: { label:"Australia", flag:"🇦🇺", color:T.orange, currency:"AUD", defaultRate:1.6420, active:false },
 };
 const IFB_VENDOR = "INALCA FOOD & BEVERAGE";
 
@@ -47,7 +47,7 @@ function findProduct(code, products, xrefs=[]) {
   return null;
 }
 
-// â”€â”€â”€ COST ENGINE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── COST ENGINE ─────────────────────────────────────────────────────────────
 // All costs confirmed from 05_Modello_Standard_Cost.xlsx COSTS (LOG) sheet
 const COSTS = {
   FOB:{ DRY:{NORD:2000,CENTRO:0,SUD:1108.55}, FRESH:{NORD:3500,CENTRO:3500,SUD:0}, FROZEN:{NORD:4000,CENTRO:0,SUD:0} },
@@ -72,12 +72,12 @@ const COSTS = {
   },
 };
 
-// â”€â”€â”€ CANARIE COST ENGINE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Source: 05_Modello_Standard_Cost.xlsx â€” COSTS (LOG) sheet
+// ─── CANARIE COST ENGINE ─────────────────────────────────────────────────────
+// Source: 05_Modello_Standard_Cost.xlsx — COSTS (LOG) sheet
 const COSTS_CAN = {
-  // GOMMA: Verona â†’ Barcellona, costo per pallet (COSTS(LOG)!D5 = 62.5 = 2000/32plt)
+  // GOMMA: Verona → Barcellona, costo per pallet (COSTS(LOG)!D5 = 62.5 = 2000/32plt)
   VERONA_BARC_PLT: 62.5,
-  // GOMMA: Barcellona â†’ island per pallet, by temperature (COSTS(LOG) rows 9-11)
+  // GOMMA: Barcellona → island per pallet, by temperature (COSTS(LOG) rows 9-11)
   BARC: {
     DRY:    { GC:133.692, TF:133.692, LAN:190.254, FUE:190.254 },
     FRESH:  { GC:117,     TF:117,     LAN:190.254, FUE:190.254 },
@@ -86,7 +86,7 @@ const COSTS_CAN = {
   // GOMMA: Assicurazione (Seguro) = 0.5% sul valore merce (COSTS(LOG)!F15)
   ASSICURAZIONE: 0.005,
   // MARE: all-in freight per container per island, by area (COSTS(LOG) rows 20-23)
-  // Formula Excel: D20 / (Y6 * AA6) = rate / (unitsPerPlt Ã— pltPerContainer)
+  // Formula Excel: D20 / (Y6 * AA6) = rate / (unitsPerPlt × pltPerContainer)
   MARE: {
     NORD:   { GC:2580.72, TF:2580.72, LAN:3521.44, FUE:3521.44 },
     CENTRO: { GC:0,       TF:0,       LAN:0,       FUE:0       },
@@ -226,10 +226,10 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature } = product;
   const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor } = logistic || {};
 
-  // â”€â”€ Units per pallet â”€â”€ (formula modello Excel)
-  // PCS: qtyPerBox Ã— boxPerPallet
+  // ── Units per pallet ── (formula modello Excel)
+  // PCS: qtyPerBox × boxPerPallet
   // BOX: boxPerPallet
-  // KG:  kgxplt (kg per pallet = KgPerBox Ã— qtyPerBox Ã— boxPerPallet)
+  // KG:  kgxplt (kg per pallet = KgPerBox × qtyPerBox × boxPerPallet)
   let unitsPerPlt: number;
   if (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
   else if (uom==="KG") {
@@ -237,46 +237,46 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   }
   else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet); // PCS
 
-  // â”€â”€ Divisore collo per MTS picking â”€â”€
+  // ── Divisore collo per MTS picking ──
   const divisoreCollo =
     uom==="BOX" ? 1 :
     uom==="KG"  ? Number(kgPerBox||qtyPerBox) :
                   Number(qtyPerBox);
 
-  // â”€â”€ Total units per container â”€â”€
+  // ── Total units per container ──
   const totalUnits = unitsPerPlt * Number(pltPerContainer);
   if (!totalUnits) return null;
 
   const priceEur = Number(priceInput||0) * Number(convFactor);
 
-  // âœ… SE IL PREZZO Ãˆ ZERO O NON VALIDO, NON CALCOLARE IL COSTO
+  // ✅ SE IL PREZZO È ZERO O NON VALIDO, NON CALCOLARE IL COSTO
   if (priceEur === 0 || !priceInput) {
     return null;
   }
 
-  // â”€â”€ FOB â”€â”€
+  // ── FOB ──
   const fobContainer = COSTS.FOB[temperature]?.[area] ?? 0;
   const fob = (fobContainer / pltPerContainer) / unitsPerPlt;
 
-  // â”€â”€ LIC = (4100+3800 HKD) / rate / totalUnits â”€â”€
+  // ── LIC = (4100+3800 HKD) / rate / totalUnits ──
   const lic = (COSTS.LIC_HKD / eurToHkd) / totalUnits;
 
-  // â”€â”€ VGM = 100 / totalUnits â”€â”€
+  // ── VGM = 100 / totalUnits ──
   const vgm = COSTS.VGM / totalUnits;
 
-  // â”€â”€ HC = 80 / totalUnits (solo se certificato) â”€â”€
+  // ── HC = 80 / totalUnits (solo se certificato) ──
   const hc = hasCert ? COSTS.HC / totalUnits : 0;
 
-  // â”€â”€ Pallet = 30 / unitsPerPlt â”€â”€
+  // ── Pallet = 30 / unitsPerPlt ──
   const plt = COSTS.PLT / unitsPerPlt;
 
-  // â”€â”€ Tassa alcolica â”€â”€
+  // ── Tassa alcolica ──
   const alc = hasAlcTax ? (Number(alcTax)||0) : 0;
 
-  // â”€â”€ Step 1 â”€â”€
+  // ── Step 1 ──
   const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc;
 
-  // â”€â”€ Warehouse â”€â”€
+  // ── Warehouse ──
   let wh = 0;
   if (ubicazione==="MTO") {
     wh = (COSTS.MTO[temperature] ?? 0) / unitsPerPlt;
@@ -300,10 +300,10 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   };
 }
 
-// â”€â”€â”€ MACAO CONSTANTS & CALC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const HKD_TO_MOP = 1.03;          // fixed exchange rate HKD â†’ MOP
+// ─── MACAO CONSTANTS & CALC ───────────────────────────────────────────────────
+const HKD_TO_MOP = 1.03;          // fixed exchange rate HKD → MOP
 const MAC_MARKUP = { hoff: 0.03, nonHoff: 0.10 };  // 3% HOFF, 10% non-HOFF
-// ALL-IN logistics cost per KG (MOP): BV Warehouseâ†’HK Port + Ferry + Customs + Delivery Macao
+// ALL-IN logistics cost per KG (MOP): BV Warehouse→HK Port + Ferry + Customs + Delivery Macao
 const MAC_LOG_PER_KG: any = { DRY: 3, FRESH: 5, FROZEN: 8 };
 
 function calcMAC({ hkCost, isHoff, macToHkConv = 1, temperature = "DRY", kgPerMacUom = 0 }: any) {
@@ -312,9 +312,9 @@ function calcMAC({ hkCost, isHoff, macToHkConv = 1, temperature = "DRY", kgPerMa
   const conv = Number(macToHkConv) > 0 ? Number(macToHkConv) : 1;
   const hkNewSC = hkCost.step2Hkd;
   const baseInMop = hkNewSC * conv * (1 + markup) * HKD_TO_MOP;
-  // Costo logistico ALL-IN per MAC UOM (MOP/kg Ã— kg per MAC UOM)
+  // Costo logistico ALL-IN per MAC UOM (MOP/kg × kg per MAC UOM)
   const logPerKg = MAC_LOG_PER_KG[String(temperature||"DRY").toUpperCase()] ?? 3;
-  const logPerUom = kgPerMacUom > 0 ? logPerKg * kgPerMacUom : logPerKg; // se UOM=KG â†’ kgPerMacUom=1
+  const logPerUom = kgPerMacUom > 0 ? logPerKg * kgPerMacUom : logPerKg; // se UOM=KG → kgPerMacUom=1
   const macNewSC = baseInMop + logPerUom;
   return {
     hkNewSC, markup: markup * 100, isHoff, macNewSC, macToHkConv: conv,
@@ -335,7 +335,7 @@ function selectPrice(pr, ubicazione) {
   return pr.dapFinal || 0;
 }
 
-// â”€â”€â”€ FIELD ALIASES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── FIELD ALIASES ────────────────────────────────────────────────────────────
 const BC_FIELD_ALIASES = {
   nHK:         ["n hk","nhk","hk code","hk no","n_hk","gc code","gc no","hong kong no","no"],
   code:        ["no_","no.","item no.","item no","ifb no","ifb n","ifb item","codice","code"],
@@ -394,7 +394,7 @@ const LS = {
 };
 
 // Seed data (minimal)
-// â”€â”€â”€ IndexedDB per dati grandi â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── IndexedDB per dati grandi ──────────────────────────────────────────────
 const IDB = (() => {
   let dbP: Promise<IDBDatabase>|null = null;
   const open = () => {
@@ -429,14 +429,14 @@ const SEED_FX = [
   {branch:"AUS",month:"2026-05",rate:1.6200},{branch:"AUS",month:"2026-06",rate:1.6420},
 ];
 
-// â”€â”€â”€ APP â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── APP ─────────────────────────────────────────────────────────────────────
 class ErrorBoundary extends React.Component<{children:any},{err:any}> {
   constructor(p:any){super(p);this.state={err:null};}
   static getDerivedStateFromError(e:any){return{err:e};}
   render(){
     if(this.state.err) return(
       <div style={{padding:"40px",fontFamily:"monospace",color:"#ff6b6b",background:"#0B0F14",minHeight:"100vh"}}>
-        <h2 style={{color:"#C9A84C"}}>âš  Runtime Error</h2>
+        <h2 style={{color:"#C9A84C"}}>⚠ Runtime Error</h2>
         <pre style={{whiteSpace:"pre-wrap",wordBreak:"break-all",fontSize:"12px"}}>{String(this.state.err?.message||this.state.err)}</pre>
         <pre style={{whiteSpace:"pre-wrap",wordBreak:"break-all",fontSize:"10px",color:"#aaa",marginTop:"12px"}}>{this.state.err?.stack}</pre>
       </div>
@@ -449,7 +449,7 @@ export default function App() {
   const[products,setProducts]   = useState<any[]>([]);
   const[logistics,setLogistics] = useState<any[]>(SEED_LOGISTIC);
   const[prices,setPrices]       = useState<any[]>([]);
-  const[bcListini,setBcListini] = useState<any[]>([]); // prezzi BC listini â€” separati da prices per evitare re-render globali
+  const[bcListini,setBcListini] = useState<any[]>([]); // prezzi BC listini — separati da prices per evitare re-render globali
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
   const[xrefs,setXrefs]         = useState<any[]>([]);
   const[airList,setAirList]     = useState<any[]>([]);
@@ -490,7 +490,7 @@ export default function App() {
 
   // Reload price exceptions when branch changes
   useEffect(()=>{ if(branch) setPriceExceptions(LS.get(`ifb_exceptions_${branch}`,[])); },[branch]);
-  // Save effects â€” only fire after load is complete
+  // Save effects — only fire after load is complete
   useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_products_${branchRef.current}`, products); },[products]);
   useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_logistics", logistics); }, [logistics]);
@@ -508,7 +508,7 @@ export default function App() {
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
-    branchLoadedRef.current = ""; // reset â€” block saves while loading
+    branchLoadedRef.current = ""; // reset — block saves while loading
     (async()=>{
       setProducts(await IDB.get(`ifb_products_${branch}`,[]));
       setXrefs(await IDB.get(`ifb_xrefs_${branch}`,[]));
@@ -541,7 +541,7 @@ export default function App() {
             const d = await rana.json();
             if(Array.isArray(d) && d.length > 0) { setProducts(d); IDB.set(`ifb_products_${branch}`, d); setDataSource(`anagrafica_${branch}`,"bc"); }
           }
-        } catch(_) { /* offline o errore fetch â€” usa dati IDB */ }
+        } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
 
       // Auto-fetch fatture IFB da GitHub (HK + CAN + MAC, sempre aggiornato)
@@ -593,7 +593,7 @@ export default function App() {
               }
             }
           }
-        } catch(_) { /* offline â€” usa dati IDB */ }
+        } catch(_) { /* offline — usa dati IDB */ }
       }
 
       // Auto-fetch listini IFB da GitHub (HK + CAN + MAC, prezzi aggiornati da BC)
@@ -601,7 +601,7 @@ export default function App() {
         const IDB_KEY = `ifb_listini_entries_${branch}`;
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
 
-        // 1) Carica subito da IDB (cache locale) â€” nessun parsing, nessun network
+        // 1) Carica subito da IDB (cache locale) — nessun parsing, nessun network
         const cached: any[] = await IDB.get(IDB_KEY, []);
         if(cached.length > 0) {
           startTransition(() => { setBcListini(cached); setDataSource(`listini_${branch}`, "bc"); });
@@ -629,7 +629,7 @@ export default function App() {
                 const code = String(row["n"] || row["No_"] || "").trim();
                 if(!code) return;
                 const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
-                // Conversione UoM: se prezzo BC Ã¨ per BOX e anagrafica ha qtyPerBox â†’ dividi per PCS/BOX
+                // Conversione UoM: se prezzo BC è per BOX e anagrafica ha qtyPerBox → dividi per PCS/BOX
                 const purchUom  = String(row["pu"] || "").trim().toUpperCase();
                 const qtyPerBox = (purchUom === "BOX" && prod?.qtyPerBox > 1) ? Number(prod.qtyPerBox) : 1;
                 const div = (p: number) => qtyPerBox > 1 ? p / qtyPerBox : p;
@@ -653,7 +653,7 @@ export default function App() {
               startTransition(() => { setBcListini(newEntries); setDataSource(`listini_${branch}`, "bc"); });
             }
           }
-        } catch(_) { /* offline â€” usa dati IDB giÃ  caricati sopra */ }
+        } catch(_) { /* offline — usa dati IDB già caricati sopra */ }
       }
     })();
   },[branch]);
@@ -670,7 +670,7 @@ export default function App() {
     return 20;
   };
 
-  // â”€â”€ Cost rows: only IFB vendor, only SEA (non-AIR)
+  // ── Cost rows: only IFB vendor, only SEA (non-AIR)
   const costRows = useMemo(()=>{
     if(!branch) return [];
 
@@ -692,7 +692,7 @@ export default function App() {
           else if ((hkU==="BOX"||hkU==="CTN") && mU==="PCS") macToHkConv = 1/qty;
         }
         // kg per MAC UOM (per costo logistica ALL-IN)
-        // Se MAC vende a KG â†’ 1; se a BOX â†’ kgPerBox; se a PCS â†’ kgPerBox/qtyPerBox
+        // Se MAC vende a KG → 1; se a BOX → kgPerBox; se a PCS → kgPerBox/qtyPerBox
         const mU = macUom.toUpperCase();
         const kgPerMacUom = mU==="KG" ? 1
           : mU==="BOX"||mU==="CTN" ? (Number(prod.kgPerBox)||0)
@@ -717,7 +717,7 @@ export default function App() {
     const eligible = products.filter(p => isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
-      // Eccezione prezzo manuale: ha prioritÃ  assoluta su listino e carne
+      // Eccezione prezzo manuale: ha priorità assoluta su listino e carne
       const exc = priceExceptions.find((e:any) =>
         e.branch === branch && (
           e.productId === prod.id ||
@@ -795,7 +795,7 @@ export default function App() {
       const pi  = selectPrice(pr, ub);
       const piP = prPrev ? selectPrice(prPrev, ub) : null;
 
-      // Prezzo zero â†’ fallback listino carne
+      // Prezzo zero → fallback listino carne
       if (!pi || pi === 0) {
         const mf = meatFallback();
         if (mf) {
@@ -827,26 +827,26 @@ export default function App() {
   const isMAC = branch === "MAC";
 
   const NAV_ALL = [
-    {id:"dashboard",  icon:"â¬¡", label:"Dashboard"},
-    {id:"products",   icon:"â—ˆ", label:"Anagrafica", badge:"â‡ª"},
-    {id:"xref",       icon:"â‡„", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
-    ...(!isMAC ? [{id:"logistics", icon:"â—Ž", label:isCAN?"Work Tab (Logistica)":"Logistica"}] : []),
-    ...(!isMAC ? [{id:"prices",    icon:"â—‰", label:"Listini", badge:"ðŸ’¶"}] : []),
-    ...(!isMAC ? [{id:"meatlist",  icon:"ðŸ¥©", label:"Listino Carne"}] : []),
-    ...(isCAN ? [{id:"bevinfo", icon:"ðŸ·", label:"Beverage Info (AIEM)"}] : []),
-    ...(!isCAN&&!isMAC ? [{id:"fx",  icon:"â—Œ", label:"Cambi"}] : []),
-    ...(!isCAN&&!isMAC ? [{id:"air", icon:"âœˆ", label:"AIR Transport"}] : []),
-    ...(!isMAC ? [{id:"exceptions", icon:"âš¡", label:"Eccezioni Prezzi"}] : []),
-    {id:"costs",      icon:"â—†", label:"Standard Cost"},
-    ...(!isMAC ? [{id:"invoice", icon:"ðŸ“‹", label:"Fatture & Costi", badge:"â‡ª"}] : []),
-    ...(!isMAC ? [{id:"scattuali", icon:"ðŸ“Š", label:"SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined}] : []),
-    {id:"storico",    icon:"â§–", label:"Storico & Diff"},
-    ...(!isMAC ? [{id:"check", icon:"ðŸ“…", label:"Check Mensile"}] : []),
-    {id:"notes",      icon:"ðŸ“", label:"Guida & Istruzioni"},
+    {id:"dashboard",  icon:"⬡", label:"Dashboard"},
+    {id:"products",   icon:"◈", label:"Anagrafica", badge:"⇪"},
+    {id:"xref",       icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
+    ...(!isMAC ? [{id:"logistics", icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"}] : []),
+    ...(!isMAC ? [{id:"prices",    icon:"◉", label:"Listini", badge:"💶"}] : []),
+    ...(!isMAC ? [{id:"meatlist",  icon:"🥩", label:"Listino Carne"}] : []),
+    ...(isCAN ? [{id:"bevinfo", icon:"🍷", label:"Beverage Info (AIEM)"}] : []),
+    ...(!isCAN&&!isMAC ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
+    ...(!isCAN&&!isMAC ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
+    ...(!isMAC ? [{id:"exceptions", icon:"⚡", label:"Eccezioni Prezzi"}] : []),
+    {id:"costs",      icon:"◆", label:"Standard Cost"},
+    ...(!isMAC ? [{id:"invoice", icon:"📋", label:"Fatture & Costi", badge:"⇪"}] : []),
+    ...(!isMAC ? [{id:"scattuali", icon:"📊", label:"SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined}] : []),
+    {id:"storico",    icon:"⧖", label:"Storico & Diff"},
+    ...(!isMAC ? [{id:"check", icon:"📅", label:"Check Mensile"}] : []),
+    {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
   ];
   const NAV = NAV_ALL;
 
-  // â”€â”€ Page: branch selection splash â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Page: branch selection splash ──────────────────────────────────────────
   if(page==="branchSelect") return (
     <div style={{display:"flex",height:"100vh",width:"100vw",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif"}}>
       <div style={{textAlign:"center",maxWidth:"600px",padding:"40px"}}>
@@ -1001,7 +1001,7 @@ export default function App() {
           ))}
         </nav>
         <div style={{padding:"10px 12px",borderTop:`1px solid ${T.border}`,fontSize:"9px",color:T.dim,lineHeight:1.5}}>
-          Inalca Food & Beverage<br/>Â© 2026 Â· v4.0
+          Inalca Food & Beverage<br/>© 2026 · v4.0
         </div>
       </div>
       {/* Main content */}
@@ -1010,16 +1010,16 @@ export default function App() {
           display:"flex",alignItems:"center",gap:"10px",flexShrink:0,zIndex:10,flexWrap:"wrap"}}>
           <span style={{fontSize:"16px"}}>{cfg.flag}</span>
           <span style={{fontSize:"13px",fontWeight:"bold",color:cfg.color}}>{cfg.label}</span>
-          <span style={{color:T.dim}}>Â·</span>
+          <span style={{color:T.dim}}>·</span>
           <span style={{fontSize:"12px",color:T.muted}}>{NAV.find(n=>n.id===page)?.label}</span>
-          <span style={{color:T.dim}}>Â·</span>
+          <span style={{color:T.dim}}>·</span>
           <span style={{fontSize:"11px",color:T.gold}}>{month}</span>
-          {needsRecalc&&<span style={{padding:"2px 10px",background:`${T.orange}20`,color:T.orange,borderRadius:"10px",fontSize:"11px"}}>âš  Nuovi dati â€” ricalcola Standard Cost</span>}
+          {needsRecalc&&<span style={{padding:"2px 10px",background:`${T.orange}20`,color:T.orange,borderRadius:"10px",fontSize:"11px"}}>⚠ Nuovi dati — ricalcola Standard Cost</span>}
           <div style={{marginLeft:"auto",display:"flex",gap:"6px"}}>
-            <button onClick={()=>setPage("importAnag")} style={{padding:"5px 12px",background:`${T.blue}15`,border:`1px solid ${T.blue}44`,borderRadius:"5px",color:T.blue,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>â‡ª Anagrafica</button>
-            <button onClick={()=>setPage("importPrice")} style={{padding:"5px 12px",background:`${T.purple}15`,border:`1px solid ${T.purple}44`,borderRadius:"5px",color:T.purple,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>ðŸ’¶ Listini</button>
-            <button onClick={()=>setPage("costs")} style={{padding:"5px 12px",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:"5px",color:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>â—† Costi</button>
-            <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>âœ‰ Mail</button>
+            <button onClick={()=>setPage("importAnag")} style={{padding:"5px 12px",background:`${T.blue}15`,border:`1px solid ${T.blue}44`,borderRadius:"5px",color:T.blue,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>⇪ Anagrafica</button>
+            <button onClick={()=>setPage("importPrice")} style={{padding:"5px 12px",background:`${T.purple}15`,border:`1px solid ${T.purple}44`,borderRadius:"5px",color:T.purple,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>💶 Listini</button>
+            <button onClick={()=>setPage("costs")} style={{padding:"5px 12px",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:"5px",color:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>◆ Costi</button>
+            <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>✉ Mail</button>
           </div>
         </div>
         <div style={{flex:1,paddingTop:"20px",paddingLeft:"28px",paddingBottom:"20px",paddingRight:0,overflow:"auto",width:"calc(100% - 200px)",boxSizing:"border-box"}}>
@@ -1032,7 +1032,7 @@ export default function App() {
   );
 }
 
-// â”€â”€â”€ XREF PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── XREF PAGE ────────────────────────────────────────────────────────────────
 function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const branchCode = branch === "CAN" ? "N COMIT" : "N HK";
   const[step,setStep]=useState("main");
@@ -1058,12 +1058,12 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
         setHeaders(hdrs);setRawRows(rows);
         // Alias per la colonna filiale (N COMIT per CAN, N HK per altri)
         const nhkA = branch==="CAN"
-          ? ["n comit","ncomit","comit","canarie","can no","can n","nÂ°","numero comit","codice comit","cod comit","codcan","n_comit"]
+          ? ["n comit","ncomit","comit","canarie","can no","can n","n°","numero comit","codice comit","cod comit","codcan","n_comit"]
           : ["n hk","nhk","hk","n_hk","gc code","gc no","hk code","hk no","hong kong"];
         // Alias per colonna IFB (espliciti prima, generici dopo)
         const ifbA=["ifb n","ifb no","ifb no.","ifb item","bv no","bv n","no_ifb","ifb","no_","code","item no"];
         // Match esatto o inclusione, alias filiale prima degli alias IFB (evita false positiv)
-        const normH = (h:string) => h.toLowerCase().replace(/[Â°\s_]/g,"");
+        const normH = (h:string) => h.toLowerCase().replace(/[°\s_]/g,"");
         const pickCol = (aliases:string[]) =>
           hdrs.find(h=>aliases.some(a=>normH(h)===normH(a))) ||
           hdrs.find(h=>aliases.some(a=>normH(h).includes(normH(a))));
@@ -1096,7 +1096,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
     const log={id,type:"xref",fileName,date:new Date(id).toISOString(),count:incoming.length,diffs,branch};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    bumpImportTs();showToast(`XRef: ${incoming.length} voci Â· ${diffs.filter(d=>d.isNew).length} nuove âœ“`,T.gold);
+    bumpImportTs();showToast(`XRef: ${incoming.length} voci · ${diffs.filter(d=>d.isNew).length} nuove ✓`,T.gold);
     setStep("main");setPreview([]);setRawRows([]);setHeaders([]);
   }
 
@@ -1104,23 +1104,23 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
 
   return(
     <div>
-      <PageHeader title={`â‡„ XRef ${branchCode} / IFB N Â· ${branch}`} sub="Codici filiale â†” IFB N â€” ogni filiale ha la propria tabella" srcKey={`xref_${branch}`}/>
+      <PageHeader title={`⇄ XRef ${branchCode} / IFB N · ${branch}`} sub="Codici filiale ↔ IFB N — ogni filiale ha la propria tabella" srcKey={`xref_${branch}`}/>
       {step==="map"&&(
-        <Section title={`Mappatura â€” ${fileName} Â· ${rawRows.length} righe`}>
+        <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"16px",marginBottom:"16px"}}>
             {[[`Colonna ${branchCode} *`,colNHK,setColNHK],["Colonna IFB N *",colIFB,setColIFB]].map(([lbl,val,setter])=>(
               <div key={lbl}>
                 <label style={{display:"block",fontSize:"11px",color:T.gold,marginBottom:"5px"}}>{lbl}</label>
                 <select value={val} onChange={e=>setter(e.target.value)} style={{...inputStyle(),cursor:"pointer"}}>
-                  <option value="">â€” seleziona â€”</option>
+                  <option value="">— seleziona —</option>
                   {headers.map(h=><option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
             ))}
           </div>
           <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="â† Ricarica" onClick={()=>setStep("main")}/>
-            <ActionBtn label="Preview â†’" onClick={buildPreview} primary disabled={!colNHK||!colIFB}/>
+            <ActionBtn label="← Ricarica" onClick={()=>setStep("main")}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!colNHK||!colIFB}/>
           </div>
         </Section>
       )}
@@ -1135,8 +1135,8 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
             ))}
           </div>
           <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
-            <ActionBtn label="â† Torna" onClick={()=>setStep("map")}/>
-            <ActionBtn label={`âœ“ Aggiorna XRef (${preview.filter(r=>r.nHK&&r.ifbNo).length} voci)`} onClick={executeImport} primary/>
+            <ActionBtn label="← Torna" onClick={()=>setStep("map")}/>
+            <ActionBtn label={`✓ Aggiorna XRef (${preview.filter(r=>r.nHK&&r.ifbNo).length} voci)`} onClick={executeImport} primary/>
           </div>
           <Section title="Preview (prime 50)">
             <table style={{width:"100%",borderCollapse:"collapse"}}>
@@ -1145,7 +1145,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
                 <tr key={r._idx} style={{borderBottom:`1px solid ${T.border}`,background:r._isNew?`${T.gold}07`:r._changed?`${T.orange}07`:""}}>
                   <TD mono><span style={{color:T.gold}}>{r.nHK}</span></TD>
                   <TD mono>{r.ifbNo}</TD>
-                  <TD>{r._isNew?<Chip label="NUOVO" color={T.gold}/>:r._changed?<><Chip label="MODIF." color={T.orange}/><span style={{fontSize:"10px",color:T.dim,marginLeft:"6px"}}>{r._oldIFB}â†’{r.ifbNo}</span></>:<span style={{color:T.dim}}>=</span>}</TD>
+                  <TD>{r._isNew?<Chip label="NUOVO" color={T.gold}/>:r._changed?<><Chip label="MODIF." color={T.orange}/><span style={{fontSize:"10px",color:T.dim,marginLeft:"6px"}}>{r._oldIFB}→{r.ifbNo}</span></>:<span style={{color:T.dim}}>=</span>}</TD>
                 </tr>
               ))}</tbody>
             </table>
@@ -1156,18 +1156,18 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
         <>
           <div style={{border:`2px dashed ${T.borderHi}`,borderRadius:"10px",padding:"20px 28px",textAlign:"center",cursor:"pointer",marginBottom:"20px"}}
             onClick={()=>document.getElementById("_xref_in")?.click()}>
-            <div style={{fontSize:"24px",marginBottom:"6px"}}>â‡„</div>
+            <div style={{fontSize:"24px",marginBottom:"6px"}}>⇄</div>
             <div style={{fontSize:"13px",color:T.text,marginBottom:"4px"}}>Carica file XRef (Excel/CSV)</div>
-            <div style={{fontSize:"11px",color:T.muted}}>Due colonne: {branchCode} Â· IFB N</div>
+            <div style={{fontSize:"11px",color:T.muted}}>Due colonne: {branchCode} · IFB N</div>
             <input id="_xref_in" type="file" accept=".xlsx,.xls,.csv"
               onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
           </div>
-          <SearchBar value={search} onChange={setSearch} placeholder={`ðŸ” Cerca per ${branchCode} o IFB Nâ€¦`}/>
+          <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca per ${branchCode} o IFB N…`}/>
           {xrefs.length>0&&(
             <div style={{marginBottom:"10px",display:"flex",justifyContent:"flex-end"}}>
               <button onClick={()=>{if(window.confirm(`Eliminare tutte le ${xrefs.length} XRef di ${branch}?`)){setXrefs([]);IDB.set(`ifb_xrefs_${branch}`,[]);}}}
                 style={{padding:"5px 14px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
-                âœ• Svuota lista ({xrefs.length})
+                ✕ Svuota lista ({xrefs.length})
               </button>
             </div>
           )}
@@ -1179,7 +1179,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
                   <tr key={x.nHK+i} style={{borderBottom:`1px solid ${T.border}`}}>
                     <TD mono><span style={{color:T.gold}}>{x.nHK}</span></TD>
                     <TD mono>{x.ifbNo}</TD>
-                    <TD><MiniBtn label="âœ•" onClick={()=>{const n=xrefs.filter((_,j)=>j!==xrefs.indexOf(x));setXrefs(n);IDB.set(`ifb_xrefs_${branch}`,n);}} color={T.red}/></TD>
+                    <TD><MiniBtn label="✕" onClick={()=>{const n=xrefs.filter((_,j)=>j!==xrefs.indexOf(x));setXrefs(n);IDB.set(`ifb_xrefs_${branch}`,n);}} color={T.red}/></TD>
                   </tr>
                 ))}</tbody>
               </table>
@@ -1192,44 +1192,44 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
 }
 
 
-// â”€â”€â”€ NOTES PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── NOTES PAGE ───────────────────────────────────────────────────────────────
 function NotesPage() {
   const [open, setOpen] = useState<number|null>(null);
   const toggle = (i:number) => setOpen(o=>o===i?null:i);
 
-  // â”€â”€ FLUSSO SETUP (una tantum per filiale)
+  // ── FLUSSO SETUP (una tantum per filiale)
   const setup = [
-    { icon:"â—ˆ", label:"Anagrafica", color:T.muted,
+    { icon:"◈", label:"Anagrafica", color:T.muted,
       desc:"Carica il file export da BC/Navision con tutti gli articoli. Contiene: codice, UOM, dimensioni pallet, temperatura, fornitore, AIEM (CAN).",
-      steps:["Pagina Anagrafica â†’ Carica anagrafica","Mappa le colonne (rilevamento automatico)","Preview â†’ Importa","âœ“ Da rifare solo se cambiano i prodotti"] },
-    { icon:"â‡„", label:"XRef", color:T.muted,
+      steps:["Pagina Anagrafica → Carica anagrafica","Mappa le colonne (rilevamento automatico)","Preview → Importa","✓ Da rifare solo se cambiano i prodotti"] },
+    { icon:"⇄", label:"XRef", color:T.muted,
       desc:"Collega il codice filiale (N HK / N COMIT) al codice IFB. Necessario per incrociare fatture e standard cost.",
-      steps:["Pagina XRef â†’ Carica file con 2 colonne: N filiale + IFB N","Seleziona le colonne â†’ Preview â†’ Importa","âœ“ Da rifare solo se cambiano i codici"] },
-    { icon:"â—Ž", label:"Work Tab (Logistica)", color:T.muted,
+      steps:["Pagina XRef → Carica file con 2 colonne: N filiale + IFB N","Seleziona le colonne → Preview → Importa","✓ Da rifare solo se cambiano i codici"] },
+    { icon:"◎", label:"Work Tab (Logistica)", color:T.muted,
       desc:"Parametri logistici per articolo: ubicazione MTS/MTO/FOR, MARE/GOMMA (CAN), numero pallet per container, area geografica.",
-      steps:["Pagina Work Tab (Logistica) â†’ Carica Work Tab","Il sistema rileva automaticamente le colonne","Importa","âœ“ Da rifare se cambiano i parametri logistici"] },
-    { icon:"âš¡", label:"Eccezioni Prezzi", color:T.muted,
-      desc:"Override manuale del prezzo per un articolo specifico, con prioritÃ  su listino e listino carne.",
-      steps:["Pagina Eccezioni Prezzi â†’ cerca articolo per codice o descrizione","Inserisci il prezzo manuale e una nota","Salva â†’ il prezzo verrÃ  usato nel calcolo SC"] },
+      steps:["Pagina Work Tab (Logistica) → Carica Work Tab","Il sistema rileva automaticamente le colonne","Importa","✓ Da rifare se cambiano i parametri logistici"] },
+    { icon:"⚡", label:"Eccezioni Prezzi", color:T.muted,
+      desc:"Override manuale del prezzo per un articolo specifico, con priorità su listino e listino carne.",
+      steps:["Pagina Eccezioni Prezzi → cerca articolo per codice o descrizione","Inserisci il prezzo manuale e una nota","Salva → il prezzo verrà usato nel calcolo SC"] },
   ];
 
-  // â”€â”€ FLUSSO MENSILE
+  // ── FLUSSO MENSILE
   const monthly = [
-    { icon:"ðŸ’°", label:"1. Listino prezzi", color:T.green,
+    { icon:"💰", label:"1. Listino prezzi", color:T.green,
       desc:"Prezzi DAP/FCA del mese dal sistema (Power BI / CURRENT PRICELIST). Necessario per calcolare il costo di acquisto.",
-      steps:["Pagina Listini â†’ Carica file listino","Seleziona il mese di riferimento","Preview â†’ Importa"] },
-    { icon:"ðŸ§¾", label:"2. Fatture del mese", color:T.green,
-      desc:"Sales Invoice export da BC/Navision. L'app legge le posting date per filtrare per mese. I dati sono cumulativi â€” basta caricare il file piÃ¹ aggiornato.",
-      steps:["Pagina Fatture & Costi â†’ Carica file","Mappa le colonne (rilevamento automatico)","Importa","âœ“ Le fatture vecchie vengono conservate, le nuove aggiunte"] },
-    { icon:"ðŸ“Š", label:"3. SC Attuali", color:T.green,
+      steps:["Pagina Listini → Carica file listino","Seleziona il mese di riferimento","Preview → Importa"] },
+    { icon:"🧾", label:"2. Fatture del mese", color:T.green,
+      desc:"Sales Invoice export da BC/Navision. L'app legge le posting date per filtrare per mese. I dati sono cumulativi — basta caricare il file più aggiornato.",
+      steps:["Pagina Fatture & Costi → Carica file","Mappa le colonne (rilevamento automatico)","Importa","✓ Le fatture vecchie vengono conservate, le nuove aggiunte"] },
+    { icon:"📊", label:"3. SC Attuali", color:T.green,
       desc:"Report degli Standard Cost correnti dal sistema (BC per HK, Navision per CAN). Serve per il confronto mensile (soglia > +3% o < -3%).",
-      steps:["Pagina SC Attuali â†’ Carica report","Il formato HK o CAN viene rilevato automaticamente","Importa","âœ“ Da aggiornare ogni mese"] },
-    { icon:"â—†", label:"4. Calcola Standard Cost", color:T.blue,
-      desc:"Il calcolo usa listino + logistica + parametri fissi (FOB, LIC, VGM, PLTâ€¦) per produrre il New Standard Cost per articolo, con dettaglio di ogni voce.",
-      steps:["Pagina Standard Cost â†’ clicca âŸ³ Ricalcola","Attendi il calcolo (pochi secondi)","Verifica la tabella: ogni riga mostra il breakdown completo","Clicca una riga per il dettaglio"] },
-    { icon:"ðŸ“…", label:"5. Check Mensile â†’ Export", color:T.gold,
+      steps:["Pagina SC Attuali → Carica report","Il formato HK o CAN viene rilevato automaticamente","Importa","✓ Da aggiornare ogni mese"] },
+    { icon:"◆", label:"4. Calcola Standard Cost", color:T.blue,
+      desc:"Il calcolo usa listino + logistica + parametri fissi (FOB, LIC, VGM, PLT…) per produrre il New Standard Cost per articolo, con dettaglio di ogni voce.",
+      steps:["Pagina Standard Cost → clicca ⟳ Ricalcola","Attendi il calcolo (pochi secondi)","Verifica la tabella: ogni riga mostra il breakdown completo","Clicca una riga per il dettaglio"] },
+    { icon:"📅", label:"5. Check Mensile → Export", color:T.gold,
       desc:"Confronta lo SC calcolato con gli SC Attuali. Identifica articoli NUOVI (nessun SC in sistema) e DA AGGIORNARE (variazione > +3% o < -3%). Esporta il file Excel pronto.",
-      steps:["Pagina Check Mensile","Seleziona il mese dalla lista (derivato dalle fatture caricate)","Verifica la lista: NUOVO ARTICOLO / DA AGGIORNARE / OK","Clicca ðŸ“¥ Esporta Excel â†’ file STDC_Analisi_BRANCH_MESE.xlsx"] },
+      steps:["Pagina Check Mensile","Seleziona il mese dalla lista (derivato dalle fatture caricate)","Verifica la lista: NUOVO ARTICOLO / DA AGGIORNARE / OK","Clicca 📥 Esporta Excel → file STDC_Analisi_BRANCH_MESE.xlsx"] },
   ];
 
   const Card = ({icon,label,color,desc,steps,idx,isOpen}:{icon:string,label:string,color:string,desc:string,steps:string[],idx:number,isOpen:boolean}) => (
@@ -1239,7 +1239,7 @@ function NotesPage() {
           background:isOpen?`${color}12`:"transparent",border:"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit"}}>
         <span style={{fontSize:"15px",width:"22px",textAlign:"center"}}>{icon}</span>
         <span style={{flex:1,fontSize:"13px",fontWeight:"bold",color:isOpen?color:T.text}}>{label}</span>
-        <span style={{fontSize:"10px",color:T.dim}}>{isOpen?"â–²":"â–¼"}</span>
+        <span style={{fontSize:"10px",color:T.dim}}>{isOpen?"▲":"▼"}</span>
       </button>
       {isOpen&&(
         <div style={{padding:"0 16px 14px 16px",borderTop:`1px solid ${color}22`}}>
@@ -1254,25 +1254,25 @@ function NotesPage() {
 
   return(
     <div style={{maxWidth:"800px"}}>
-      <PageHeader title="ðŸ“ Guida rapida" sub="Come si usa la piattaforma â€” passo per passo"/>
+      <PageHeader title="📝 Guida rapida" sub="Come si usa la piattaforma — passo per passo"/>
 
       {/* FLUSSO VISIVO */}
       <Section title="">
         <div style={{display:"flex",alignItems:"center",gap:"6px",flexWrap:"wrap",marginBottom:"8px"}}>
           {[
             {label:"Setup",sub:"una tantum",c:T.muted},
-            {label:"â†’"},
+            {label:"→"},
             {label:"Listino",sub:"mensile",c:T.green},
-            {label:"â†’"},
+            {label:"→"},
             {label:"Fatture",sub:"mensile",c:T.green},
-            {label:"â†’"},
+            {label:"→"},
             {label:"SC Attuali",sub:"mensile",c:T.green},
-            {label:"â†’"},
+            {label:"→"},
             {label:"Calcola SC",sub:"mensile",c:T.blue},
-            {label:"â†’"},
+            {label:"→"},
             {label:"Check Mensile",sub:"export",c:T.gold},
-          ].map((item,i)=>item.label==="â†’"
-            ? <span key={i} style={{color:T.dim,fontSize:"14px"}}>â†’</span>
+          ].map((item,i)=>item.label==="→"
+            ? <span key={i} style={{color:T.dim,fontSize:"14px"}}>→</span>
             : <div key={i} style={{background:`${item.c}18`,border:`1px solid ${item.c}44`,borderRadius:"6px",padding:"5px 10px",textAlign:"center"}}>
                 <div style={{fontSize:"11px",fontWeight:"bold",color:item.c}}>{item.label}</div>
                 {item.sub&&<div style={{fontSize:"9px",color:T.dim}}>{item.sub}</div>}
@@ -1285,14 +1285,14 @@ function NotesPage() {
       </Section>
 
       {/* SETUP */}
-      <Section title="Setup â€” da fare una volta per filiale" accent={T.muted}>
+      <Section title="Setup — da fare una volta per filiale" accent={T.muted}>
         <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
           {setup.map((s,i)=><Card key={i} {...s} idx={i} isOpen={open===i}/>)}
         </div>
       </Section>
 
       {/* MENSILE */}
-      <Section title="Flusso mensile â€” da ripetere ogni mese" accent={T.green}>
+      <Section title="Flusso mensile — da ripetere ogni mese" accent={T.green}>
         <div style={{display:"flex",flexDirection:"column",gap:"6px"}}>
           {monthly.map((s,i)=><Card key={i+100} {...s} idx={i+100} isOpen={open===i+100}/>)}
         </div>
@@ -1302,12 +1302,12 @@ function NotesPage() {
       <Section title="Regole da sapere" accent={T.blue}>
         <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"10px"}}>
           {[
-            {t:"Solo INALCA F&B",d:"Il calcolo SC Ã¨ attivo solo per articoli con fornitore INALCA FOOD & BEVERAGE."},
+            {t:"Solo INALCA F&B",d:"Il calcolo SC è attivo solo per articoli con fornitore INALCA FOOD & BEVERAGE."},
             {t:"Soglia > +3% o < -3%",d:"Una variazione viene segnalata come DA AGGIORNARE solo se superiore a +3% o inferiore a -3% rispetto allo SC attuale."},
             {t:"New Standard Cost",d:"New SC = costo acquisto + trasporti + dazi + pallet + AIEM (CAN) + costo magazzino (MTS/MTO). Clicca una riga per il breakdown completo."},
-            {t:"MARE vs GOMMA (CAN)",d:"MARE: costo container diviso per unitÃ  totali. GOMMA: costo per pallet diviso per unitÃ /pallet."},
-            {t:"Eccezione prezzo",d:"Ha prioritÃ  assoluta su listino e listino carne. Usarla per accordi speciali o campioni."},
-            {t:"Fatture cumulative",d:"Il file fatture include tutti i mesi. L'app filtra per posting date â€” non serve caricare ogni mese un file diverso."},
+            {t:"MARE vs GOMMA (CAN)",d:"MARE: costo container diviso per unità totali. GOMMA: costo per pallet diviso per unità/pallet."},
+            {t:"Eccezione prezzo",d:"Ha priorità assoluta su listino e listino carne. Usarla per accordi speciali o campioni."},
+            {t:"Fatture cumulative",d:"Il file fatture include tutti i mesi. L'app filtra per posting date — non serve caricare ogni mese un file diverso."},
           ].map(({t,d},i)=>(
             <div key={i} style={{background:T.card,borderRadius:"8px",padding:"12px 14px",border:`1px solid ${T.border}`}}>
               <div style={{fontSize:"11px",fontWeight:"bold",color:T.text,marginBottom:"4px"}}>{t}</div>
@@ -1320,7 +1320,7 @@ function NotesPage() {
   );
 }
 
-// â”€â”€â”€ IMPORT LISTINI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── IMPORT LISTINI ───────────────────────────────────────────────────────────
 
 function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
   const[step,setStep]=useState("upload");
@@ -1332,7 +1332,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
   const[importMonth,setImportMonth]=useState(month);
   const[doneInfo,setDoneInfo]=useState(null);
 
-  // Funzione per verificare se un codice Ã¨ valido (NON Power BI)
+  // Funzione per verificare se un codice è valido (NON Power BI)
   function isValidCode(code) {
     if(!code) return false;
     const str = String(code).trim();
@@ -1559,22 +1559,22 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
   if(step === "done" && doneInfo) {
     return (
       <div>
-        <PageHeader title="âœ“ Import Listini completato" sub={fileName}/>
+        <PageHeader title="✓ Import Listini completato" sub={fileName}/>
         <div style={{padding:"20px", background:`${T.green}11`, border:`1px solid ${T.green}33`, borderRadius:"8px", marginBottom:"16px", fontSize:"13px", color:T.muted, lineHeight:"2"}}>
-          Mese: <strong style={{color:T.gold}}>{importMonth}</strong> Â· Filiale: <strong style={{color:T.text}}>{branch}</strong><br/>
-          Prezzi totali: <strong style={{color:T.text}}>{doneInfo.count}</strong> &nbsp;Â·&nbsp;
-          <span style={{color:T.green}}>ðŸ†• {doneInfo.newCount} nuovi</span> &nbsp;Â·&nbsp;
-          <span style={{color:T.orange}}>âœï¸ {doneInfo.changed} modificati</span> &nbsp;Â·&nbsp;
+          Mese: <strong style={{color:T.gold}}>{importMonth}</strong> · Filiale: <strong style={{color:T.text}}>{branch}</strong><br/>
+          Prezzi totali: <strong style={{color:T.text}}>{doneInfo.count}</strong> &nbsp;·&nbsp;
+          <span style={{color:T.green}}>🆕 {doneInfo.newCount} nuovi</span> &nbsp;·&nbsp;
+          <span style={{color:T.orange}}>✏️ {doneInfo.changed} modificati</span> &nbsp;·&nbsp;
           <span style={{color:T.dim}}>{doneInfo.unchanged} invariati</span>
         </div>
-        <ActionBtn label="ðŸ’¶ Nuovo import" onClick={reset} primary/>
+        <ActionBtn label="💶 Nuovo import" onClick={reset} primary/>
       </div>
     );
   }
 
   return (
     <div>
-      <PageHeader title="ðŸ’¶ Import Listini" sub={`${branch} Â· importa da file PBI / CURRENT PRICELIST`}/>
+      <PageHeader title="💶 Import Listini" sub={`${branch} · importa da file PBI / CURRENT PRICELIST`}/>
       <StepBar steps={["upload","map","preview","done"]} current={step}/>
       
       {step === "upload" && (
@@ -1592,40 +1592,40 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
       )}
       
       {step === "map" && (
-        <Section title={`Mappatura â€” ${fileName} Â· ${rawRows.length} righe`}>
+        <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
           <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"12px", marginBottom:"18px"}}>
             <div>
-              <label style={{display:"block", fontSize:"11px", color:T.gold, marginBottom:"5px"}}>ðŸ“Œ Codice * ({branchN(branch)} o IFB N)</label>
+              <label style={{display:"block", fontSize:"11px", color:T.gold, marginBottom:"5px"}}>📌 Codice * ({branchN(branch)} o IFB N)</label>
               <select 
                 value={mapping["code"] || ""} 
                 onChange={e => setMapping(m => ({...m, code: e.target.value || null}))} 
                 style={{...inputStyle(), cursor:"pointer", borderColor:!mapping["code"] ? T.red+"88" : T.border}}
               >
-                <option value="">â€” seleziona colonna â€”</option>
+                <option value="">— seleziona colonna —</option>
                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
             
             <div>
-              <label style={{display:"block", fontSize:"11px", color:T.muted, marginBottom:"5px"}}>ðŸ“ Descrizione</label>
+              <label style={{display:"block", fontSize:"11px", color:T.muted, marginBottom:"5px"}}>📝 Descrizione</label>
               <select 
                 value={mapping["description"] || ""} 
                 onChange={e => setMapping(m => ({...m, description: e.target.value || null}))} 
                 style={{...inputStyle(), cursor:"pointer"}}
               >
-                <option value="">â€” non mappato â€”</option>
+                <option value="">— non mappato —</option>
                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
           </div>
           
           <div style={{marginTop:"8px", padding:"8px", background:`${T.gold}08`, borderRadius:"6px", fontSize:"11px", color:T.muted}}>
-            âš¡ I campi prezzi (MTS Price, FCA Price, DAP Price, etc.) vengono rilevati automaticamente.
+            ⚡ I campi prezzi (MTS Price, FCA Price, DAP Price, etc.) vengono rilevati automaticamente.
           </div>
           
           <div style={{display:"flex", gap:"10px", marginTop:"16px"}}>
-            <ActionBtn label="â† Ricarica" onClick={reset}/>
-            <ActionBtn label="Preview â†’" onClick={buildPreview} primary disabled={!mapping["code"]}/>
+            <ActionBtn label="← Ricarica" onClick={reset}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"]}/>
           </div>
         </Section>
       )}
@@ -1634,10 +1634,10 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         <div>
           <div style={{display:"flex", gap:"12px", marginBottom:"16px", flexWrap:"wrap"}}>
             {[
-              [preview.filter(r => r._hasProduct).length, "âœ… Trovati in anagrafica", T.green],
-              [preview.filter(r => !r._hasProduct).length, "âŒ NON trovati in anagrafica", T.red],
-              [preview.filter(r => r._existing).length, "âœï¸ Aggiornamenti", T.orange],
-              [preview.filter(r => !r._existing && r._hasProduct).length, "ðŸ†• Nuovi", T.gold]
+              [preview.filter(r => r._hasProduct).length, "✅ Trovati in anagrafica", T.green],
+              [preview.filter(r => !r._hasProduct).length, "❌ NON trovati in anagrafica", T.red],
+              [preview.filter(r => r._existing).length, "✏️ Aggiornamenti", T.orange],
+              [preview.filter(r => !r._existing && r._hasProduct).length, "🆕 Nuovi", T.gold]
             ].map(([n, l, c]) => (
               <div key={l} style={{padding:"10px 16px", background:T.card, border:`1px solid ${T.border}`, borderRadius:"8px"}}>
                 <div style={{fontSize:"20px", fontWeight:"bold", color:c}}>{n}</div>
@@ -1647,11 +1647,11 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
           </div>
           
           <div style={{display:"flex", gap:"10px", marginBottom:"16px"}}>
-            <ActionBtn label="â† Torna" onClick={() => setStep("map")}/>
-            <ActionBtn label={`âœ“ Importa ${preview.filter(r => r._hasProduct).length} prezzi per ${importMonth}`} onClick={executeImport} primary/>
+            <ActionBtn label="← Torna" onClick={() => setStep("map")}/>
+            <ActionBtn label={`✓ Importa ${preview.filter(r => r._hasProduct).length} prezzi per ${importMonth}`} onClick={executeImport} primary/>
           </div>
           
-          <Section title={`Preview Â· ${importMonth} Â· ${branch}`}>
+          <Section title={`Preview · ${importMonth} · ${branch}`}>
             <div style={{overflowX:"auto"}}>
               <table style={{width:"100%", borderCollapse:"collapse"}}>
                 <thead>
@@ -1665,13 +1665,13 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
                   {preview.slice(0, 100).map(r => (
                     <tr key={r._idx} style={{borderBottom:`1px solid ${T.border}`, background: r._hasProduct ? (r._existing ? `${T.orange}08` : T.bg) : `${T.red}08`}}>
                       <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.gold}}>{r.ifbNo_from_file}</span></td>
-                      <td style={{padding:"7px 12px", fontSize:"12px"}}>{r.description_from_file || "â€”"}</td>
-                      <td style={{padding:"7px 12px", fontSize:"12px"}}>{r._hasProduct ? <span style={{color: T.green}}>âœ“ {r.ifbNo_from_anag}</span> : <span style={{color: T.red}}>âœ— non trovato</span>}</td>
-                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.gold}}>{r.dapFinal > 0 ? `â‚¬ ${r.dapFinal.toFixed(2)}` : "â€”"}</span>{r.dapNote && <span style={{marginLeft:"4px", fontSize:"9px", color:T.dim}}>({r.dapNote})</span>}</td>
-                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.blue}}>{r.mtsPrice > 0 ? `â‚¬ ${r.mtsPrice.toFixed(2)}` : "â€”"}</span></td>
-                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.muted}}>{r.fcaDiscounted > 0 ? `â‚¬ ${r.fcaDiscounted.toFixed(2)}` : "â€”"}</span></td>
+                      <td style={{padding:"7px 12px", fontSize:"12px"}}>{r.description_from_file || "—"}</td>
+                      <td style={{padding:"7px 12px", fontSize:"12px"}}>{r._hasProduct ? <span style={{color: T.green}}>✓ {r.ifbNo_from_anag}</span> : <span style={{color: T.red}}>✗ non trovato</span>}</td>
+                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.gold}}>{r.dapFinal > 0 ? `€ ${r.dapFinal.toFixed(2)}` : "—"}</span>{r.dapNote && <span style={{marginLeft:"4px", fontSize:"9px", color:T.dim}}>({r.dapNote})</span>}</td>
+                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.blue}}>{r.mtsPrice > 0 ? `€ ${r.mtsPrice.toFixed(2)}` : "—"}</span></td>
+                      <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color: T.muted}}>{r.fcaDiscounted > 0 ? `€ ${r.fcaDiscounted.toFixed(2)}` : "—"}</span></td>
                       <td style={{padding:"7px 12px", fontSize:"12px"}}>
-                        {!r._hasProduct ? <span style={{color:T.red, fontSize:"10px"}}>âŒ NON IN ANAGRAFICA</span> : r._existing ? <span style={{color:T.orange, fontSize:"10px"}}>âœï¸ AGGIORNAMENTO</span> : <span style={{color:T.green, fontSize:"10px"}}>ðŸ†• NUOVO</span>}
+                        {!r._hasProduct ? <span style={{color:T.red, fontSize:"10px"}}>❌ NON IN ANAGRAFICA</span> : r._existing ? <span style={{color:T.orange, fontSize:"10px"}}>✏️ AGGIORNAMENTO</span> : <span style={{color:T.green, fontSize:"10px"}}>🆕 NUOVO</span>}
                       </td>
                     </tr>
                   ))}
@@ -1690,7 +1690,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
   );
 }
 
-// â”€â”€â”€ IMPORT ANAGRAFICA BC â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── IMPORT ANAGRAFICA BC ─────────────────────────────────────────────────────
 function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
   const[step,setStep]=useState("upload");
   const[headers,setHeaders]=useState([]);
@@ -1701,7 +1701,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   const[fileName,setFileName]=useState("");
 
   const FIELDS=["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","isHoff","macUom","hkUom","macToHkConv","active","vendorName","vendorName2"];
-  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item / BV No *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg/Cartone (Net Weight)",kgxplt:"Kg x PLT",temperature:"Product Type",aiem:"â˜… AIEM % (CAN â€” col. W anagrafica)",isHoff:"HOFF Flag (MAC: 1=HOFF)",macUom:"MAC UOM di vendita",hkUom:"HK/BV UOM di vendita",macToHkConv:"Fattore conversione MACÃ·HK (es. 6 se HK=PCS e MAC=BOX6)",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
+  const FLABELS={nHK:`${branchN(branch)} (No_)`,code:"IFB Item / BV No *",description:"Descrizione *",category:"Section",uom:"UOM",qtyPerBox:"Qty/Cartone",boxPerPallet:"Cartoni/Pallet",kgPerBox:"Kg/Cartone (Net Weight)",kgxplt:"Kg x PLT",temperature:"Product Type",aiem:"★ AIEM % (CAN — col. W anagrafica)",isHoff:"HOFF Flag (MAC: 1=HOFF)",macUom:"MAC UOM di vendita",hkUom:"HK/BV UOM di vendita",macToHkConv:"Fattore conversione MAC÷HK (es. 6 se HK=PCS e MAC=BOX6)",active:"Bloccato",vendorName:"Vendor Name",vendorName2:"Vendor Name 2"};
 
   const LOCAL_ALIASES = {
     nHK:         ["no","no_","macaono","macao no","macao_no","macaomastercode","macao mastercode","macaoitemno"],
@@ -1782,7 +1782,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
       aiem: parseFloat(r.aiem)||0,
-      isHoff: ["true","1","yes","hoff","si","sÃ¬","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
+      isHoff: ["true","1","yes","hoff","si","sì","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
       macUom: r.macUom ? String(r.macUom).trim().toUpperCase() : "",
       hkUom:  r.hkUom  ? String(r.hkUom).trim().toUpperCase()  : "",
       macToHkConv: parseFloat(r.macToHkConv)>0 ? parseFloat(r.macToHkConv) : 1,
@@ -1804,7 +1804,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
     const newSnaps=[snap,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
     setProducts(newProds);
     const savedProd = LS.set(`ifb_products_${branch}`, newProds);
-    if (!savedProd) showToast("âš  LocalStorage piena: anagrafica NON salvata. Esporta i dati.", T.red);
+    if (!savedProd) showToast("⚠ LocalStorage piena: anagrafica NON salvata. Esporta i dati.", T.red);
     const log={id:now,type:"anagrafica",date:new Date(now).toISOString(),msg:`Importati ${newProds.length} articoli`};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newCount=diffs.filter(d=>d.isNew).length,changed=diffs.filter(d=>!d.isNew&&d.fields.length>0).length;
@@ -1825,11 +1825,11 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
 
   if(step==="done"&&doneInfo) return(
     <div>
-      <PageHeader title="âœ“ Anagrafica importata" sub={fileName}/>
+      <PageHeader title="✓ Anagrafica importata" sub={fileName}/>
       <div style={{padding:"20px",background:`${T.green}11`,border:`1px solid ${T.green}33`,borderRadius:"8px",marginBottom:"16px",fontSize:"13px",lineHeight:"2"}}>
-        Articoli totali: <strong style={{color:T.text}}>{doneInfo.count}</strong> &nbsp;Â·&nbsp;
-        <span style={{color:T.green}}>ðŸ†• {doneInfo.newCount} nuovi</span> &nbsp;Â·&nbsp;
-        <span style={{color:T.orange}}>âœï¸ {doneInfo.changed} modificati</span> &nbsp;Â·&nbsp;
+        Articoli totali: <strong style={{color:T.text}}>{doneInfo.count}</strong> &nbsp;·&nbsp;
+        <span style={{color:T.green}}>🆕 {doneInfo.newCount} nuovi</span> &nbsp;·&nbsp;
+        <span style={{color:T.orange}}>✏️ {doneInfo.changed} modificati</span> &nbsp;·&nbsp;
         <span style={{color:T.dim}}>{doneInfo.unchanged} invariati</span>
       </div>
       <ActionBtn label="Nuova importazione" onClick={()=>{setStep("upload");setDoneInfo(null);}}/>
@@ -1838,20 +1838,20 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
 
   if(step==="preview") return(
     <div>
-      <PageHeader title={`Preview Anagrafica Â· ${fileName}`} sub={`${preview.length} articoli`}/>
+      <PageHeader title={`Preview Anagrafica · ${fileName}`} sub={`${preview.length} articoli`}/>
       <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
-        <ActionBtn label="â† Mappa" onClick={()=>setStep("map")}/>
-        <ActionBtn label={`âœ“ Importa ${preview.length} articoli`} onClick={executeImport} primary/>
+        <ActionBtn label="← Mappa" onClick={()=>setStep("map")}/>
+        <ActionBtn label={`✓ Importa ${preview.length} articoli`} onClick={executeImport} primary/>
       </div>
       <div style={{overflowX:"auto"}}>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <THead cols={[branchN(branch),"IFB No","Descrizione","Vendor","Categoria","UOM","Qty/Box","Box/Plt","Kg/Box","Temp","Attivo"]}sticky/>
           <tbody>{preview.slice(0,200).map((r,i)=>(
             <tr key={i} style={{borderBottom:`1px solid ${T.border}`}}>
-              <TD mono><span style={{color:T.muted}}>{r.nHK||"â€”"}</span></TD>
+              <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
               <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
               <TD>{r.description}</TD>
-              <TD><span style={{fontSize:"11px",color:isIFBVendor(r.vendorName)?T.gold:T.muted}}>{r.vendorName||"â€”"}</span></TD>
+              <TD><span style={{fontSize:"11px",color:isIFBVendor(r.vendorName)?T.gold:T.muted}}>{r.vendorName||"—"}</span></TD>
               <TD>{r.category}</TD><TD>{r.uom}</TD>
               <TD mono>{r.qtyPerBox}</TD><TD mono>{r.boxPerPallet}</TD><TD mono>{r.kgPerBox}</TD>
               <TD>{r.temperature}</TD><TD>{r.active}</TD>
@@ -1864,7 +1864,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
 
   if(step==="map") return(
     <div>
-      <PageHeader title={`Mappatura Anagrafica Â· ${fileName}`} sub={`${rows.length} righe Â· mappatura auto da export BC`}/>
+      <PageHeader title={`Mappatura Anagrafica · ${fileName}`} sub={`${rows.length} righe · mappatura auto da export BC`}/>
       <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",maxWidth:"960px",marginBottom:"20px"}}>
         {FIELDS.map(f=>{
           const isRequired = f==="code"||f==="description";
@@ -1876,7 +1876,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
           <div key={f} style={isCurrent?{border:`1px solid ${T.orange}33`,borderRadius:"6px",padding:"4px 6px",background:`${T.orange}08`}:{}}>
             <label style={{display:"block",fontSize:"11px",color:labelColor,marginBottom:"5px"}}>{FLABELS[f]}</label>
             <select value={map[f]||""} onChange={e=>setMap(m=>({...m,[f]:e.target.value}))} style={{...inputStyle(),borderColor:map[f]?T.gold:(isCurrent&&!map[f])?T.orange:T.border}}>
-              <option value="">â€” non mappato â€”</option>
+              <option value="">— non mappato —</option>
               {headers.map(h=><option key={h} value={h}>{h}</option>)}
             </select>
           </div>
@@ -1884,18 +1884,18 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
         })}
       </div>
       <div style={{display:"flex",gap:"10px"}}>
-        <ActionBtn label="â† Ricarica" onClick={()=>setStep("upload")}/>
-        <ActionBtn label="Preview â†’" onClick={buildPreview} primary disabled={!map["code"]&&!map["description"]}/>
+        <ActionBtn label="← Ricarica" onClick={()=>setStep("upload")}/>
+        <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!map["code"]&&!map["description"]}/>
       </div>
     </div>
   );
 
   return(
     <div>
-      <PageHeader title="â‡ª Import Anagrafica BC" sub="Carica l'export da Business Central. Rilevamento automatico colonne + campo Vendor."/>
+      <PageHeader title="⇪ Import Anagrafica BC" sub="Carica l'export da Business Central. Rilevamento automatico colonne + campo Vendor."/>
       <div style={{marginTop:"12px"}}>
         <label style={{display:"inline-block",padding:"10px 20px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold"}}>
-          ðŸ“‚ Scegli file
+          📂 Scegli file
           <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
         </label>
       </div>
@@ -1904,7 +1904,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
 }
 
 
-// â”€â”€â”€ AIR LIST PAGE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── AIR LIST PAGE ────────────────────────────────────────────────────────────
 function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const[step,setStep]=useState("main");
   const[headers,setHeaders]=useState([]);
@@ -1962,7 +1962,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
     const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
-    bumpImportTs(); showToast(`AIR ${branch}: lista sostituita con ${valid.length} articoli âœ“`, T.gold);
+    bumpImportTs(); showToast(`AIR ${branch}: lista sostituita con ${valid.length} articoli ✓`, T.gold);
     setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
   }
 
@@ -1993,27 +1993,27 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
 
   return(
     <div>
-      <PageHeader title="âœˆ AIR Transport" sub="Articoli trasportati via aerea â€” esclusi da Standard Cost (calcolo solo SEA)"/>
+      <PageHeader title="✈ AIR Transport" sub="Articoli trasportati via aerea — esclusi da Standard Cost (calcolo solo SEA)"/>
       <BcBanner title="Classificazione automatica da BC Brightview">
         Gli articoli con campo <b style={{color:T.text}}>Transportation</b> impostato a <b style={{color:T.orange}}>CH AIR</b>, <b style={{color:T.orange}}>DRY AIR</b> o <b style={{color:T.orange}}>FR AIR</b> nell'item card di BC Brightview vengono classificati automaticamente come AIR ({bcAirCount} articoli da BC).
         La lista manuale qui sotto integra o sovrascrive per gli articoli non presenti in BC.
       </BcBanner>
 
       {step==="map"&&(
-        <Section title={`Mappatura â€” ${fileName}`}>
+        <Section title={`Mappatura — ${fileName}`}>
           <div style={{marginBottom:"16px",maxWidth:"320px"}}>
             <label style={{display:"block",fontSize:"11px",color:T.gold,marginBottom:"5px"}}>Colonna Codice * ({branchN(branch)} o IFB N)</label>
             <select value={colCode} onChange={e=>setColCode(e.target.value)} style={{...inputStyle(),cursor:"pointer"}}>
-              <option value="">â€” seleziona â€”</option>
+              <option value="">— seleziona —</option>
               {headers.map(h=><option key={h} value={h}>{h}</option>)}
             </select>
           </div>
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"16px",padding:"8px 12px",background:`${T.gold}08`,borderRadius:"6px"}}>
-            Tutti i prodotti di questo file verranno marcati come <strong style={{color:T.orange}}>âœˆ AIR</strong> â€” nessuna colonna Transportation richiesta.
+            Tutti i prodotti di questo file verranno marcati come <strong style={{color:T.orange}}>✈ AIR</strong> — nessuna colonna Transportation richiesta.
           </div>
           <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="â† Ricarica" onClick={()=>setStep("main")}/>
-            <ActionBtn label="Preview â†’" onClick={buildPreview} primary disabled={!colCode}/>
+            <ActionBtn label="← Ricarica" onClick={()=>setStep("main")}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!colCode}/>
           </div>
         </Section>
       )}
@@ -2021,9 +2021,9 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
 {step==="preview"&&(
   <div>
     <div style={{display:"flex",gap:"12px",marginBottom:"16px",flexWrap:"wrap"}}>
-      {[[preview.filter(r=>r._hasProduct).length,"âœ… Trovati in anagrafica",T.green],
-        [preview.filter(r=>!r._hasProduct).length,"âŒ NON trovati in anagrafica",T.red],
-        [preview.length,"ðŸ“Š Totale",T.text]].map(([n,l,c])=>(
+      {[[preview.filter(r=>r._hasProduct).length,"✅ Trovati in anagrafica",T.green],
+        [preview.filter(r=>!r._hasProduct).length,"❌ NON trovati in anagrafica",T.red],
+        [preview.length,"📊 Totale",T.text]].map(([n,l,c])=>(
         <div key={l as string} style={{padding:"10px 16px",background:T.card,border:`1px solid ${c}44`,borderRadius:"8px"}}>
           <div style={{fontSize:"20px",fontWeight:"bold",color:c as string}}>{n as number}</div>
           <div style={{fontSize:"10px",color:T.dim,marginTop:"2px"}}>{l as string}</div>
@@ -2032,13 +2032,13 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
     </div>
     
     <div style={{display:"flex",gap:"10px",marginBottom:"16px",flexWrap:"wrap"}}>
-      <ActionBtn label="â† Torna" onClick={()=>setStep("map")}/>
-      <ActionBtn label={`âœ“ Salva ${preview.filter(r=>r._hasProduct).length} articoli AIR`} onClick={executeImport} primary/>
+      <ActionBtn label="← Torna" onClick={()=>setStep("map")}/>
+      <ActionBtn label={`✓ Salva ${preview.filter(r=>r._hasProduct).length} articoli AIR`} onClick={executeImport} primary/>
     </div>
     
-    {/* âœ… SEZIONE NON TROVATI - visibile solo se ce ne sono */}
+    {/* ✅ SEZIONE NON TROVATI - visibile solo se ce ne sono */}
     {preview.filter(r=>!r._hasProduct).length > 0 && (
-      <Section title={`âŒ ${preview.filter(r=>!r._hasProduct).length} codici NON trovati in anagrafica`} accent={T.red}>
+      <Section title={`❌ ${preview.filter(r=>!r._hasProduct).length} codici NON trovati in anagrafica`} accent={T.red}>
         <div style={{overflowX:"auto", marginBottom:"20px"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <THead cols={["Codice dal file","Descrizione dal file"]}sticky/>
@@ -2046,22 +2046,22 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
               {preview.filter(r=>!r._hasProduct).map((r,i)=>(
                 <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:`${T.red}08`}}>
                   <TD mono><span style={{color:T.red, fontWeight:"bold"}}>{r.code}</span></TD>
-                  <TD style={{color:T.muted}}>{r.description || "â€”"}</TD>
+                  <TD style={{color:T.muted}}>{r.description || "—"}</TD>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
         <div style={{fontSize:"11px", color:T.muted, padding:"8px 12px", background:`${T.red}10`, borderRadius:"6px"}}>
-          ðŸ’¡ Questi codici non esistono nell'anagrafica. Verranno <strong>ignorati</strong> nell'import. 
+          💡 Questi codici non esistono nell'anagrafica. Verranno <strong>ignorati</strong> nell'import. 
           Verifica se sono digitati correttamente o aggiungili all'anagrafica.
         </div>
       </Section>
     )}
     
-    {/* âœ… SEZIONE TROVATI (solo AIR) */}
+    {/* ✅ SEZIONE TROVATI (solo AIR) */}
     {preview.filter(r=>r._hasProduct).length > 0 && (
-      <Section title={`âœˆ ${preview.filter(r=>r._hasProduct).length} articoli AIR trovati (verranno importati)`} accent={T.green}>
+      <Section title={`✈ ${preview.filter(r=>r._hasProduct).length} articoli AIR trovati (verranno importati)`} accent={T.green}>
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <THead cols={["Codice",branchN(branch),"Descrizione"]}sticky/>
@@ -2069,7 +2069,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
               {preview.filter(r=>r._hasProduct).slice(0,100).map((r,i)=>(
                 <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
                   <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
-                  <TD mono><span style={{color:T.muted}}>{r.nHK||"â€”"}</span></TD>
+                  <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
                   <TD>{r.description}</TD>
                 </tr>
               ))}
@@ -2090,7 +2090,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
          <>
          <div style={{marginBottom:"20px",display:"flex",gap:"10px",alignItems:"center",flexWrap:"wrap"}}>
          <label style={{display:"inline-block",padding:"10px 20px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold"}}>
-          ðŸ“‚ Carica lista AIR
+          📂 Carica lista AIR
           <input type="file" accept=".xlsx,.xls,.csv"
             onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
         </label>
@@ -2101,15 +2101,15 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
             if(!snap) return;
             if(window.confirm(`Ripristinare la lista AIR del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} articoli)?`)){
               const next=await IDB.get(`ifb_air_data_${snap.id}`, null);
-              if(!next?.length){ showToast("Snapshot non disponibile â€” reimporta il file", T.orange); return; }
+              if(!next?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
               setAirList(next);IDB.set(`ifb_airlist_${branch}`,next);
-              showToast(`Lista AIR ripristinata: ${snap.count} articoli âœ“`,T.gold);
+              showToast(`Lista AIR ripristinata: ${snap.count} articoli ✓`,T.gold);
             }
             e.target.value="";
           }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
-            <option value="">ðŸ“œ Carica da storico ({importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch).length})</option>
+            <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch).length})</option>
             {importLogs.filter((l:any)=>l.type==="air"&&l.branch===branch).map((s:any)=>(
-                  <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} Â· {s.count} articoli</option>
+                  <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli</option>
             ))}
           </select>
         )}
@@ -2149,7 +2149,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
     }
   }}
 >
-  <span style={{fontSize: "12px"}}>âœˆï¸</span>
+  <span style={{fontSize: "12px"}}>✈️</span>
   Lista AIR ({allAirItems.length})
 </button>
  {airList.length>0&&(
@@ -2158,28 +2158,28 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
     setAirList([]);IDB.set(`ifb_airlist_${branch}`,[]);
   }}}
      style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
-     âœ• Svuota lista ({branchAir.length})
+     ✕ Svuota lista ({branchAir.length})
    </button>
  )}
- <span style={{fontSize:"11px",color:T.muted}}>Colonna richiesta: {branchN(branch)} o IFB N Â· ogni import sostituisce la lista precedente</span>
+ <span style={{fontSize:"11px",color:T.muted}}>Colonna richiesta: {branchN(branch)} o IFB N · ogni import sostituisce la lista precedente</span>
 </div>
           {allAirItems.length>0&&(
             <>
-              <SearchBar value={search} onChange={setSearch} placeholder="ðŸ” Cerca articolo AIRâ€¦"/>
-              <Section title={`${displayed.length} articoli AIR Â· ${bcAirCount} da BC Â· ${manualOnlyAir.length} manuali`}>
+              <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo AIR…"/>
+              <Section title={`${displayed.length} articoli AIR · ${bcAirCount} da BC · ${manualOnlyAir.length} manuali`}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <THead cols={["Codice",branchN(branch),"Descrizione","Sorgente","Azioni"]}sticky/>
                   <tbody>{displayed.map((a:any,i:number)=>(
                     <tr key={a.productId||i} style={{borderBottom:`1px solid ${T.border}`}}>
                       <TD mono><span style={{color:T.gold}}>{a.code}</span></TD>
-                      <TD mono><span style={{color:T.muted}}>{a.nHK||"â€”"}</span></TD>
+                      <TD mono><span style={{color:T.muted}}>{a.nHK||"—"}</span></TD>
                       <TD>{a.description}</TD>
                       <TD>
                         {a._fromBC
                           ? <Chip label={`BC: ${a.transportation}`} color={T.blue}/>
                           : <Chip label="Manuale" color={T.orange}/>}
                       </TD>
-                      <TD>{!a._fromBC&&<MiniBtn label="âœ• Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);IDB.set(`ifb_airlist_${branch}`,n);}} color={T.red}/>}</TD>
+                      <TD>{!a._fromBC&&<MiniBtn label="✕ Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);IDB.set(`ifb_airlist_${branch}`,n);}} color={T.red}/>}</TD>
                     </tr>
                   ))}</tbody>
                 </table>
@@ -2192,14 +2192,14 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
   );
 }
 
-// â”€â”€â”€ DASHBOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
 function Dashboard({costRows, branch, month, navigate}) {
   const [activePanel, setActivePanel] = useState<string|null>(null);
 
   const isCAN = branch === "CAN";
   const costKey = isCAN ? "step2GC" : "step2Hkd";
-  const costLabel = isCAN ? "New SC GC (â‚¬)" : "Step2 HKD";
-  const prevLabel = isCAN ? "SC prec. GC (â‚¬)" : "Prec. HKD";
+  const costLabel = isCAN ? "New SC GC (€)" : "Step2 HKD";
+  const prevLabel = isCAN ? "SC prec. GC (€)" : "Prec. HKD";
 
   const calcOk   = costRows.filter((r:any)=>r.cost?.[costKey]!=null);
   const flagged  = costRows.filter((r:any)=>r.cost?.[costKey]!=null&&r.prevCost?.[costKey]!=null&&r.prevCost[costKey]>0&&Math.abs((r.cost[costKey]-r.prevCost[costKey])/r.prevCost[costKey])>=0.03);
@@ -2210,7 +2210,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
   const STATS = [
     { id:"ok",      n:calcOk.length,   label:"Costi calcolati",       color:T.green,  rows:calcOk   },
-    { id:"flagged", n:flagged.length,  label:"Variazioni â‰¥3%",        color:T.orange, rows:flagged  },
+    { id:"flagged", n:flagged.length,  label:"Variazioni ≥3%",        color:T.orange, rows:flagged  },
     ...(!isCAN ? [{ id:"air", n:air.length, label:"AIR (esclusi)", color:T.blue, rows:air }] : []),
     { id:"noPrice", n:noPrice.length,  label:"Senza prezzo",          color:T.red,    rows:noPrice  },
     { id:"noLog",   n:noLog.length,    label:"No logistica",          color:T.red,    rows:noLog    },
@@ -2225,25 +2225,25 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="ok"||activePanel==="flagged") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={[branchN(branch),"IFB No","Descrizione","Ubicaz.",isCAN?"Area":"",costLabel,prevLabel,"Î”%"]}sticky/>
+        <THead cols={[branchN(branch),"IFB No","Descrizione","Ubicaz.",isCAN?"Area":"",costLabel,prevLabel,"Δ%"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>{
           const cv = r.cost?.[costKey];
           const pv = r.prevCost?.[costKey];
           const pct = cv!=null&&pv!=null&&pv>0?(cv-pv)/pv*100:null;
           return(
             <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-              <TD mono><span style={{color:T.muted}}>{r.nHK||"â€”"}</span></TD>
+              <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
               <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
               <TD>{r.description}</TD>
-              <TD><Chip label={r.ubicazione||"â€”"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
+              <TD><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/></TD>
               {isCAN ? <TD><span style={{color:T.muted,fontSize:"11px"}}>{r.area||"NORD"}</span></TD> : <TD/>}
-              <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{cv!=null?cv.toFixed(2):"â€”"}</span></TD>
-              <TD mono><span style={{color:T.muted}}>{pv!=null?pv.toFixed(2):"â€”"}</span></TD>
+              <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{cv!=null?cv.toFixed(2):"—"}</span></TD>
+              <TD mono><span style={{color:T.muted}}>{pv!=null?pv.toFixed(2):"—"}</span></TD>
               <TD>{pct!=null
                 ? <span style={{color:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.text,fontWeight:Math.abs(pct)>=3?"bold":"normal"}}>
-                    {pct>0?"+":""}{pct.toFixed(1)}%{Math.abs(pct)>=3?" âš¡":""}
+                    {pct>0?"+":""}{pct.toFixed(1)}%{Math.abs(pct)>=3?" ⚡":""}
                   </span>
-                : <span style={{color:T.dim}}>â€”</span>}
+                : <span style={{color:T.dim}}>—</span>}
               </TD>
             </tr>
           );
@@ -2256,7 +2256,7 @@ function Dashboard({costRows, branch, month, navigate}) {
         <THead cols={[branchN(branch),"IFB No","Descrizione"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>(
           <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-            <TD mono><span style={{color:T.muted}}>{r.nHK||"â€”"}</span></TD>
+            <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
             <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
             <TD>{r.description}</TD>
           </tr>
@@ -2270,7 +2270,7 @@ function Dashboard({costRows, branch, month, navigate}) {
         <THead cols={[branchN(branch),"IFB No","Descrizione","Motivo"]} sticky />
         <tbody>{panel.rows.map((r:any,i:number)=>(
           <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-            <TD mono><span style={{color:T.muted}}>{r.nHK||"â€”"}</span></TD>
+            <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
             <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
             <TD>{r.description}</TD>
             <TD><span style={{color:T.orange,fontSize:"11px"}}>{r.skipReason}</span></TD>
@@ -2282,7 +2282,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
   return (
     <div>
-      <PageHeader title={`Dashboard Â· ${branch} Â· ${month}`} sub="Solo articoli INALCA FOOD & BEVERAGE Â· SEA"/>
+      <PageHeader title={`Dashboard · ${branch} · ${month}`} sub="Solo articoli INALCA FOOD & BEVERAGE · SEA"/>
       <div style={{display:"flex",gap:"12px",marginBottom:"20px",flexWrap:"wrap"}}>
         {STATS.map(({id,n,label,color,rows})=>{
           const isActive = activePanel===id;
@@ -2296,7 +2296,7 @@ function Dashboard({costRows, branch, month, navigate}) {
               <div style={{fontSize:"22px",fontWeight:"bold",color}}>{n}</div>
               <div style={{fontSize:"11px",color:T.dim,marginTop:"2px"}}>{label}</div>
               <div style={{fontSize:"9px",color:`${color}88`,marginTop:"4px"}}>
-                {isActive?"â–² chiudi":"â–¼ mostra articoli"}
+                {isActive?"▲ chiudi":"▼ mostra articoli"}
               </div>
             </button>
           );
@@ -2304,7 +2304,7 @@ function Dashboard({costRows, branch, month, navigate}) {
       </div>
 
       {panel&&(
-        <Section title={`${panel.label} Â· ${panel.rows.length} articoli`} accent={panel.color}>
+        <Section title={`${panel.label} · ${panel.rows.length} articoli`} accent={panel.color}>
           <div style={{overflowX:"auto"}}>
             {renderPanel()}
           </div>
@@ -2314,7 +2314,7 @@ function Dashboard({costRows, branch, month, navigate}) {
   );
 }
 
-// â”€â”€â”€ LOGISTICS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── LOGISTICS ────────────────────────────────────────────────────────────────
 
 function Logistics({ logistics, setLogistics, products, branch, showToast, bumpImportTs, initFilter, importLogs, setImportLogs, xrefs = [] }) {
   const[search,setSearch]=useState("");
@@ -2328,7 +2328,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
 
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   function toggleEdit(id:string) { setEditingRows(prev=>{ const s=new Set(prev); s.has(id)?s.delete(id):s.add(id); return s; }); }
-  function saveRow(id:string) { IDB.set("ifb_logistics", logistics); showToast("Salvato âœ"", T.green); setEditingRows(prev=>{ const s=new Set(prev); s.delete(id); return s; }); }
+  function saveRow(id:string) { IDB.set("ifb_logistics", logistics); showToast("Salvato ✓", T.green); setEditingRows(prev=>{ const s=new Set(prev); s.delete(id); return s; }); }
 
   function getLog(productId) {
     return logistics.find(l=>l.productId===productId && l.branch===branch) || null;
@@ -2341,7 +2341,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   function update(productId, field, rawVal) {
     const existing = getLog(productId);
     if(existing?.fromImport) {
-      showToast(`âŒ ${field} non modificabile: dato importato da Work_tab`, T.red);
+      showToast(`❌ ${field} non modificabile: dato importato da Work_tab`, T.red);
       return;
     }
     const val = ["ubicazione","area","transport"].includes(field) ? rawVal :
@@ -2370,7 +2370,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         const hdrs = raw[headerRowIdx].map(h => String(h||"").trim());
         const dataRows = raw.slice(headerRowIdx+1).filter(r => r.some(c => c !== ""));
         
-        const fi = aliases => hdrs.findIndex(h => aliases.some(a => h.toLowerCase().replace(/[\s_Â°]/g,"").includes(a.replace(/[\s_Â°]/g,""))));
+        const fi = aliases => hdrs.findIndex(h => aliases.some(a => h.toLowerCase().replace(/[\s_°]/g,"").includes(a.replace(/[\s_°]/g,""))));
         
         const idx = {
           iNHK: fi(["nhk","n hk","n comit","comit","ncomit"]),
@@ -2406,7 +2406,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   
     logRawRows.forEach(row => {
       // Ottieni i codici
-      // N COMIT / N HK â€” try dedicated col first, fallback to first column (CAN "N" col)
+      // N COMIT / N HK — try dedicated col first, fallback to first column (CAN "N" col)
       const nhkRaw = iNHK >= 0 ? String(row[iNHK] || "").trim() : String(row[0] || "").trim();
       const ifbRaw = iIFB >= 0 ? String(row[iIFB] || "").trim() : "";
       if (!nhkRaw && !ifbRaw) return;
@@ -2446,7 +2446,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   
       // Health Certificate
       const certRaw = iCert >= 0 ? String(row[iCert] || "").trim().toUpperCase() : "";
-      const hasCert = ["SI", "YES", "1", "TRUE", "SÃŒ", "S"].includes(certRaw);
+      const hasCert = ["SI", "YES", "1", "TRUE", "SÌ", "S"].includes(certRaw);
   
       // Temperatura rettificata
       let temperatureOverride = null;
@@ -2473,7 +2473,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         hasAlcTax = alcTax > 0;
       }
   
-      // Se Area Ã¨ valorizzata (NORD/SUD/CENTRO) â†’ MARE; se vuota e transport non specificato â†’ GOMMA
+      // Se Area è valorizzata (NORD/SUD/CENTRO) → MARE; se vuota e transport non specificato → GOMMA
       const effectiveTransport = transport || (area !== "NORD" || areaRaw ? (areaRaw ? "MARE" : "GOMMA") : "");
       const finalTransport = areaRaw ? "MARE" : transport || "";
 
@@ -2506,11 +2506,11 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
     IDB.set("ifb_logistics", next);
   
     if (countAir > 0) {
-      showToast(`âš  ${countAir} articoli AIR rilevati â€” gestiscili da âœˆ AIR Transport`, T.orange);
+      showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
     }
   
     bumpImportTs();
-    showToast(`Logistica aggiornata: ${countLog} prodotti per ${currentBranch} âœ“`, T.gold);
+    showToast(`Logistica aggiornata: ${countLog} prodotti per ${currentBranch} ✓`, T.gold);
   
     // Salva snapshot per storico
     const now = Date.now();
@@ -2542,17 +2542,17 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
 
   return (
     <div>
-      <PageHeader title={`Logistica Â· ${branch}`} sub={`${withCount} con logistica (read-only) Â· ${missingCount} senza logistica (modificabili) â€” totale ${allIFBProducts.length} IFB`}/>
+      <PageHeader title={`Logistica · ${branch}`} sub={`${withCount} con logistica (read-only) · ${missingCount} senza logistica (modificabili) — totale ${allIFBProducts.length} IFB`}/>
       
       <div style={{fontSize:"11px", color:T.muted, marginBottom:"10px", padding:"6px 10px", background:`${T.gold}08`, borderRadius:"6px", border:`1px solid ${T.gold}22`}}>
-        ðŸ”’ Righe <strong style={{color:T.gold}}>dorate</strong> = importate da Work_tab (sola lettura) &nbsp;Â·&nbsp;
-        ðŸŸ  Righe arancioni = senza logistica (modificabili)
+        🔒 Righe <strong style={{color:T.gold}}>dorate</strong> = importate da Work_tab (sola lettura) &nbsp;·&nbsp;
+        🟠 Righe arancioni = senza logistica (modificabili)
       </div>
 
       {mapStep === "idle" ? (
   <div style={{marginBottom:"16px", display:"flex", gap:"10px", alignItems:"center", flexWrap:"wrap"}}>
     <label style={{display:"inline-block", padding:"8px 16px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", color:T.text}}>
-      ðŸ“‚ Carica Work_tab (08_Work_Tab.xlsx)
+      📂 Carica Work_tab (08_Work_Tab.xlsx)
       <input type="file" accept=".xlsx,.xls,.csv" onChange={parseLogFile} style={{display:"none"}}/>
     </label>
     
@@ -2564,7 +2564,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           if (window.confirm(`Ripristinare logistica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} righe)?`)) {
             const branchEntries = await IDB.get(`ifb_log_data_${snap.id}`, null);
             if (!branchEntries?.length) {
-              showToast("Snapshot non disponibile â€” reimporta il file Work_tab.", T.orange);
+              showToast("Snapshot non disponibile — reimporta il file Work_tab.", T.orange);
               return;
             }
             const other = logistics.filter((l:any) => l.branch !== branch);
@@ -2572,7 +2572,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
             setLogistics(newLog);
             IDB.set("ifb_logistics", newLog);
             bumpImportTs();
-            showToast(`Logistica ripristinata: ${branchEntries.length} righe âœ“`, T.gold);
+            showToast(`Logistica ripristinata: ${branchEntries.length} righe ✓`, T.gold);
           }
         }
         e.target.value = "";
@@ -2581,12 +2581,12 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
       defaultValue=""
     >
       {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length === 0
-        ? <option value="">ðŸ“œ Storico â€” nessun import precedente</option>
+        ? <option value="">📜 Storico — nessun import precedente</option>
         : <>
-            <option value="">ðŸ“œ Carica da storico ({importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length})</option>
+            <option value="">📜 Carica da storico ({importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).length})</option>
             {importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch).map((s: any) => (
               <option key={s.id} value={String(s.id)}>
-                {new Date(s.id).toLocaleDateString("it-IT")} Â· {s.count} righe
+                {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe
               </option>
             ))}
           </>
@@ -2596,12 +2596,12 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
     {/* Bottone Svuota dati esistente */}
     <button
       onClick={() => {
-        if(window.confirm(`âš ï¸ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}?`)) {
+        if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}?`)) {
           const newLogistics = logistics.filter((l:any) => l.branch !== branch);
           setLogistics(newLogistics);
           IDB.set("ifb_logistics", newLogistics);
           bumpImportTs();
-          showToast(`Dati logistici per ${branch} cancellati âœ“`, T.red);
+          showToast(`Dati logistici per ${branch} cancellati ✓`, T.red);
         }
       }}
       style={{
@@ -2617,44 +2617,44 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         gap:"6px"
       }}
     >
-      ðŸ—‘ Svuota tutti i dati ({logistics.filter((l:any)=>l.branch===branch).length} righe)
+      🗑 Svuota tutti i dati ({logistics.filter((l:any)=>l.branch===branch).length} righe)
     </button>
     
     <span style={{fontSize:"11px", color:T.muted}}>Colonne: {branchN(branch)} / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
   </div>
 ) : mapStep === "ready" ? (
   <div style={{background:T.card, border:`1px solid ${T.green}`, borderRadius:"8px", padding:"16px", marginBottom:"16px"}}>
-    <div style={{color:T.green, fontWeight:"bold", fontSize:"13px", marginBottom:"8px"}}>âœ“ File rilevato Â· {logRawRows.length} righe</div>
+    <div style={{color:T.green, fontWeight:"bold", fontSize:"13px", marginBottom:"8px"}}>✓ File rilevato · {logRawRows.length} righe</div>
     <div style={{fontSize:"12px", color:T.muted, marginBottom:"12px", lineHeight:"1.8"}}>
       Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica
     </div>
     <div style={{display:"flex", gap:"10px"}}>
-      <ActionBtn label="â† Annulla" onClick={() => setMapStep("idle")}/>
-      <ActionBtn label={`âœ“ Importa logistica per ${branch} (${logRawRows.length} righe)`} onClick={applyLogFile} primary/>
+      <ActionBtn label="← Annulla" onClick={() => setMapStep("idle")}/>
+      <ActionBtn label={`✓ Importa logistica per ${branch} (${logRawRows.length} righe)`} onClick={applyLogFile} primary/>
     </div>
   </div>
 ) : null}
 
       <div style={{display:"flex", gap:"10px", marginBottom:"12px", alignItems:"center", flexWrap:"wrap"}}>
-        <SearchBar value={search} onChange={setSearch} placeholder="ðŸ” Cerca prodotto IFBâ€¦"/>
+        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto IFB…"/>
         <button onClick={() => setShowOnlyMissing(v => !v)}
           style={{padding:"6px 14px", background:showOnlyMissing ? T.orange : T.surface, color:showOnlyMissing ? "#000" : T.orange, border:`1px solid ${T.orange}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", whiteSpace:"nowrap", fontWeight:showOnlyMissing ? "bold" : "normal"}}>
-                    {showOnlyMissing ? `âœ“ Con logistica (${withCount})` : `âš  Solo senza logistica (${missingCount})`}
+                    {showOnlyMissing ? `✓ Con logistica (${withCount})` : `⚠ Solo senza logistica (${missingCount})`}
         </button>
         <span style={{fontSize:"11px", color:T.muted}}>
-          {showOnlyMissing ? `Mostrando ${displayed.length} senza logistica` : `${displayed.length} con logistica Â· ${missingCount} mancanti`}
+          {showOnlyMissing ? `Mostrando ${displayed.length} senza logistica` : `${displayed.length} con logistica · ${missingCount} mancanti`}
         </span>
       </div>
 
       {missingCount > 0 && !showOnlyMissing && (
         <div style={{background:`${T.orange}15`, border:`1px solid ${T.orange}44`, borderRadius:"6px", padding:"10px 14px", marginBottom:"14px", fontSize:"12px", color:T.orange}}>
-          âš  {missingCount} prodotti IFB senza parametri logistici per {branch} â†’ Standard Cost non calcolabile.
+          ⚠ {missingCount} prodotti IFB senza parametri logistici per {branch} → Standard Cost non calcolabile.
         </div>
       )}
 
       {displayed.length === 0 && showOnlyMissing && (
         <div style={{padding:"32px", textAlign:"center", background:`${T.green}11`, borderRadius:"8px", color:T.green, fontSize:"13px"}}>
-          âœ… PERFETTO! Tutti i {allIFBProducts.length} prodotti IFB hanno parametri logistici per {branch}!
+          ✅ PERFETTO! Tutti i {allIFBProducts.length} prodotti IFB hanno parametri logistici per {branch}!
         </div>
       )}
 
@@ -2662,10 +2662,10 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         <button
           onClick={()=>{
             IDB.set("ifb_logistics", logistics);
-            showToast("Salvato âœ“", T.green);
+            showToast("Salvato ✓", T.green);
           }}
           style={{padding:"8px 18px",background:`${T.green}20`,border:`1px solid ${T.green}66`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
-          ðŸ’¾ Salva dati logistici
+          💾 Salva dati logistici
         </button>
       </div>
 
@@ -2674,7 +2674,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto"]:[]),...(branch!=="CAN"?["Cert."]:[]),"Alcol >30Â°",...(branch!=="CAN"?["Carriage"]:[]),"Conv.",""].map(c=>(
+              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto"]:[]),...(branch!=="CAN"?["Cert."]:[]),"Alcol >30°",...(branch!=="CAN"?["Carriage"]:[]),"Conv.",""].map(c=>(
                 <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
               ))}
               </tr>
@@ -2688,72 +2688,72 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                 return (
                   <tr key={prod.id} style={{borderBottom:`1px solid ${T.border}`, background:!hasEntry ? `${T.orange}08` : (i%2===0 ? T.bg : T.surface)}}>
                     <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.gold}}>{prod.code}</span></td>
-                    <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.muted}}>{prod.nHK||"â€”"}</span></td>
+                    <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.muted}}>{prod.nHK||"—"}</span></td>
                     <td style={{padding:"7px 12px", fontSize:"12px"}}>
                       {prod.description}
-                      {!hasEntry && <span style={{marginLeft:"6px", fontSize:"9px", color:T.orange, fontWeight:"bold"}}>âš  MANCANTE</span>}
+                      {!hasEntry && <span style={{marginLeft:"6px", fontSize:"9px", color:T.orange, fontWeight:"bold"}}>⚠ MANCANTE</span>}
                     </td>
                     {!isEditing ? (
-                  <>
-                    <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
-                    <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"—"}</td>
-                    {branch==="CAN"&&<td style={{padding:"7px 12px"}}><Chip label={l.transport||"GOMMA"} color={l.transport==="MARE"?T.blue:T.muted}/></td>}
-                    {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasCert?"Sì":"No"}</td>}
-                    <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
-                    {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>}
-                    <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.dim}}>{l.convFactor||1}</td>
-                    <td style={{padding:"7px 12px"}}><button style={btnS(T.gold)} onClick={()=>toggleEdit(prod.id)}>✏️ Modifica</button></td>
-                  </>
-                ) : (
-                  <>
-                    <td style={{padding:"7px 12px"}}>
-                      <select value={l.ubicazione||"MTO"} onChange={e=>update(prod.id,"ubicazione",e.target.value)}
-                        style={{background:T.card,color:T.gold,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"70px"}}>
-                        {["MTO","MTS","FOR"].map(v=><option key={v} value={v}>{v}</option>)}
-                      </select>
-                    </td>
-                    <td style={{padding:"7px 12px"}}>
-                      <select value={l.area||"NORD"} onChange={e=>update(prod.id,"area",e.target.value)}
-                        style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
-                        {["NORD","CENTRO","SUD"].map(v=><option key={v} value={v}>{v}</option>)}
-                      </select>
-                    </td>
-                    {branch==="CAN"&&<td style={{padding:"7px 12px"}}>
-                      <select value={l.transport||"GOMMA"} onChange={e=>update(prod.id,"transport",e.target.value)}
-                        style={{background:T.card,color:T.blue,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
-                        {["GOMMA","MARE"].map(v=><option key={v} value={v}>{v}</option>)}
-                      </select>
-                    </td>}
-                    {branch!=="CAN"&&<td style={{padding:"7px 12px"}}>
-                      <select value={String(l.hasCert||false)} onChange={e=>update(prod.id,"hasCert",e.target.value)}
-                        style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
-                        <option value="false">No</option><option value="true">Sì</option>
-                      </select>
-                    </td>}
-                    <td style={{padding:"7px 12px"}}>
-                      <select value={String(l.hasAlcTax||false)} onChange={e=>update(prod.id,"hasAlcTax",e.target.value)}
-                        style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
-                        <option value="false">No</option><option value="true">Sì</option>
-                      </select>
-                    </td>
-                    {branch!=="CAN"&&<td style={{padding:"7px 12px"}}>
-                      <input type="number" defaultValue={l.carriage||0}
-                        onBlur={e=>update(prod.id,"carriage",e.target.value)}
-                        style={{width:"55px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"12px",borderBottom:`1px solid ${T.border}`}}/>
-                    </td>}
-                    <td style={{padding:"7px 12px"}}>
-                      <input type="number" defaultValue={l.convFactor||1} step="0.01"
-                        onBlur={e=>update(prod.id,"convFactor",e.target.value)}
-                        style={{width:"50px",background:"transparent",color:T.muted,border:"none",textAlign:"right",fontSize:"11px",borderBottom:`1px solid ${T.border}`}}/>
-                    </td>
-                    <td style={{padding:"7px 12px",whiteSpace:"nowrap"}}>
-                      <span style={{display:"flex",gap:"5px"}}>
-                        <button style={btnS(T.green)} onClick={()=>saveRow(prod.id)}>💾 Salva</button>
-                        {hasEntry&&<button style={btnS(T.muted)} onClick={()=>toggleEdit(prod.id)}>Annulla</button>}
-                      </span>
-                    </td>
-                  </>
-                )}
+                      <>
+                        <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
+                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"—"}</td>
+                        {branch==="CAN"&&<td style={{padding:"7px 12px"}}><Chip label={l.transport||"GOMMA"} color={l.transport==="MARE"?T.blue:T.muted}/></td>}
+                        {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasCert?"Sì":"No"}</td>}
+                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
+                        {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>}
+                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.dim}}>{l.convFactor||1}</td>
+                        <td style={{padding:"7px 12px"}}><button style={btnS(T.gold)} onClick={()=>toggleEdit(prod.id)}>✏️ Modifica</button></td>
+                      </>
+                    ) : (
+                      <>
+                        <td style={{padding:"7px 12px"}}>
+                          <select value={l.ubicazione||"MTO"} onChange={e=>update(prod.id,"ubicazione",e.target.value)}
+                            style={{background:T.card,color:T.gold,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"70px"}}>
+                            {["MTO","MTS","FOR"].map(v=><option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </td>
+                        <td style={{padding:"7px 12px"}}>
+                          <select value={l.area||"NORD"} onChange={e=>update(prod.id,"area",e.target.value)}
+                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
+                            {["NORD","CENTRO","SUD"].map(v=><option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </td>
+                        {branch==="CAN"&&<td style={{padding:"7px 12px"}}>
+                          <select value={l.transport||"GOMMA"} onChange={e=>update(prod.id,"transport",e.target.value)}
+                            style={{background:T.card,color:T.blue,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
+                            {["GOMMA","MARE"].map(v=><option key={v} value={v}>{v}</option>)}
+                          </select>
+                        </td>}
+                        {branch!=="CAN"&&<td style={{padding:"7px 12px"}}>
+                          <select value={String(l.hasCert||false)} onChange={e=>update(prod.id,"hasCert",e.target.value)}
+                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
+                            <option value="false">No</option><option value="true">Sì</option>
+                          </select>
+                        </td>}
+                        <td style={{padding:"7px 12px"}}>
+                          <select value={String(l.hasAlcTax||false)} onChange={e=>update(prod.id,"hasAlcTax",e.target.value)}
+                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
+                            <option value="false">No</option><option value="true">Sì</option>
+                          </select>
+                        </td>
+                        {branch!=="CAN"&&<td style={{padding:"7px 12px"}}>
+                          <input type="number" defaultValue={l.carriage||0}
+                            onBlur={e=>update(prod.id,"carriage",e.target.value)}
+                            style={{width:"55px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"12px",borderBottom:`1px solid ${T.border}`}}/>
+                        </td>}
+                        <td style={{padding:"7px 12px"}}>
+                          <input type="number" defaultValue={l.convFactor||1} step="0.01"
+                            onBlur={e=>update(prod.id,"convFactor",e.target.value)}
+                            style={{width:"50px",background:"transparent",color:T.muted,border:"none",textAlign:"right",fontSize:"11px",borderBottom:`1px solid ${T.border}`}}/>
+                        </td>
+                        <td style={{padding:"7px 12px",whiteSpace:"nowrap"}}>
+                          <span style={{display:"flex",gap:"5px"}}>
+                            <button style={btnS(T.green)} onClick={()=>saveRow(prod.id)}>💾 Salva</button>
+                            {hasEntry&&<button style={btnS(T.muted)} onClick={()=>toggleEdit(prod.id)}>Annulla</button>}
+                          </span>
+                        </td>
+                      </>
+                    )}
                   </tr>
                 );
               })}
@@ -2765,7 +2765,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
   );
 }
 
-// â”€â”€â”€ PRICES (con import integrato e storico) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PRICES (con import integrato e storico) ─────────────────────────────────
 function Prices({ prices, setPrices, bcListini = [], products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [],
   importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
 const [search, setSearch] = useState("");
@@ -2805,7 +2805,7 @@ function exportToExcel() {
   XLSX.writeFile(wb, `Listini_${branch}_${month}.xlsx`);
 }
 
-// Funzione per verificare se un codice Ã¨ valido (NON Power BI)
+// Funzione per verificare se un codice è valido (NON Power BI)
 function isValidCode(code: string) {
 if (!code) return false;
 const str = String(code).trim();
@@ -3021,7 +3021,7 @@ function loadFromSnapshot(snap: any) {
     return;
   }
 
-  if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? SostituirÃ  i dati attuali.`)) {
+  if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
     setProducts(snapshotProducts);
     LS.set(`ifb_products_${branch}`, snapshotProducts);
     showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")}`, T.gold);
@@ -3049,7 +3049,7 @@ if (prod) s.add(prod.id);
 return s;
 }, [salesRows, products, xrefs]);
 
-// Lookup map prodotti O(1) â€” costruita una volta sola
+// Lookup map prodotti O(1) — costruita una volta sola
 const prodById = useMemo(() => {
   const m: Record<string,any> = {};
   products.forEach((p: any) => { if(p.id) m[String(p.id)] = p; });
@@ -3088,15 +3088,15 @@ const LABELS = ["FCA Price", "FCA Disc.", "DAP Price", "MTS Price", "DAP Disc.",
 if (importStep === "done" && doneInfo) {
 return (
 <div>
-<PageHeader title="âœ“ Import Listini completato" sub={fileName} />
+<PageHeader title="✓ Import Listini completato" sub={fileName} />
 <div style={{ padding: "20px", background: `${T.green}11`, border: `1px solid ${T.green}33`, borderRadius: "8px", marginBottom: "16px", fontSize: "13px", color: T.muted, lineHeight: "2" }}>
-Mese: <strong style={{ color: T.gold }}>{importMonth}</strong> Â· Filiale: <strong style={{ color: T.text }}>{branch}</strong><br />
-Prezzi totali: <strong style={{ color: T.text }}>{doneInfo.count}</strong> &nbsp;Â·&nbsp;
-<span style={{ color: T.green }}>ðŸ†• {doneInfo.newCount} nuovi</span> &nbsp;Â·&nbsp;
-<span style={{ color: T.orange }}>âœï¸ {doneInfo.changed} modificati</span> &nbsp;Â·&nbsp;
+Mese: <strong style={{ color: T.gold }}>{importMonth}</strong> · Filiale: <strong style={{ color: T.text }}>{branch}</strong><br />
+Prezzi totali: <strong style={{ color: T.text }}>{doneInfo.count}</strong> &nbsp;·&nbsp;
+<span style={{ color: T.green }}>🆕 {doneInfo.newCount} nuovi</span> &nbsp;·&nbsp;
+<span style={{ color: T.orange }}>✏️ {doneInfo.changed} modificati</span> &nbsp;·&nbsp;
 <span style={{ color: T.dim }}>{doneInfo.unchanged} invariati</span>
 </div>
-<ActionBtn label="â† Torna ai listini" onClick={resetImport} />
+<ActionBtn label="← Torna ai listini" onClick={resetImport} />
 </div>
 );
 }
@@ -3105,13 +3105,13 @@ Prezzi totali: <strong style={{ color: T.text }}>{doneInfo.count}</strong> &nbsp
 if (filtered.length === 0 && !invoiceOnly && importStep === "idle") {
 return (
 <div>
-<PageHeader title={`Listini Â· ${branch} Â· ${month}`} sub="Nessun prezzo caricato" />
+<PageHeader title={`Listini · ${branch} · ${month}`} sub="Nessun prezzo caricato" />
 <div style={{ padding: "32px", textAlign: "center", color: T.muted, fontSize: "13px" }}>
-Nessun prezzo per {branch} Â· {month}.
+Nessun prezzo per {branch} · {month}.
 </div>
 <div style={{ marginTop: "16px" }}>
 <label style={{ display: "inline-block", padding: "10px 20px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
-ðŸ“‚ Carica listini (PBI / CURRENT PRICELIST)
+📂 Carica listini (PBI / CURRENT PRICELIST)
 <input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
 </label>
 </div>
@@ -3121,24 +3121,24 @@ Nessun prezzo per {branch} Â· {month}.
 
 return (
 <div>
-<PageHeader title={`Listini Â· ${branch} Â· ${month}`} sub={`${filtered.length} prezzi caricati`} />
+<PageHeader title={`Listini · ${branch} · ${month}`} sub={`${filtered.length} prezzi caricati`} />
 <BcBanner title="Dati aggiornati automaticamente da BC IFB Italia">
-  Listini prezzi FCA / DAP / MTS caricati ogni giorno alle 07:00 dal listino acquisto e vendita di <b style={{color:T.text}}>Business Central IFB Italia</b>. Il campo <b style={{color:T.text}}>DAP</b> viene calcolato dalla tabella costi trasporto BC quando non Ã¨ presente un prezzo DAP esplicito (Pallet1 Ã· pz/pallet).
+  Listini prezzi FCA / DAP / MTS caricati ogni giorno alle 07:00 dal listino acquisto e vendita di <b style={{color:T.text}}>Business Central IFB Italia</b>. Il campo <b style={{color:T.text}}>DAP</b> viene calcolato dalla tabella costi trasporto BC quando non è presente un prezzo DAP esplicito (Pallet1 ÷ pz/pallet).
 </BcBanner>
 
 {/* Toolbar import */}
 <div style={{ display: "flex", gap: "10px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
 <label style={{ display: "inline-block", padding: "6px 14px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>
-ðŸ“‚ Carica listini
+📂 Carica listini
 <input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
 </label>
 
 {priceSnaps.length > 0 && (
 <select onChange={e => { if (e.target.value) loadFromSnapshot(JSON.parse(e.target.value)); e.target.value = ""; }} style={{ ...inputStyle(), width: "auto", fontSize: "12px" }} defaultValue="">
-<option value="">ðŸ“œ Carica da storico ({priceSnaps.length})</option>
+<option value="">📜 Carica da storico ({priceSnaps.length})</option>
 {priceSnaps.map((s: any) => (
 <option key={s.id} value={JSON.stringify(s)}>
-{new Date(s.id).toLocaleDateString("it-IT")} Â· {s.month} Â· {s.count} prezzi
+{new Date(s.id).toLocaleDateString("it-IT")} · {s.month} · {s.count} prezzi
 </option>
 ))}
 </select>
@@ -3146,19 +3146,19 @@ return (
 
 <div style={{ flex: 1 }} />
 
-<SearchBar value={search} onChange={setSearch} placeholder="ðŸ” Cerca prodottoâ€¦" style={{ marginBottom: 0, maxWidth: "250px" }} />
+<SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca prodotto…" style={{ marginBottom: 0, maxWidth: "250px" }} />
 
 <button onClick={() => setInvoiceOnly(v => !v)} style={{ padding: "5px 12px", background: invoiceOnly ? `${T.gold}20` : T.surface, color: invoiceOnly ? T.gold : T.muted, border: `1px solid ${invoiceOnly ? T.gold : T.border}`, borderRadius: "6px", cursor: "pointer", fontSize: "11px", whiteSpace: "nowrap" }}>
-{invoiceOnly ? `âœ“ Solo fatturati (${displayed.length})` : `ðŸ“‹ Solo Sales Invoice (${invoiceProductIds.size} prod.)`}
+{invoiceOnly ? `✓ Solo fatturati (${displayed.length})` : `📋 Solo Sales Invoice (${invoiceProductIds.size} prod.)`}
 </button>
 
 <button onClick={exportToExcel} disabled={displayed.length === 0} style={{ padding: "5px 12px", background: "none", border: `1px solid ${T.green}66`, borderRadius: "6px", color: T.green, cursor: "pointer", fontSize: "11px" }}>
-â¬‡ Excel
+⬇ Excel
 </button>
 
 {setPricesParent && (
 <button onClick={() => { if (window.confirm(`Eliminare tutti i prezzi ${branch}/${month}?`)) setPricesParent(prices.filter(p => !(p.branch === branch && p.month === month))); }} style={{ padding: "5px 12px", background: "none", border: `1px solid ${T.red}44`, borderRadius: "6px", color: T.red, cursor: "pointer", fontSize: "11px" }}>
-âœ• Svuota {branch}/{month}
+✕ Svuota {branch}/{month}
 </button>
 )}
 </div>
@@ -3166,30 +3166,30 @@ return (
 {/* Step di import - Mappa */}
 {importStep === "map" && (
 <div style={{ background: T.card, border: `1px solid ${T.gold}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
-<div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne Â· {fileName}</div>
+<div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne · {fileName}</div>
 <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", marginBottom: "16px" }}>
 <div>
-<label style={{ fontSize: "11px", color: T.gold }}>ðŸ“Œ Codice *</label>
+<label style={{ fontSize: "11px", color: T.gold }}>📌 Codice *</label>
 <select value={mapping["code"] || ""} onChange={e => setMapping((m: any) => ({ ...m, code: e.target.value }))} style={{ ...inputStyle(), fontSize: "12px" }}>
-<option value="">â€” seleziona â€”</option>
+<option value="">— seleziona —</option>
 {headers.map(h => <option key={h} value={h}>{h}</option>)}
 </select>
 </div>
 <div>
-<label style={{ fontSize: "11px", color: T.muted }}>ðŸ“ Descrizione</label>
+<label style={{ fontSize: "11px", color: T.muted }}>📝 Descrizione</label>
 <select value={mapping["description"] || ""} onChange={e => setMapping((m: any) => ({ ...m, description: e.target.value }))} style={{ ...inputStyle(), fontSize: "12px" }}>
-<option value="">â€” non mappato â€”</option>
+<option value="">— non mappato —</option>
 {headers.map(h => <option key={h} value={h}>{h}</option>)}
 </select>
 </div>
 <div>
-<label style={{ fontSize: "11px", color: T.muted }}>ðŸ“… Mese listino</label>
+<label style={{ fontSize: "11px", color: T.muted }}>📅 Mese listino</label>
 <input type="month" value={importMonth} onChange={e => setImportMonth(e.target.value)} style={{ ...inputStyle(), fontSize: "12px" }} />
 </div>
 </div>
 <div style={{ display: "flex", gap: "10px" }}>
 <ActionBtn label="Annulla" onClick={resetImport} />
-<ActionBtn label="Preview â†’" onClick={buildPreview} primary disabled={!mapping["code"]} />
+<ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"]} />
 </div>
 </div>
 )}
@@ -3197,13 +3197,13 @@ return (
 {/* Step di import - Preview */}
 {importStep === "preview" && (
 <div style={{ background: T.card, border: `1px solid ${T.green}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
-<div style={{ color: T.green, fontWeight: "bold", marginBottom: "12px" }}>Preview import Â· {preview.length} righe valide</div>
+<div style={{ color: T.green, fontWeight: "bold", marginBottom: "12px" }}>Preview import · {preview.length} righe valide</div>
 <div style={{ display: "flex", gap: "12px", marginBottom: "16px", flexWrap: "wrap" }}>
 {[
-[preview.filter(r => r._hasProduct).length, "âœ… Trovati in anagrafica", T.green],
-[preview.filter(r => !r._hasProduct).length, "âŒ NON trovati", T.red],
-[preview.filter(r => r._existing).length, "âœï¸ Aggiornamenti", T.orange],
-[preview.filter(r => !r._existing && r._hasProduct).length, "ðŸ†• Nuovi", T.gold]
+[preview.filter(r => r._hasProduct).length, "✅ Trovati in anagrafica", T.green],
+[preview.filter(r => !r._hasProduct).length, "❌ NON trovati", T.red],
+[preview.filter(r => r._existing).length, "✏️ Aggiornamenti", T.orange],
+[preview.filter(r => !r._existing && r._hasProduct).length, "🆕 Nuovi", T.gold]
 ].map(([n, l, c]) => (
 <div key={l as string} style={{ padding: "8px 12px", background: T.surface, border: `1px solid ${c}44`, borderRadius: "6px" }}>
 <div style={{ fontSize: "18px", fontWeight: "bold", color: c as string }}>{n as number}</div>
@@ -3218,16 +3218,16 @@ return (
 <tr key={r._idx} style={{ borderBottom: `1px solid ${T.border}` }}>
   <td style={{ fontFamily: "monospace", color: T.gold }}>{r.ifbNo_from_file}</td>
   <td>{r.description_from_file}</td>
-  <td>{r._hasProduct ? <span style={{ color: T.green }}>âœ“ {r.ifbNo_from_anag}</span> : <span style={{ color: T.red }}>âœ—</span>}</td>
-  <td style={{ fontFamily: "monospace" }}>{r.dapFinal > 0 ? `â‚¬ ${r.dapFinal.toFixed(2)}` : "â€”"}</td>
+  <td>{r._hasProduct ? <span style={{ color: T.green }}>✓ {r.ifbNo_from_anag}</span> : <span style={{ color: T.red }}>✗</span>}</td>
+  <td style={{ fontFamily: "monospace" }}>{r.dapFinal > 0 ? `€ ${r.dapFinal.toFixed(2)}` : "—"}</td>
   <td>{r._hasProduct ? (r._existing ? <span style={{ color: T.orange }}>aggiornamento</span> : <span style={{ color: T.green }}>nuovo</span>) : <span style={{ color: T.red }}>ignorato</span>}</td>
 </tr>
 ))}</tbody>
 </table>
 </div>
 <div style={{ display: "flex", gap: "10px" }}>
-<ActionBtn label="â† Indietro" onClick={() => setImportStep("map")} />
-<ActionBtn label={`âœ“ Importa ${preview.filter(r => r._hasProduct).length} prezzi per ${importMonth}`} onClick={executeImport} primary />
+<ActionBtn label="← Indietro" onClick={() => setImportStep("map")} />
+<ActionBtn label={`✓ Importa ${preview.filter(r => r._hasProduct).length} prezzi per ${importMonth}`} onClick={executeImport} primary />
 </div>
 </div>
 )}
@@ -3238,24 +3238,24 @@ return (
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
 <THead cols={[branchN(branch),"IFB No","Descrizione","UoM","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
 <tbody>
-{displayed.slice(0, 500).map((p: any, i: number) => {
+{displayed.slice(0, 150).map((p: any, i: number) => {
 const prod = prodById[String(p.productId)];
 const inInvoice = invoiceProductIds.has(p.productId);
 const puom = p.pu || "";
 const qtyPerBox = puom === "BOX" ? (products.find((pr:any) => pr.code === (p.n || p.itemCode))?.qtyPerBox || 1) : 1;
 return (
   <tr key={p.productId} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
-    <TD mono><span style={{ color: T.muted }}>{prod?.nHK || "â€”"}</span></TD>
+    <TD mono><span style={{ color: T.muted }}>{prod?.nHK || "—"}</span></TD>
     <TD mono>
       <span style={{ color: T.gold }}>{prod?.code || p.itemCode || p.productId}</span>
-      {inInvoice && <span style={{ marginLeft: "5px", fontSize: "9px", color: T.blue }}>ðŸ“‹</span>}
+      {inInvoice && <span style={{ marginLeft: "5px", fontSize: "9px", color: T.blue }}>📋</span>}
     </TD>
     <TD>{prod?.description || p.bcDesc || <span style={{ color: T.dim, fontSize: "11px" }}>{p.itemCode}</span>}</TD>
-    <TD mono><span style={{ color: puom ? T.gold : T.dim, fontSize: "10px" }}>{puom || "â€”"}</span></TD>
+    <TD mono><span style={{ color: puom ? T.gold : T.dim, fontSize: "10px" }}>{puom || "—"}</span></TD>
     {COLS.map(f => (
       <TD key={f} mono>
         <span style={{ color: (p[f] || 0) > 0 ? T.text : T.dim }}>
-          {(p[f] || 0) > 0 ? `â‚¬ ${roundN((p[f] || 0) * qtyPerBox).toFixed(2)}` : "â€”"}
+          {(p[f] || 0) > 0 ? `€ ${roundN((p[f] || 0) * qtyPerBox).toFixed(2)}` : "—"}
         </span>
       </TD>
     ))}
@@ -3265,14 +3265,14 @@ return (
 </tbody>
 </table>
 </div>
-{displayed.length > 500 && <div style={{ padding: "12px", textAlign: "center", color: T.muted, fontSize: "11px" }}>Mostrati 500/{displayed.length} — usa la ricerca per filtrare</div>}
+{displayed.length > 300 && <div style={{ padding: "12px", textAlign: "center", color: T.muted, fontSize: "11px" }}>Mostrati 300/{displayed.length}</div>}
 </Section>
 </div>
 );
 }
 
 
-// â”€â”€â”€ FX RATES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── FX RATES ─────────────────────────────────────────────────────────────────
 function FxRates({fx,setFx,branch,month}) {
   const branchRates=fx.filter(f=>f.branch===branch).sort((a,b)=>b.month.localeCompare(a.month));
   const current=fx.find(f=>f.branch===branch&&f.month===month)?.rate||BRANCH_CFG[branch]?.defaultRate;
@@ -3284,8 +3284,8 @@ function FxRates({fx,setFx,branch,month}) {
   }
   return(
     <div>
-      <PageHeader title={`Tassi di cambio Â· ${branch}`} sub={`Tasso corrente (${month}): ${current} ${BRANCH_CFG[branch]?.currency}/EUR`}/>
-      <Section title={`Tasso ${month} â€” EUR / ${BRANCH_CFG[branch]?.currency}`} accent={T.gold}>
+      <PageHeader title={`Tassi di cambio · ${branch}`} sub={`Tasso corrente (${month}): ${current} ${BRANCH_CFG[branch]?.currency}/EUR`}/>
+      <Section title={`Tasso ${month} — EUR / ${BRANCH_CFG[branch]?.currency}`} accent={T.gold}>
         <div style={{display:"flex",alignItems:"center",gap:"12px"}}>
           <input type="number" step="0.0001" defaultValue={current} key={branch+month+current}
             onBlur={e=>update(month,e.target.value)}
@@ -3299,7 +3299,7 @@ function FxRates({fx,setFx,branch,month}) {
             <THead cols={["Mese","Tasso"]} sticky />
             <tbody>{branchRates.map((f,i)=>(
               <tr key={f.month} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                <TD mono><span style={{color:f.month===month?T.gold:T.text}}>{f.month}{f.month===month?" âœ“":""}</span></TD>
+                <TD mono><span style={{color:f.month===month?T.gold:T.text}}>{f.month}{f.month===month?" ✓":""}</span></TD>
                 <TD mono><input type="number" step="0.0001" defaultValue={f.rate} key={f.branch+f.month+f.rate}
                   onBlur={e=>update(f.month,e.target.value)}
                   style={{width:"120px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"13px"}}/></TD>
@@ -3312,7 +3312,7 @@ function FxRates({fx,setFx,branch,month}) {
   );
 }
 
-// â”€â”€â”€ COST TABLE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── COST TABLE ───────────────────────────────────────────────────────────────
 
 function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,
   setCostHistory,initFilter,salesRows=[],products=[],xrefs=[]}: any) {
@@ -3367,7 +3367,7 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
   const sixMonthsAgo = new Date();
   sixMonthsAgo.setMonth(sixMonthsAgo.getMonth()-6);
 
-  // â”€â”€ data ultima fattura per prodotto â”€â”€
+  // ── data ultima fattura per prodotto ──
   const lastOrderDate = useMemo(()=>{
     const map: Record<string,Date> = {};
     (salesRows||[]).forEach((row:any)=>{
@@ -3429,7 +3429,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
   const noPrice = filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
   const noLog   = filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
 
-  // â”€â”€ stile celle â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── stile celle ──────────────────────────────────────────────────────────────
   const stickyTop0: React.CSSProperties = {position:"sticky",top:0,zIndex:12};
   const stickyTop22: React.CSSProperties = {position:"sticky",top:22,zIndex:12};
 
@@ -3466,25 +3466,25 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
     ...(sticky?{position:"sticky",left:0,zIndex:5,background:T.surface}:{}),
   });
 
-  const f4=(v:number|undefined)=>v!=null&&v!==0?v.toFixed(4):"â€”";
-  const f2=(v:number|undefined)=>v!=null&&v!==0?v.toFixed(2):"â€”";
+  const f4=(v:number|undefined)=>v!=null&&v!==0?v.toFixed(4):"—";
+  const f2=(v:number|undefined)=>v!=null&&v!==0?v.toFixed(2):"—";
 
   return(
     <div style={{paddingRight:"20px"}}>
-      {/* â”€â”€ toolbar â”€â”€ */}
+      {/* ── toolbar ── */}
       <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px",flexWrap:"wrap"}}>
-        <PageHeader title={`Standard Cost Â· ${branch} Â· ${month}`}
-          sub={branch==="MAC"?`${calc.length} articoli Â· SC HKD Ã— markup Ã— ${HKD_TO_MOP} HKD/MOP`:`${filtered.length} articoli Â· ${calc.length} calcolati Â· INALCA F&B Â· SEA`}/>
+        <PageHeader title={`Standard Cost · ${branch} · ${month}`}
+          sub={branch==="MAC"?`${calc.length} articoli · SC HKD × markup × ${HKD_TO_MOP} HKD/MOP`:`${filtered.length} articoli · ${calc.length} calcolati · INALCA F&B · SEA`}/>
       {branch==="MAC"&&costRows.length===0&&(
         <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
-          âš  Nessun articolo MAC con Standard Cost. Vai in <strong>Anagrafica</strong> e importa il file Macao (con colonna <code>standardcost</code>).
+          ⚠ Nessun articolo MAC con Standard Cost. Vai in <strong>Anagrafica</strong> e importa il file Macao (con colonna <code>standardcost</code>).
         </div>
       )}
                 <button onClick={saveSnapshot} disabled={!needsRecalc}
           style={{padding:"7px 16px",background:needsRecalc?T.gold:"#333",
             color:needsRecalc?"#000":T.muted,border:"none",borderRadius:"6px",
             fontWeight:"bold",cursor:needsRecalc?"pointer":"not-allowed",fontSize:"12px",marginTop:"-8px"}}>
-          {needsRecalc?"âŸ³ Ricalcola & Salva":"âœ“ Aggiornato"}
+          {needsRecalc?"⟳ Ricalcola & Salva":"✓ Aggiornato"}
         </button>
         <button onClick={()=>exportXLSX(
           filtered.filter((r:any)=>r.cost).map((r:any)=>({
@@ -3497,26 +3497,26 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             "Alc.Tax":roundN(r.cost?.alc),"Step1 EUR":roundN(r.cost?.step1Eur),
             "Step1 HKD":roundN(r.cost?.step1Hkd),"WH EUR":roundN(r.cost?.wh),
             "Step2 EUR":roundN(r.cost?.step2Eur,4),"Step2 HKD":roundN(r.cost?.step2Hkd),
-            "Î”%":r.delta!=null?roundN(r.delta,1):"",
+            "Δ%":r.delta!=null?roundN(r.delta,1):"",
           })),
           "Standard Cost",`SC_${branch}_${month}.xlsx`
         )}
           style={{padding:"7px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,
             borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"12px",marginTop:"-8px"}}>
-          â¬‡ Export Excel
+          ⬇ Export Excel
         </button>
       </div>
 
       {(noLog.length>0||noPrice.length>0)&&(
         <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",
           padding:"8px 12px",marginBottom:"10px",fontSize:"11px",color:T.orange}}>
-          {noLog.length>0&&<span>âš  {noLog.length} senza logistica &nbsp;Â·&nbsp;</span>}
-          {noPrice.length>0&&<span>âš  {noPrice.length} senza prezzo</span>}
+          {noLog.length>0&&<span>⚠ {noLog.length} senza logistica &nbsp;·&nbsp;</span>}
+          {noPrice.length>0&&<span>⚠ {noPrice.length} senza prezzo</span>}
         </div>
       )}
 
       <div style={{display:"flex",gap:"8px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
-        <SearchBar value={search} onChange={setSearch} placeholder="ðŸ” Cerca articoloâ€¦"/>
+        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…"/>
 
         {/* filtro Sales Invoice */}
         <button onClick={()=>setInvoiceOnly((v:boolean)=>!v)}
@@ -3526,13 +3526,13 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             border:`1px solid ${invoiceOnly?T.gold:T.border}`,
             borderRadius:"6px",cursor:"pointer",fontSize:"11px",whiteSpace:"nowrap"}}>
           {invoiceOnly
-            ? `ðŸ“‹ Fatturati (${filtered.length})`
-            : `ðŸ“‹ Solo Sales Invoice (${invoiceIds.size} prod.)`}
+            ? `📋 Fatturati (${filtered.length})`
+            : `📋 Solo Sales Invoice (${invoiceIds.size} prod.)`}
         </button>
 
         {invoiceOnly&&(
   <span style={{fontSize:"10px",color:T.muted}}>
-    âš  KEEP OLD = ultimo ordine &gt;6 mesi fa
+    ⚠ KEEP OLD = ultimo ordine &gt;6 mesi fa
   </span>
 )}
       </div>
@@ -3540,15 +3540,15 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 {/* FILTRI MULTIPLI */}
 <div style={{display:"flex",gap:"8px",marginBottom:"10px",flexWrap:"wrap",alignItems:"flex-start",borderTop:`1px solid ${T.border}`,paddingTop:"10px"}}>
-  <span style={{fontSize:"11px",color:T.muted,paddingTop:"6px"}}>ðŸ” Filtri:</span>
+  <span style={{fontSize:"11px",color:T.muted,paddingTop:"6px"}}>🔍 Filtri:</span>
   {([
-    {key:"costCalculated", label:"âœ… Costi calcolati", col:T.gold},
-    {key:"flagged",        label:"Variazioni â‰¥3% New SC",    col:T.orange},
-    ...(branch!=="CAN" ? [{key:"air", label:"âœˆ AIR", col:T.blue}] : []),
-    {key:"noPrice",        label:"âŒ Senza prezzo",   col:T.red},
-    {key:"noLog",          label:"âš  No logistica",    col:T.orange},
-    {key:"calcZero",       label:"âš¡ Calc=0",          col:T.purple},
-    {key:"keepOld",        label:"â° KEEP OLD",        col:T.green},
+    {key:"costCalculated", label:"✅ Costi calcolati", col:T.gold},
+    {key:"flagged",        label:"Variazioni ≥3% New SC",    col:T.orange},
+    ...(branch!=="CAN" ? [{key:"air", label:"✈ AIR", col:T.blue}] : []),
+    {key:"noPrice",        label:"❌ Senza prezzo",   col:T.red},
+    {key:"noLog",          label:"⚠ No logistica",    col:T.orange},
+    {key:"calcZero",       label:"⚡ Calc=0",          col:T.purple},
+    {key:"keepOld",        label:"⏰ KEEP OLD",        col:T.green},
   ] as Array<{key:string,label:string,col:string}>).map(({key,label,col})=>{
     const v = filterFlags[key];
     const isInclude = v==="include";
@@ -3570,7 +3570,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             whiteSpace:"nowrap"
           }}
         >
-          {isInclude?"â–² includi":isExclude?"â–¼ escludi":"â¬š"} {label}
+          {isInclude?"▲ includi":isExclude?"▼ escludi":"⬚"} {label}
         </button>
         {isActive&&(
           <span style={{fontSize:"9px",color:isInclude?col:T.red,letterSpacing:"0.03em"}}>
@@ -3584,11 +3584,11 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
     onClick={()=>setFilterFlags({flagged:false,air:false,noPrice:false,noLog:false,calcZero:false,keepOld:false,costCalculated:false})}
     style={{padding:"4px 10px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"10px",alignSelf:"flex-start",marginTop:"2px"}}
   >
-    âœ• Reset
+    ✕ Reset
   </button>
 </div>
 
-      {/* â”€â”€ tabella â”€â”€ */}
+      {/* ── tabella ── */}
       {/* Barra di scorrimento orizzontale in alto */}
 <div 
   ref={topScrollRef}
@@ -3622,8 +3622,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 <GH span={3}/>
                 <GH span={branch==="CAN"?5:4}/>
                 {branch==="CAN"
-                  ? <GH span={4} accent={T.blue}>Costi trasporto (â‚¬/unit)</GH>
-                  : <GH span={7} accent={T.blue}>Costi trasporto e dazi (â‚¬/unit)</GH>}
+                  ? <GH span={4} accent={T.blue}>Costi trasporto (€/unit)</GH>
+                  : <GH span={7} accent={T.blue}>Costi trasporto e dazi (€/unit)</GH>}
                 <GH span={1} accent={T.purple}>Magazzino</GH>
                 {branch==="CAN"
                   ? <GH span={4} accent={T.green}>New Standard Cost</GH>
@@ -3641,8 +3641,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 <TH accent={T.orange} w={75} align="center">HOFF</TH>
                 <TH accent={T.blue} w={80}>HK SC (HKD)</TH>
                 <TH accent={T.dim} w={60}>Markup</TH>
-                <TH accent={T.green} w={90}>New SC (MOP) âœ“</TH>
-                <TH w={60}>Î”%</TH>
+                <TH accent={T.green} w={90}>New SC (MOP) ✓</TH>
+                <TH w={60}>Δ%</TH>
                 <TH w={90}>Ultimo ordine</TH>
               </> : <>
               <TH align="left" sticky w={70}>{branchN(branch)}</TH>
@@ -3653,7 +3653,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               {branch==="CAN"&&<TH w={65} align="center">Tratta</TH>}
               <TH w={55} align="center">Temp.</TH>
               <TH w={55} align="center">Rettif.</TH>
-              <TH accent={T.blue} w={70}>Prezzo â‚¬</TH>
+              <TH accent={T.blue} w={70}>Prezzo €</TH>
               {branch==="CAN" ? <>
                 <TH accent={T.blue} w={65}>Trasp.</TH>
                 <TH accent={T.blue} w={60}>Pallet</TH>
@@ -3666,17 +3666,17 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 <TH accent={T.blue} w={60}>Pallet</TH>
                 <TH accent={T.blue} w={60}>Alc.Tax</TH>
               </>}
-              <TH accent={T.purple} w={65}>WH â‚¬</TH>
+              <TH accent={T.purple} w={65}>WH €</TH>
               {branch==="CAN" ? <>
                 <TH accent={T.green} w={72}>New SC GC</TH>
                 <TH accent={T.green} w={72}>New SC TF</TH>
                 <TH accent={T.green} w={72}>New SC LAN</TH>
-                <TH accent={T.green} w={85}>New SC FUE âœ“</TH>
+                <TH accent={T.green} w={85}>New SC FUE ✓</TH>
               </> : <>
-                <TH accent={T.green} w={72}>New SC â‚¬</TH>
-                <TH accent={T.green} w={85}>New SC HKD âœ“</TH>
+                <TH accent={T.green} w={72}>New SC €</TH>
+                <TH accent={T.green} w={85}>New SC HKD ✓</TH>
               </>}
-              <TH w={60}>Î”%</TH>
+              <TH w={60}>Δ%</TH>
               <TH w={90}>Ultimo ordine</TH>
               </>}
             </tr>
@@ -3692,54 +3692,54 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               const rowBg  = i%2===0?T.bg:T.surface;
               const isSelected = showDetail===r.id;
 
-              // â”€â”€ MAC row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── MAC row ──────────────────────────────────────────────────
               if (branch==="MAC") {
                 const mc = r.cost;
                 return (<React.Fragment key={r.id}>
                   <tr style={{background:isSelected?`${T.gold}08`:rowBg,cursor:"pointer"}}
                     onClick={()=>setShowDetail((v:any)=>v===r.id?null:r.id)}>
                     <td style={{...cellL(true),background:isSelected?`${T.gold}08`:rowBg}}>
-                      <span style={{color:T.muted,fontFamily:"monospace",fontSize:"10px"}}>{r.nHK||r.code||"â€”"}</span>
+                      <span style={{color:T.muted,fontFamily:"monospace",fontSize:"10px"}}>{r.nHK||r.code||"—"}</span>
                     </td>
                     <td style={cellL()}><span style={{color:T.gold,fontFamily:"monospace",fontSize:"10px"}}>{r.code}</span></td>
                     <td style={{...cellL(),maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis"}}>{r.description}</td>
-                    <td style={cell()}>{r.uom||"â€”"}</td>
+                    <td style={cell()}>{r.uom||"—"}</td>
                     <td style={{...cell(),textAlign:"center"}}>
                       <Chip label={r.isHoff?"HOFF":"NON-HOFF"} color={r.isHoff?T.orange:T.blue}/>
                     </td>
-                    <td style={cell(T.blue)}>{mc?`${mc.hkNewSC.toFixed(2)}`:"â€”"}</td>
-                    <td style={cell(T.dim)}>{mc?`+${mc.markup.toFixed(0)}%`:"â€”"}</td>
+                    <td style={cell(T.blue)}>{mc?`${mc.hkNewSC.toFixed(2)}`:"—"}</td>
+                    <td style={cell(T.dim)}>{mc?`+${mc.markup.toFixed(0)}%`:"—"}</td>
                     <td style={cell(mc&&r.uomDiffers&&mc.macToHkConv===1?T.orange:T.green,true)}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
                         {mc?<>
                           {`${mc.macNewSC.toFixed(2)}`}
-                          {mc.macToHkConv>1&&<span style={{fontSize:"8px",color:T.purple,marginLeft:"3px"}}>Ã—{mc.macToHkConv}</span>}
-                          {r.uomDiffers&&mc.macToHkConv===1&&<span style={{fontSize:"8px",color:T.orange,marginLeft:"3px"}}>âš UOM</span>}
-                        </>:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"â€”"}</span>}
+                          {mc.macToHkConv>1&&<span style={{fontSize:"8px",color:T.purple,marginLeft:"3px"}}>×{mc.macToHkConv}</span>}
+                          {r.uomDiffers&&mc.macToHkConv===1&&<span style={{fontSize:"8px",color:T.orange,marginLeft:"3px"}}>⚠UOM</span>}
+                        </>:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                       </span>
                     </td>
                     <td style={cell(pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,Math.abs(pct||0)>=3)}>
-                      {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"â€”"}
+                      {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
                     </td>
                     <td style={{...cell(),textAlign:"center"}}>
-                      {!lastD?<span style={{color:T.dim}}>â€”</span>:isOld?<div style={{lineHeight:1.2}}><div style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>âš  KEEP OLD</div><div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div></div>:<span style={{color:T.muted}}>{lastD.toLocaleDateString("it-IT")}</span>}
+                      {!lastD?<span style={{color:T.dim}}>—</span>:isOld?<div style={{lineHeight:1.2}}><div style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>⚠ KEEP OLD</div><div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div></div>:<span style={{color:T.muted}}>{lastD.toLocaleDateString("it-IT")}</span>}
                     </td>
                   </tr>
                   {isSelected&&mc&&(
                     <tr key={r.id+"_detail"}>
                       <td colSpan={10} style={{padding:"10px 20px",background:`${T.gold}06`,borderBottom:`1px solid ${T.gold}33`}}>
                         <div style={{fontSize:"9px",color:T.gold,letterSpacing:"2px",textTransform:"uppercase",marginBottom:"8px"}}>
-                          Breakdown New Standard Cost Â· Macao Â· {r.isHoff?"HOFF (House of Fine Foods)":"NON-HOFF"}
+                          Breakdown New Standard Cost · Macao · {r.isHoff?"HOFF (House of Fine Foods)":"NON-HOFF"}
                         </div>
                         <table style={{borderCollapse:"collapse"}}>
                           <tbody>
                             {[
                               ["SC HK / FOB (HKD)",`HKD ${mc.hkNewSC.toFixed(4)}`,`Costo pagato da Macao a HK${mc.macToHkConv>1?` (per ${r.hkUom||"HK UOM"})`:""}`,T.blue],
-                              ...(mc.macToHkConv>1?[[`Conv. UOM (Ã—${mc.macToHkConv})`,`HKD ${(mc.hkNewSC*mc.macToHkConv).toFixed(4)}`,`${r.hkUom||"HK UOM"} â†’ ${r.macUom||"MAC UOM"}: Ã— ${mc.macToHkConv}`,T.purple]]:[]),
+                              ...(mc.macToHkConv>1?[[`Conv. UOM (×${mc.macToHkConv})`,`HKD ${(mc.hkNewSC*mc.macToHkConv).toFixed(4)}`,`${r.hkUom||"HK UOM"} → ${r.macUom||"MAC UOM"}: × ${mc.macToHkConv}`,T.purple]]:[]),
                               [`Markup ${r.isHoff?"HOFF":"non-HOFF"}`,`+ ${mc.markup.toFixed(0)}%`,r.isHoff?"HOFF (House of Fine Foods): +3%":"Non-HOFF: +10%",T.orange],
-                              ["Tasso HKD â†’ MOP",`Ã— ${HKD_TO_MOP}`,"Tasso di cambio fisso",T.muted],
-                              ["Base in MOP",`MOP ${mc.baseInMop?.toFixed(4)||"â€”"}`,`HKD ${mc.hkNewSC.toFixed(4)} Ã— ${mc.macToHkConv>1?mc.macToHkConv+"Ã—":""}${(1+mc.markup/100).toFixed(2)} Ã— ${HKD_TO_MOP}`,T.muted],
-                              [`Logistica ALL-IN (${mc.temperature||"DRY"})`,`+ MOP ${mc.logPerUom?.toFixed(4)||"â€”"}`,`${mc.logPerKg} MOP/kg Ã— ${(mc.logPerUom/mc.logPerKg||1).toFixed(3)} kg/${r.macUom||"UOM"} Â· include: BV Whsâ†’HK Port, Ferry, Dogana, Consegna Macao`,T.blue],
+                              ["Tasso HKD → MOP",`× ${HKD_TO_MOP}`,"Tasso di cambio fisso",T.muted],
+                              ["Base in MOP",`MOP ${mc.baseInMop?.toFixed(4)||"—"}`,`HKD ${mc.hkNewSC.toFixed(4)} × ${mc.macToHkConv>1?mc.macToHkConv+"×":""}${(1+mc.markup/100).toFixed(2)} × ${HKD_TO_MOP}`,T.muted],
+                              [`Logistica ALL-IN (${mc.temperature||"DRY"})`,`+ MOP ${mc.logPerUom?.toFixed(4)||"—"}`,`${mc.logPerKg} MOP/kg × ${(mc.logPerUom/mc.logPerKg||1).toFixed(3)} kg/${r.macUom||"UOM"} · include: BV Whs→HK Port, Ferry, Dogana, Consegna Macao`,T.blue],
                               ["NEW SC MAC (MOP)",`MOP ${mc.macNewSC.toFixed(4)}`,`Base MOP + Logistica`,T.green],
                             ].map(([k,v,f,col]:any[])=>(
                               <tr key={String(k)}>
@@ -3751,36 +3751,36 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                           </tbody>
                         </table>
                         <div style={{marginTop:"6px",fontSize:"9px",color:T.dim}}>
-                          u/plt: {(mc.unitsPerPlt||0).toFixed(2)} Â· HK UOM: {r.hkUom||"â€”"} Â· MAC UOM: {r.macUom||"â€”"}
+                          u/plt: {(mc.unitsPerPlt||0).toFixed(2)} · HK UOM: {r.hkUom||"—"} · MAC UOM: {r.macUom||"—"}
                         </div>
                       </td>
                     </tr>
                   )}
                 </React.Fragment>);
               }
-              // â”€â”€ END MAC row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+              // ── END MAC row ───────────────────────────────────────────────
 
               return(<>
                                   <tr key={r.id}
                   style={{background:isSelected?`${T.gold}08`:rowBg,opacity:r.isAir?0.45:1,cursor:"pointer"}}
                   onClick={()=>setShowDetail((v:any)=>v===r.id?null:r.id)}>
 
-                  {/* identitÃ  */}
+                  {/* identità */}
                   <td style={{...cellL(true),background:isSelected?`${T.gold}08`:rowBg}}>
-                    <span style={{color:T.muted,fontFamily:"monospace",fontSize:"10px"}}>{r.nHK||"â€”"}</span>
+                    <span style={{color:T.muted,fontFamily:"monospace",fontSize:"10px"}}>{r.nHK||"—"}</span>
                   </td>
                   <td style={cellL()}>
                     <span style={{color:T.gold,fontFamily:"monospace",fontSize:"10px"}}>{r.code}</span>
                   </td>
                   <td style={{...cellL(),maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis"}}>
                     {r.description}
-                    {r.isAir&&<span style={{marginLeft:"4px",color:T.orange,fontSize:"9px"}}>âœˆ</span>}
+                    {r.isAir&&<span style={{marginLeft:"4px",color:T.orange,fontSize:"9px"}}>✈</span>}
                   </td>
-                  <td style={cell()}>{r.uom||"â€”"}</td>
+                  <td style={cell()}>{r.uom||"—"}</td>
                   <td style={cell()}>
                     {r.ubicazione
                       ? <Chip label={r.ubicazione} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>
-                      : <span style={{color:T.dim}}>â€”</span>}
+                      : <span style={{color:T.dim}}>—</span>}
                   </td>
                   {branch==="CAN"&&(()=>{
                     const logEntry = logistics?.find((l:any)=>l.productId===r.id&&l.branch===branch);
@@ -3788,10 +3788,10 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                     return (
                       <td style={{...cell(),textAlign:"center"}}>
                         {tr==="MARE"
-                          ? <Chip label="ðŸš¢ MARE" color={T.blue}/>
+                          ? <Chip label="🚢 MARE" color={T.blue}/>
                           : tr==="GOMMA"
-                          ? <Chip label="ðŸš› GOMMA" color={T.orange}/>
-                          : <span style={{color:T.dim,fontSize:"9px"}}>â€”</span>}
+                          ? <Chip label="🚛 GOMMA" color={T.orange}/>
+                          : <span style={{color:T.dim,fontSize:"9px"}}>—</span>}
                       </td>
                     );
                   })()}
@@ -3801,7 +3801,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                     {r.temperature
                       ? <Chip label={r.temperature}
                           color={r.temperature==="FROZEN"?T.blue:r.temperature==="FRESH"?T.green:T.muted}/>
-                      : <span style={{color:T.dim}}>â€”</span>}
+                      : <span style={{color:T.dim}}>—</span>}
                   </td>
 
                   {/* temperatura rettificata (Work_tab) */}
@@ -3809,60 +3809,60 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                     {r.temperatureOverride && r.temperatureOverride!==r.temperature
                       ? <Chip label={r.temperatureOverride}
                           color={r.temperatureOverride==="FROZEN"?T.blue:r.temperatureOverride==="FRESH"?T.green:T.muted}/>
-                      : <span style={{color:T.dim,fontSize:"9px"}}>â€”</span>}
+                      : <span style={{color:T.dim,fontSize:"9px"}}>—</span>}
                   </td>
 
                   {/* costi breakdown */}
-                  <td style={cell(T.text)}>{c?`â‚¬${f4(c.priceEur)}`:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"â€”"}</span>}</td>
+                  <td style={cell(T.text)}>{c?`€${f4(c.priceEur)}`:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}</td>
                   {branch==="CAN" ? <>
                     {/* trasporto (GC come rappresentativo) */}
-                    <td style={cell()}>{c?f4(c.freightGC+c.inlandGC+c.veronaBarcUnit+c.barcUnitGC+c.assicUnit):"â€”"}</td>
-                    <td style={cell()}>{c?f4(c.plt):"â€”"}</td>
-                    <td style={cell(c?.aiemUnit>0?T.orange:undefined)}>{c?(c.aiemUnit>0?f4(c.aiemUnit):"â€”"):"â€”"}</td>
+                    <td style={cell()}>{c?f4(c.freightGC+c.inlandGC+c.veronaBarcUnit+c.barcUnitGC+c.assicUnit):"—"}</td>
+                    <td style={cell()}>{c?f4(c.plt):"—"}</td>
+                    <td style={cell(c?.aiemUnit>0?T.orange:undefined)}>{c?(c.aiemUnit>0?f4(c.aiemUnit):"—"):"—"}</td>
                   </> : <>
-                    <td style={cell()}>{c?f4(c.fob):"â€”"}</td>
-                    <td style={cell()}>{c?f4(c.lic):"â€”"}</td>
-                    <td style={cell()}>{c?f4(c.vgm):"â€”"}</td>
-                    <td style={cell(c?.hc>0?T.orange:undefined)}>{c?(c.hc>0?f4(c.hc):"â€”"):"â€”"}</td>
-                    <td style={cell()}>{c?f4(c.plt):"â€”"}</td>
-                    <td style={cell(c?.alc>0?T.orange:undefined)}>{c?(c.alc>0?f4(c.alc):"â€”"):"â€”"}</td>
+                    <td style={cell()}>{c?f4(c.fob):"—"}</td>
+                    <td style={cell()}>{c?f4(c.lic):"—"}</td>
+                    <td style={cell()}>{c?f4(c.vgm):"—"}</td>
+                    <td style={cell(c?.hc>0?T.orange:undefined)}>{c?(c.hc>0?f4(c.hc):"—"):"—"}</td>
+                    <td style={cell()}>{c?f4(c.plt):"—"}</td>
+                    <td style={cell(c?.alc>0?T.orange:undefined)}>{c?(c.alc>0?f4(c.alc):"—"):"—"}</td>
                   </>}
 
                   {/* magazzino */}
-                  <td style={cell(T.purple)}>{c?(c.wh>0?f4(c.wh):"â€”"):"â€”"}</td>
+                  <td style={cell(T.purple)}>{c?(c.wh>0?f4(c.wh):"—"):"—"}</td>
 
                   {/* step 2 */}
                   {branch==="CAN" ? <>
-                    <td style={cell(T.green,true)}>{c?`â‚¬${c.step2GC.toFixed(4)}`:"â€”"}</td>
-                    <td style={cell(T.green,true)}>{c?`â‚¬${c.step2TF.toFixed(4)}`:"â€”"}</td>
-                    <td style={cell(T.green,true)}>{c?`â‚¬${c.step2LAN.toFixed(4)}`:"â€”"}</td>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2GC.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2TF.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2LAN.toFixed(4)}`:"—"}</td>
                     <td style={cell(T.green,true)}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
-                        {c?`â‚¬${c.step2FUE.toFixed(4)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"â€”"}</span>}
+                        {c?`€${c.step2FUE.toFixed(4)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                       </span>
                     </td>
                   </> : <>
-                    <td style={cell(T.green,true)}>{c?`â‚¬${c.step2Eur.toFixed(4)}`:"â€”"}</td>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2Eur.toFixed(4)}`:"—"}</td>
                     <td style={{...cell(undefined,true),background:hkd!=null?`${T.gold}33`:undefined}}>
                       <span style={{fontSize:"11px",fontWeight:"bold",color:hkd!=null?T.gold:T.dim}}>
-                        {hkd!=null?`${hkd.toFixed(2)}`:<span style={{fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"â€”"}</span>}
+                        {hkd!=null?`${hkd.toFixed(2)}`:<span style={{fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                       </span>
                     </td>
                   </>}
 
                   {/* delta */}
                   <td style={cell(pct==null?T.dim:Math.abs(pct)>=3?(pct>0?T.red:T.green):T.muted,Math.abs(pct||0)>=3)}>
-                    {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"â€”"}
-                    {Math.abs(pct||0)>=3&&" âš¡"}
+                    {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
+                    {Math.abs(pct||0)>=3&&" ⚡"}
                   </td>
 
                   {/* ultimo ordine */}
                   <td style={{...cell(),textAlign:"center"}}>
                     {!lastD
-                      ? <span style={{color:T.dim}}>â€”</span>
+                      ? <span style={{color:T.dim}}>—</span>
                       : isOld
                         ? <div style={{lineHeight:1.2}}>
-                            <div style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>âš  KEEP OLD</div>
+                            <div style={{color:T.orange,fontWeight:"bold",fontSize:"9px"}}>⚠ KEEP OLD</div>
                             <div style={{color:T.dim,fontSize:"9px"}}>{lastD.toLocaleDateString("it-IT")}</div>
                           </div>
                         : <span style={{color:T.muted}}>{lastD.toLocaleDateString("it-IT")}</span>
@@ -3870,14 +3870,14 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                   </td>
                 </tr>
 
-                {/* â”€â”€ riga dettaglio espansa â”€â”€ */}
+                {/* ── riga dettaglio espansa ── */}
                 {isSelected&&c&&(
                   <tr key={r.id+"_detail"}>
                     <td colSpan={branch==="CAN"?19:19} style={{padding:"10px 20px",background:`${T.gold}06`,
                       borderBottom:`1px solid ${T.gold}33`}}>
                       {branch==="CAN" ? (() => {
                         const isMARE = c.isMARE || c.transport==="MARE";
-                        const f4=(v:number)=>`â‚¬ ${v.toFixed(5)}`;
+                        const f4=(v:number)=>`€ ${v.toFixed(5)}`;
                         const row=(label:string,gcTf:string,lanFue:string,formula:string,color=T.text)=>(
                           <tr key={label}>
                             <td style={{padding:"3px 10px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{label}</td>
@@ -3892,7 +3892,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                         return (
                           <div style={{display:"flex",gap:"32px",flexWrap:"wrap"}}>
                             <div>
-                              <div style={{fontSize:"9px",color:T.gold,letterSpacing:"2px",textTransform:"uppercase",marginBottom:"8px"}}>Breakdown New Standard Cost Â· {c.transport||"GOMMA"} Â· {r.temperature||"DRY"} Â· {r.ubicazione||"MTS"}</div>
+                              <div style={{fontSize:"9px",color:T.gold,letterSpacing:"2px",textTransform:"uppercase",marginBottom:"8px"}}>Breakdown New Standard Cost · {c.transport||"GOMMA"} · {r.temperature||"DRY"} · {r.ubicazione||"MTS"}</div>
                               <table style={{borderCollapse:"collapse"}}>
                                 <thead><tr>
                                   <th style={{padding:"2px 10px 4px 0",fontSize:"9px",color:T.dim,textAlign:"left",letterSpacing:"1px"}}>VOCE</th>
@@ -3905,21 +3905,21 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                   {row("Prezzo acquisto",f4(c.priceEur),f4(c.priceEur),r.ubicazione==="FOR"?"Da listino (FCA)":r.ubicazione==="MTS"?"Da listino (MTS)":"Da listino (DAP Verona)",T.text)}
                                   {isMARE ? sep("Trasporto MARE") : sep("Trasporto GOMMA")}
                                   {isMARE ? <>
-                                    {row("Freight MARE",f4(c.freightGC),f4(c.freightLAN||0),`MARE[${r.area||"NORD"}] Ã· (u/plt Ã— plt/cont)`,T.blue)}
-                                    {row("Inland",f4(c.inlandGC),f4(c.freightLAN||0),"INLAND Ã· (u/plt Ã— plt/cont)",T.blue)}
+                                    {row("Freight MARE",f4(c.freightGC),f4(c.freightLAN||0),`MARE[${r.area||"NORD"}] ÷ (u/plt × plt/cont)`,T.blue)}
+                                    {row("Inland",f4(c.inlandGC),f4(c.freightLAN||0),"INLAND ÷ (u/plt × plt/cont)",T.blue)}
                                   </> : <>
-                                    {row("Verona â†’ Barcellona",f4(c.veronaBarcUnit),f4(c.veronaBarcUnit),"62,50 â‚¬ Ã· u/plt (COSTS LOG!D5)",T.blue)}
-                                    {row("Barc â†’ Isola",f4(c.barcUnitGC),f4(c.barcUnitLAN||0),"BARC[temp][isola] Ã· u/plt",T.blue)}
-                                    {row("Assicurazione",f4(c.assicUnit),f4(c.assicUnit),"Prezzo Ã— 0,5%",T.blue)}
+                                    {row("Verona → Barcellona",f4(c.veronaBarcUnit),f4(c.veronaBarcUnit),"62,50 € ÷ u/plt (COSTS LOG!D5)",T.blue)}
+                                    {row("Barc → Isola",f4(c.barcUnitGC),f4(c.barcUnitLAN||0),"BARC[temp][isola] ÷ u/plt",T.blue)}
+                                    {row("Assicurazione",f4(c.assicUnit),f4(c.assicUnit),"Prezzo × 0,5%",T.blue)}
                                   </>}
                                   {sep("Pallet & AIEM / Tassa Alcolica")}
-                                  {row("Pallet",f4(c.plt),f4(c.plt),"15 â‚¬ Ã· u/plt (COSTS LOG!I1)",T.blue)}
+                                  {row("Pallet",f4(c.plt),f4(c.plt),"15 € ÷ u/plt (COSTS LOG!I1)",T.blue)}
                                   {c.tassaAlcolica>0
-                                    ? row("Tassa Alcolica",f4(c.tassaAlcolica),f4(c.tassaAlcolica),"LT Ã— â‚¬/LT (Beverage Info â€” fisso/unit)",T.orange)
-                                    : c.aiemGCTF>0&&row("AIEM",f4(c.aiemGCTF),f4(c.aiemLANFUE||0),"(Prezzo + Trasporto isola) Ã— AIEM%",T.orange)}
+                                    ? row("Tassa Alcolica",f4(c.tassaAlcolica),f4(c.tassaAlcolica),"LT × €/LT (Beverage Info — fisso/unit)",T.orange)
+                                    : c.aiemGCTF>0&&row("AIEM",f4(c.aiemGCTF),f4(c.aiemLANFUE||0),"(Prezzo + Trasporto isola) × AIEM%",T.orange)}
                                   {sep("Magazzino")}
-                                  {row("WH / unit",c.wh>0?f4(c.wh):"â€”",c.wh>0?f4(c.wh):"â€”",
-                                    r.ubicazione==="MTO"?"MTO[temp] Ã· u/plt":r.ubicazione==="MTS"?"MTS-D + MTS-I Ã· u/plt + MTS-P Ã· collo":"â€”",T.purple)}
+                                  {row("WH / unit",c.wh>0?f4(c.wh):"—",c.wh>0?f4(c.wh):"—",
+                                    r.ubicazione==="MTO"?"MTO[temp] ÷ u/plt":r.ubicazione==="MTS"?"MTS-D + MTS-I ÷ u/plt + MTS-P ÷ collo":"—",T.purple)}
                                   {sep("New Standard Cost")}
                                   <tr>
                                     <td style={{padding:"4px 10px 4px 0",fontSize:"12px",color:T.green,fontWeight:"bold"}}>NEW SC GC</td>
@@ -3944,13 +3944,13 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                 </tbody>
                               </table>
                               <div style={{marginTop:"8px",fontSize:"9px",color:T.dim}}>
-                                u/plt: {(c.unitsPerPlt||0).toFixed(2)} Â· plt/cont: {r.pltPerContainer||"â€”"} Â· Temp: {r.temperature||"DRY"} Â· Area: {r.area||"NORD"}
+                                u/plt: {(c.unitsPerPlt||0).toFixed(2)} · plt/cont: {r.pltPerContainer||"—"} · Temp: {r.temperature||"DRY"} · Area: {r.area||"NORD"}
                               </div>
                             </div>
                           </div>
                         );
                       })() : (() => {
-                        const f4=(v:number)=>`â‚¬ ${v.toFixed(5)}`;
+                        const f4=(v:number)=>`€ ${v.toFixed(5)}`;
                         const row=(label:string,val:string,formula:string,color=T.text,bold=false)=>(
                           <tr key={label}>
                             <td style={{padding:"3px 12px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{label}</td>
@@ -3963,42 +3963,42 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                         );
                         return (
                           <div>
-                            <div style={{fontSize:"9px",color:T.gold,letterSpacing:"2px",textTransform:"uppercase",marginBottom:"8px"}}>Breakdown New Standard Cost Â· {r.ubicazione||"â€”"} Â· {r.temperature||"DRY"}</div>
+                            <div style={{fontSize:"9px",color:T.gold,letterSpacing:"2px",textTransform:"uppercase",marginBottom:"8px"}}>Breakdown New Standard Cost · {r.ubicazione||"—"} · {r.temperature||"DRY"}</div>
                             <table style={{borderCollapse:"collapse"}}>
                               <thead><tr>
                                 <th style={{padding:"2px 12px 4px 0",fontSize:"9px",color:T.dim,textAlign:"left",letterSpacing:"1px"}}>VOCE</th>
-                                <th style={{padding:"2px 10px 4px",fontSize:"9px",color:T.dim,textAlign:"right",letterSpacing:"1px"}}>â‚¬ / UNIT</th>
+                                <th style={{padding:"2px 10px 4px",fontSize:"9px",color:T.dim,textAlign:"right",letterSpacing:"1px"}}>€ / UNIT</th>
                                 <th style={{padding:"2px 0 4px 14px",fontSize:"9px",color:T.dim,textAlign:"left",letterSpacing:"1px"}}>FORMULA</th>
                               </tr></thead>
                               <tbody>
                                 {sep("Costo acquisto")}
                                 {row("Prezzo acquisto",f4(c.priceEur),"Da listino (DAP/FCA del mese)",T.text)}
                                 {sep("Trasporto e dazi")}
-                                {row("FOB / unit",f4(c.fob),"Freight On Board â€” da tabella COSTS",T.blue)}
-                                {row("LIC / unit",f4(c.lic),"Local Import Charges â€” da tabella COSTS",T.blue)}
-                                {row("VGM / unit",f4(c.vgm),"Verified Gross Mass â€” da tabella COSTS",T.blue)}
-                                {c.hc>0&&row("Certificati / unit",f4(c.hc),"Health / import certificate â€” da tabella COSTS",T.blue)}
-                                {row("Pallet / unit",f4(c.plt),`Costo pallet Ã· ${(c.unitsPerPlt||0).toFixed(2)} u/plt`,T.blue)}
-                                {c.alc>0&&row("Alc. Tax / unit",f4(c.alc),"Tassa alcol â€” da anagrafica articolo",T.orange)}
+                                {row("FOB / unit",f4(c.fob),"Freight On Board — da tabella COSTS",T.blue)}
+                                {row("LIC / unit",f4(c.lic),"Local Import Charges — da tabella COSTS",T.blue)}
+                                {row("VGM / unit",f4(c.vgm),"Verified Gross Mass — da tabella COSTS",T.blue)}
+                                {c.hc>0&&row("Certificati / unit",f4(c.hc),"Health / import certificate — da tabella COSTS",T.blue)}
+                                {row("Pallet / unit",f4(c.plt),`Costo pallet ÷ ${(c.unitsPerPlt||0).toFixed(2)} u/plt`,T.blue)}
+                                {c.alc>0&&row("Alc. Tax / unit",f4(c.alc),"Tassa alcol — da anagrafica articolo",T.orange)}
                                 {sep("Magazzino")}
-                                {row("WH / unit",c.wh>0?f4(c.wh):"â€”",
-                                  r.ubicazione==="MTO"?"MTO[temp] Ã· u/plt":
-                                  r.ubicazione==="MTS"?"MTS-D + MTS-I Ã· u/plt + MTS-P Ã· collo":"â€”",T.purple)}
+                                {row("WH / unit",c.wh>0?f4(c.wh):"—",
+                                  r.ubicazione==="MTO"?"MTO[temp] ÷ u/plt":
+                                  r.ubicazione==="MTS"?"MTS-D + MTS-I ÷ u/plt + MTS-P ÷ collo":"—",T.purple)}
                                 {sep("New Standard Cost")}
                                 <tr>
-                                  <td style={{padding:"4px 12px 4px 0",fontSize:"12px",color:T.green,fontWeight:"bold"}}>NEW SC â‚¬</td>
+                                  <td style={{padding:"4px 12px 4px 0",fontSize:"12px",color:T.green,fontWeight:"bold"}}>NEW SC €</td>
                                   <td style={{padding:"4px 10px",fontSize:"13px",color:T.green,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2Eur)}</td>
                                   <td style={{padding:"4px 0 4px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>Prezzo + FOB + LIC + VGM + Cert. + Pallet + AlcTax + WH</td>
                                 </tr>
                                 <tr>
                                   <td style={{padding:"2px 12px 2px 0",fontSize:"11px",color:T.green}}>NEW SC HKD</td>
                                   <td style={{padding:"2px 10px",fontSize:"12px",color:T.green,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{`HKD ${c.step2Hkd.toFixed(2)}`}</td>
-                                  <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>{`New SC â‚¬ Ã— rate ${c.rate}`}</td>
+                                  <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>{`New SC € × rate ${c.rate}`}</td>
                                 </tr>
                               </tbody>
                             </table>
                             <div style={{marginTop:"8px",fontSize:"9px",color:T.dim}}>
-                              u/plt: {(c.unitsPerPlt||0).toFixed(2)} Â· Rate HKD: {c.rate} Â· {r.ubicazione||"â€”"}
+                              u/plt: {(c.unitsPerPlt||0).toFixed(2)} · Rate HKD: {c.rate} · {r.ubicazione||"—"}
                             </div>
                           </div>
                         );
@@ -4105,7 +4105,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     const log={id:now,type:"sales",date:new Date(now).toISOString(),count:preview.length,diffs:[],branch};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    bumpImportTs();showToast(`${preview.length} righe importate âœ“`,T.gold);
+    bumpImportTs();showToast(`${preview.length} righe importate ✓`,T.gold);
     setStep("view");
   }
 
@@ -4183,39 +4183,39 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
 
-  // â”€â”€ STEPS IMPORT â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── STEPS IMPORT ──────────────────────────────────────────────────────────
   if(step==="map") return(
     <div>
-      <PageHeader title="ðŸ“‹ Fatture & Costi Â· Mappatura" sub={`${fileName} Â· ${rawRows.length} righe`}/>
+      <PageHeader title="📋 Fatture & Costi · Mappatura" sub={`${fileName} · ${rawRows.length} righe`}/>
       <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"20px",maxWidth:"800px"}}>
-        {([["itemCode","Codice articolo *",true],["description","Descrizione",false],["date","Data fattura",false],["qty","QuantitÃ ",false],["unitPrice","Prezzo unitario",false],["location","Location",false]] as [string,string,boolean][]).map(([field,label,req])=>(
+        {([["itemCode","Codice articolo *",true],["description","Descrizione",false],["date","Data fattura",false],["qty","Quantità",false],["unitPrice","Prezzo unitario",false],["location","Location",false]] as [string,string,boolean][]).map(([field,label,req])=>(
           <div key={field}>
             <label style={{display:"block",fontSize:"11px",color:req?T.gold:T.muted,marginBottom:"5px"}}>{label}{req?" *":""}</label>
             <select value={mapping[field]||""} onChange={e=>setMapping((m:any)=>({...m,[field]:e.target.value||null}))}
               style={{...inputStyle(),cursor:"pointer",borderColor:req&&!mapping[field]?T.red+"88":T.border}}>
-              <option value="">â€” non mappato â€”</option>
+              <option value="">— non mappato —</option>
               {headers.map(h=><option key={h} value={h}>{h}</option>)}
             </select>
           </div>
         ))}
       </div>
       <div style={{display:"flex",gap:"10px"}}>
-        <ActionBtn label="â† Ricarica" onClick={()=>setStep("upload")}/>
-        <ActionBtn label="Preview â†’" onClick={buildPreview} primary disabled={!mapping["itemCode"]}/>
+        <ActionBtn label="← Ricarica" onClick={()=>setStep("upload")}/>
+        <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["itemCode"]}/>
       </div>
     </div>
   );
 
   if(step==="preview") return(
     <div>
-      <PageHeader title="ðŸ“‹ Fatture & Costi Â· Preview" sub={`${fileName} Â· ${preview.length} righe valide`}/>
-      {rows?.length>0&&<div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>âš  Questo import sostituirÃ  i dati attuali ({rows.length} righe).</div>}
+      <PageHeader title="📋 Fatture & Costi · Preview" sub={`${fileName} · ${preview.length} righe valide`}/>
+      {rows?.length>0&&<div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}44`,borderRadius:"6px",padding:"10px 14px",marginBottom:"14px",fontSize:"12px",color:T.orange}}>⚠ Questo import sostituirà i dati attuali ({rows.length} righe).</div>}
       <div style={{display:"flex",gap:"12px",marginBottom:"16px",flexWrap:"wrap"}}>
         {([
           [preview.length,"Totale",T.text],
-          ...(branch!=="CAN"?[[preview.filter((r:any)=>r.transport==="AIR").length,"âœˆ AIR",T.orange]]:[] as any),
-          ...(branch!=="CAN"?[[preview.filter((r:any)=>r.transport==="SEA").length,"â›´ SEA",T.blue]]:[] as any),
-          [preview.filter((r:any)=>!r._prodFound).length,"âš  Non in anagrafica",T.red],
+          ...(branch!=="CAN"?[[preview.filter((r:any)=>r.transport==="AIR").length,"✈ AIR",T.orange]]:[] as any),
+          ...(branch!=="CAN"?[[preview.filter((r:any)=>r.transport==="SEA").length,"⛴ SEA",T.blue]]:[] as any),
+          [preview.filter((r:any)=>!r._prodFound).length,"⚠ Non in anagrafica",T.red],
         ] as [number,string,string][]).map(([n,l,c])=>(
           <div key={l as string} style={{padding:"10px 16px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"8px"}}>
             <div style={{fontSize:"20px",fontWeight:"bold",color:c as string}}>{n as number}</div>
@@ -4224,15 +4224,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         ))}
       </div>
       <div style={{display:"flex",gap:"10px",marginBottom:"16px"}}>
-        <ActionBtn label="â† Mappa" onClick={()=>setStep("map")}/>
-        <ActionBtn label={`âœ“ Importa ${preview.length} righe`} onClick={executeImport} primary/>
+        <ActionBtn label="← Mappa" onClick={()=>setStep("map")}/>
+        <ActionBtn label={`✓ Importa ${preview.length} righe`} onClick={executeImport} primary/>
       </div>
     </div>
   );
 
   if(step==="upload") return(
     <div>
-      <PageHeader title="ðŸ“‹ Fatture & Costi" sub="Carica il file fattura"/>
+      <PageHeader title="📋 Fatture & Costi" sub="Carica il file fattura"/>
       {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length>0&&(
         <select onChange={async e=>{
           if(!e.target.value)return;
@@ -4241,29 +4241,29 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")}?`)){
             const r=await IDB.get(`ifb_sales_data_${snap.id}`,null);
             if(!r?.length){showToast("Snapshot non disponibile",T.orange);return;}
-            saveRows(r);setStep("view");showToast(`Ripristinata: ${snap.count} righe âœ“`,T.gold);
+            saveRows(r);setStep("view");showToast(`Ripristinata: ${snap.count} righe ✓`,T.gold);
           }
           e.target.value="";
         }} style={{...inputStyle(),width:"auto",fontSize:"12px",marginBottom:"16px"}} defaultValue="">
-          <option value="">ðŸ“œ Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length})</option>
+          <option value="">📜 Carica da storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length})</option>
           {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).map((s:any)=>(
-            <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} Â· {s.count} righe</option>
+            <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
           ))}
         </select>
       )}
       <Section title="Carica file fattura">
-        <DropZone onFile={(f:File)=>{const e={target:{files:[f],value:""}} as any;parseFile(e);}} label="Trascina o clicca â€” Excel / CSV fattura"/>
+        <DropZone onFile={(f:File)=>{const e={target:{files:[f],value:""}} as any;parseFile(e);}} label="Trascina o clicca — Excel / CSV fattura"/>
       </Section>
     </div>
   );
 
-  // â”€â”€ VIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── VIEW ─────────────────────────────────────────────────────────────────
   return(
     <div>
-      <PageHeader title={`Fatture & Costi Â· ${branch}`} sub={`${enriched.length} righe Â· ${fileName||"dati caricati"}`} srcKey={`fatture_${branch}`}/>
+      <PageHeader title={`Fatture & Costi · ${branch}`} sub={`${enriched.length} righe · ${fileName||"dati caricati"}`} srcKey={`fatture_${branch}`}/>
       {activeRows.some((r:any)=>r._fromBC) && (
         <BcBanner title="Dati caricati automaticamente da BC IFB Italia">
-          Le righe fattura sono importate direttamente da <b style={{color:T.text}}>Business Central IFB Italia</b> (Item Ledger Entry). La colonna <b style={{color:T.text}}>SC BC</b> mostra lo Standard Cost a sistema su BC Brightview; <b style={{color:T.text}}>Î” SC</b> Ã¨ la differenza rispetto al costo calcolato dall'app.
+          Le righe fattura sono importate direttamente da <b style={{color:T.text}}>Business Central IFB Italia</b> (Item Ledger Entry). La colonna <b style={{color:T.text}}>SC BC</b> mostra lo Standard Cost a sistema su BC Brightview; <b style={{color:T.text}}>Δ SC</b> è la differenza rispetto al costo calcolato dall'app.
         </BcBanner>
       )}
 
@@ -4271,7 +4271,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
       {mismatches.length>0&&(
         <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}`,borderRadius:"6px",padding:"10px 16px",marginBottom:"14px",display:"flex",alignItems:"center",gap:"12px",flexWrap:"wrap"}}>
           <span style={{color:T.orange,fontWeight:"bold"}}>
-            âš  {mismatches.filter((r:any)=>r.isAir&&!r.locationIsNCJ).length} AIR senza NCJ &nbsp;Â·&nbsp;
+            ⚠ {mismatches.filter((r:any)=>r.isAir&&!r.locationIsNCJ).length} AIR senza NCJ &nbsp;·&nbsp;
             {mismatches.filter((r:any)=>!r.isAir&&r.locationIsNCJ).length} NCJ ma SEA
           </span>
           <button onClick={()=>setFilterTransport(v=>v==="mismatch"?"all":"mismatch")}
@@ -4284,7 +4284,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
       {/* Toolbar */}
       <div style={{display:"flex",gap:"8px",marginBottom:"12px",alignItems:"center",flexWrap:"wrap"}}>
         <label style={{display:"inline-block",padding:"6px 14px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.text}}>
-          ðŸ“‚ Ricarica
+          📂 Ricarica
           <input type="file" accept=".xlsx,.xls,.csv" onChange={parseFile} style={{display:"none"}}/>
         </label>
         {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length>0&&(
@@ -4295,13 +4295,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
             if(window.confirm(`Ripristinare fattura del ${new Date(snap.id).toLocaleDateString("it-IT")}?`)){
               const r=await IDB.get(`ifb_sales_data_${snap.id}`,null);
               if(!r?.length){showToast("Snapshot non disponibile",T.orange);return;}
-              saveRows(r);showToast(`${snap.count} righe ripristinate âœ“`,T.gold);
+              saveRows(r);showToast(`${snap.count} righe ripristinate ✓`,T.gold);
             }
             e.target.value="";
           }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
-            <option value="">ðŸ“œ Storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length})</option>
+            <option value="">📜 Storico ({importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).length})</option>
             {importLogs.filter((l:any)=>l.type==="sales"&&l.branch===branch).map((s:any)=>(
-              <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} Â· {s.count} righe</option>
+              <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} righe</option>
             ))}
           </select>
         )}
@@ -4309,7 +4309,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           displayed.map((r:any)=>({
             "Data":r.date||"",[branchN(branch)]:r.nHK||"","IFB No":r.ifbNo||"","Descrizione":r.description||"",
             "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"","Location":r.location||"",
-            "Mismatch":r.mismatch?"âš  "+( r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"",
+            "Mismatch":r.mismatch?"⚠ "+( r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"",
             "Mag./Trasp.":r.isAir?"AIR":r.ubicazione||"",
             "Old SC":r.oldHkd!=null?roundN(r.oldHkd):"",
             ...(branch==="CAN"
@@ -4319,32 +4319,32 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                  "SC FUE":r.isAir?"AIR":r.scFUE!=null?roundN(r.scFUE):"MANCANTE"}
               : {"New SC":r.isAir?"AIR":(r.unitPrice===0||r.unitPrice===0.01)?"SAMPLE":r.newHkd!=null?roundN(r.newHkd):"MANCANTE",
                  "SC BC":r.bcStdCost>0?roundN(r.bcStdCost):"",
-                 "Î” SC":r.deltaSC!=null?roundN(r.deltaSC):""}),
-            "Î”%":r.pct!=null?roundN(r.pct,1):"","Motivo":r.skipReason||"",
+                 "Δ SC":r.deltaSC!=null?roundN(r.deltaSC):""}),
+            "Δ%":r.pct!=null?roundN(r.pct,1):"","Motivo":r.skipReason||"",
           })),
           "Fatture & Costi",`Fatture_${branch}.xlsx`
         )} style={{padding:"6px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
-          â¬‡ Export Excel
+          ⬇ Export Excel
         </button>
         {branch!=="CAN"&&<button onClick={()=>setExcludeAir(v=>!v)}
           style={{padding:"6px 14px",background:excludeAir?`${T.orange}20`:T.surface,color:excludeAir?T.orange:T.muted,border:`1px solid ${excludeAir?T.orange:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeAir?"bold":"normal"}}>
-          {excludeAir?`âœ“ AIR esclusi (${airCount})`:`âœˆ Escludi AIR (${airCount})`}
+          {excludeAir?`✓ AIR esclusi (${airCount})`:`✈ Escludi AIR (${airCount})`}
         </button>}
         <button onClick={()=>setLast30(v=>!v)}
           style={{padding:"6px 14px",background:last30?`${T.blue}25`:T.surface,color:last30?T.blue:T.muted,border:`1px solid ${last30?T.blue:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:last30?"bold":"normal"}}>
-          {last30?"âœ“ Ultimi 30gg":"ðŸ“… Ultimi 30gg"}
+          {last30?"✓ Ultimi 30gg":"📅 Ultimi 30gg"}
         </button>
         <button onClick={()=>setDedup(v=>!v)}
           style={{padding:"6px 14px",background:dedup?`${T.purple}25`:T.surface,color:dedup?T.purple:T.muted,border:`1px solid ${dedup?T.purple:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:dedup?"bold":"normal"}}>
-          {dedup?"âœ“ Senza duplicati":"â§‰ Senza duplicati"}
+          {dedup?"✓ Senza duplicati":"⧉ Senza duplicati"}
         </button>
         <button onClick={()=>setSortDir(d=>d==="desc"?"asc":"desc")}
           style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
-          Data {sortDir==="desc"?"â†“":"â†‘"}
+          Data {sortDir==="desc"?"↓":"↑"}
         </button>
         <button onClick={()=>{if(window.confirm(`Eliminare i dati (${activeRows.length} righe)?`)){saveRows([]);setStep("upload");}}}
           style={{padding:"6px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
-          âœ• Svuota
+          ✕ Svuota
         </button>
       </div>
 
@@ -4353,14 +4353,14 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         {((branch==="CAN"
           ? [
               ["all",`Tutte (${enriched.length})`,T.text],
-              ["gomma",`ðŸš› GOMMA (${enriched.filter((r:any)=>r.logTransport==="GOMMA").length})`,T.orange],
-              ["mare",`ðŸš¢ MARE (${enriched.filter((r:any)=>r.logTransport==="MARE").length})`,T.blue],
+              ["gomma",`🚛 GOMMA (${enriched.filter((r:any)=>r.logTransport==="GOMMA").length})`,T.orange],
+              ["mare",`🚢 MARE (${enriched.filter((r:any)=>r.logTransport==="MARE").length})`,T.blue],
             ]
           : [
               ["all",`Tutte (${enriched.length})`,T.text],
-              ["air",`âœˆ AIR (${airCount})`,T.orange],
-              ["sea",`â›´ SEA (${enriched.length-airCount})`,T.blue],
-              ["mismatch",`âš  Mismatch (${mismatches.length})`,T.purple],
+              ["air",`✈ AIR (${airCount})`,T.orange],
+              ["sea",`⛴ SEA (${enriched.length-airCount})`,T.blue],
+              ["mismatch",`⚠ Mismatch (${mismatches.length})`,T.purple],
             ]) as [string,string,string][]).map(([v,l,c])=>(
           <button key={v} onClick={()=>setFilterTransport(v)}
             style={{padding:"5px 12px",background:filterTransport===v?`${c}20`:T.surface,color:filterTransport===v?c:T.muted,border:`1px solid ${filterTransport===v?c:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:filterTransport===v?"bold":"normal"}}>
@@ -4369,7 +4369,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         ))}
       </div>
 
-      <SearchBar value={search} onChange={setSearch} placeholder={`ðŸ” Cerca codice, ${branchN(branch)}, descrizione, locationâ€¦`}/>
+      <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca codice, ${branchN(branch)}, descrizione, location…`}/>
 
       {branch!=="CAN"&&(
         <div style={{display:"flex",gap:"6px",marginBottom:"10px",alignItems:"center"}}>
@@ -4386,55 +4386,55 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" â–¾","IFB No â–¾","Descrizione","Qty","Prezzo","Location â–¾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC â–¾","SC TF","SC LAN","SC FUE"]:["New SC â–¾","SC BC","Î” SC"]),"Î”%","Motivo"].map((c,ci)=>{
-                if(c===branchN(branch)+" â–¾") return(
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC ▾","SC TF","SC LAN","SC FUE"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
+                if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
                       style={{background:filterNHK?`${T.gold}22`:T.card,color:filterNHK?T.gold:T.muted,border:`1px solid ${filterNHK?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"110px"}}>
-                      <option value="">{branchN(branch)} â–¾</option>
-                      <option value="__MISSING__">âŒ Senza {branchN(branch)}</option>
+                      <option value="">{branchN(branch)} ▾</option>
+                      <option value="__MISSING__">❌ Senza {branchN(branch)}</option>
                       {uniqueNHK.map(v=><option key={v} value={v}>{v}</option>)}
                     </select>
                   </th>
                 );
-                if(c==="IFB No â–¾") return(
+                if(c==="IFB No ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterIFBNo} onChange={e=>setFilterIFBNo(e.target.value)}
                       style={{background:filterIFBNo?`${T.gold}22`:T.card,color:filterIFBNo?T.gold:T.muted,border:`1px solid ${filterIFBNo?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"110px"}}>
-                      <option value="">IFB No â–¾</option>
+                      <option value="">IFB No ▾</option>
                       {uniqueIFBNo.map(v=><option key={v} value={v}>{v}</option>)}
                     </select>
                   </th>
                 );
-                if(c==="New SC â–¾") return(
+                if(c==="New SC ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={newHkdFilter} onChange={e=>setNewHkdFilter(e.target.value as any)}
                       style={{background:newHkdFilter!=="all"?`${T.gold}22`:T.card,color:newHkdFilter!=="all"?T.gold:T.muted,border:`1px solid ${newHkdFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
-                      <option value="all">New SC â–¾</option>
-                      <option value="ok">âœ… Con costo</option>
-                      <option value="mancante">âŒ MANCANTE</option>
-                      <option value="air">âœˆ AIR</option>
+                      <option value="all">New SC ▾</option>
+                      <option value="ok">✅ Con costo</option>
+                      <option value="mancante">❌ MANCANTE</option>
+                      <option value="air">✈ AIR</option>
                     </select>
                   </th>
                 );
-                if(c==="Location â–¾") return(
+                if(c==="Location ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterLocation} onChange={e=>setFilterLocation(e.target.value as any)}
                       style={{background:filterLocation!=="all"?`${T.gold}22`:T.card,color:filterLocation!=="all"?T.gold:T.muted,border:`1px solid ${filterLocation!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
-                      <option value="all">Location â–¾</option>
+                      <option value="all">Location ▾</option>
                       <option value="ncj">NCJ</option>
                       <option value="non-ncj">Non NCJ</option>
                     </select>
                   </th>
                 );
-                if(c==="SC GC â–¾") return(
+                if(c==="SC GC ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={scFilter} onChange={e=>setScFilter(e.target.value as any)}
                       style={{background:scFilter!=="all"?`${T.gold}22`:T.card,color:scFilter!=="all"?T.gold:T.muted,border:`1px solid ${scFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
-                      <option value="all">SC GC â–¾</option>
-                      <option value="ok">âœ… Con costo</option>
-                      <option value="mancante">âŒ MANCANTE</option>
-                      <option value="sample">ðŸ“¦ SAMPLE</option>
+                      <option value="all">SC GC ▾</option>
+                      <option value="ok">✅ Con costo</option>
+                      <option value="mancante">❌ MANCANTE</option>
+                      <option value="sample">📦 SAMPLE</option>
                     </select>
                   </th>
                 );
@@ -4446,24 +4446,24 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                 const mismatchType=r.mismatch?(r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"";
                 return(
                   <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r.mismatch?`${T.purple}10`:i%2===0?T.bg:T.surface}}>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"â€”"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"â€”"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"â€”"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
                     <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"170px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       <span style={{color:r._prodFound===false?T.orange:T.text}}>{r.description}</span>
                     </td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.qty||"â€”"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
                     <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                      {r.isSample?<Chip label="SAMPLE" color={T.purple}/>:<span style={{color:T.muted}}>{r.unitPrice>0?r.unitPrice.toFixed(2):"â€”"}</span>}
+                      {r.isSample?<Chip label="SAMPLE" color={T.purple}/>:<span style={{color:T.muted}}>{r.unitPrice>0?r.unitPrice.toFixed(2):"—"}</span>}
                     </td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:r.mismatch?T.purple:T.muted}}>{r.location||"â€”"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:r.mismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
                     <td style={{padding:"3px 6px",fontSize:"10px",whiteSpace:"nowrap"}}>
                       {r.isAir
-                        ? <><Chip label="âœˆ AIR" color={r.locationIsNCJ?T.green:T.orange}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>âš  {mismatchType}</span>}</>
-                        : <><Chip label={r.ubicazione||"â€”"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>âš  {mismatchType}</span>}</>
+                        ? <><Chip label="✈ AIR" color={r.locationIsNCJ?T.green:T.orange}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
+                        : <><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
                       }
                     </td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"â€”"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></td>
                     {branch==="CAN" ? (
                       <>
                         {([r.scGC,r.scTF,r.scLAN,r.scFUE] as (number|null)[]).map((v,i)=>(
@@ -4492,22 +4492,22 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                           }
                         </td>
                         <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                          <span style={{color:T.muted}}>{r.bcStdCost>0?r.bcStdCost.toFixed(2):"â€”"}</span>
+                          <span style={{color:T.muted}}>{r.bcStdCost>0?r.bcStdCost.toFixed(2):"—"}</span>
                         </td>
                         <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
                           {r.deltaSC!=null
                             ? <span style={{color:r.deltaSC>1?T.red:r.deltaSC<-1?T.green:T.text,fontWeight:Math.abs(r.deltaSC)>1?"bold":"normal"}}>
                                 {r.deltaSC>0?"+":""}{r.deltaSC.toFixed(2)}
                               </span>
-                            : <span style={{color:T.dim}}>â€”</span>}
+                            : <span style={{color:T.dim}}>—</span>}
                         </td>
                       </>
                     )}
                     <td style={{padding:"3px 6px",fontSize:"10px",textAlign:"right"}}>
-                      {r.pct!=null?<span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:Math.abs(r.pct)>3?"bold":"normal"}}>{r.pct>0?"+":""}{r.pct.toFixed(1)}%</span>:<span style={{color:T.dim}}>â€”</span>}
+                      {r.pct!=null?<span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:Math.abs(r.pct)>3?"bold":"normal"}}>{r.pct>0?"+":""}{r.pct.toFixed(1)}%</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
                     <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"130px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
-                      {r.skipReason?<span style={{color:r.skipReason==="AIR"?T.orange:T.orange,fontStyle:"italic"}}>{r.skipReason}</span>:<span style={{color:T.dim}}>â€”</span>}
+                      {r.skipReason?<span style={{color:r.skipReason==="AIR"?T.orange:T.orange,fontStyle:"italic"}}>{r.skipReason}</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
                   </tr>
                 );
@@ -4522,7 +4522,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 }
 
 
-// â”€â”€â”€ PRICE EXCEPTIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PRICE EXCEPTIONS ─────────────────────────────────────────────────────────
 function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExceptions}) {
   const [search, setSearch] = useState("");
   const [selectedProd, setSelectedProd] = useState<any>(null);
@@ -4533,7 +4533,7 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
   const isCAN = branch === "CAN";
   const branchExc = priceExceptions.filter((e:any) => e.branch === branch);
 
-  // Build a lookup: xref productId â†’ nHK/nCOMIT
+  // Build a lookup: xref productId → nHK/nCOMIT
   const xrefMap = useMemo(()=>{
     const m: Record<string,string> = {};
     xrefs.forEach((x:any)=>{ if(x.productId) m[String(x.productId)] = x.nHK || ""; });
@@ -4589,10 +4589,10 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
   return (
     <div style={{padding:"28px 32px",maxWidth:"900px"}}>
       <div style={{marginBottom:"24px"}}>
-        <div style={{fontSize:"10px",letterSpacing:"3px",color:T.gold,textTransform:"uppercase",marginBottom:"4px"}}>Filiale Â· {branch}</div>
-        <h2 style={{margin:0,fontSize:"20px",fontWeight:"bold"}}>âš¡ Eccezioni Prezzi</h2>
+        <div style={{fontSize:"10px",letterSpacing:"3px",color:T.gold,textTransform:"uppercase",marginBottom:"4px"}}>Filiale · {branch}</div>
+        <h2 style={{margin:0,fontSize:"20px",fontWeight:"bold"}}>⚡ Eccezioni Prezzi</h2>
         <div style={{color:T.muted,fontSize:"12px",marginTop:"6px"}}>
-          Il prezzo qui inserito ha prioritÃ  assoluta su listino e listino carne per il calcolo del costo standard.
+          Il prezzo qui inserito ha priorità assoluta su listino e listino carne per il calcolo del costo standard.
         </div>
       </div>
 
@@ -4608,7 +4608,7 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
               value={selectedProd ? `[${selectedProd.id}] ${selectedProd.description}` : search}
               onChange={e=>{ setSearch(e.target.value); setSelectedProd(null); setShowSugg(true); }}
               onFocus={()=>setShowSugg(true)}
-              placeholder={`Cerca per IFB No, ${isCAN?"N COMIT":"N HK"} o descrizioneâ€¦`}
+              placeholder={`Cerca per IFB No, ${isCAN?"N COMIT":"N HK"} o descrizione…`}
               style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
                 padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}}
             />
@@ -4635,7 +4635,7 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
 
           {/* Prezzo */}
           <div>
-            <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Prezzo (â‚¬/unit)</div>
+            <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Prezzo (€/unit)</div>
             <input
               value={inputPrice}
               onChange={e=>setInputPrice(e.target.value)}
@@ -4654,7 +4654,7 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
             <input
               value={inputNote}
               onChange={e=>setInputNote(e.target.value)}
-              placeholder="Es: prezzo concordato fornitoreâ€¦"
+              placeholder="Es: prezzo concordato fornitore…"
               style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
                 padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}}
             />
@@ -4662,7 +4662,7 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
 
           {/* Bottone */}
           <div>
-            <div style={{fontSize:"10px",color:"transparent",marginBottom:"4px"}}>Â·</div>
+            <div style={{fontSize:"10px",color:"transparent",marginBottom:"4px"}}>·</div>
             <button
               onClick={addException}
               disabled={!selectedProd || !inputPrice}
@@ -4687,7 +4687,7 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
           <table style={{width:"100%",borderCollapse:"collapse",fontSize:"10px"}}>
             <thead>
               <tr style={{background:T.surface}}>
-                {["IFB No", isCAN?"N COMIT":"N HK", "Descrizione", "Prezzo (â‚¬/unit)", "Nota", "Â·"].map(h=>(
+                {["IFB No", isCAN?"N COMIT":"N HK", "Descrizione", "Prezzo (€/unit)", "Nota", "·"].map(h=>(
                   <th key={h} style={{padding:"3px 6px",textAlign:"left",fontSize:"9px",letterSpacing:"1px",
                     color:T.muted,textTransform:"uppercase",fontWeight:"normal",borderBottom:`1px solid ${T.border}`}}>{h}</th>
                 ))}
@@ -4699,7 +4699,7 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
                   <td style={{padding:"3px 6px",color:T.gold,fontFamily:"monospace"}}>{exc.productId}</td>
                   <td style={{padding:"3px 6px",color:T.muted,fontFamily:"monospace"}}>{exc.nHK||"-"}</td>
                   <td style={{padding:"3px 6px",maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{exc.description||exc.code||"-"}</td>
-                  <td style={{padding:"3px 6px",color:T.green,fontWeight:"bold",fontFamily:"monospace"}}>â‚¬ {Number(exc.price).toFixed(4)}</td>
+                  <td style={{padding:"3px 6px",color:T.green,fontWeight:"bold",fontFamily:"monospace"}}>€ {Number(exc.price).toFixed(4)}</td>
                   <td style={{padding:"3px 6px",color:T.muted,fontStyle:"italic"}}>{exc.note||"-"}</td>
                   <td style={{padding:"3px 6px",textAlign:"center"}}>
                     <button onClick={()=>removeException(i)}
@@ -4718,9 +4718,9 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
   );
 }
 
-// â”€â”€â”€ MAIL GEN â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MAIL GEN ─────────────────────────────────────────────────────────────────
 // Only shows items with |delta| > 3% (point 7)
-// â”€â”€â”€ SC ATTUALI â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SC ATTUALI ───────────────────────────────────────────────────────────────
 function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch, showToast}) {
   const [step, setStep] = useState("main");
   const [fileName, setFileName] = useState("");
@@ -4760,7 +4760,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
         const iScGC     = !isHK ? fi(["scgrancanaria","gran canaria"]) : -1;
         const iScLan    = !isHK ? fi(["sclanzarote","lanzarote"]) : -1;
 
-        const num = (v:any) => typeof v==="number" ? v : parseFloat(String(v||"").replace(/[â‚¬$,\s]/g,""))||0;
+        const num = (v:any) => typeof v==="number" ? v : parseFloat(String(v||"").replace(/[€$,\s]/g,""))||0;
         const str = (v:any) => String(v||"").trim();
 
         const parsed = rows.map((row:any[])=>{
@@ -4803,7 +4803,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
     setScHistory(newHist);
     IDB.set(`ifb_schistory_${branch}`, newHist);
     setSelEntry(entry);
-    showToast(`SC Attuali ${importMonth}: ${preview.length} articoli importati âœ“`, T.gold);
+    showToast(`SC Attuali ${importMonth}: ${preview.length} articoli importati ✓`, T.gold);
     setStep("main");
     setPreview([]);
   }
@@ -4821,21 +4821,21 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
       <div style={{overflowX:"auto"}}>
         <table style={{borderCollapse:"collapse",width:"100%"}}>
           <THead cols={isHKReport
-            ? ["Codice","Descrizione","SC Attuale â‚¬","FIFO unit â‚¬","Vendite 3m","Last Purchase","Stock Qty"]
-            : ["N COMIT","Descrizione","SC Standard â‚¬","FIFO unit â‚¬","SC GC â‚¬","SC LAN â‚¬","Last Purchase","Stock Qty"]}
+            ? ["Codice","Descrizione","SC Attuale €","FIFO unit €","Vendite 3m","Last Purchase","Stock Qty"]
+            : ["N COMIT","Descrizione","SC Standard €","FIFO unit €","SC GC €","SC LAN €","Last Purchase","Stock Qty"]}
           />
           <tbody>
             {rows.slice(0,400).map((r:any,i:number)=>(
               <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:i%2?"transparent":`${T.surface}33`}}>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,fontFamily:"monospace",whiteSpace:"nowrap"}}>{r.code}</td>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
-                <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.lastSC>0?`â‚¬ ${r.lastSC.toFixed(2)}`:"â€”"}</td>
-                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"â€”"}</td>
-                {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scGC>0?`â‚¬ ${r.scGC.toFixed(2)}`:"â€”"}</td>}
-                {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scLan>0?`â‚¬ ${r.scLan.toFixed(2)}`:"â€”"}</td>}
-                {isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"â€”"}</td>}
-                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"â€”"}</td>
-                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.stockQty!=null?r.stockQty:"â€”"}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.lastSC>0?`€ ${r.lastSC.toFixed(2)}`:"—"}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"—"}</td>
+                {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
+                {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
+                {isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.stockQty!=null?r.stockQty:"—"}</td>
               </tr>
             ))}
           </tbody>
@@ -4847,13 +4847,13 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 
   return (
     <div>
-      <PageHeader title={`ðŸ“Š SC Attuali Â· ${branch}`}
+      <PageHeader title={`📊 SC Attuali · ${branch}`}
         sub={scHistory.length>0 ? `${scHistory.length} import salvati` : "Nessun report salvato"}
         srcKey={`scattuali_${branch}`}/>
 
-      {/* â”€â”€ IMPORT â”€â”€ */}
+      {/* ── IMPORT ── */}
       {step==="preview" ? (
-        <Section title={`Anteprima â€” ${fileName} Â· ${preview.length} articoli`}>
+        <Section title={`Anteprima — ${fileName} · ${preview.length} articoli`}>
           <div style={{display:"flex",gap:"12px",alignItems:"center",flexWrap:"wrap",marginBottom:"14px"}}>
             <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
               <label style={{fontSize:"10px",color:T.muted}}>Mese di valenza</label>
@@ -4867,33 +4867,33 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
             </div>
           </div>
           <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="â† Annulla" onClick={()=>{setStep("main");setPreview([]);}}/>
-            <ActionBtn label={`âœ“ Salva come ${importMonth} (${preview.length} art.)`} onClick={executeImport} primary/>
+            <ActionBtn label="← Annulla" onClick={()=>{setStep("main");setPreview([]);}}/>
+            <ActionBtn label={`✓ Salva come ${importMonth} (${preview.length} art.)`} onClick={executeImport} primary/>
           </div>
         </Section>
       ) : (
         <Section title="Carica report SC da BC / Navision">
           <div style={{display:"flex",gap:"12px",alignItems:"center",flexWrap:"wrap"}}>
             <label style={{display:"inline-block",padding:"8px 16px",background:`${T.gold}22`,border:`1px solid ${T.gold}44`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.gold}}>
-              ðŸ“‚ Carica Report SC ({branch})
+              📂 Carica Report SC ({branch})
               <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>e.target.files?.[0]&&parseFile(e.target.files[0])}/>
             </label>
             <div style={{fontSize:"11px",color:T.muted,lineHeight:"1.6"}}>
               {branch==="CAN"
-                ? "Navision: Item No Â· STANDARD COST Â· SC GRANCANARIA Â· SC LANZAROTE Â· Stock Qty"
-                : "BC: Item No Â· Last Standard Cost Â· FIFO Â· Sales 3m Â· Stock Qty"}
+                ? "Navision: Item No · STANDARD COST · SC GRANCANARIA · SC LANZAROTE · Stock Qty"
+                : "BC: Item No · Last Standard Cost · FIFO · Sales 3m · Stock Qty"}
             </div>
           </div>
         </Section>
       )}
 
-      {/* â”€â”€ STORICO LIST â”€â”€ */}
+      {/* ── STORICO LIST ── */}
       {scHistory.length>0&&(
         <Section title="">
           <button onClick={()=>setHistOpen(v=>!v)}
             style={{display:"flex",alignItems:"center",gap:"8px",background:"none",border:"none",cursor:"pointer",padding:"0",marginBottom:histOpen?"12px":"0"}}>
             <span style={{fontSize:"11px",fontWeight:"bold",color:T.muted,letterSpacing:"0.08em",textTransform:"uppercase"}}>
-              {histOpen?"â–¾":"â–¸"} Storico import ({scHistory.length})
+              {histOpen?"▾":"▸"} Storico import ({scHistory.length})
             </span>
           </button>
           {histOpen&&(
@@ -4908,17 +4908,17 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
                     onClick={()=>{ setSelEntry(isSel?null:e); setSearch(""); }}>
                     <span style={{fontFamily:"monospace",fontSize:"12px",color:isSel?T.gold:T.text,fontWeight:"bold",minWidth:"70px"}}>{e.month}</span>
                     <span style={{fontSize:"11px",color:T.muted,flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={e.fileName}>
-                      ðŸ“„ {e.fileName}
+                      📄 {e.fileName}
                     </span>
                     <span style={{fontSize:"10px",color:T.dim,whiteSpace:"nowrap"}}>
-                      {new Date(e.date).toLocaleDateString("it-IT")} Â· {e.count} art.
+                      {new Date(e.date).toLocaleDateString("it-IT")} · {e.count} art.
                     </span>
                     <button onClick={ev=>{ev.stopPropagation();
                       if(!window.confirm(`Eliminare import ${e.month}?`)) return;
                       const nh=scHistory.filter((x:any)=>x.id!==e.id);
                       setScHistory(nh); IDB.set(`ifb_schistory_${branch}`,nh);
                       if(isSel) setSelEntry(null);
-                    }} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"12px",padding:"2px 4px"}}>âœ•</button>
+                    }} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"12px",padding:"2px 4px"}}>✕</button>
                   </div>
                 );
               })}
@@ -4927,16 +4927,16 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
         </Section>
       )}
 
-      {/* â”€â”€ TABELLA DATI â”€â”€ */}
+      {/* ── TABELLA DATI ── */}
       {viewRows.length>0&&(
         <Section title={selEntry
-          ? `${selEntry.month} Â· ${selEntry.fileName} Â· ${selEntry.count} articoli`
+          ? `${selEntry.month} · ${selEntry.fileName} · ${selEntry.count} articoli`
           : step==="preview"?"Anteprima":"SC Attuali correnti"}>
           <div style={{display:"flex",alignItems:"center",gap:"10px",marginBottom:"10px"}}>
-            <input placeholder="ðŸ” Cerca articolo..." value={search} onChange={e=>setSearch(e.target.value)}
+            <input placeholder="🔍 Cerca articolo..." value={search} onChange={e=>setSearch(e.target.value)}
               style={{...inputStyle(),width:"260px"}}/>
             {search&&<span style={{fontSize:"11px",color:T.muted}}>{displayed.length} risultati</span>}
-            {search&&<button onClick={()=>setSearch("")} style={{fontSize:"11px",color:T.muted,background:"none",border:"none",cursor:"pointer"}}>âœ•</button>}
+            {search&&<button onClick={()=>setSearch("")} style={{fontSize:"11px",color:T.muted,background:"none",border:"none",cursor:"pointer"}}>✕</button>}
           </div>
           {renderTable(displayed)}
         </Section>
@@ -4945,7 +4945,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
   );
 }
 
-// â”€â”€â”€ CHECK MENSILE â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── CHECK MENSILE ────────────────────────────────────────────────────────────
 function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products}) {
   // Mesi disponibili dalle fatture (posting date)
   const availableMonths = useMemo(()=>{
@@ -5057,7 +5057,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
       "NUOVO":     r.isNuovo?"SI":"",
       "Old_SC":    r.oldSC>0 ? Number(r.oldSC.toFixed(2)) : "",
       "New_SC":    r.newSC>0 ? Number(r.newSC.toFixed(2)) : "",
-      "Î” %":       r.oldSC>0 ? (r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%" : "",
+      "Δ %":       r.oldSC>0 ? (r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%" : "",
       "SC_FINALE": r.scFinale>0 ? Number(r.scFinale.toFixed(2)) : "",
       "Last_Date": r.lastDate,
       "Quantity":  r.stockQty,
@@ -5075,7 +5075,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
 
   return (
     <div>
-      <PageHeader title={`ðŸ“… Check Mensile Â· ${branch}`} sub="Confronto SC calcolato vs SC Attuali â€” soglia: > +3% o < -3%"/>
+      <PageHeader title={`📅 Check Mensile · ${branch}`} sub="Confronto SC calcolato vs SC Attuali — soglia: > +3% o < -3%"/>
 
       {/* Selezione mese + threshold */}
       <Section title="Filtri">
@@ -5083,24 +5083,24 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
           <div>
             <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Mese fatture</label>
             {availableMonths.length===0
-              ? <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>âš  Nessuna fattura caricata</div>
+              ? <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>⚠ Nessuna fattura caricata</div>
               : <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} style={{...inputStyle(),minWidth:"160px",cursor:"pointer"}}>
                   {availableMonths.map(m=><option key={m} value={m}>{m}</option>)}
                 </select>
             }
           </div>
           <div>
-            <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Soglia Î”%</label>
+            <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Soglia Δ%</label>
             <input type="number" value={threshold} onChange={e=>setThreshold(Number(e.target.value)||3)}
               min={0} max={50} step={0.5} style={{...inputStyle(),width:"80px"}}/>
           </div>
           {scAttuali.length===0&&(
             <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>
-              âš  SC Attuali non caricati â€” vai alla pagina <strong>SC Attuali</strong>
+              ⚠ SC Attuali non caricati — vai alla pagina <strong>SC Attuali</strong>
             </div>
           )}
           {monthRows.length>0&&<div style={{fontSize:"11px",color:T.muted,paddingBottom:"2px"}}>
-            {monthRows.length} righe fattura Â· {analysisRows.length} articoli univoci
+            {monthRows.length} righe fattura · {analysisRows.length} articoli univoci
           </div>}
         </div>
       </Section>
@@ -5110,9 +5110,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
         <Section title="Riepilogo">
           <div style={{display:"flex",gap:"20px",flexWrap:"wrap",marginBottom:"14px"}}>
             {[
-              {label:"DA AGGIORNARE",n:daAgg.length,c:T.orange,icon:"â¬†ï¸"},
-              {label:"NUOVI",n:nuovi.length,c:T.blue,icon:"ðŸ†•"},
-              {label:"OK (nessuna azione)",n:okRows.length,c:T.green,icon:"âœ…"},
+              {label:"DA AGGIORNARE",n:daAgg.length,c:T.orange,icon:"⬆️"},
+              {label:"NUOVI",n:nuovi.length,c:T.blue,icon:"🆕"},
+              {label:"OK (nessuna azione)",n:okRows.length,c:T.green,icon:"✅"},
             ].map(({label,n,c,icon})=>(
               <div key={label} style={{background:`${c}11`,border:`1px solid ${c}44`,borderRadius:"8px",padding:"10px 18px",minWidth:"130px"}}>
                 <div style={{fontSize:"9px",color:c,letterSpacing:"1px",textTransform:"uppercase",marginBottom:"2px"}}>{icon} {label}</div>
@@ -5121,19 +5121,19 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
             ))}
           </div>
           <div style={{display:"flex",gap:"10px",flexWrap:"wrap"}}>
-            <ActionBtn label="ðŸ“¥ Esporta Excel" onClick={exportExcel} primary disabled={toAct.length===0}/>
-            <ActionBtn label={showOK?"Nascondi OK âœ“":"Mostra anche OK âœ“"} onClick={()=>setShowOK(s=>!s)}/>
+            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={toAct.length===0}/>
+            <ActionBtn label={showOK?"Nascondi OK ✓":"Mostra anche OK ✓"} onClick={()=>setShowOK(s=>!s)}/>
           </div>
         </Section>
       )}
 
       {/* Tabella */}
       {displayed.length>0 ? (
-        <Section title={`Articoli Â· ${displayed.length} mostrati`}>
+        <Section title={`Articoli · ${displayed.length} mostrati`}>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
               <thead><tr>
-                {["Codice","IFB","Descrizione","NUOVO","Old SC â‚¬","New SC â‚¬","Î” %","SC FINALE â‚¬","Last Date","Stock","AZIONE","NOTE"].map(h=>(
+                {["Codice","IFB","Descrizione","NUOVO","Old SC €","New SC €","Δ %","SC FINALE €","Last Date","Stock","AZIONE","NOTE"].map(h=>(
                   <th key={h} style={{padding:"3px 6px",fontSize:"9px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>
                 ))}
               </tr></thead>
@@ -5148,15 +5148,15 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
                       <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>{r.ifbNo}</td>
                       <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
                       <td style={{padding:"3px 6px",fontSize:"10px",color:T.blue,textAlign:"center",fontWeight:"bold"}}>{isNuovo?"SI":""}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.oldSC>0?`â‚¬ ${r.oldSC.toFixed(2)}`:"â€”"}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.newSC>0?`â‚¬ ${r.newSC.toFixed(2)}`:r.noCalc?"NC":"â€”"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.oldSC>0?`€ ${r.oldSC.toFixed(2)}`:"—"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.newSC>0?`€ ${r.newSC.toFixed(2)}`:r.noCalc?"NC":"—"}</td>
                       <td style={{padding:"3px 6px",fontSize:"10px",textAlign:"right",fontWeight:"bold",
                         color:r.deltaPct>0?T.orange:r.deltaPct<0?"#e05a5a":T.muted}}>
-                        {r.oldSC>0?(r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%":"â€”"}
+                        {r.oldSC>0?(r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%":"—"}
                       </td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.green,textAlign:"right",fontWeight:"bold"}}>{r.scFinale>0?`â‚¬ ${r.scFinale.toFixed(2)}`:"â€”"}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastDate||"â€”"}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.stockQty!==""?r.stockQty:"â€”"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.green,textAlign:"right",fontWeight:"bold"}}>{r.scFinale>0?`€ ${r.scFinale.toFixed(2)}`:"—"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastDate||"—"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.stockQty!==""?r.stockQty:"—"}</td>
                       <td style={{padding:"3px 6px",textAlign:"center"}}>
                         <span style={{padding:"2px 6px",borderRadius:"4px",fontSize:"9px",fontWeight:"bold",whiteSpace:"nowrap",
                           background:`${ac}22`,color:ac}}>{r.azione}</span>
@@ -5172,7 +5172,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
       ) : selectedMonth&&!analysisRows.length ? (
         <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
           {scAttuali.length===0
-            ? "âš ï¸ Carica prima il report SC Attuali (pagina SC Attuali)."
+            ? "⚠️ Carica prima il report SC Attuali (pagina SC Attuali)."
             : `Nessun articolo nelle fatture di ${selectedMonth}.`}
         </div>
       ) : null}
@@ -5186,16 +5186,16 @@ function MailGen({costRows,branch,month}) {
   const changed=costRows.filter(r=>r.cost?.step2Hkd!=null&&r.prevCost?.step2Hkd!=null&&r.prevCost.step2Hkd>0&&Math.abs((r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100)>3);
   const up=changed.filter(r=>(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100>3);
   const dn=changed.filter(r=>(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100<-3);
-  const body=`Gentili colleghi,\n\ndi seguito le variazioni di Standard Cost (solo articoli con Î” > Â±3%) per ${branch} â€” ${month}:\n\n`
-    +(up.length?`ðŸ“ˆ AUMENTI (${up.length}):\n`+up.map(r=>{const pct=(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100;return`â€¢ ${r.nHK||r.code}  ${r.description}: ${r.prevCost.step2Hkd.toFixed(2)} â†’ ${r.cost.step2Hkd.toFixed(2)} HKD (+${pct.toFixed(1)}%)`;}).join("\n"):"")
-    +(dn.length?`\n\nðŸ“‰ RIDUZIONI (${dn.length}):\n`+dn.map(r=>{const pct=(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100;return`â€¢ ${r.nHK||r.code}  ${r.description}: ${r.prevCost.step2Hkd.toFixed(2)} â†’ ${r.cost.step2Hkd.toFixed(2)} HKD (${pct.toFixed(1)}%)`;}).join("\n"):"")
+  const body=`Gentili colleghi,\n\ndi seguito le variazioni di Standard Cost (solo articoli con Δ > ±3%) per ${branch} — ${month}:\n\n`
+    +(up.length?`📈 AUMENTI (${up.length}):\n`+up.map(r=>{const pct=(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100;return`• ${r.nHK||r.code}  ${r.description}: ${r.prevCost.step2Hkd.toFixed(2)} → ${r.cost.step2Hkd.toFixed(2)} HKD (+${pct.toFixed(1)}%)`;}).join("\n"):"")
+    +(dn.length?`\n\n📉 RIDUZIONI (${dn.length}):\n`+dn.map(r=>{const pct=(r.cost.step2Hkd-r.prevCost.step2Hkd)/r.prevCost.step2Hkd*100;return`• ${r.nHK||r.code}  ${r.description}: ${r.prevCost.step2Hkd.toFixed(2)} → ${r.cost.step2Hkd.toFixed(2)} HKD (${pct.toFixed(1)}%)`;}).join("\n"):"")
     +"\n\nCordiali saluti,\nIFB Cost Intelligence";
   return(
     <div>
-      <PageHeader title={`Mail Mensile Â· ${branch} Â· ${month}`} sub={`${changed.length} articoli con Î” > Â±3% (${up.length} aumenti Â· ${dn.length} riduzioni)`}/>
-      {changed.length===0?<div style={{padding:"32px",textAlign:"center",color:T.muted}}>Nessuna variazione &gt; Â±3% questo mese.</div>:(
+      <PageHeader title={`Mail Mensile · ${branch} · ${month}`} sub={`${changed.length} articoli con Δ > ±3% (${up.length} aumenti · ${dn.length} riduzioni)`}/>
+      {changed.length===0?<div style={{padding:"32px",textAlign:"center",color:T.muted}}>Nessuna variazione &gt; ±3% questo mese.</div>:(
         <Section title="Testo mail">
-          <ActionBtn label={copied?"âœ“ Copiato!":"ðŸ“‹ Copia testo"} onClick={()=>{navigator.clipboard.writeText(body);setCopied(true);setTimeout(()=>setCopied(false),2500);}} primary/>
+          <ActionBtn label={copied?"✓ Copiato!":"📋 Copia testo"} onClick={()=>{navigator.clipboard.writeText(body);setCopied(true);setTimeout(()=>setCopied(false),2500);}} primary/>
           <pre style={{marginTop:"12px",background:T.card,color:T.text,padding:"16px",borderRadius:"8px",fontSize:"12px",whiteSpace:"pre-wrap",border:`1px solid ${T.border}`,lineHeight:"1.7"}}>{body}</pre>
         </Section>
       )}
@@ -5205,7 +5205,7 @@ function MailGen({costRows,branch,month}) {
 
 
 
-// â”€â”€â”€ STORICO â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── STORICO ──────────────────────────────────────────────────────────────────
 function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showToast,macHkCostRows:_unused}) {
   const[sel,setSel]=useState<any>(null);
   const[sortDir,setSortDir]=useState("asc");
@@ -5235,16 +5235,16 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
     if(sel?.id===id) setSel(null);
   }
 
-  const ICON:any={prices:"ðŸ’¶",anagrafica:"â—ˆ",xref:"â‡„",air:"âœˆ",sales:"ðŸ“‹"};
+  const ICON:any={prices:"💶",anagrafica:"◈",xref:"⇄",air:"✈",sales:"📋"};
   const LABEL:any={prices:"Import Listini",anagrafica:"Import Anagrafica",xref:"Import XRef",air:"Import AIR",sales:"Sales Invoice"};
 
   return(
     <div>
       <PageHeader title="Storico & Diff" sub="Snapshot import e Standard Cost"/>
 
-      {/* â”€â”€ COST HISTORY â”€â”€ */}
+      {/* ── COST HISTORY ── */}
       {costSnaps.length>0&&(
-        <Section title={`ðŸ“Š Storico Standard Cost Â· ${branch}`} accent={T.gold}>
+        <Section title={`📊 Storico Standard Cost · ${branch}`} accent={T.gold}>
           <div style={{fontSize:"12px",color:T.muted,marginBottom:"10px"}}>
             Clicca una data per vedere i costi salvati in quel momento
           </div>
@@ -5277,7 +5277,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                     }}
                   >
                     <span>
-                      {s.month || "?"} Â· {dateStr}
+                      {s.month || "?"} · {dateStr}
                       {isDuplicate && (
                         <span style={{
                           marginLeft:"8px",
@@ -5287,7 +5287,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                           padding:"2px 6px",
                           borderRadius:"4px"
                         }}>
-                          âš  duplicato #{idx + 1}
+                          ⚠ duplicato #{idx + 1}
                         </span>
                       )}
                     </span>
@@ -5323,7 +5323,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                     }}
                     title="Elimina questo snapshot"
                   >
-                    ðŸ—‘ Elimina
+                    🗑 Elimina
                   </button>
                 </div>
               );
@@ -5335,7 +5335,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
             <div style={{marginBottom:"16px"}}>
               <button
                 onClick={() => {
-                  if(window.confirm(`âš ï¸ ATTENZIONE: Eliminare TUTTI i ${costSnaps.length} snapshot di Standard Cost per ${branch}? Questa operazione Ã¨ irreversibile.`)) {
+                  if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i ${costSnaps.length} snapshot di Standard Cost per ${branch}? Questa operazione è irreversibile.`)) {
                     const newCostHistory = costHistory.filter((c:any) => c.branch !== branch);
                     setCostHistory(newCostHistory);
                     LS.set("ifb_costhistory", newCostHistory);
@@ -5354,7 +5354,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                   fontWeight:"bold"
                 }}
               >
-                ðŸ—‘ Elimina TUTTI gli snapshot ({costSnaps.length})
+                🗑 Elimina TUTTI gli snapshot ({costSnaps.length})
               </button>
             </div>
           )}
@@ -5367,7 +5367,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
         </div>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
           <THead cols={branch==="HK"&&macProds.length>0
-            ? [branchN(branch),"IFB No","Descrizione","New SC HKD","New SC MAC (MOP)","HOFF","Ã—UOM","Note"]
+            ? [branchN(branch),"IFB No","Descrizione","New SC HKD","New SC MAC (MOP)","HOFF","×UOM","Note"]
             : [branchN(branch),"IFB No","Descrizione","Costo HKD","Note"]} sticky />
           <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>{
             const macProd = branch==="HK"&&macProds.length>0
@@ -5378,14 +5378,14 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
               : null;
             return(
             <tr key={r.id||i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-              <TD mono><span style={{color:T.muted}}>{r.nHK||"â€”"}</span></TD>
+              <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
               <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
               <TD>{r.description}</TD>
-              <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost!=null?roundN(r.cost).toFixed(2):"â€”"}</span></TD>
+              <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost!=null?roundN(r.cost).toFixed(2):"—"}</span></TD>
               {branch==="HK"&&macProds.length>0&&<>
-                <TD mono><span style={{color:macCost?T.green:T.dim,fontWeight:"bold"}}>{macCost?macCost.macNewSC.toFixed(2):"â€”"}</span></TD>
-                <TD><span style={{color:macProd?(macProd.isHoff?T.orange:T.blue):T.dim,fontSize:"10px"}}>{macProd?(macProd.isHoff?"HOFF +3%":"non-HOFF +10%"):"â€”"}</span></TD>
-                <TD mono><span style={{color:T.muted,fontSize:"10px"}}>{macProd?.macToHkConv>1?`Ã—${macProd.macToHkConv}`:"â€”"}</span></TD>
+                <TD mono><span style={{color:macCost?T.green:T.dim,fontWeight:"bold"}}>{macCost?macCost.macNewSC.toFixed(2):"—"}</span></TD>
+                <TD><span style={{color:macProd?(macProd.isHoff?T.orange:T.blue):T.dim,fontSize:"10px"}}>{macProd?(macProd.isHoff?"HOFF +3%":"non-HOFF +10%"):"—"}</span></TD>
+                <TD mono><span style={{color:T.muted,fontSize:"10px"}}>{macProd?.macToHkConv>1?`×${macProd.macToHkConv}`:"—"}</span></TD>
               </>}
               <TD><span style={{color:T.dim,fontSize:"11px"}}>{r.skipReason||""}</span></TD>
             </tr>
@@ -5397,8 +5397,8 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
   </Section>
 )}
 
-      {/* â”€â”€ IMPORT SNAPSHOTS LIST â”€â”€ */}
-      <Section title="ðŸ“¥ Storico Import">
+      {/* ── IMPORT SNAPSHOTS LIST ── */}
+      <Section title="📥 Storico Import">
         {/* Filtro per tipo */}
         <div style={{display:"flex",gap:"6px",flexWrap:"wrap",marginBottom:"12px"}}>
           {[["all","Tutti"],["anagrafica","Anagrafica"],["prices","Listini"],["xref","XRef"],["air","AIR"],["sales","Fatture"]].map(([v,l])=>{
@@ -5421,33 +5421,33 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                     border:`1px solid ${sel?.id===s.id?T.gold:T.border}`,
                     borderRadius:"6px",cursor:"pointer"}}
                   onClick={()=>{setSel(sel?.id===s.id?null:s);setShowModified(false);setShowNew(false);}}>
-                  <span style={{fontSize:"16px"}}>{ICON[s.type]||"ðŸ“¥"}</span>
+                  <span style={{fontSize:"16px"}}>{ICON[s.type]||"📥"}</span>
                   <div style={{flex:1,minWidth:0}}>
                     <div style={{fontSize:"12px",color:sel?.id===s.id?T.gold:T.text,fontWeight:"bold"}}>
                       {LABEL[s.type]||"Import"}
-                      {s.branch&&s.branch!=="ALL"&&<span style={{marginLeft:"6px",color:T.muted,fontWeight:"normal"}}>Â· {s.branch}</span>}
-                      {s.month&&<span style={{marginLeft:"6px",color:T.gold,fontWeight:"normal",fontSize:"11px"}}>Â· {s.month}</span>}
+                      {s.branch&&s.branch!=="ALL"&&<span style={{marginLeft:"6px",color:T.muted,fontWeight:"normal"}}>· {s.branch}</span>}
+                      {s.month&&<span style={{marginLeft:"6px",color:T.gold,fontWeight:"normal",fontSize:"11px"}}>· {s.month}</span>}
                     </div>
                     <div style={{fontSize:"11px",color:T.muted,marginTop:"2px"}}>
                       {snapDate(s)} alle {new Date(s.date||s.id).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"})}
-                      {" Â· "}{s.count} voci
+                      {" · "}{s.count} voci
                       {s.diffs?.length>0&&(
                         <span style={{color:T.orange}}>
-                          {" Â· "}{s.diffs.filter((d:any)=>d.isNew).length} nuovi
-                          {" Â· "}{s.diffs.filter((d:any)=>!d.isNew&&d.fields?.length>0).length} modif.
+                          {" · "}{s.diffs.filter((d:any)=>d.isNew).length} nuovi
+                          {" · "}{s.diffs.filter((d:any)=>!d.isNew&&d.fields?.length>0).length} modif.
                         </span>
                       )}
                     </div>
                   </div>
                   <button onClick={e=>{e.stopPropagation();deleteSnap(s.id);}}
-                    style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"13px",padding:"2px 6px"}}>âœ•</button>
+                    style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"13px",padding:"2px 6px"}}>✕</button>
                 </div>
               ))}
             </div>
         }
       </Section>
 
-      {/* â”€â”€ DETAIL PANEL â”€â”€ */}
+      {/* ── DETAIL PANEL ── */}
       {sel&&(()=>{
         const diffs:any[]=sel.diffs||[];
         const newItems=diffs.filter((d:any)=>d.isNew);
@@ -5477,12 +5477,12 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
 
         const thisDate=snapDate(sel);
         const prevSnap=snapshots.find((s:any)=>s.id!==sel.id&&s.type===sel.type&&s.branch===sel.branch&&s.month===sel.month);
-        const prevDate=prevSnap?snapDate(prevSnap):"â€”";
+        const prevDate=prevSnap?snapDate(prevSnap):"—";
 
         return(
           <div style={{background:T.card,borderRadius:"8px",padding:"16px",border:`1px solid ${T.border}`,marginTop:"16px"}}>
             <h3 style={{color:T.gold,marginTop:0,marginBottom:"12px",fontSize:"13px"}}>
-              {LABEL[sel.type]||sel.type} Â· {thisDate} Â· {sel.branch||"ALL"} Â· {sel.count} voci
+              {LABEL[sel.type]||sel.type} · {thisDate} · {sel.branch||"ALL"} · {sel.count} voci
             </h3>
 
             <div style={{display:"flex",gap:"8px",flexWrap:"wrap",alignItems:"center",marginBottom:"14px"}}>
@@ -5490,19 +5490,19 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                 style={{padding:"6px 14px",background:showNew?T.green:T.surface,
                   color:showNew?"#000":T.green,border:`1px solid ${T.green}`,
                   borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
-                ðŸ†• {newItems.length} nuovi
+                🆕 {newItems.length} nuovi
               </button>
               <button onClick={()=>{setShowModified(v=>!v);setShowNew(false);}}
                 style={{padding:"6px 14px",background:showModified?T.orange:T.surface,
                   color:showModified?"#000":T.orange,border:`1px solid ${T.orange}`,
                   borderRadius:"6px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
-                âœï¸ {realModified.length} modificati
+                ✏️ {realModified.length} modificati
               </button>
               {showModified&&!isXRef&&<>
                 <button onClick={()=>setDeltaFilter(f=>f==="minus"?"all":"minus")}
                   style={{padding:"4px 10px",background:deltaFilter==="minus"?T.red:T.surface,
                     color:deltaFilter==="minus"?"#fff":T.red,border:`1px solid ${T.red}`,
-                    borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>{"< âˆ’3%"}</button>
+                    borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>{"< −3%"}</button>
                 <button onClick={()=>setDeltaFilter(f=>f==="plus"?"all":"plus")}
                   style={{padding:"4px 10px",background:deltaFilter==="plus"?T.green:T.surface,
                     color:deltaFilter==="plus"?"#fff":T.green,border:`1px solid ${T.green}`,
@@ -5510,7 +5510,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                 <button onClick={()=>setSortDir(d=>d==="asc"?"desc":"asc")}
                   style={{padding:"4px 10px",background:T.surface,color:T.muted,
                     border:`1px solid ${T.border}`,borderRadius:"4px",cursor:"pointer",fontSize:"11px"}}>
-                  Î” {sortDir==="asc"?"â†‘":"â†“"}
+                  Δ {sortDir==="asc"?"↑":"↓"}
                 </button>
                 {deltaFilter!=="all"&&<span style={{fontSize:"11px",color:T.muted}}>({shownDiffs.length}/{realModified.length})</span>}
               </>}
@@ -5562,7 +5562,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                       </table>
                     : <div style={{overflowX:"auto"}}>
                         <table style={{width:"100%",borderCollapse:"collapse"}}>
-                          <THead cols={[`IFB No / ${branchN(branch)}`,"Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Î”%"]} sticky />
+                          <THead cols={[`IFB No / ${branchN(branch)}`,"Descrizione","Campo",`Vecchio (${prevDate})`,`Nuovo (${thisDate})`,"Δ%"]} sticky />
                           <tbody>{shownDiffs.map((d:any,i:number)=>
                             d.fields.map((f:any,j:number)=>{
                               const oldR=roundN(f.old||0),newR=roundN(f.new||0);
@@ -5585,7 +5585,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
                                   <TD mono><span style={{color:T.red}}>{isPriceF?roundN(f.old||0).toFixed(2):String(f.old??"")}</span></TD>
                                   <TD mono><span style={{color:T.green}}>{isPriceF?roundN(f.new||0).toFixed(2):String(f.new??"")}</span></TD>
                                   <TD><span style={{color:pct==null?T.dim:pct>0?T.red:T.green,fontWeight:"bold"}}>
-                                    {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"â€”"}
+                                    {pct!=null?(pct>0?"+":"")+pct.toFixed(1)+"%":"—"}
                                   </span></TD>
                                 </tr>
                               );
@@ -5603,7 +5603,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
   );
 }
 
-// â”€â”€â”€ PRODUCTS (con import integrato e storico) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
 function Products({ products, setProducts, branch, importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
   const [search, setSearch] = useState("");
   const [onlyIFB, setOnlyIFB] = useState(true);
@@ -5634,10 +5634,10 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     kgPerBox: "Kg per Cartone (per costi logistica)",
     kgxplt: "Kg x PLT",
     temperature: "Product Type (DRY/FRESH/FROZEN)",
-    aiem: "â˜… AIEM % (col. W anagrafica CAN)",
+    aiem: "★ AIEM % (col. W anagrafica CAN)",
     isHoff: "HOFF Flag (1 = House of Fine Foods)",
     hkUom: "HK/BV UOM (per conversione automatica)",
-    standardCostHkd: "â˜… Standard Cost HK (HKD) â€” base calcolo MAC",
+    standardCostHkd: "★ Standard Cost HK (HKD) — base calcolo MAC",
     active: "Bloccato",
     vendorName: "Vendor Name",
     vendorName2: "Vendor Name 2"
@@ -5666,7 +5666,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
     vendorName2: ["vendorname2","vendor name 2"],
   };
 
-  // âœ… MAPBCVAL DEFINITA DENTRO IL COMPONENTE
+  // ✅ MAPBCVAL DEFINITA DENTRO IL COMPONENTE
   const mapBCVal = (field: string, raw: string) => {
     const maps: any = {
       category: {
@@ -5788,13 +5788,13 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
   function executeImport() {
     const now = Date.now();
-    // Se la colonna mappata Ã¨ "blocked/bloccato" il valore va invertito; se Ã¨ "active/attivo" va usato direttamente
+    // Se la colonna mappata è "blocked/bloccato" il valore va invertito; se è "active/attivo" va usato direttamente
     const activeColName = (map["active"] || "").toLowerCase();
     const isBlockedCol = activeColName.includes("blocked") || activeColName.includes("bloccato");
-    const truthyVals = ["true","1","yes","si","sÃ¬","x","y"];
+    const truthyVals = ["true","1","yes","si","sì","x","y"];
     const parseActive = (v: any) => {
       const s = String(v || "").toLowerCase().trim();
-      if (!s) return true; // campo vuoto â†’ attivo per default
+      if (!s) return true; // campo vuoto → attivo per default
       const truthy = truthyVals.includes(s);
       return isBlockedCol ? !truthy : truthy;
     };
@@ -5811,7 +5811,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       temperature: mapBCVal("temperature", r.temperature) || "DRY",
       kgxplt: parseFloat(r.kgxplt) > 0 ? parseFloat(r.kgxplt) : roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.qtyPerBox) || 1) * (parseFloat(r.boxPerPallet) || 0)),
       aiem: parseFloat(r.aiem) || 0,
-      isHoff: ["true","1","yes","hoff","si","sÃ¬","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
+      isHoff: ["true","1","yes","hoff","si","sì","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
       hkUom: r.hkUom ? String(r.hkUom).trim().toUpperCase() : "",
       standardCostHkd: parseFloat(String(r.standardCostHkd||"").replace(",",".")) || 0,
       active: parseActive(r.active),
@@ -5853,13 +5853,13 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   async function loadFromSnapshot(snap: any) {
     const snapshotProducts = await IDB.get(`ifb_anag_data_${snap.id}`, []);
     if (!snapshotProducts?.length) {
-      showToast(`Snapshot non disponibile â€” reimporta il file`, T.orange);
+      showToast(`Snapshot non disponibile — reimporta il file`, T.orange);
       return;
     }
     if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)?`)) {
       setProducts(snapshotProducts);
       await IDB.set(`ifb_products_${branch}`, snapshotProducts);
-      showToast(`Anagrafica ripristinata: ${snapshotProducts.length} articoli âœ“`, T.gold);
+      showToast(`Anagrafica ripristinata: ${snapshotProducts.length} articoli ✓`, T.gold);
       setSearch(""); setOnlyIFB(true);
     }
   }
@@ -5878,15 +5878,15 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
   return (
     <div>
-      <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli Â· ${products.filter((p: any) => isIFBVendor(p.vendorName)).length} INALCA F&B`} srcKey={`anagrafica_${branch}`}/>
+      <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli · ${products.filter((p: any) => isIFBVendor(p.vendorName)).length} INALCA F&B`} srcKey={`anagrafica_${branch}`}/>
       <BcBanner title="Dati aggiornati automaticamente da BC Brightview (HK)">
-        Anagrafica articoli caricata ogni giorno alle 07:00 dall'item card di <b style={{color:T.text}}>Business Central Brightview</b>: descrizione, categoria, UoM, kg/box, pz/box, box/pallet, temperatura, fornitore, <b style={{color:T.text}}>Transportation</b> (AIR/SEA) e <b style={{color:T.text}}>Standard Cost</b> a sistema. Ãˆ possibile importare manualmente da file per sovrascrivere.
+        Anagrafica articoli caricata ogni giorno alle 07:00 dall'item card di <b style={{color:T.text}}>Business Central Brightview</b>: descrizione, categoria, UoM, kg/box, pz/box, box/pallet, temperatura, fornitore, <b style={{color:T.text}}>Transportation</b> (AIR/SEA) e <b style={{color:T.text}}>Standard Cost</b> a sistema. È possibile importare manualmente da file per sovrascrivere.
       </BcBanner>
 
       {/* Toolbar import */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center", flexWrap: "wrap" }}>
         <label style={{ display: "inline-block", padding: "8px 16px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>
-          ðŸ“‚ Carica anagrafica (BC export)
+          📂 Carica anagrafica (BC export)
           <input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
         </label>
 
@@ -5902,10 +5902,10 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
             style={{ ...inputStyle(), width: "auto", fontSize: "12px" }}
             defaultValue=""
           >
-            <option value="">ðŸ“œ Carica da storico ({anagSnaps.length})</option>
+            <option value="">📜 Carica da storico ({anagSnaps.length})</option>
             {anagSnaps.map((s: any) => (
               <option key={s.id} value={String(s.id)}>
-                {new Date(s.id).toLocaleDateString("it-IT")} Â· {s.count} articoli
+                {new Date(s.id).toLocaleDateString("it-IT")} · {s.count} articoli
               </option>
             ))}
           </select>
@@ -5933,7 +5933,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
             fontSize: "11px"
           }}
         >
-          ðŸ—‘ Svuota anagrafica ({products.length})
+          🗑 Svuota anagrafica ({products.length})
         </button>
 
         <button
@@ -5948,14 +5948,14 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
             fontSize: "11px"
           }}
         >
-          {onlyIFB ? `âœ“ Solo IF&B (${baseList.length})` : `Mostra tutti (${products.length})`}
+          {onlyIFB ? `✓ Solo IF&B (${baseList.length})` : `Mostra tutti (${products.length})`}
         </button>
       </div>
 
       {/* Step di import - Mappa */}
       {importStep === "map" && (
         <div style={{ background: T.card, border: `1px solid ${T.gold}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
-          <div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne Â· {fileName}</div>
+          <div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne · {fileName}</div>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px", marginBottom: "16px" }}>
             {FIELDS.map(f => {
               const isRequired = f==="code"||f==="description";
@@ -5970,7 +5970,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
                   onChange={e => setMap((m: any) => ({ ...m, [f]: e.target.value }))}
                   style={{ ...inputStyle(), fontSize: "11px", padding: "4px 6px", borderColor: map[f]?T.gold:(isAiem&&!map[f])?T.orange:T.border }}
                 >
-                  <option value="">â€”</option>
+                  <option value="">—</option>
                   {headers.map(h => <option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
@@ -5979,7 +5979,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
             <ActionBtn label="Annulla" onClick={() => setImportStep("idle")} />
-            <ActionBtn label="Preview â†’" onClick={buildPreview} primary />
+            <ActionBtn label="Preview →" onClick={buildPreview} primary />
           </div>
         </div>
       )}
@@ -5987,7 +5987,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       {/* Step di import - Preview */}
       {importStep === "preview" && (
         <div style={{ background: T.card, border: `1px solid ${T.green}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
-          <div style={{ color: T.green, fontWeight: "bold", marginBottom: "12px" }}>Preview Â· {preview.length} articoli</div>
+          <div style={{ color: T.green, fontWeight: "bold", marginBottom: "12px" }}>Preview · {preview.length} articoli</div>
           <div style={{ maxHeight: "200px", overflow: "auto", marginBottom: "12px", fontSize: "11px" }}>
             <table style={{ width: "100%", borderCollapse: "collapse" }}>
               <thead>
@@ -6009,14 +6009,14 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
             </table>
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
-            <ActionBtn label="â† Indietro" onClick={() => setImportStep("map")} />
-            <ActionBtn label={`âœ“ Importa ${preview.length} articoli`} onClick={executeImport} primary />
+            <ActionBtn label="← Indietro" onClick={() => setImportStep("map")} />
+            <ActionBtn label={`✓ Importa ${preview.length} articoli`} onClick={executeImport} primary />
           </div>
         </div>
       )}
 
       {/* Barra di ricerca */}
-      <SearchBar value={search} onChange={setSearch} placeholder="ðŸ” Cerca articoloâ€¦" />
+      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo…" />
 
       {/* Tabella */}
       <Section title={`${filtered.length} articoli`}>
@@ -6043,21 +6043,21 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
                 const tdM: React.CSSProperties = {...tdS,fontFamily:"monospace"};
                 return (
                   <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
-                    <td style={tdM}><span style={{ color: T.muted }}>{p.nHK || "â€”"}</span></td>
+                    <td style={tdM}><span style={{ color: T.muted }}>{p.nHK || "—"}</span></td>
                     <td style={tdM}><span style={{ color: T.gold }}>{p.code}</span></td>
                     <td style={{...tdS,maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis"}} title={p.description}>{p.description}</td>
                     <td style={{...tdS,maxWidth:"110px",overflow:"hidden",textOverflow:"ellipsis"}}>
-                      <span style={{ color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>{p.vendorName || "â€”"}</span>
+                      <span style={{ color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>{p.vendorName || "—"}</span>
                     </td>
-                    <td style={tdS}><Chip label={p.category || "â€”"} color={p.category === "WINE" ? T.purple : p.category === "MEAT" ? T.red : T.blue} /></td>
-                    <td style={tdS}><Chip label={p.uom || "â€”"} color={T.muted} /></td>
-                    <td style={{...tdM,textAlign:"right"}}>{p.qtyPerBox || "â€”"}</td>
-                    <td style={{...tdM,textAlign:"right"}}>{p.boxPerPallet || "â€”"}</td>
-                    <td style={{...tdM,textAlign:"right"}}>{p.kgPerBox || "â€”"}</td>
-                    <td style={{...tdM,textAlign:"right"}}><span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "â€”"}</span></td>
-                    <td style={tdS}><Chip label={p.temperature || "â€”"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></td>
-                    {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.aiem>0?T.orange:T.dim}}>{p.aiem>0?`${p.aiem}%`:"â€”"}</td>}
-                    <td style={tdS}><Chip label={p.active ? "SÃ¬" : "No"} color={p.active ? T.green : T.red} /></td>
+                    <td style={tdS}><Chip label={p.category || "—"} color={p.category === "WINE" ? T.purple : p.category === "MEAT" ? T.red : T.blue} /></td>
+                    <td style={tdS}><Chip label={p.uom || "—"} color={T.muted} /></td>
+                    <td style={{...tdM,textAlign:"right"}}>{p.qtyPerBox || "—"}</td>
+                    <td style={{...tdM,textAlign:"right"}}>{p.boxPerPallet || "—"}</td>
+                    <td style={{...tdM,textAlign:"right"}}>{p.kgPerBox || "—"}</td>
+                    <td style={{...tdM,textAlign:"right"}}><span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span></td>
+                    <td style={tdS}><Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></td>
+                    {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.aiem>0?T.orange:T.dim}}>{p.aiem>0?`${p.aiem}%`:"—"}</td>}
+                    <td style={tdS}><Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} /></td>
                   </tr>
                 );
               })}
@@ -6069,7 +6069,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   );
 }
 
-// â”€â”€â”€ BEVERAGE INFO (CAN â€” AIEM alcolici) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── BEVERAGE INFO (CAN — AIEM alcolici) ──────────────────────────────────────
 function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
   const [step, setStep] = useState<"main"|"map"|"preview">("main");
   const [headers, setHeaders] = useState<string[]>([]);
@@ -6082,21 +6082,21 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
   const FIELDS = ["ifbNo","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"];
   const FLABELS: any = {
     ifbNo: "IFB No * (codice articolo)",
-    ltPerUnit: "LT (litri per unitÃ )",
-    gradoAlcolico: "Grado Alcolico (Â°)",
-    eurPerLt: "â‚¬/LT (tariffa AIEM per litro)",
-    totaleBottiglia: "Totale Bottiglia â‚¬ (se giÃ  calcolato)",
+    ltPerUnit: "LT (litri per unità)",
+    gradoAlcolico: "Grado Alcolico (°)",
+    eurPerLt: "€/LT (tariffa AIEM per litro)",
+    totaleBottiglia: "Totale Bottiglia € (se già calcolato)",
   };
   const ALIASES: any = {
     ifbNo:          ["ifb n","ifb no","ifbno","bv no","codice","code","item no","ifb item","ifbitem"],
-    ltPerUnit:      ["quantitÃ  x plt","quantity x plt","lt","litri","liters","volume","lt per unit","lt/unit","litri per unitÃ ","litriper"],
+    ltPerUnit:      ["quantità x plt","quantity x plt","lt","litri","liters","volume","lt per unit","lt/unit","litri per unità","litriper"],
     gradoAlcolico:  ["grado alcolico","gradoalcolico","grado","gradi","abv","alcohol degree","degree","alc degree"],
-    eurPerLt:       ["eur/lt","â‚¬/lt","euro/lt","eur/l","eur lt","eurlt","tariffa","rate","price per lt"],
+    eurPerLt:       ["eur/lt","€/lt","euro/lt","eur/l","eur lt","eurlt","tariffa","rate","price per lt"],
     totaleBottiglia:["totale bottiglia","totale bottiglia eur","tot bott","totbott","totalebottiglia","totale","total","total bottle"],
   };
 
   function fi(aliases: string[], hdrs: string[]): string {
-    const norm = (s: string) => s.toLowerCase().replace(/[â‚¬Â°\s_/]/g,"");
+    const norm = (s: string) => s.toLowerCase().replace(/[€°\s_/]/g,"");
     return hdrs.find(h => aliases.some(a => norm(h)===norm(a))) ||
            hdrs.find(h => aliases.some(a => norm(h).includes(norm(a)))) || "";
   }
@@ -6120,7 +6120,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
           const hasAlc = cells.some(c => c.includes("ALCOLICO") || c.includes("GRADO") || c.includes("EUR/LT") || c.includes("EUR/L"));
           return hasIFB || (hasLT && hasAlc);
         });
-        if(hdrIdx < 0) { showToast("Intestazione non trovata â€” il file deve avere una colonna 'IFB Item' o 'IFB No'", T.red); return; }
+        if(hdrIdx < 0) { showToast("Intestazione non trovata — il file deve avere una colonna 'IFB Item' o 'IFB No'", T.red); return; }
         const hdrs = data[hdrIdx].map((h:any) => String(h).trim()).filter((h:string) => h);
         const rows = data.slice(hdrIdx+1).filter(r => r.some((c:any) => c !== ""));
         setHeaders(hdrs); setRawRows(rows);
@@ -6146,7 +6146,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
       const totaleBottiglia = totRaw > 0 ? totRaw : totCalc;
       if(totaleBottiglia <= 0 && lt <= 0) return null;
       const prod = products.find((p:any) => p.code === ifbNo);
-      return { ifbNo, ltPerUnit:lt, gradoAlcolico:grado, eurPerLt:eurLt, totaleBottiglia, _found:!!prod, _desc:prod?.description||"â€”" };
+      return { ifbNo, ltPerUnit:lt, gradoAlcolico:grado, eurPerLt:eurLt, totaleBottiglia, _found:!!prod, _desc:prod?.description||"—" };
     }).filter(Boolean);
     setPreview(rows); setStep("preview");
   }
@@ -6155,7 +6155,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
     const kept = bevInfo.filter((b:any) => !preview.find((p:any) => p.ifbNo===b.ifbNo));
     const next = [...preview.map((r:any) => ({ifbNo:r.ifbNo,ltPerUnit:r.ltPerUnit,gradoAlcolico:r.gradoAlcolico,eurPerLt:r.eurPerLt,totaleBottiglia:r.totaleBottiglia})), ...kept];
     setBevInfo(next); IDB.set("ifb_bevinfo", next);
-    showToast(`Beverage Info: ${preview.length} articoli importati âœ“`, T.gold);
+    showToast(`Beverage Info: ${preview.length} articoli importati ✓`, T.gold);
     setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
   }
 
@@ -6166,23 +6166,23 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
 
   return (
     <div>
-      <PageHeader title="ðŸ· Beverage Info Â· AIEM Alcolici (CAN)" sub="Importa dati alcolici: LT, Grado, â‚¬/LT â†’ Totale AIEM fisso per unitÃ "/>
+      <PageHeader title="🍷 Beverage Info · AIEM Alcolici (CAN)" sub="Importa dati alcolici: LT, Grado, €/LT → Totale AIEM fisso per unità"/>
 
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
         <label style={{display:"inline-block",padding:"8px 16px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold",fontSize:"12px"}}>
-          ðŸ“‚ Carica file Beverage Info
+          📂 Carica file Beverage Info
           <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
         </label>
         {bevInfo.length>0&&<button onClick={()=>{if(window.confirm(`Eliminare tutti i ${bevInfo.length} dati beverage?`)){setBevInfo([]);IDB.set("ifb_bevinfo",[]);}}}
           style={{padding:"5px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
-          ðŸ—‘ Svuota ({bevInfo.length})
+          🗑 Svuota ({bevInfo.length})
         </button>}
       </div>
 
       {step==="map"&&(
-        <Section title={`Mappatura â€” ${fileName}`}>
+        <Section title={`Mappatura — ${fileName}`}>
           <div style={{background:`${T.orange}10`,border:`1px solid ${T.orange}33`,borderRadius:"8px",padding:"10px 14px",marginBottom:"12px",fontSize:"11px",color:T.orange}}>
-            â˜… Se il file ha giÃ  la colonna "Totale Bottiglia", verrÃ  usata. Altrimenti verrÃ  calcolata come LT Ã— â‚¬/LT.
+            ★ Se il file ha già la colonna "Totale Bottiglia", verrà usata. Altrimenti verrà calcolata come LT × €/LT.
           </div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"10px",marginBottom:"16px"}}>
             {FIELDS.map(f=>(
@@ -6190,7 +6190,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
                 <label style={{fontSize:"10px",color:f==="ifbNo"?T.gold:T.muted}}>{FLABELS[f]}</label>
                 <select value={map[f]||""} onChange={e=>setMap((m:any)=>({...m,[f]:e.target.value}))}
                   style={{...inputStyle(),fontSize:"11px",padding:"4px 6px",borderColor:map[f]?T.gold:T.border}}>
-                  <option value="">â€”</option>
+                  <option value="">—</option>
                   {headers.map(h=><option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
@@ -6198,17 +6198,17 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
           </div>
           <div style={{display:"flex",gap:"10px"}}>
             <ActionBtn label="Annulla" onClick={()=>setStep("main")}/>
-            <ActionBtn label="Preview â†’" onClick={buildPreview} primary disabled={!map.ifbNo}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!map.ifbNo}/>
           </div>
         </Section>
       )}
 
       {step==="preview"&&(
-        <Section title={`Preview Â· ${preview.length} articoli`}>
+        <Section title={`Preview · ${preview.length} articoli`}>
           <div style={{maxHeight:"200px",overflow:"auto",marginBottom:"12px",fontSize:"11px"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                {["IFB No","Descrizione","LT","Grado","â‚¬/LT","Totale â‚¬/unit"].map(h=>
+                {["IFB No","Descrizione","LT","Grado","€/LT","Totale €/unit"].map(h=>
                   <th key={h} style={{padding:"4px 8px",textAlign:"left",color:T.muted,borderBottom:`1px solid ${T.border}`}}>{h}</th>)}
               </tr></thead>
               <tbody>
@@ -6216,30 +6216,30 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
                   <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r._found?undefined:`${T.orange}10`}}>
                     <td style={{padding:"3px 8px",color:T.gold,fontFamily:"monospace"}}>{r.ifbNo}</td>
                     <td style={{padding:"3px 8px",color:r._found?T.text:T.orange,fontSize:"11px"}}>{r._desc}</td>
-                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.ltPerUnit||"â€”"}</td>
-                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.gradoAlcolico||"â€”"}Â°</td>
-                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.eurPerLt>0?r.eurPerLt.toFixed(2):"â€”"}</td>
-                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{r.totaleBottiglia>0?r.totaleBottiglia.toFixed(4):"â€”"}</td>
+                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.ltPerUnit||"—"}</td>
+                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.gradoAlcolico||"—"}°</td>
+                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.eurPerLt>0?r.eurPerLt.toFixed(2):"—"}</td>
+                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{r.totaleBottiglia>0?r.totaleBottiglia.toFixed(4):"—"}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="â† Indietro" onClick={()=>setStep("map")}/>
-            <ActionBtn label={`âœ“ Importa ${preview.length} articoli`} onClick={executeImport} primary/>
+            <ActionBtn label="← Indietro" onClick={()=>setStep("map")}/>
+            <ActionBtn label={`✓ Importa ${preview.length} articoli`} onClick={executeImport} primary/>
           </div>
         </Section>
       )}
 
-      <SearchBar value={search} onChange={setSearch} placeholder="ðŸ” Cerca IFB No o descrizioneâ€¦"/>
+      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca IFB No o descrizione…"/>
 
       {displayed.length>0 ? (
         <Section title={`${displayed.length} articoli con AIEM alcolico`}>
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                {["IFB No","Descrizione","LT/unit","Grado","â‚¬/LT","Tassa Alcolica â‚¬/unit"].map(h=>
+                {["IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit"].map(h=>
                   <th key={h} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}>{h}</th>)}
                 <th style={{padding:"3px 6px",background:T.card,borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}/>
               </tr></thead>
@@ -6249,13 +6249,13 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
                   return(
                     <tr key={b.ifbNo} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
                       <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>âš  non in anagrafica</span>}</td>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"â€”"}</td>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.gradoAlcolico||"â€”"}Â°</td>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"â€”"}</td>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"â€”"}</td>
+                      <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
+                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
                       <td style={{padding:"3px 6px"}}>
-                        <MiniBtn label="âœ•" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==bevInfo.indexOf(b));setBevInfo(n);IDB.set("ifb_bevinfo",n);}} color={T.red}/>
+                        <MiniBtn label="✕" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==bevInfo.indexOf(b));setBevInfo(n);IDB.set("ifb_bevinfo",n);}} color={T.red}/>
                       </td>
                     </tr>
                   );
@@ -6266,14 +6266,14 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
         </Section>
       ) : (
         <div style={{color:T.muted,textAlign:"center",padding:"40px",fontSize:"13px"}}>
-          Nessun dato beverage. Carica il file con LT, Grado Alcolico e â‚¬/LT.
+          Nessun dato beverage. Carica il file con LT, Grado Alcolico e €/LT.
         </div>
       )}
     </div>
   );
 }
 
-// â”€â”€â”€ MEAT PRICE LIST â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── MEAT PRICE LIST ──────────────────────────────────────────────────────────
 function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
   const [step, setStep] = useState<"main"|"map"|"preview">("main");
   const [headers, setHeaders] = useState<string[]>([]);
@@ -6288,7 +6288,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
   function parsePrice(raw:any): number {
     if(raw == null) return 0;
     if(typeof raw === "number") return raw;
-    const s = String(raw).replace(/[â‚¬\s]/g,"").replace(",",".");
+    const s = String(raw).replace(/[€\s]/g,"").replace(",",".");
     return parseFloat(s) || 0;
   }
 
@@ -6311,7 +6311,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
           const hl = h.toLowerCase().replace(/[\s_()\/]/g,"");
           if(!am.code        && ["codice","code","no","no_","ifbn"].some(a=>hl===a||hl.includes(a))) am.code = h;
           if(!am.description && ["descrizione","description","desc"].some(a=>hl.includes(a))) am.description = h;
-          if(!am.pricePerKg  && ["prezzo","price","â‚¬","eur","kg"].some(a=>hl.includes(a))) am.pricePerKg = h;
+          if(!am.pricePerKg  && ["prezzo","price","€","eur","kg"].some(a=>hl.includes(a))) am.pricePerKg = h;
           if(!am.fonte       && hl.includes("fonte")) am.fonte = h;
           if(!am.foglio      && hl.includes("foglio")) am.foglio = h;
         });
@@ -6364,7 +6364,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
     bumpImportTs();
-    showToast(`Listino carne: ${entries.length} prezzi importati âœ“`, T.gold);
+    showToast(`Listino carne: ${entries.length} prezzi importati ✓`, T.gold);
     setStep("main"); setPreview([]); setRawRows([]);
   }
 
@@ -6378,12 +6378,12 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
 
   return (
     <div>
-      <PageHeader title="ðŸ¥© Listino Carne" sub={`${meatPrices.length} prezzi Â· usato come fallback se l'articolo non Ã¨ nei listini principali`}/>
+      <PageHeader title="🥩 Listino Carne" sub={`${meatPrices.length} prezzi · usato come fallback se l'articolo non è nei listini principali`}/>
 
       {/* Toolbar */}
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
         <label style={{display:"inline-block",padding:"8px 16px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold",fontSize:"12px"}}>
-          ðŸ“‚ Carica listino carne
+          📂 Carica listino carne
           <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
         </label>
 
@@ -6394,15 +6394,15 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
             if(!snap) return;
             if(window.confirm(`Ripristinare listino del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snap.count} prezzi)?`)) {
               const data = await IDB.get(`ifb_meatprices_data_${snap.id}`, null);
-              if(!data?.length){ showToast("Snapshot non disponibile â€” reimporta il file", T.orange); return; }
+              if(!data?.length){ showToast("Snapshot non disponibile — reimporta il file", T.orange); return; }
               setMeatPrices(data); IDB.set("ifb_meatprices", data);
-              showToast(`Listino carne: ${data.length} prezzi ripristinati âœ“`, T.gold);
+              showToast(`Listino carne: ${data.length} prezzi ripristinati ✓`, T.gold);
             }
             e.target.value="";
           }} style={{...inputStyle(),width:"auto",fontSize:"12px"}} defaultValue="">
-            <option value="">ðŸ“œ Storico ({meatSnaps.length})</option>
+            <option value="">📜 Storico ({meatSnaps.length})</option>
             {meatSnaps.map((s:any)=>(
-              <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} Â· {s.count} prezzi</option>
+              <option key={s.id} value={String(s.id)}>{new Date(s.id).toLocaleDateString("it-IT")} · {s.count} prezzi</option>
             ))}
           </select>
         )}
@@ -6410,22 +6410,22 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
         {meatPrices.length > 0 && (
           <button onClick={()=>{if(window.confirm(`Eliminare tutti i ${meatPrices.length} prezzi del listino carne?`)){setMeatPrices([]);IDB.set("ifb_meatprices",[]);}}}
             style={{padding:"8px 16px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"12px"}}>
-            ðŸ—‘ Svuota ({meatPrices.length})
+            🗑 Svuota ({meatPrices.length})
           </button>
         )}
 
-        <span style={{fontSize:"11px",color:T.muted}}>Colonne attese: Codice Â· Descrizione Â· Prezzo (â‚¬/kg) Â· opzionali: Fonte, Foglio</span>
+        <span style={{fontSize:"11px",color:T.muted}}>Colonne attese: Codice · Descrizione · Prezzo (€/kg) · opzionali: Fonte, Foglio</span>
       </div>
 
       {/* Step: map */}
       {step === "map" && (
         <div style={{background:T.card,border:`1px solid ${T.gold}`,borderRadius:"8px",padding:"16px",marginBottom:"16px"}}>
-          <div style={{color:T.gold,fontWeight:"bold",marginBottom:"12px"}}>Mappatura Â· {fileName} Â· {rawRows.length} righe</div>
+          <div style={{color:T.gold,fontWeight:"bold",marginBottom:"12px"}}>Mappatura · {fileName} · {rawRows.length} righe</div>
           <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",marginBottom:"16px"}}>
             {([
               ["code","Codice IFB *",true],
               ["description","Descrizione",false],
-              ["pricePerKg","Prezzo â‚¬/kg *",true],
+              ["pricePerKg","Prezzo €/kg *",true],
               ["fonte","Fonte",false],
               ["foglio","Foglio / Categoria",false],
             ] as [string,string,boolean][]).map(([f,l,req])=>(
@@ -6433,15 +6433,15 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
                 <label style={{display:"block",fontSize:"11px",color:req?T.gold:T.muted,marginBottom:"4px"}}>{l}</label>
                 <select value={mapping[f]||""} onChange={e=>setMapping((m:any)=>({...m,[f]:e.target.value}))}
                   style={{...inputStyle(),cursor:"pointer",borderColor:req&&!mapping[f]?T.red+"88":T.border}}>
-                  <option value="">â€” non mappato â€”</option>
+                  <option value="">— non mappato —</option>
                   {headers.map(h=><option key={h} value={h}>{h}</option>)}
                 </select>
               </div>
             ))}
           </div>
           <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="â† Annulla" onClick={()=>setStep("main")}/>
-            <ActionBtn label="Preview â†’" onClick={buildPreview} primary disabled={!mapping["code"]||!mapping["pricePerKg"]}/>
+            <ActionBtn label="← Annulla" onClick={()=>setStep("main")}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"]||!mapping["pricePerKg"]}/>
           </div>
         </div>
       )}
@@ -6449,12 +6449,12 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
       {/* Step: preview */}
       {step === "preview" && (
         <div style={{background:T.card,border:`1px solid ${T.green}`,borderRadius:"8px",padding:"16px",marginBottom:"16px"}}>
-          <div style={{color:T.green,fontWeight:"bold",marginBottom:"12px"}}>Preview Â· {preview.length} righe</div>
+          <div style={{color:T.green,fontWeight:"bold",marginBottom:"12px"}}>Preview · {preview.length} righe</div>
           <div style={{display:"flex",gap:"12px",marginBottom:"14px",flexWrap:"wrap"}}>
             {[
-              [preview.filter((r:any)=>r._prodFound).length, "âœ… Trovati in anagrafica", T.green],
-              [preview.filter((r:any)=>!r._prodFound).length, "âš  Non in anagrafica", T.orange],
-              [preview.filter((r:any)=>r.pricePerKg>0).length, "ðŸ’¶ Con prezzo", T.gold],
+              [preview.filter((r:any)=>r._prodFound).length, "✅ Trovati in anagrafica", T.green],
+              [preview.filter((r:any)=>!r._prodFound).length, "⚠ Non in anagrafica", T.orange],
+              [preview.filter((r:any)=>r.pricePerKg>0).length, "💶 Con prezzo", T.gold],
             ].map(([n,l,c])=>(
               <div key={l as string} style={{padding:"8px 14px",background:T.surface,border:`1px solid ${c}44`,borderRadius:"6px"}}>
                 <div style={{fontSize:"18px",fontWeight:"bold",color:c as string}}>{n as number}</div>
@@ -6464,27 +6464,27 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
           </div>
           <div style={{maxHeight:"200px",overflow:"auto",marginBottom:"14px"}}>
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:"11px"}}>
-              <THead cols={["Codice","Descrizione","â‚¬/kg","Match anagrafica","Foglio"]} sticky/>
+              <THead cols={["Codice","Descrizione","€/kg","Match anagrafica","Foglio"]} sticky/>
               <tbody>{preview.slice(0,30).map((r:any,i:number)=>(
                 <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r._prodFound?T.bg:`${T.orange}08`}}>
                   <td style={{padding:"4px 8px",fontFamily:"monospace",color:T.gold}}>{r.code}</td>
                   <td style={{padding:"4px 8px"}}>{r.description}</td>
                   <td style={{padding:"4px 8px",fontFamily:"monospace",color:r.pricePerKg>0?T.green:T.red}}>
-                    {r.pricePerKg>0?`â‚¬ ${r.pricePerKg.toFixed(2)}`:"â€”"}
+                    {r.pricePerKg>0?`€ ${r.pricePerKg.toFixed(2)}`:"—"}
                   </td>
                   <td style={{padding:"4px 8px"}}>
                     {r._prodFound
-                      ? <span style={{color:T.green,fontSize:"10px"}}>âœ“ {r._prodCode}</span>
-                      : <span style={{color:T.orange,fontSize:"10px"}}>âš  non trovato</span>}
+                      ? <span style={{color:T.green,fontSize:"10px"}}>✓ {r._prodCode}</span>
+                      : <span style={{color:T.orange,fontSize:"10px"}}>⚠ non trovato</span>}
                   </td>
-                  <td style={{padding:"4px 8px",color:T.muted,fontSize:"10px"}}>{r.foglio||"â€”"}</td>
+                  <td style={{padding:"4px 8px",color:T.muted,fontSize:"10px"}}>{r.foglio||"—"}</td>
                 </tr>
               ))}</tbody>
             </table>
           </div>
           <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="â† Torna" onClick={()=>setStep("map")}/>
-            <ActionBtn label={`âœ“ Importa ${preview.length} prezzi`} onClick={executeImport} primary/>
+            <ActionBtn label="← Torna" onClick={()=>setStep("map")}/>
+            <ActionBtn label={`✓ Importa ${preview.length} prezzi`} onClick={executeImport} primary/>
           </div>
         </div>
       )}
@@ -6492,7 +6492,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
       {/* Tabella listino */}
       {step === "main" && (
         <>
-          <SearchBar value={search} onChange={setSearch} placeholder="ðŸ” Cerca codice, descrizione, foglioâ€¦"/>
+          <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca codice, descrizione, foglio…"/>
           {meatPrices.length === 0 ? (
             <div style={{padding:"32px",textAlign:"center",color:T.dim,fontSize:"13px"}}>
               Nessun listino carne caricato. Clicca "Carica listino carne" per iniziare.
@@ -6501,7 +6501,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
             <Section title={`${displayed.length} prezzi`}>
               <div style={{overflowX:"auto"}}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <THead cols={["Codice IFB","Descrizione","â‚¬/kg","Foglio","Fonte"]} sticky/>
+                  <THead cols={["Codice IFB","Descrizione","€/kg","Foglio","Fonte"]} sticky/>
                   <tbody>
                     {displayed.map((m:any,i:number)=>{
                       const prod = findProduct(m.code, products, xrefs);
@@ -6509,16 +6509,16 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
                         <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
                           <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap"}}>
                             <span style={{color:T.gold}}>{m.code}</span>
-                            {prod && <span style={{marginLeft:"6px",fontSize:"9px",color:T.green}}>âœ“ {prod.code}</span>}
+                            {prod && <span style={{marginLeft:"6px",fontSize:"9px",color:T.green}}>✓ {prod.code}</span>}
                           </td>
                           <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{m.description}</td>
                           <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap"}}>
-                            <span style={{color:T.green,fontWeight:"bold"}}>â‚¬ {m.pricePerKg?.toFixed(2)||"â€”"}</span>
+                            <span style={{color:T.green,fontWeight:"bold"}}>€ {m.pricePerKg?.toFixed(2)||"—"}</span>
                           </td>
                           <td style={{padding:"3px 6px",fontSize:"10px"}}>
                             {m.foglio && <Chip label={m.foglio} color={T.blue}/>}
                           </td>
-                          <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted}}>{m.fonte||"â€”"}</td>
+                          <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted}}>{m.fonte||"—"}</td>
                         </tr>
                       );
                     })}
@@ -6534,14 +6534,14 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
 }
 
 
-// â”€â”€â”€ SHARED HELPERS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── SHARED HELPERS ───────────────────────────────────────────────────────────
 const inputStyle = () => ({
   width:"100%",padding:"7px 10px",background:"rgba(255,255,255,0.05)",
   border:`1px solid ${T.border}`,borderRadius:"6px",color:T.text,
   fontFamily:"inherit",fontSize:"12px",outline:"none",boxSizing:"border-box",
 });
 
-function BcBanner({icon="â„¹", title, children}:any){
+function BcBanner({icon="ℹ", title, children}:any){
   return(
     <div style={{background:`${T.blue}15`,border:`1px solid ${T.blue}44`,borderRadius:"8px",padding:"12px 16px",marginBottom:"16px",fontSize:"12px",color:T.text}}>
       <div style={{fontWeight:"bold",color:T.blue,marginBottom:"6px"}}>{icon} {title}</div>
@@ -6585,7 +6585,7 @@ function SourceBadge({dataKey}:{dataKey:string}) {
       border: `1px solid ${isBc ? T.blue+"55" : T.muted+"55"}`,
       verticalAlign:"middle",
     }}>
-      {isBc ? "ðŸ”„ BC" : "ðŸ“ Manuale"} Â· {date}
+      {isBc ? "🔄 BC" : "📁 Manuale"} · {date}
     </span>
   );
 }
@@ -6618,7 +6618,7 @@ function DropZone({onFile,label}){
   return(
     <div style={{border:`2px dashed ${T.borderHi}`,borderRadius:"10px",padding:"28px",textAlign:"center",cursor:"pointer"}}
       onClick={()=>document.getElementById("_dz_in")?.click()}>
-      <div style={{fontSize:"28px",marginBottom:"8px"}}>ðŸ“‚</div>
+      <div style={{fontSize:"28px",marginBottom:"8px"}}>📂</div>
       <div style={{fontSize:"13px",color:T.text,marginBottom:"4px"}}>{label||"Trascina o clicca per caricare"}</div>
       <div style={{fontSize:"11px",color:T.muted}}>Excel (.xlsx, .xls) o CSV</div>
       <input id="_dz_in" type="file" accept=".xlsx,.xls,.csv"
