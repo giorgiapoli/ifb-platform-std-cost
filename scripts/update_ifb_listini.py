@@ -1,4 +1,4 @@
-"""
+﻿"""
 Aggiorna docs/data/ifb_listini.json con i listini prezzi da BC Italia.
 Logica derivata dal confronto con Power BI:
   - FCA/DAP Price = purchase_price / 0.99  (markup 1% su costo acquisto)
@@ -8,7 +8,7 @@ Logica derivata dal confronto con Power BI:
   - DAP Final     = DAP Discounted
 """
 import os, json, requests
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from collections import defaultdict
 
@@ -24,7 +24,7 @@ OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "ifb_listini.js
 TODAY  = date.today().isoformat()
 MARKUP = 100 / 99  # markup IFB su costo acquisto (~1%)
 
-# Mappa temperatura BC → chiave interna
+# Mappa temperatura BC -> chiave interna
 TEMP_NORM = {
     "congelato": "FROZEN", "frozen": "FROZEN",
     "fresco": "FRESH", "fresh": "FRESH", "refrigerato": "FRESH", "refrigerated": "FRESH",
@@ -113,9 +113,9 @@ def is_active_date(enddate_str):
     (endingdate < 2010 cattura il valore BC "vuoto" = 0001-01-01)
     """
     ed = (enddate_str or "").split("T")[0]
-    if not ed or ed < "2010-01-01":   # null o 0001-01-01 → nessuna scadenza
+    if not ed or ed < "2010-01-01":   # null o 0001-01-01 -> nessuna scadenza
         return True
-    if ed > TODAY:                     # scadenza futura → ancora valido
+    if ed > TODAY:                     # scadenza futura -> ancora valido
         return True
     return False                       # scaduto
 
@@ -145,7 +145,7 @@ def build_item_card_data(token):
 
 
 def build_transport_costs(token):
-    """Fetch Tabella_Costi_di_Trasporto_Excel → {(vendor_name, temp): pallet1_cost}"""
+    """Fetch Tabella_Costi_di_Trasporto_Excel -> {(vendor_name, temp): pallet1_cost}"""
     print("  Fetch Tabella Costi Trasporto...")
     rows = bc_fetch_all(token, "Tabella_Costi_di_Trasporto_Excel")
     costs = {}
@@ -212,7 +212,7 @@ def build_uom_conversions(token):
     """
     Fetch tabella unità di misura articoli (IFB BC).
     Restituisce: { item_no: { uom_code: qty_per_base_uom } }
-    La base UoM ha qty=1. Es: Z3774 → {BOX: 6, KG: 1, PCS: 1, PLT: 432}
+    La base UoM ha qty=1. Es: Z3774 -> {BOX: 6, KG: 1, PCS: 1, PLT: 432}
     """
     print("  Fetch UoM conversioni articoli...")
     rows = bc_fetch_all(token, "IFB_Item_Unit_of_Measure")
@@ -255,7 +255,7 @@ def build_purchase_prices(token, uom_conv=None):
       - all_codes: TUTTI i codici nel listino acquisto (anche solo con record scaduti)
     """
     # Filtro identico a PowerBI: status=Active + shipmentmethod DAP/FCA
-    # NON filtra per pricetype in OData (PowerBI non lo fa) → filtriamo in Python
+    # NON filtra per pricetype in OData (PowerBI non lo fa) -> filtriamo in Python
     print("  Fetch listini acquisto (status=Active, DAP/FCA, pricetype=Purchase)...")
     rows = fetch_price_lines(token, "status eq 'Active' and (shipmentmethodcode eq 'DAP' or shipmentmethodcode eq 'FCA')")
     rows = [r for r in rows if str(r.get("pricetype") or "").strip().lower() == "purchase"]
@@ -273,10 +273,8 @@ def build_purchase_prices(token, uom_conv=None):
         dc       = float(r.get("directunitcost") or 0)
         up       = float(r.get("unitprice")      or 0)
         price    = dc or up
-        # Converti in base UoM (PCS): se il listino ha UoM=BOX e BOX=6 PCS → dividi per 6
+        # Converti in base UoM (PCS): se il listino ha UoM=BOX e BOX=6 PCS -> dividi per 6
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
-        if code in ("HA7021-IB", "Z3774", "BD0501", "CF0051-IFA", "LSM30", "CW0015"):
-            print(f"    DEBUG {code}: price={price}, puom={puom}, sd={sd_r}, ed={ed}, ship={ship}, uom_conv_entry={( uom_conv or {}).get(code)}")
         if price and puom and puom not in ("PCS", "", " ") and uom_conv:
             qty = (uom_conv.get(code) or {}).get(puom)
             if qty and qty > 1:
@@ -290,10 +288,10 @@ def build_purchase_prices(token, uom_conv=None):
         # Priorità: open (no end, start<=oggi) > futuro (no end, start>oggi) > non-scaduto-con-end > scaduto
         # Un record "open" non viene mai sostituito da uno futuro o non-open
         def better(io=is_open, exp=expired, so=slot_open, se=slot_expired, sd=sd_r, sl=slot):
-            if io and not so:  return True   # nuovo open, slot non-open → sostituisci
-            if not io and so:  return False  # nuovo non-open, slot open → tieni
-            if not exp and se: return True   # nuovo non-scaduto, slot scaduto → sostituisci
-            if exp and not se: return False  # nuovo scaduto, slot non-scaduto → tieni
+            if io and not so:  return True   # nuovo open, slot non-open -> sostituisci
+            if not io and so:  return False  # nuovo non-open, slot open -> tieni
+            if not exp and se: return True   # nuovo non-scaduto, slot scaduto -> sostituisci
+            if exp and not se: return False  # nuovo scaduto, slot non-scaduto -> tieni
             return sl.get("_sd", "") <= sd   # stessa categoria: più recente per startdate
         if better():
             slot.update({"price": price, "_sd": sd_r, "_open": is_open, "_expired": expired})
@@ -302,88 +300,74 @@ def build_purchase_prices(token, uom_conv=None):
             result[code]["desc"]  = str(r.get("description") or "").strip()
             result[code]["puom"]  = puom  # UoM del prezzo di acquisto (BOX/PCS/KG)
     print(f"    {len(all_codes)} codici unici ({len(result)} con almeno un record processato)")
-    for chk in ("LSM30", "CW0015"):
-        if chk in all_codes:
-            print(f"    DEBUG {chk} in all_codes: {result.get(chk)}")
-        else:
-            print(f"    DEBUG {chk} NON TROVATO in all_codes (purchase list)")
     return dict(result), all_codes
 
 
-def build_hk_purchase_prices(token, hk_ifb_map, uom_conv=None):
+def _iss_row_to_price(r):
+    fca   = float(r.get("standardcostbranch") or 0)
+    dap_v1 = float(r.get("pricedaptotal") or 0)
+    dap_v2 = float(r.get("standardcost")  or 0)
+    dap    = dap_v1 if dap_v1 > 0 else dap_v2
+    if dap == 0 and fca > 0:
+        dap = round(fca + float(r.get("carriagecost") or 0), 6)
+    return {
+        "fca":           fca,
+        "dap":           dap,
+        "carriage":      float(r.get("carriagecost") or 0),
+        "executiondate": str(r.get("executiondate")  or ""),
+    }
+
+
+def build_iss_prices(token, target_codes):
     """
-    Listini acquisto da BC HK (Brightview) — stessa logica del report IFB Pricelist Bright View.
-    hk_ifb_map: {hk_code: ifb_code}  es. {"CW0015": "LSM30"}
-    Restituisce la stessa struttura di build_purchase_prices.
+    Fetch IFB_Item_Statistics_SC da BC Italia filtrando per un singolo giorno con $skip
+    (ISS ha >5000 righe/giorno, $skip permette paginazione completa).
+    Campi ISS:
+      standardcostbranch = FCA purchase price (EUR)
+      pricedaptotal      = DAP (FCA + carriagecost), dal 2026
+      standardcost       = DAP alternativo (fino al 2025)
+    Restituisce: {itemno: {fca, dap, carriage, executiondate}}
     """
-    print("  Fetch listini acquisto HK (BC Brightview)...")
-    # In BC HK: pricetype=Sale, shipmentmethodcode='' → FCA/DAP si distingue da pricelistcode
-    rows = bc_fetch_hk(token, "IFB_Price_List_Line", "status eq 'Active'")
-    rows = [r for r in rows if str(r.get("amounttype") or "").strip().lower() == "price"]
-    print(f"    {len(rows)} righe Sale+Active+amounttype=Price da BC HK")
-    # Debug: mostra pricelistcode per capire struttura FCA/DAP
-    if rows:
-        codes_sample = list({str(r.get("pricelistcode") or "") for r in rows[:200]})[:10]
-        print(f"    Esempi pricelistcode HK: {codes_sample}")
-        lsm_rows = [r for r in rows if str(r.get("assetno") or "").upper() in ("CW0015", "LSM30")]
-        print(f"    CW0015/LSM30 trovati: {len(lsm_rows)}")
-        for r in lsm_rows[:3]:
-            print(f"      {{{k}: {v} for k,v in r.items() if k in ('assetno','pricelistcode','unitprice','directunitcost','amounttype','startingdate','endingdate')}}")
-
-    result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
-    all_codes = set()
-
-    for r in rows:
-        hk_code = str(r.get("assetno") or "").strip()
-        if not hk_code:
-            continue
-        ifb_code = hk_ifb_map.get(hk_code, hk_code)
-        all_codes.add(ifb_code)
-
-        sd_r  = str(r.get("startingdate") or "")
-        ed    = str(r.get("endingdate") or "")
-        dc    = float(r.get("directunitcost") or 0)
-        up    = float(r.get("unitprice") or 0)
-        price = dc or up
-        puom  = str(r.get("unitofmeasurecode") or "").strip().upper()
-
-        if price and puom and puom not in ("PCS", "", " ") and uom_conv:
-            qty = (uom_conv.get(ifb_code) or {}).get(puom)
-            if qty and qty > 1:
-                price = price / qty
-
-        # In BC HK shipmentmethodcode è vuoto → usa pricelistcode per FCA/DAP
-        plc  = str(r.get("pricelistcode") or "").upper()
-        if "DAP" in plc:
-            ship = "DAP"
-        elif "FCA" in plc or "MTS" in plc:
-            ship = "FCA"
-        else:
-            ship = classify_ship(r.get("shipmentmethodcode"))
-        slot     = result[ifb_code][ship]
-        expired  = not is_active_date(ed)
-        is_open  = is_active_date(ed) and (not sd_r or sd_r <= TODAY)
-        slot_open    = slot.get("_open", False)
-        slot_expired = slot.get("_expired", True)
-
-        def better(io=is_open, exp=expired, so=slot_open, se=slot_expired, sd=sd_r, sl=slot):
-            if io and not so:  return True
-            if not io and so:  return False
-            if not exp and se: return True
-            if exp and not se: return False
-            return sl.get("_sd", "") <= sd
-
-        if better():
-            slot.update({"price": price, "_sd": sd_r, "_open": is_open, "_expired": expired})
-        if not result[ifb_code]["uom"]:
-            result[ifb_code]["uom"]  = str(r.get("unitofmeasurecode") or "").strip()
-            result[ifb_code]["desc"] = str(r.get("description") or "").strip()
-            result[ifb_code]["puom"] = puom
-
-    print(f"    {len(all_codes)} codici IFB unici da BC HK")
-    if "LSM30" in all_codes:
-        print(f"    LSM30: {dict(result['LSM30'])}")
-    return dict(result), all_codes
+    if not target_codes:
+        return {}
+    target_codes = set(target_codes)
+    base = (f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}"
+            f"/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/IFB_Item_Statistics_SC")
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    # Prova dal giorno piu' recente; con $skip raccoglie tutti i batch finche' trovati tutti i codici
+    for days_back in range(0, 7):
+        d = (date.today() - timedelta(days=days_back)).isoformat()
+        result = {}
+        skip = 0
+        while True:
+            r = requests.get(base, headers=headers,
+                             params={"$filter": f"executiondate eq {d}",
+                                     "$top": 5000, "$skip": skip})
+            r.raise_for_status()
+            rows = r.json().get("value", [])
+            for row in rows:
+                code = str(row.get("itemno") or "").strip()
+                if code in target_codes and code not in result:
+                    entry = _iss_row_to_price(row)
+                    if entry["fca"] > 0:
+                        result[code] = entry
+            if len(rows) < 5000:
+                break
+            if len(result) == len(target_codes):
+                break
+            skip += 5000
+        if result:
+            batches = skip // 5000 + 1
+            print(f"  ISS data={d}: {len(result)}/{len(target_codes)} trovati in {batches} batch")
+            break
+    found   = [c for c in target_codes if c in result]
+    missing = [c for c in target_codes if c not in result]
+    if missing:
+        print(f"    Non trovati in ISS: {missing[:10]}{' ...' if len(missing)>10 else ''}")
+    for chk in ("LSM30",):
+        if chk in result:
+            print(f"    {chk} ISS: {result[chk]}")
+    return result
 
 
 def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None):
@@ -495,25 +479,29 @@ if __name__ == "__main__":
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
     print(f"  Articoli totali nel listino acquisto BC Italia: {len(all_purchase_codes)}")
 
-    # Supplementa con prezzi da BC HK (Brightview) per articoli non presenti in BC Italia
+    # Supplementa con IFB_Item_Statistics_SC per articoli HK non nel listino acquisto BC Italia
     try:
-        hk_ana_path = OUT_PATH.parent / "hk_anagrafica.json"
-        hk_ana = json.loads(hk_ana_path.read_text(encoding="utf-8"))
-        # Mappa nHK → IFB code
-        hk_ifb_map = {
-            str(a.get("nHK") or ""): str(a.get("code") or a.get("id") or "")
-            for a in hk_ana if a.get("nHK") and (a.get("code") or a.get("id"))
-        }
-        print(f"  Mappa HK→IFB: {len(hk_ifb_map)} articoli da hk_anagrafica.json")
-        purch_hk, codes_hk = build_hk_purchase_prices(token, hk_ifb_map, uom_conv)
-        new_codes = codes_hk - all_purchase_codes
-        print(f"  {len(new_codes)} articoli nuovi da BC HK (non in BC Italia)")
-        for code in new_codes:
-            purch[code] = purch_hk[code]
-        all_purchase_codes = all_purchase_codes | codes_hk
-        print(f"  Totale articoli dopo merge HK: {len(all_purchase_codes)}")
+        hk_data_path = Path(__file__).parent.parent / "docs" / "data" / "hk_anagrafica.json"
+        hk_items = json.loads(hk_data_path.read_text(encoding="utf-8"))
+        hk_codes = {str(item.get("code") or "").strip() for item in hk_items if item.get("code")}
+        missing_hk = hk_codes - all_purchase_codes
+        print(f"  {len(hk_codes)} codici IFB in hk_anagrafica, {len(missing_hk)} non nel listino acquisto BC Italia")
+        if missing_hk:
+            iss_prices = build_iss_prices(token, missing_hk)
+            for code, iss in iss_prices.items():
+                fca = iss.get("fca") or 0
+                dap = iss.get("dap") or 0
+                entry = {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": "", "puom": "PCS"}
+                if fca > 0:
+                    entry["FCA"] = {"price": fca, "_open": True, "_expired": False}
+                if dap > 0:
+                    entry["DAP"] = {"price": dap, "_open": True, "_expired": False}
+                purch[code] = entry
+            all_purchase_codes = all_purchase_codes | set(iss_prices.keys())
+            print(f"  Totale articoli dopo merge ISS: {len(all_purchase_codes)}")
     except Exception as e:
-        print(f"  Warning: fetch BC HK fallito ({e})")
+        import traceback; traceback.print_exc()
+        print(f"  Warning: fetch ISS fallito ({e})")
 
     all_rows = []
 
@@ -529,7 +517,7 @@ if __name__ == "__main__":
 
         # Tutti gli articoli nel listino acquisto (anche quelli con solo record scaduti)
         all_codes = all_purchase_codes
-        print(f"  {len(all_codes)} articoli totali nel listino acquisto → usati come base listino")
+        print(f"  {len(all_codes)} articoli totali nel listino acquisto -> usati come base listino")
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
@@ -546,7 +534,7 @@ if __name__ == "__main__":
         br_path = OUT_PATH.parent / f"ifb_listini_{br}.json"
         br_path.write_text(json.dumps(br_rows, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
         with_price = sum(1 for r in br_rows if r["fp"] > 0 or r["dp"] > 0)
-        print(f"  {br}: {len(br_rows)} righe ({with_price} con prezzo) → {br_path.name}")
+        print(f"  {br}: {len(br_rows)} righe ({with_price} con prezzo) -> {br_path.name}")
 
     # Mantieni anche il file unico per compatibilità
     OUT_PATH.write_text(json.dumps(all_rows, ensure_ascii=False, separators=(",",":")), encoding="utf-8")
