@@ -636,6 +636,7 @@ export default function App() {
                 newEntries.push({
                   productId:     prod?.id ?? `BC_${code}`,
                   itemCode:      code,
+                  nHK:           prod?.nHK || "",
                   bcDesc:        String(row["d"] || row["Description"] || "").trim(),
                   branch, month: nowMonth,
                   fcaPrice:      div(Number(row["fp"] ?? row["FCA_Price"]      ?? 0)),
@@ -3055,6 +3056,7 @@ const displayed = useMemo(() => {
       prod?.code?.toLowerCase().includes(q) ||
       prod?.nHK?.toLowerCase().includes(q) ||
       (p.itemCode || "").toLowerCase().includes(q) ||
+      (p.nHK     || "").toLowerCase().includes(q) ||
       (p.bcDesc  || "").toLowerCase().includes(q);
   });
 }, [filtered, search, prodById]);
