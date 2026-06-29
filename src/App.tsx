@@ -638,6 +638,7 @@ export default function App() {
                   itemCode:      code,
                   nHK:           prod?.nHK || "",
                   bcDesc:        String(row["d"] || row["Description"] || "").trim(),
+                  pu:            purchUom,
                   branch, month: nowMonth,
                   fcaPrice:      div(Number(row["fp"] ?? row["FCA_Price"]      ?? 0)),
                   fcaDiscounted: div(Number(row["fc"] ?? row["FCA_Discounted"] ?? 0)),
@@ -2668,7 +2669,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto"]:[]),"Plt/Cont","Cert.","Alcol >30Â°","Carriage","Conv."].map(c=>(
+              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto"]:[]),"Cert.","Alcol >30Â°","Carriage","Conv."].map(c=>(
                 <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
               ))}
               </tr>
@@ -2689,9 +2690,8 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                       <>
                         <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"â€”"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"â€”"}</td>
-                        {branch==="CAN"&&<td style={{padding:"7px 12px"}}><Chip label={l.transport||"GOMMA"} color={l.transport==="MARE"?T.blue:T.muted}/></td>}
-                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.gold}}>{l.pltPerContainer||"â€”"}</td>
-                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasCert?"SÃ¬":"No"}</td>
+                        {branch===”CAN”&&<td style={{padding:”7px 12px”}}><Chip label={l.transport||”GOMMA”} color={l.transport===”MARE”?T.blue:T.muted}/></td>}
+                        <td style={{padding:”7px 12px”, fontSize:”12px”, color:T.muted}}>{l.hasCert?”SÃ¬”:”No”}</td>
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"SÃ¬":"No"}</td>
                         <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>
                         <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.dim}}>{l.convFactor||1}</td>
@@ -2716,11 +2716,6 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                             {["GOMMA","MARE"].map(v=><option key={v} value={v}>{v}</option>)}
                           </select>
                         </td>}
-                        <td style={{padding:"7px 12px"}}>
-                          <input type="number" defaultValue={l.pltPerContainer||20}
-                            onBlur={e=>update(prod.id,"pltPerContainer",e.target.value)}
-                            style={{width:"55px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"12px",borderBottom:`1px solid ${T.border}`}}/>
-                        </td>
                         <td style={{padding:"7px 12px"}}>
                           <select value={String(l.hasCert||false)} onChange={e=>update(prod.id,"hasCert",e.target.value)}
                             style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
@@ -3050,7 +3045,7 @@ const prodById = useMemo(() => {
 // Usa bcListini (dati BC in memoria) se disponibili, altrimenti prices importati manualmente
 const filtered = useMemo(() => {
   const baseList = bcListini.length > 0
-    ? bcListini.filter((p: any) => p.branch === branch)
+    ? bcListini.filter((p: any) => p.branch === branch && (p.fcaPrice > 0 || p.dapPrice > 0 || p.fcaDiscounted > 0 || p.dapDiscounted > 0))
     : prices.filter((p: any) => p.branch === branch && p.month === month);
   return baseList.filter((p: any) => {
     if (invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
@@ -3229,7 +3224,7 @@ return (
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
 <THead cols={[branchN(branch),"IFB No","Descrizione","UoM","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
 <tbody>
-{displayed.slice(0, 150).map((p: any, i: number) => {
+{displayed.slice(0, 500).map((p: any, i: number) => {
 const prod = prodById[String(p.productId)];
 const inInvoice = invoiceProductIds.has(p.productId);
 const puom = p.pu || "";
@@ -3256,7 +3251,7 @@ return (
 </tbody>
 </table>
 </div>
-{displayed.length > 300 && <div style={{ padding: "12px", textAlign: "center", color: T.muted, fontSize: "11px" }}>Mostrati 300/{displayed.length}</div>}
+{displayed.length > 500 && <div style={{ padding: "12px", textAlign: "center", color: T.muted, fontSize: "11px" }}>Mostrati 500/{displayed.length} — usa la ricerca per filtrare</div>}
 </Section>
 </div>
 );
