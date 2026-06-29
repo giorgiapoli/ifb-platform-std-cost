@@ -3180,6 +3180,26 @@
     "aiem": 0
   },
   {
+    "id": "DLZ08",
+    "code": "DLZ08",
+    "nHK": "DLZ08",
+    "description": "PITTED RIVIERA OLIVES 1062ML",
+    "category": "PRESERVED VEGETABLES",
+    "uom": "PCS",
+    "qtyPerBox": 6.0,
+    "boxPerPallet": 96.0,
+    "kgPerBox": 1.06,
+    "kgxplt": 610.56,
+    "temperature": "DRY",
+    "bcTransportation": "DRY SEA",
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "vendorName": "INALCA FOOD & BEVERAGE SRL",
+    "vendorName2": "",
+    "aiem": 0
+  },
+  {
     "id": "DLZ13",
     "code": "DLZ13",
     "nHK": "DLZ13",
