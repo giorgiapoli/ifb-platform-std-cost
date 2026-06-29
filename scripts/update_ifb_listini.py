@@ -317,35 +317,18 @@ def build_hk_purchase_prices(token, hk_ifb_map, uom_conv=None):
     Restituisce la stessa struttura di build_purchase_prices.
     """
     print("  Fetch listini acquisto HK (BC Brightview)...")
-    # Prima verifica quante righe esistono senza filtri
-    rows_nofilter = bc_fetch_hk(token, "IFB_Price_List_Line")
-    print(f"    {len(rows_nofilter)} righe totali BC HK senza filtri")
-    if rows_nofilter:
-        pt_nf = {}
-        ship_nf = {}
-        for r in rows_nofilter:
-            pt_nf[str(r.get("pricetype") or "")] = pt_nf.get(str(r.get("pricetype") or ""), 0) + 1
-            ship_nf[str(r.get("shipmentmethodcode") or "")] = ship_nf.get(str(r.get("shipmentmethodcode") or ""), 0) + 1
-        print(f"    pricetype: {pt_nf}")
-        print(f"    shipmentmethod: {ship_nf}")
-        s = {k: v for k, v in rows_nofilter[0].items() if not k.startswith("@")}
-        print(f"    Campi: {list(s.keys())}")
-    rows_all = bc_fetch_hk(token, "IFB_Price_List_Line",
-                           "status eq 'Active' and (shipmentmethodcode eq 'DAP' or shipmentmethodcode eq 'FCA')")
-    print(f"    {len(rows_all)} righe totali da BC HK (Active+DAP/FCA)")
-    if rows_all:
-        pt_counts = {}
-        for r in rows_all:
-            pt = str(r.get("pricetype") or "").strip()
-            pt_counts[pt] = pt_counts.get(pt, 0) + 1
-        print(f"    pricetype breakdown: {pt_counts}")
-        sample = {k: v for k, v in rows_all[0].items() if not k.startswith("@")}
-        print(f"    Campi prima riga HK: {list(sample.keys())}")
-        print(f"    Prima riga HK: {sample}")
-    # In BC HK i prezzi IFB→HK potrebbero essere pricetype='Sale' (non 'Purchase')
-    # Accetta entrambi e poi prioritizza
-    rows = [r for r in rows_all if str(r.get("pricetype") or "").strip().lower() in ("purchase", "sale")]
-    print(f"    {len(rows)} righe purchase/sale da BC HK")
+    # In BC HK: pricetype=Sale, shipmentmethodcode='' → FCA/DAP si distingue da pricelistcode
+    rows = bc_fetch_hk(token, "IFB_Price_List_Line", "status eq 'Active'")
+    rows = [r for r in rows if str(r.get("amounttype") or "").strip().lower() == "price"]
+    print(f"    {len(rows)} righe Sale+Active+amounttype=Price da BC HK")
+    # Debug: mostra pricelistcode per capire struttura FCA/DAP
+    if rows:
+        codes_sample = list({str(r.get("pricelistcode") or "") for r in rows[:200]})[:10]
+        print(f"    Esempi pricelistcode HK: {codes_sample}")
+        lsm_rows = [r for r in rows if str(r.get("assetno") or "").upper() in ("CW0015", "LSM30")]
+        print(f"    CW0015/LSM30 trovati: {len(lsm_rows)}")
+        for r in lsm_rows[:3]:
+            print(f"      {{{k}: {v} for k,v in r.items() if k in ('assetno','pricelistcode','unitprice','directunitcost','amounttype','startingdate','endingdate')}}")
 
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
@@ -369,7 +352,14 @@ def build_hk_purchase_prices(token, hk_ifb_map, uom_conv=None):
             if qty and qty > 1:
                 price = price / qty
 
-        ship     = classify_ship(r.get("shipmentmethodcode"))
+        # In BC HK shipmentmethodcode è vuoto → usa pricelistcode per FCA/DAP
+        plc  = str(r.get("pricelistcode") or "").upper()
+        if "DAP" in plc:
+            ship = "DAP"
+        elif "FCA" in plc or "MTS" in plc:
+            ship = "FCA"
+        else:
+            ship = classify_ship(r.get("shipmentmethodcode"))
         slot     = result[ifb_code][ship]
         expired  = not is_active_date(ed)
         is_open  = is_active_date(ed) and (not sd_r or sd_r <= TODAY)
