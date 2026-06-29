@@ -1964,13 +1964,29 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
   }
 
   const branchAir = airList;
+
+  // Item classificati AIR automaticamente da BC (bcTransportation contiene "air")
+  const bcAirItems = useMemo(()=>
+    products
+      .filter((p:any)=>isAirTransport(p.bcTransportation))
+      .map((p:any)=>({
+        productId: p.id, code: p.code, nHK: p.nHK,
+        description: p.description, transportation: p.bcTransportation, _fromBC: true,
+      }))
+  , [products]);
+  const bcAirCount = bcAirItems.length;
+
+  // Lista unificata: BC auto + manuali (senza duplicati)
+  const manualOnlyAir = branchAir.filter((a:any)=>
+    !bcAirItems.some((b:any)=>b.productId===a.productId||(b.code&&b.code===a.code)||(b.nHK&&b.nHK===a.nHK))
+  );
+  const allAirItems = [...bcAirItems, ...manualOnlyAir];
+
   const _sq=search.toLowerCase();
-  const displayed=branchAir.filter((a:any)=>!search
+  const displayed=allAirItems.filter((a:any)=>!search
     ||a.description?.toLowerCase().includes(_sq)
     ||a.code?.toLowerCase().includes(_sq)
     ||a.nHK?.toLowerCase().includes(_sq));
-
-  const bcAirCount = products.filter((p:any)=>isAirTransport(p.bcTransportation)).length;
 
   return(
     <div>
@@ -2131,7 +2147,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
   }}
 >
   <span style={{fontSize: "12px"}}>✈️</span>
-  Lista AIR ({branchAir.length})
+  Lista AIR ({allAirItems.length})
 </button>
  {airList.length>0&&(
    <button
@@ -2144,18 +2160,23 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
  )}
  <span style={{fontSize:"11px",color:T.muted}}>Colonna richiesta: {branchN(branch)} o IFB N · ogni import sostituisce la lista precedente</span>
 </div>
-          {airList.length>0&&(
+          {allAirItems.length>0&&(
             <>
               <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo AIR…"/>
-              <Section title={`${displayed.length} articoli AIR (esclusi da Standard Cost)`}>
+              <Section title={`${displayed.length} articoli AIR · ${bcAirCount} da BC · ${manualOnlyAir.length} manuali`}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <THead cols={["Codice",branchN(branch),"Descrizione","Azioni"]}sticky/>
-                  <tbody>{displayed.map((a,i)=>(
+                  <THead cols={["Codice",branchN(branch),"Descrizione","Sorgente","Azioni"]}sticky/>
+                  <tbody>{displayed.map((a:any,i:number)=>(
                     <tr key={a.productId||i} style={{borderBottom:`1px solid ${T.border}`}}>
                       <TD mono><span style={{color:T.gold}}>{a.code}</span></TD>
                       <TD mono><span style={{color:T.muted}}>{a.nHK||"—"}</span></TD>
                       <TD>{a.description}</TD>
-                      <TD><MiniBtn label="✕ Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);IDB.set(`ifb_airlist_${branch}`,n);}} color={T.red}/></TD>
+                      <TD>
+                        {a._fromBC
+                          ? <Chip label={`BC: ${a.transportation}`} color={T.blue}/>
+                          : <Chip label="Manuale" color={T.orange}/>}
+                      </TD>
+                      <TD>{!a._fromBC&&<MiniBtn label="✕ Rimuovi" onClick={()=>{const n=airList.filter((_,j)=>j!==airList.indexOf(a));setAirList(n);IDB.set(`ifb_airlist_${branch}`,n);}} color={T.red}/>}</TD>
                     </tr>
                   ))}</tbody>
                 </table>
