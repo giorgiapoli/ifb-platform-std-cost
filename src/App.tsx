@@ -2325,10 +2325,14 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
 
   const allIFBProducts = products.filter(p=>isIFBVendor(p.vendorName));
 
-  function getLog(productId) { 
-    return logistics.find(l=>l.productId===productId && l.branch===branch) || null; 
+  const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
+  function toggleEdit(id:string) { setEditingRows(prev=>{ const s=new Set(prev); s.has(id)?s.delete(id):s.add(id); return s; }); }
+  function saveRow(id:string) { IDB.set("ifb_logistics", logistics); showToast("Salvato âœ"", T.green); setEditingRows(prev=>{ const s=new Set(prev); s.delete(id); return s; }); }
+
+  function getLog(productId) {
+    return logistics.find(l=>l.productId===productId && l.branch===branch) || null;
   }
-  
+
   function getOrDefault(productId) {
     return getLog(productId) || {productId, branch, area:"NORD", ubicazione:"MTO", pltPerContainer:20, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0};
   }
@@ -2669,7 +2673,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto"]:[]),"Cert.","Alcol >30Â°","Carriage","Conv."].map(c=>(
+              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto"]:[]),...(branch!=="CAN"?["Cert."]:[]),"Alcol >30Â°",...(branch!=="CAN"?["Carriage"]:[]),"Conv.",""].map(c=>(
                 <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
               ))}
               </tr>
@@ -2678,6 +2682,8 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
               {displayed.map((prod, i) => {
                 const l = getOrDefault(prod.id);
                 const hasEntry = !!getLog(prod.id);
+                const isEditing = !hasEntry || editingRows.has(prod.id);
+                const btnS = (c:string):React.CSSProperties => ({padding:"3px 9px",fontSize:"11px",background:`${c}18`,border:`1px solid ${c}55`,borderRadius:"5px",color:c,cursor:"pointer",fontWeight:"bold"});
                 return (
                   <tr key={prod.id} style={{borderBottom:`1px solid ${T.border}`, background:!hasEntry ? `${T.orange}08` : (i%2===0 ? T.bg : T.surface)}}>
                     <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace"}}><span style={{color:T.gold}}>{prod.code}</span></td>
@@ -2686,60 +2692,67 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                       {prod.description}
                       {!hasEntry && <span style={{marginLeft:"6px", fontSize:"9px", color:T.orange, fontWeight:"bold"}}>âš  MANCANTE</span>}
                     </td>
-                    {hasEntry ? (
-                      <>
-                        <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"â€”"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
-                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"â€”"}</td>
-                        {branch===”CAN”&&<td style={{padding:”7px 12px”}}><Chip label={l.transport||”GOMMA”} color={l.transport===”MARE”?T.blue:T.muted}/></td>}
-                        <td style={{padding:”7px 12px”, fontSize:”12px”, color:T.muted}}>{l.hasCert?”SÃ¬”:”No”}</td>
-                        <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"SÃ¬":"No"}</td>
-                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>
-                        <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.dim}}>{l.convFactor||1}</td>
-                      </>
-                    ) : (
-                      <>
-                        <td style={{padding:"7px 12px"}}>
-                          <select value={l.ubicazione||"MTO"} onChange={e=>update(prod.id,"ubicazione",e.target.value)}
-                            style={{background:T.card,color:T.gold,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"70px"}}>
-                            {["MTO","MTS","FOR"].map(v=><option key={v} value={v}>{v}</option>)}
-                          </select>
-                        </td>
-                        <td style={{padding:"7px 12px"}}>
-                          <select value={l.area||"NORD"} onChange={e=>update(prod.id,"area",e.target.value)}
-                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
-                            {["NORD","CENTRO","SUD"].map(v=><option key={v} value={v}>{v}</option>)}
-                          </select>
-                        </td>
-                        {branch==="CAN"&&<td style={{padding:"7px 12px"}}>
-                          <select value={l.transport||"GOMMA"} onChange={e=>update(prod.id,"transport",e.target.value)}
-                            style={{background:T.card,color:T.blue,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
-                            {["GOMMA","MARE"].map(v=><option key={v} value={v}>{v}</option>)}
-                          </select>
-                        </td>}
-                        <td style={{padding:"7px 12px"}}>
-                          <select value={String(l.hasCert||false)} onChange={e=>update(prod.id,"hasCert",e.target.value)}
-                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
-                            <option value="false">No</option><option value="true">SÃ¬</option>
-                          </select>
-                        </td>
-                        <td style={{padding:"7px 12px"}}>
-                          <select value={String(l.hasAlcTax||false)} onChange={e=>update(prod.id,"hasAlcTax",e.target.value)}
-                            style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
-                            <option value="false">No</option><option value="true">SÃ¬</option>
-                          </select>
-                        </td>
-                        <td style={{padding:"7px 12px"}}>
-                          <input type="number" defaultValue={l.carriage||0}
-                            onBlur={e=>update(prod.id,"carriage",e.target.value)}
-                            style={{width:"55px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"12px",borderBottom:`1px solid ${T.border}`}}/>
-                        </td>
-                        <td style={{padding:"7px 12px"}}>
-                          <input type="number" defaultValue={l.convFactor||1} step="0.01"
-                            onBlur={e=>update(prod.id,"convFactor",e.target.value)}
-                            style={{width:"50px",background:"transparent",color:T.muted,border:"none",textAlign:"right",fontSize:"11px",borderBottom:`1px solid ${T.border}`}}/>
-                        </td>
-                      </>
-                    )}
+                    {!isEditing ? (
+                  <>
+                    <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
+                    <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"—"}</td>
+                    {branch==="CAN"&&<td style={{padding:"7px 12px"}}><Chip label={l.transport||"GOMMA"} color={l.transport==="MARE"?T.blue:T.muted}/></td>}
+                    {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasCert?"Sì":"No"}</td>}
+                    <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
+                    {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>}
+                    <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.dim}}>{l.convFactor||1}</td>
+                    <td style={{padding:"7px 12px"}}><button style={btnS(T.gold)} onClick={()=>toggleEdit(prod.id)}>✏️ Modifica</button></td>
+                  </>
+                ) : (
+                  <>
+                    <td style={{padding:"7px 12px"}}>
+                      <select value={l.ubicazione||"MTO"} onChange={e=>update(prod.id,"ubicazione",e.target.value)}
+                        style={{background:T.card,color:T.gold,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"70px"}}>
+                        {["MTO","MTS","FOR"].map(v=><option key={v} value={v}>{v}</option>)}
+                      </select>
+                    </td>
+                    <td style={{padding:"7px 12px"}}>
+                      <select value={l.area||"NORD"} onChange={e=>update(prod.id,"area",e.target.value)}
+                        style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
+                        {["NORD","CENTRO","SUD"].map(v=><option key={v} value={v}>{v}</option>)}
+                      </select>
+                    </td>
+                    {branch==="CAN"&&<td style={{padding:"7px 12px"}}>
+                      <select value={l.transport||"GOMMA"} onChange={e=>update(prod.id,"transport",e.target.value)}
+                        style={{background:T.card,color:T.blue,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
+                        {["GOMMA","MARE"].map(v=><option key={v} value={v}>{v}</option>)}
+                      </select>
+                    </td>}
+                    {branch!=="CAN"&&<td style={{padding:"7px 12px"}}>
+                      <select value={String(l.hasCert||false)} onChange={e=>update(prod.id,"hasCert",e.target.value)}
+                        style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
+                        <option value="false">No</option><option value="true">Sì</option>
+                      </select>
+                    </td>}
+                    <td style={{padding:"7px 12px"}}>
+                      <select value={String(l.hasAlcTax||false)} onChange={e=>update(prod.id,"hasAlcTax",e.target.value)}
+                        style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
+                        <option value="false">No</option><option value="true">Sì</option>
+                      </select>
+                    </td>
+                    {branch!=="CAN"&&<td style={{padding:"7px 12px"}}>
+                      <input type="number" defaultValue={l.carriage||0}
+                        onBlur={e=>update(prod.id,"carriage",e.target.value)}
+                        style={{width:"55px",background:"transparent",color:T.gold,border:"none",textAlign:"right",fontSize:"12px",borderBottom:`1px solid ${T.border}`}}/>
+                    </td>}
+                    <td style={{padding:"7px 12px"}}>
+                      <input type="number" defaultValue={l.convFactor||1} step="0.01"
+                        onBlur={e=>update(prod.id,"convFactor",e.target.value)}
+                        style={{width:"50px",background:"transparent",color:T.muted,border:"none",textAlign:"right",fontSize:"11px",borderBottom:`1px solid ${T.border}`}}/>
+                    </td>
+                    <td style={{padding:"7px 12px",whiteSpace:"nowrap"}}>
+                      <span style={{display:"flex",gap:"5px"}}>
+                        <button style={btnS(T.green)} onClick={()=>saveRow(prod.id)}>💾 Salva</button>
+                        {hasEntry&&<button style={btnS(T.muted)} onClick={()=>toggleEdit(prod.id)}>Annulla</button>}
+                      </span>
+                    </td>
+                  </>
+                )}
                   </tr>
                 );
               })}
