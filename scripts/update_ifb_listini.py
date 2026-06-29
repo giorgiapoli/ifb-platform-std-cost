@@ -83,15 +83,18 @@ def is_expired(enddate_str):
     ed = (enddate_str or "").split("T")[0]
     return ed not in ("", "0001-01-01") and ed < TODAY
 
-def is_valid_purchase(startdate_str, enddate_str):
-    """Righe acquisto valide: senza data fine E con data inizio <= oggi."""
+def is_active_date(enddate_str):
+    """
+    Logica identica a PowerBI:
+    endingdate = null  OR  endingdate > oggi  OR  endingdate < 2010-01-01
+    (endingdate < 2010 cattura il valore BC "vuoto" = 0001-01-01)
+    """
     ed = (enddate_str or "").split("T")[0]
-    sd = (startdate_str or "").split("T")[0]
-    if ed not in ("", "0001-01-01"):
-        return False  # ha data fine → salta
-    if sd and sd > TODAY:
-        return False  # non ancora attivo → salta
-    return True
+    if not ed or ed < "2010-01-01":   # null o 0001-01-01 → nessuna scadenza
+        return True
+    if ed > TODAY:                     # scadenza futura → ancora valido
+        return True
+    return False                       # scaduto
 
 
 
@@ -228,8 +231,12 @@ def build_purchase_prices(token, uom_conv=None):
         prezzo: preferisce record aperti (no end date, start<=oggi), poi non-scaduti, poi il più recente
       - all_codes: TUTTI i codici nel listino acquisto (anche solo con record scaduti)
     """
-    print("  Fetch listini acquisto (pricetype=Purchase)...")
-    rows = fetch_price_lines(token, "pricetype eq 'Purchase' and status eq 'Active'")
+    # Filtro identico a PowerBI: status=Active + shipmentmethod DAP/FCA
+    # NON filtra per pricetype in OData (PowerBI non lo fa) → filtriamo in Python
+    print("  Fetch listini acquisto (status=Active, DAP/FCA, pricetype=Purchase)...")
+    rows = fetch_price_lines(token, "status eq 'Active' and (shipmentmethodcode eq 'DAP' or shipmentmethodcode eq 'FCA')")
+    rows = [r for r in rows if str(r.get("pricetype") or "").strip().lower() == "purchase"]
+    print(f"    {len(rows)} righe purchase dopo filtro pricetype")
     print(f"    {len(rows)} righe totali acquisto")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
@@ -253,8 +260,8 @@ def build_purchase_prices(token, uom_conv=None):
                 price = price / qty
         ship     = classify_ship(r.get("shipmentmethodcode"))
         slot     = result[code][ship]
-        expired  = is_expired(ed)
-        is_open  = not expired and ed in ("", "0001-01-01") and (not sd_r or sd_r <= TODAY)
+        expired  = not is_active_date(ed)
+        is_open  = is_active_date(ed) and (not sd_r or sd_r <= TODAY)
         slot_open    = slot.get("_open", False)
         slot_expired = slot.get("_expired", True)
         # Priorità: open (no end, start<=oggi) > futuro (no end, start>oggi) > non-scaduto-con-end > scaduto
