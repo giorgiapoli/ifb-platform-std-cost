@@ -3373,8 +3373,6 @@ if (invoiceOnly) {
   filtered = filtered.filter((r:any) => invoiceIds.has(r.id));
 }
 
-filtered = filtered.filter((r: any) => r.priceInput !== 0 && r.priceInput != null);
-
 if(initFilter==="flagged") filtered=filtered.filter((r:any)=>r.flagged===true);
 else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
 
@@ -3427,7 +3425,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
       {/* ── toolbar ── */}
       <div style={{display:"flex",alignItems:"center",gap:"12px",marginBottom:"12px",flexWrap:"wrap"}}>
         <PageHeader title={`Standard Cost · ${branch} · ${month}`}
-          sub={branch==="MAC"?`${calc.length} articoli · SC HKD × markup × ${HKD_TO_MOP} HKD/MOP`:`${calc.length} calcolati · INALCA F&B · SEA`}/>
+          sub={branch==="MAC"?`${calc.length} articoli · SC HKD × markup × ${HKD_TO_MOP} HKD/MOP`:`${filtered.length} articoli · ${calc.length} calcolati · INALCA F&B · SEA`}/>
       {branch==="MAC"&&costRows.length===0&&(
         <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
           ⚠ Nessun articolo MAC con Standard Cost. Vai in <strong>Anagrafica</strong> e importa il file Macao (con colonna <code>standardcost</code>).
