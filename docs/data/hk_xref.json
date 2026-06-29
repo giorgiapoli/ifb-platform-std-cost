@@ -1148,6 +1148,10 @@
     "ifbNo": "SUR93"
   },
   {
+    "nHK": "FZ0025-L",
+    "ifbNo": "SUR93"
+  },
+  {
     "nHK": "FZ0026",
     "ifbNo": "SUR91"
   },
@@ -2789,6 +2793,10 @@
   },
   {
     "nHK": "LVC11-EN",
+    "ifbNo": "LVC11-EN"
+  },
+  {
+    "nHK": "LVC11-EN-DEF",
     "ifbNo": "LVC11-EN"
   },
   {
