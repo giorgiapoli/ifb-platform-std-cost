@@ -3162,10 +3162,9 @@ return (
 {/* Toolbar import */}
 <div style={{ display: "flex", gap: "10px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
 <button onClick={async ()=>{
-  await IDB.set(`ifb_listini_entries_${branch}`, []);
-  setBcListini([]);
-  showToast("Cache listini svuotata — ricaricamento in corso…", T.gold);
-  setTimeout(()=>window.location.reload(), 800);
+  await IDB.del(`ifb_listini_entries_${branch}`);
+  showToast("Cache listini svuotata — ricaricamento…", T.gold);
+  setTimeout(()=>window.location.reload(), 600);
 }} style={{padding:"6px 14px",background:T.surface,border:`1px solid ${T.gold}66`,borderRadius:"6px",color:T.gold,cursor:"pointer",fontSize:"12px"}}>
   🔄 Ricarica listini
 </button>

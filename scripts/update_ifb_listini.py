@@ -143,12 +143,19 @@ def build_item_card_data(token):
         if not key:
             continue
         temp_raw = str(r.get("AltICMProduct_Type") or "").strip().lower()
+        vn1 = str(r.get("AltICMVendor_Name")  or r.get("Vendor_Name")  or r.get("vendorname")  or "").strip()
+        vn2 = str(r.get("AltICMVendor_Name2") or r.get("Vendor_Name2") or r.get("vendorname2") or "").strip()
         result[key] = {
-            "vendorName":   str(r.get("AltICMVendor_Name") or "").strip(),
+            "vendorName":   vn1,
+            "vendorName2":  vn2,
             "temperature":  TEMP_NORM.get(temp_raw, temp_raw.upper()),
             "qtyPerBox":    float(r.get("AltICMQuantity_x_Packaging") or 0),
             "boxPerPallet": float(r.get("AltICMPackaging_x_Pallet") or 0),
         }
+    # Debug: stampa campi disponibili sull'Item Card per capire naming MARR
+    if result:
+        sample_key = next(iter(result))
+        print(f"    Esempio item card ({sample_key}): {result[sample_key]}")
     print(f"    {len(result)} articoli con dati card")
     return result
 
@@ -266,10 +273,9 @@ def build_purchase_prices(token, uom_conv=None):
         prezzo: preferisce record aperti (no end date, start<=oggi), poi non-scaduti, poi il più recente
       - all_codes: TUTTI i codici nel listino acquisto (anche solo con record scaduti)
     """
-    # Filtro identico a PowerBI: status=Active + shipmentmethod DAP/FCA
-    # NON filtra per pricetype in OData (PowerBI non lo fa) -> filtriamo in Python
-    print("  Fetch listini acquisto (status=Active, DAP/FCA, pricetype=Purchase)...")
-    rows = fetch_price_lines(token, "status eq 'Active' and (shipmentmethodcode eq 'DAP' or shipmentmethodcode eq 'FCA')")
+    # Filtro: status=Active + DAP/FCA/MTS/EXW (tutti i tipi di spedizione)
+    print("  Fetch listini acquisto (status=Active, DAP/FCA/MTS, pricetype=Purchase)...")
+    rows = fetch_price_lines(token, "status eq 'Active' and (shipmentmethodcode eq 'DAP' or shipmentmethodcode eq 'FCA' or shipmentmethodcode eq 'MTS' or shipmentmethodcode eq 'EXW')")
     rows = [r for r in rows if str(r.get("pricetype") or "").strip().lower() == "purchase"]
     print(f"    {len(rows)} righe purchase dopo filtro pricetype")
     print(f"    {len(rows)} righe totali acquisto")
@@ -434,11 +440,16 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
         return round(price * (1 - disc / 100), 6) if price else 0.0
 
     # Condizione MARR S.P.A. (identica a PowerBI): DAP = FCA / 0.985
-    vendor_name = (item_card or {}).get(code, {}).get("vendorName", "") if item_card else ""
-    is_marr = vendor_name.upper() == "MARR S.P.A."
+    # Controlla sia vendorName (primario) sia vendorName2 (secondario = Vendor Name 2 in BC)
+    ic = (item_card or {}).get(code, {}) if item_card else {}
+    vendor_name  = ic.get("vendorName",  "")
+    vendor_name2 = ic.get("vendorName2", "")
+    is_marr = "MARR" in vendor_name.upper() or "MARR" in vendor_name2.upper()
     if is_marr and fca_price > 0:
         dap_price = round(fca_price / 0.985, 6)
         carriage  = round(dap_price - fca_price, 6)
+        if mts_price == 0:
+            mts_price = fca_price  # MARR: MTS = FCA se non esplicitamente definito
     # Se DAP=0 e FCA>0 (e non MARR): usa ISS carriagecost poi tabella trasporti
     elif dap_price == 0 and fca_price > 0:
         iss_cr = float((iss_carriage or {}).get(code, 0))
