@@ -1209,7 +1209,7 @@ function NotesPage() {
     { icon:"◎", label:"Work Tab (Logistica)", color:T.muted,
       desc:"Parametri logistici per articolo: ubicazione MTS/MTO/FOR, MARE/GOMMA (CAN), numero pallet per container, area geografica.",
       steps:["Pagina Work Tab (Logistica) → Carica Work Tab","Il sistema rileva automaticamente le colonne","Importa","✓ Da rifare se cambiano i parametri logistici"] },
-    { icon:"⚡", label:"Eccezioni Prezzi", color:T.muted,
+    { icon:"⚡", label:"Eccezioni Prezzi", color:T.text,
       desc:"Override manuale del prezzo per un articolo specifico, con priorità su listino e listino carne.",
       steps:["Pagina Eccezioni Prezzi → cerca articolo per codice o descrizione","Inserisci il prezzo manuale e una nota","Salva → il prezzo verrà usato nel calcolo SC"] },
   ];
@@ -4038,7 +4038,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterIFBNo,setFilterIFBNo] = useState("");
   const [filterLocation,setFilterLocation] = useState<"all"|"ncj"|"non-ncj">("all");
   const [filterScBC,setFilterScBC] = useState<"all"|"assente">("all");
-  const [filterMotivo,setFilterMotivo] = useState<"all"|"no-log"|"no-price">("all");
+  const [filterMotivo,setFilterMotivo] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old">("all");
+  const [filterScNavGC,setFilterScNavGC] = useState<"all"|"assente">("all");
   const [search,setSearch]     = useState("");
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
 
@@ -4152,10 +4153,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
         const scBcGcTf  = branch==="CAN" ? (scaRec?.scGC  || null) : null;
         const scBcFueLan= branch==="CAN" ? (scaRec?.scLan || null) : null;
+        const lastOrderRaw = logEntry?.lastOrderDate;
+        const lastOrderD = lastOrderRaw ? new Date(lastOrderRaw) : null;
+        const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/(86400000))>180 : false;
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
           isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason,scGC,scFUE,
-          bcStdCost,deltaSC,scBcGcTf,scBcFueLan};
+          bcStdCost,deltaSC,scBcGcTf,scBcFueLan,isKeepOld};
       });
   },[activeRows,costRows,products,xrefs,sortDir,scAttualiMap]);
 
@@ -4196,10 +4200,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
   if(filterScBC==="assente") displayed=displayed.filter(r=>
     branch==="CAN" ? (!r.scBcGcTf&&!r.scBcFueLan) : (!r.bcStdCost||r.bcStdCost===0));
+  if(filterScNavGC==="assente") displayed=displayed.filter(r=>!r.scBcGcTf||r.scBcGcTf===0);
   if(filterMotivo==="no-log") displayed=displayed.filter(r=>r.skipReason==="NO LOGISTICA");
   else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
+  else if(filterMotivo==="anagrafica") displayed=displayed.filter(r=>r.skipReason==="NON IN ANAGRAFICA");
+  else if(filterMotivo==="sample") displayed=displayed.filter(r=>r.isSample===true);
+  else if(filterMotivo==="keep-old") displayed=displayed.filter(r=>r.isKeepOld===true);
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
+  displayed=displayed.filter(r=>r.qty>0||r.isSample);
 
   // ── STEPS IMPORT ──────────────────────────────────────────────────────────
   if(step==="map") return(
@@ -4390,20 +4399,29 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
       <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca codice, ${branchN(branch)}, descrizione, location…`}/>
 
       <div style={{display:"flex",gap:"12px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
-        <>
-          <span style={{fontSize:"11px",color:T.muted}}>{branch==="CAN"?"SC NAV:":"SC BC:"}</span>
-          <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
-            style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
-            <option value="all">{branch==="CAN"?"SC NAV: Tutte":"SC BC: Tutte"}</option>
-            <option value="assente">{branch==="CAN"?"SC NAV: vuoti (—)":"SC BC: assente (—)"}</option>
+        {branch==="CAN"&&(<>
+          <span style={{fontSize:"11px",color:T.muted}}>SC NAV GC/TF:</span>
+          <select value={filterScNavGC} onChange={e=>setFilterScNavGC(e.target.value as any)}
+            style={{background:filterScNavGC!=="all"?`${T.gold}22`:T.surface,color:filterScNavGC!=="all"?T.gold:T.muted,border:`1px solid ${filterScNavGC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
+            <option value="all">SC NAV GC/TF: Tutte</option>
+            <option value="assente">SC NAV GC/TF: vuoti (—)</option>
           </select>
-        </>
+        </>)}
+        <span style={{fontSize:"11px",color:T.muted}}>{branch==="CAN"?"SC NAV:":"SC BC:"}</span>
+        <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
+          style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
+          <option value="all">{branch==="CAN"?"SC NAV: Tutte":"SC BC: Tutte"}</option>
+          <option value="assente">{branch==="CAN"?"SC NAV: vuoti (—)":"SC BC: assente (—)"}</option>
+        </select>
         <span style={{fontSize:"11px",color:T.muted}}>Motivo:</span>
         <select value={filterMotivo} onChange={e=>setFilterMotivo(e.target.value as any)}
           style={{background:filterMotivo!=="all"?`${T.orange}22`:T.surface,color:filterMotivo!=="all"?T.orange:T.muted,border:`1px solid ${filterMotivo!=="all"?T.orange:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
           <option value="all">Motivo: Tutti</option>
           <option value="no-log">Senza Logistica</option>
           <option value="no-price">Senza Prezzo</option>
+          <option value="anagrafica">Non in Anagrafica</option>
+          <option value="sample">Sample</option>
+          <option value="keep-old">Keep Old</option>
         </select>
       </div>
 
