@@ -137,25 +137,27 @@ def build_item_card_data(token):
     rows = bc_fetch_all(token, "Item_Card_Excel")
     result = {}
     for r in rows:
-        ifb_code = str(r.get("AltICMIFB_Item") or "").strip()
+        ifb_code = str(r.get("AltIFBIFB_Item") or "").strip()
         hk_code  = str(r.get("No") or "").strip()
         key = ifb_code or hk_code
         if not key:
             continue
-        temp_raw = str(r.get("AltICMProduct_Type") or "").strip().lower()
-        vn1 = str(r.get("AltICMVendor_Name")  or r.get("Vendor_Name")  or r.get("vendorname")  or "").strip()
-        vn2 = str(r.get("AltICMVendor_Name2") or r.get("Vendor_Name2") or r.get("vendorname2") or "").strip()
+        temp_raw = str(r.get("AltIFBProduct_Type") or "").strip().lower()
+        vn1 = str(r.get("AltIFBVendor_Name")   or "").strip()
+        vn2 = str(r.get("AltIFBVendor_Name_2") or "").strip()
+        is_marr = bool(r.get("AltIFBArticolo_MARR") or False)
         result[key] = {
             "vendorName":   vn1,
             "vendorName2":  vn2,
+            "isMarr":       is_marr,
             "temperature":  TEMP_NORM.get(temp_raw, temp_raw.upper()),
-            "qtyPerBox":    float(r.get("AltICMQuantity_x_Packaging") or 0),
-            "boxPerPallet": float(r.get("AltICMPackaging_x_Pallet") or 0),
+            "qtyPerBox":    float(r.get("AltIFBQuantity_x_Packaging") or 0),
+            "boxPerPallet": float(r.get("AltIFBPackaging_x_Pallet") or 0),
         }
-    # Debug: stampa campi disponibili sull'Item Card per capire naming MARR
-    if result:
-        sample_key = next(iter(result))
-        print(f"    Esempio item card ({sample_key}): {result[sample_key]}")
+    # Debug: verifica DLZ08 e 006007
+    for test_key in ("DLZ08", "006007"):
+        if test_key in result:
+            print(f"    Item card ({test_key}): {result[test_key]}")
     print(f"    {len(result)} articoli con dati card")
     return result
 
@@ -293,10 +295,11 @@ def build_purchase_prices(token, uom_conv=None):
         # Anche sconto acquisto (spurc in PowerBI = totlinediscountperc da Purchase)
         disc_purch = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
-        conv_qty = 1  # fattore conversione applicato (>1 = prezzo già in base UoM)
+        conv_qty = 1  # fattore conversione applicato (!=1 = prezzo già in base UoM)
         if price and puom and puom not in ("PCS", "", " ") and uom_conv:
             qty = (uom_conv.get(code) or {}).get(puom)
-            if qty and qty > 1:
+            # Converti anche qty<1: es. KG→BOX quando base=BOX (qty[KG]=0.1 → price/0.1=×10)
+            if qty and round(qty, 8) != 1.0:
                 price = price / qty
                 conv_qty = qty
         ship     = classify_ship(r.get("shipmentmethodcode"))
@@ -444,7 +447,7 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     ic = (item_card or {}).get(code, {}) if item_card else {}
     vendor_name  = ic.get("vendorName",  "")
     vendor_name2 = ic.get("vendorName2", "")
-    is_marr = "MARR" in vendor_name.upper() or "MARR" in vendor_name2.upper()
+    is_marr = ic.get("isMarr", False) or vendor_name.upper() == "MARR S.P.A."
     if is_marr and fca_price > 0:
         dap_price = round(fca_price / 0.985, 6)
         carriage  = round(dap_price - fca_price, 6)

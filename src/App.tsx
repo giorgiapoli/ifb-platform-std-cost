@@ -628,7 +628,7 @@ export default function App() {
               const purchUom = String(row["pu"] || "").trim().toUpperCase();
               const scriptCf = Number(row["cf"] || 1);
               let convFactor = 1;
-              if (scriptCf <= 1 && purchUom && purchUom !== "PCS" && purchUom !== "KG" && prod) {
+              if (scriptCf === 1 && purchUom && purchUom !== "PCS" && prod) {
                 if (branch === "HK") {
                   const mtc = Number(prod.macToHkConv);
                   convFactor = mtc > 1 ? mtc : (purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1);
