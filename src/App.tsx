@@ -363,6 +363,7 @@ const PRICE_FIELD_ALIASES = {
   dapDiscount:   ["dap discount","dap disc"],
   dapDiscounted: ["dap discounted","dap final discounted"],
   dapFinalDirect:["dap final","dap final price","final price","prezzo acquisto"],
+  carriageCost:  ["carriage cost","carriage","carriage cost (eur)","costo carriage","costo trasporto"],
 };
 
 const FOR_VENDORS = new Set(["ALICO SRL","ANTICO PASTIFICIO MORELLI SRL","AZ. AGRICOLA MANCINI SRL AGRICOLA","BONOMI SPA","CAPURSO AZIENDA CASEARIA S.R.L.","CECCHINI DARIO SRL","CONSERVAS ANGELACHU S.L.","DELIZIA 2000 SRL","GRA-COM S.R.L.","GREENS FOOD SPA","INALCA S.P.A. A SOCIO UNICO","ITALPIZZA S.R.L.","OILALA' SRL","QUANTOBASTA S.R.L.","VALLE FINE FOODS ITALIA S.R.L.S"]);
@@ -635,7 +636,16 @@ export default function App() {
                   fcaDiscounted: div(Number(row["fc"] ?? row["FCA_Discounted"] ?? 0)),
                   dapPrice:      div(Number(row["dp"] ?? row["DAP_Price"]      ?? 0)),
                   dapDiscounted: div(Number(row["dc"] ?? row["DAP_Discounted"] ?? 0)),
-                  dapFinal:      div(Number(row["dc"] ?? row["DAP_Final"]      ?? row["DAP_Discounted"] ?? 0)),
+                  carriageCost:  div(Number(row["cr"] ?? row["Carriage"]       ?? 0)),
+                  dapFinal: (()=>{
+                    const dc=div(Number(row["dc"]??row["DAP_Final"]??row["DAP_Discounted"]??0));
+                    if(dc>0) return dc;
+                    const fc=div(Number(row["fc"]??row["FCA_Discounted"]??0));
+                    const fp=div(Number(row["fp"]??row["FCA_Price"]??0));
+                    const cr=div(Number(row["cr"]??row["Carriage"]??0));
+                    if(cr>0&&(fc>0||fp>0)) return (fc||fp)+cr;
+                    return 0;
+                  })(),
                   mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
                 });
               });
@@ -1372,7 +1382,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         }
         
         // Mappa i prezzi
-        const priceFields = ["mtsPrice", "fcaPrice", "fcaDiscount", "fcaDiscounted", "dapPrice", "dapDiscount", "dapDiscounted", "dapFinalDirect"];
+        const priceFields = ["mtsPrice", "fcaPrice", "fcaDiscount", "fcaDiscounted", "dapPrice", "dapDiscount", "dapDiscounted", "dapFinalDirect", "carriageCost"];
         priceFields.forEach(field => {
           const aliases = PRICE_FIELD_ALIASES[field] || [];
           for(const h of hdrs) {
@@ -1421,15 +1431,19 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
       const dapDiscount = parseFloat(get(row, "dapDiscount")) || 0;
       const dapDiscounted = parseFloat(get(row, "dapDiscounted")) || (dapPrice - (dapDiscount * dapPrice / 100)) || 0;
       const dapFinalDirect = parseFloat(get(row, "dapFinalDirect")) || 0;
-      
+      const carriageCost = parseFloat(get(row, "carriageCost")) || 0;
+
       let dapFinal = 0;
       let dapNote = "";
       if(dapFinalDirect !== 0) {
         dapFinal = dapFinalDirect;
         dapNote = "da file";
-      } else if(prod) {
-        dapFinal = dapDiscounted || 0;
-        dapNote = dapDiscounted ? "da DAP Disc." : "";
+      } else if(dapDiscounted !== 0) {
+        dapFinal = dapDiscounted;
+        dapNote = "da DAP Disc.";
+      } else if(carriageCost > 0 && (fcaDiscounted > 0 || fcaPrice > 0)) {
+        dapFinal = (fcaDiscounted || fcaPrice) + carriageCost;
+        dapNote = "FCA+Carriage";
       }
       
       const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === importMonth) : null;
@@ -1448,6 +1462,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         fcaDiscounted: roundN(fcaDiscounted),
         dapPrice: roundN(dapPrice),
         fcaPrice: roundN(fcaPrice),
+        carriageCost: roundN(carriageCost),
         dapNote,
         _hasProduct: !!prod,
         _existing: !!existing
@@ -1476,7 +1491,8 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         mtsPrice: r.mtsPrice,
         fcaDiscounted: r.fcaDiscounted,
         dapPrice: r.dapPrice,
-        fcaPrice: r.fcaPrice
+        fcaPrice: r.fcaPrice,
+        carriageCost: r.carriageCost||0
       };
       const prev = idx >= 0 ? updated[idx] : null;
       const diffFields = [];
@@ -2784,6 +2800,7 @@ function exportToExcel() {
       "MTS Price":    p.mtsPrice   || "",
       "FCA Price":    p.fcaPrice   || "",
       "FCA Disc.":    p.fcaDiscounted || "",
+      "Carriage":     p.carriageCost || "",
       "DAP Price":    p.dapPrice   || "",
       "DAP Disc.":    p.dapDiscounted || "",
       "DAP Final":    p.dapFinal   || "",
@@ -3072,8 +3089,8 @@ const displayed = useMemo(() => {
   });
 }, [filtered, search, prodById]);
 
-const COLS = ["fcaPrice", "fcaDiscounted", "dapPrice", "mtsPrice", "dapDiscounted", "dapFinal"];
-const LABELS = ["FCA Price", "FCA Disc.", "DAP Price", "MTS Price", "DAP Disc.", "DAP Final"];
+const COLS = ["fcaPrice", "fcaDiscounted", "carriageCost", "dapPrice", "mtsPrice", "dapDiscounted", "dapFinal"];
+const LABELS = ["FCA Price", "FCA Disc.", "Carriage", "DAP Price", "MTS Price", "DAP Disc.", "DAP Final"];
 
 // Schermata import completato
 if (importStep === "done" && doneInfo) {
@@ -3227,7 +3244,7 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={[branchN(branch),"IFB No","Descrizione","UoM","FCA Price","FCA Disc.","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
+<THead cols={[branchN(branch),"IFB No","Descrizione","UoM","FCA Price","FCA Disc.","Carriage","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
 <tbody>
 {displayed.slice(0, 150).map((p: any, i: number) => {
 const prod = prodById[String(p.productId)];
