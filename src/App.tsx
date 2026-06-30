@@ -627,25 +627,28 @@ export default function App() {
               const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
               const purchUom = String(row["pu"] || "").trim().toUpperCase();
               const scriptCf = Number(row["cf"] || 1);
-              let convFactor = 1; // >1 = dividi (BOX→PCS), <1 = moltiplica (KG→BOX)
+              // Converti prezzo BC Italia (purchUom) → HK BASE UoM (prod.uom)
+              // Regola: listini mostrano prezzi in BASE UoM di HK (non sales UoM)
+              let convFactor = 1; // >1 = dividi, <1 = moltiplica (KG→BOX: ×qpb = ÷(1/qpb))
+              let displayUom = purchUom; // UoM del prezzo finale da mostrare
               if (scriptCf === 1 && purchUom && purchUom !== "PCS" && prod) {
-                const qpb = Number(prod.qtyPerBox);
-                const kpb = Number(prod.kgPerBox);
+                const qpb = Number(prod.qtyPerBox) || 1;
+                const kpb = Number(prod.kgPerBox)  || 0;
                 const mtc = Number(prod.macToHkConv);
                 const hkUom: string = prod.uom || "PCS";
                 if (branch === "HK") {
                   if (mtc > 1) {
-                    convFactor = mtc;                         // MAC BOX → HK PCS
+                    convFactor = mtc; displayUom = "PCS";     // MAC BOX → HK PCS
                   } else if (purchUom === "BOX" && qpb > 1) {
-                    convFactor = qpb;                         // acquisto BOX → BC base PCS
+                    convFactor = qpb; displayUom = hkUom;     // BOX → base
                   } else if (purchUom === "KG") {
-                    // converte prezzo/KG BC → prezzo/HK_uom
-                    if (hkUom === "BOX" && qpb > 1) convFactor = 1 / qpb;   // ×qpb (es. MMA05: ×10)
-                    else if (hkUom === "PCS" && kpb > 1) convFactor = 1 / kpb; // ×kpb (es. MMA42: ×12.5)
-                    // hkUom==="KG" o kpb<=1 (=1kg/pcs): nessuna conversione
+                    // KG BC → HK base UoM
+                    if      (hkUom === "BOX" && qpb > 1)  { convFactor = 1/qpb; displayUom = "BOX"; }  // ×qpb
+                    else if (hkUom === "PCS" && kpb > 0)  { convFactor = 1/kpb; displayUom = "PCS"; }  // ×kpb (anche kpb=1)
+                    else if (hkUom === "KG")               { displayUom = "KG"; }                        // nessuna conv
                   }
                 } else {
-                  if (purchUom === "BOX" && qpb > 1) convFactor = qpb;
+                  if (purchUom === "BOX" && qpb > 1) { convFactor = qpb; displayUom = "PCS"; }
                 }
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
@@ -654,7 +657,7 @@ export default function App() {
                 itemCode:      code,
                 nHK:           prod?.nHK || "",
                 bcDesc:        String(row["d"] || row["Description"] || "").trim(),
-                pu:            purchUom,
+                pu:            displayUom, // UoM del prezzo (HK base UoM per HK)
                 branch, month: nowMonth,
                 fcaPrice:      div(Number(row["fp"] ?? row["FCA_Price"]      ?? 0)),
                 fcaDiscounted: div(Number(row["fc"] ?? row["FCA_Discounted"] ?? 0)),
@@ -3299,11 +3302,12 @@ const _pr = prod || products.find((pr:any) => pr.code === (p.n || p.itemCode));
 const _qpb = Number(_pr?.qtyPerBox) || 1;
 const _kpb = Number(_pr?.kgPerBox)  || 0;
 let convFactor = 1;
+// Fallback: se pu non è già stata aggiornata a baseUom nel loading, converti qui
 if (puom && baseUom && puom !== baseUom) {
-  if      (puom === "BOX" && baseUom === "PCS") convFactor = 1 / _qpb;
-  else if (puom === "BOX" && baseUom === "KG")  convFactor = 1 / (_kpb || 1);
-  else if (puom === "KG"  && baseUom === "PCS") convFactor = _kpb > 0 ? _kpb / _qpb : 1;
-  else if (puom === "PCS" && baseUom === "KG")  convFactor = _kpb > 0 ? _kpb / _qpb : 1;
+  if      (puom === "BOX" && baseUom === "PCS") convFactor = 1 / _qpb;           // ÷qpb
+  else if (puom === "BOX" && baseUom === "KG")  convFactor = 1 / (_kpb || 1);    // ÷kpb
+  else if (puom === "KG"  && baseUom === "PCS") convFactor = _kpb > 0 ? _kpb : 1; // ×kpb
+  else if (puom === "PCS" && baseUom === "KG")  convFactor = _kpb > 0 ? _kpb : 1; // ×kpb
 }
 const needsConv = convFactor !== 1;
 return (
