@@ -380,10 +380,10 @@ def build_iss_prices(token, target_codes):
     return result
 
 
-def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None):
+def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None):
     """
     FCA/DAP Price = purchase * MARKUP (100/99)
-    Carriage      = Pallet1 / (qtyPerBox × boxPerPallet) quando DAP=0
+    Carriage      = da ISS (carriagecost per-articolo BC) se disponibile; fallback tabella trasporti
     Discount      = da listino vendita (solo non scaduti)
     Discounted    = Price * (1 - Discount/100)
     """
@@ -417,18 +417,23 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     def apply(price, disc):
         return round(price * (1 - disc / 100), 6) if price else 0.0
 
-    # Se DAP=0 e FCA>0: calcola carriage da tabella costi trasporto
-    if dap_price == 0 and fca_price > 0 and item_card and transport_costs:
-        ic = item_card.get(code, {})
-        vendor   = ic.get("vendorName", "")
-        temp     = ic.get("temperature", "")
-        pallet1  = transport_costs.get((vendor, temp), 0)
-        qty_per_box    = ic.get("qtyPerBox", 0)
-        box_per_pallet = ic.get("boxPerPallet", 0)
-        pcs_per_pallet = qty_per_box * box_per_pallet
-        if pallet1 > 0 and pcs_per_pallet > 0:
-            carriage  = round(pallet1 / pcs_per_pallet, 6)
+    # Se DAP=0 e FCA>0: usa ISS carriagecost (campo BC compilato manualmente) poi tabella trasporti
+    if dap_price == 0 and fca_price > 0:
+        iss_cr = float((iss_carriage or {}).get(code, 0))
+        if iss_cr > 0:
+            carriage  = round(iss_cr, 6)
             dap_price = round(fca_price + carriage, 6)
+        elif item_card and transport_costs:
+            ic = item_card.get(code, {})
+            vendor   = ic.get("vendorName", "")
+            temp     = ic.get("temperature", "")
+            pallet1  = transport_costs.get((vendor, temp), 0)
+            qty_per_box    = ic.get("qtyPerBox", 0)
+            box_per_pallet = ic.get("boxPerPallet", 0)
+            pcs_per_pallet = qty_per_box * box_per_pallet
+            if pallet1 > 0 and pcs_per_pallet > 0:
+                carriage  = round(pallet1 / pcs_per_pallet, 6)
+                dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
     mts_discounted = apply(mts_price, mts_disc)
@@ -489,16 +494,23 @@ if __name__ == "__main__":
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
     print(f"  Articoli totali nel listino acquisto BC Italia: {len(all_purchase_codes)}")
 
-    # Supplementa con IFB_Item_Statistics_SC per articoli HK non nel listino acquisto BC Italia
+    # Fetch ISS per TUTTI gli articoli: carriagecost per-articolo da BC + articoli HK non nel listino
+    iss_carriage = {}
     try:
         hk_data_path = Path(__file__).parent.parent / "docs" / "data" / "hk_anagrafica.json"
         hk_items = json.loads(hk_data_path.read_text(encoding="utf-8"))
         hk_codes = {str(item.get("code") or "").strip() for item in hk_items if item.get("code")}
+        all_target = all_purchase_codes | hk_codes
+        print(f"  Fetch ISS per {len(all_target)} articoli (carriagecost per-articolo + HK mancanti)...")
+        iss_prices = build_iss_prices(token, all_target)
+        iss_carriage = {code: iss["carriage"] for code, iss in iss_prices.items() if iss.get("carriage", 0) > 0}
+        print(f"  ISS: {len(iss_carriage)} articoli con carriagecost > 0")
+        # Supplementa purch con articoli HK non nel listino acquisto BC Italia
         missing_hk = hk_codes - all_purchase_codes
         print(f"  {len(hk_codes)} codici IFB in hk_anagrafica, {len(missing_hk)} non nel listino acquisto BC Italia")
-        if missing_hk:
-            iss_prices = build_iss_prices(token, missing_hk)
-            for code, iss in iss_prices.items():
+        for code in missing_hk:
+            if code in iss_prices:
+                iss = iss_prices[code]
                 fca = iss.get("fca") or 0
                 dap = iss.get("dap") or 0
                 entry = {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": "", "puom": "PCS"}
@@ -507,8 +519,8 @@ if __name__ == "__main__":
                 if dap > 0:
                     entry["DAP"] = {"price": dap, "_open": True, "_expired": False}
                 purch[code] = entry
-            all_purchase_codes = all_purchase_codes | set(iss_prices.keys())
-            print(f"  Totale articoli dopo merge ISS: {len(all_purchase_codes)}")
+        all_purchase_codes = all_purchase_codes | set(iss_prices.keys())
+        print(f"  Totale articoli dopo merge ISS: {len(all_purchase_codes)}")
     except Exception as e:
         import traceback; traceback.print_exc()
         print(f"  Warning: fetch ISS fallito ({e})")
@@ -525,13 +537,12 @@ if __name__ == "__main__":
         with_disc  = sum(1 for s in active_discounts.values() for sh in s.values() if sh.get("discount",0) > 0)
         print(f"  {with_price} slot con prezzo assoluto, {with_disc} con sconto attivo")
 
-        # Tutti gli articoli nel listino acquisto (anche quelli con solo record scaduti)
         all_codes = all_purchase_codes
         print(f"  {len(all_codes)} articoli totali nel listino acquisto -> usati come base listino")
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
-            row = compute_row(branch, code, slots, purch, item_card, transport_costs)
+            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage)
             all_rows.append(row)
 
     print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
