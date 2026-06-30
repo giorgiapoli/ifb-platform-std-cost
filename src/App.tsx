@@ -4112,7 +4112,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterScBC,setFilterScBC] = useState<"all"|"assente">("all");
   const [filterMotivo,setFilterMotivo] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old">("all");
   const [filterScNavGC,setFilterScNavGC] = useState<"all"|"assente">("all");
-  const [filterDeltaPct,setFilterDeltaPct] = useState<number|null>(null);
+  const [filterDeltaPct,setFilterDeltaPct] = useState<"all"|"0-10"|"10-25"|"25-50"|"50+">("all");
   const [showNoAna,setShowNoAna] = useState(false);
   const [search,setSearch]     = useState("");
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
@@ -4321,7 +4321,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
   if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
-  if(filterDeltaPct!=null) displayed=displayed.filter(r=>r.pct!=null&&Math.abs(r.pct)>=filterDeltaPct!);
+  if(filterDeltaPct!=="all"){const[lo,hi]=filterDeltaPct==="50+"?[50,Infinity]:filterDeltaPct==="25-50"?[25,50]:filterDeltaPct==="10-25"?[10,25]:[0,10];displayed=displayed.filter(r=>r.pct!=null&&Math.abs(r.pct)>=lo&&Math.abs(r.pct)<hi);}
 
   // ── STEPS IMPORT ──────────────────────────────────────────────────────────
   if(step==="map") return(
@@ -4536,13 +4536,17 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           <option value="sample">Sample</option>
           <option value="keep-old">Keep Old</option>
         </select>
-        <span style={{fontSize:"11px",color:T.muted}}>|Δ%| ≥</span>
-        {([null,3,5,10,20] as (number|null)[]).map(v=>(
-          <button key={v??0} onClick={()=>setFilterDeltaPct(v)}
-            style={{padding:"5px 10px",background:filterDeltaPct===v?`${T.purple}22`:T.surface,color:filterDeltaPct===v?T.purple:T.muted,border:`1px solid ${filterDeltaPct===v?T.purple:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:filterDeltaPct===v?"bold":"normal"}}>
-            {v==null?"Tutti":`${v}%`}
-          </button>
-        ))}
+        <span style={{fontSize:"11px",color:T.muted}}>|Δ%|:</span>
+        {(["all","0-10","10-25","25-50","50+"] as const).map(v=>{
+          const active=filterDeltaPct===v;
+          const col=v==="50+"?T.red:v==="25-50"?T.orange:v==="10-25"?T.gold:T.muted;
+          return(
+            <button key={v} onClick={()=>setFilterDeltaPct(v)}
+              style={{padding:"5px 10px",background:active?`${col}22`:T.surface,color:active?col:T.muted,border:`1px solid ${active?col:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:active?"bold":"normal"}}>
+              {v==="all"?"Tutti":v==="50+"?">50%":`${v}%`}
+            </button>
+          );
+        })}
       </div>
 
       <Section title={`${displayed.length} righe`}>
