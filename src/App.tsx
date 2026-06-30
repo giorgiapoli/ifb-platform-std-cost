@@ -3325,13 +3325,20 @@ return (
       </div>
     </TD>
     <TD mono><span style={{ color: puom ? T.muted : T.dim, fontSize: "10px" }}>{puom || "—"}</span></TD>
-    {COLS.map(f => (
+    {COLS.map(f => {
+      // MTS price: mostra "—" se non è un vero MTS (≤ FCA = stesso prezzo senza trasporto = spurio)
+      const raw = p[f] || 0;
+      const isMtsField = f === "mtsPrice";
+      const isMtsSpurious = isMtsField && raw > 0 && raw <= (p.fcaPrice || 0) * 1.005;
+      const val = isMtsSpurious ? 0 : raw * convFactor;
+      return (
       <TD key={f} mono>
-        <span style={{ color: (p[f] || 0) > 0 ? T.text : T.dim }}>
-          {(p[f] || 0) > 0 ? `€ ${roundN((p[f] || 0) * convFactor).toFixed(4).replace(/\.?0+$/,"")}` : "—"}
+        <span style={{ color: val > 0 ? T.text : T.dim }}>
+          {val > 0 ? `€ ${roundN(val).toFixed(4).replace(/\.?0+$/,"")}` : "—"}
         </span>
       </TD>
-    ))}
+    );
+    })}
   </tr>
 );
 })}
@@ -4248,13 +4255,21 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
         const scBcGcTf  = branch==="CAN" ? (scaRec?.scGC  || null) : null;
         const scBcFueLan= branch==="CAN" ? (scaRec?.scLan || null) : null;
+        // Delta CAN: SC proposto (scGC/scFUE) vs SC Attuali (scBcGcTf/scBcFueLan)
+        const deltaGC  = branch==="CAN" && scGC!=null && scBcGcTf!=null && scBcGcTf>0 ? scGC - scBcGcTf : null;
+        const deltaFUE = branch==="CAN" && scFUE!=null && scBcFueLan!=null && scBcFueLan>0 ? scFUE - scBcFueLan : null;
+        // Δ% CAN: usa GC come riferimento; HK: usa prevCost se disponibile, altrimenti bcStdCost
+        const canPct  = branch==="CAN" && scBcGcTf!=null && scBcGcTf>0 && scGC!=null ? (scGC-scBcGcTf)/scBcGcTf*100 : null;
+        const refHkd  = oldHkd ?? bcStdCost;
+        const hkPct   = branch!=="CAN" && newHkd!=null && refHkd!=null && refHkd>0 ? (newHkd-refHkd)/refHkd*100 : null;
+        const finalPct= branch==="CAN" ? canPct : (pct ?? hkPct);
         const lastOrderRaw = logEntry?.lastOrderDate || r.date;
         const lastOrderD = lastOrderRaw ? new Date(String(lastOrderRaw).slice(0,10)) : null;
         const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/(86400000))>180 : false;
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
-          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason,scGC,scFUE,
-          bcStdCost,deltaSC,scBcGcTf,scBcFueLan,isKeepOld};
+          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct:finalPct,skipReason,scGC,scFUE,
+          bcStdCost,deltaSC,scBcGcTf,scBcFueLan,deltaGC,deltaFUE,isKeepOld};
       });
   },[activeRows,costRows,products,xrefs,sortDir,scAttualiMap]);
 
@@ -4525,7 +4540,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN","Δ GC/TF","Δ FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4627,6 +4642,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                         {([r.scBcGcTf,r.scBcFueLan] as (number|null)[]).map((v,i)=>(
                           <td key={`bc${i}`} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
                             <span style={{color:T.muted}}>{v!=null&&v>0?v.toFixed(2):"—"}</span>
+                          </td>
+                        ))}
+                        {([r.deltaGC,r.deltaFUE] as (number|null)[]).map((v,i)=>(
+                          <td key={`dcan${i}`} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                            {v!=null
+                              ? <span style={{color:v>0.5?T.red:v<-0.5?T.green:T.text,fontWeight:Math.abs(v)>0.5?"bold":"normal"}}>
+                                  {v>0?"+":""}{v.toFixed(2)}
+                                </span>
+                              : <span style={{color:T.dim}}>—</span>}
                           </td>
                         ))}
                       </>
