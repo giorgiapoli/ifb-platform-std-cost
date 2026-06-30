@@ -4218,8 +4218,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
         const scBcGcTf  = branch==="CAN" ? (scaRec?.scGC  || null) : null;
         const scBcFueLan= branch==="CAN" ? (scaRec?.scLan || null) : null;
-        const lastOrderRaw = logEntry?.lastOrderDate;
-        const lastOrderD = lastOrderRaw ? new Date(lastOrderRaw) : null;
+        const lastOrderRaw = logEntry?.lastOrderDate || r.date;
+        const lastOrderD = lastOrderRaw ? new Date(String(lastOrderRaw).slice(0,10)) : null;
         const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/(86400000))>180 : false;
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
@@ -5235,7 +5235,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const cr       = costMap[ifbNo] || costMap[nFiliale];
       const prod     = (products||[]).find((p:any)=>p.code===ifbNo);
       const logEntry = prod ? logMap[String(prod.id)] : null;
-      const lastOrderD = logEntry?.lastOrderDate ? new Date(logEntry.lastOrderDate) : null;
+      const lastOrderRaw2 = logEntry?.lastOrderDate || inv.postingDate;
+      const lastOrderD = lastOrderRaw2 ? new Date(String(lastOrderRaw2).slice(0,10)) : null;
       const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
       const oldSC    = scEntry?.lastSC || 0;
       const newSC    = isCAN
