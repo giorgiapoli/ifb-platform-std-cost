@@ -2336,7 +2336,18 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
 
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   function toggleEdit(id:string) { setEditingRows(prev=>{ const s=new Set(prev); s.has(id)?s.delete(id):s.add(id); return s; }); }
-  function saveRow(id:string) { IDB.set("ifb_logistics", logistics); showToast("Salvato ✓", T.green); setEditingRows(prev=>{ const s=new Set(prev); s.delete(id); return s; }); }
+  function saveRow(id:string) {
+    const existing = getLog(id);
+    let next = logistics;
+    if(!existing) {
+      // Entry never existed: create it with current defaults
+      next = [...logistics, getOrDefault(id)];
+      setLogistics(next);
+    }
+    IDB.set("ifb_logistics", next);
+    showToast("Salvato ✓", T.green);
+    setEditingRows(prev=>{ const s=new Set(prev); s.delete(id); return s; });
+  }
 
   function getLog(productId) {
     return logistics.find(l=>l.productId===productId && l.branch===branch) || null;
