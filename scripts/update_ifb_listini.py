@@ -134,8 +134,7 @@ def is_active_date(enddate_str):
 def build_item_card_data(token):
     """Fetch dati articolo: fornitore, temperatura, pz/box, box/pallet."""
     print("  Fetch Item Card data (fornitore, temp, uom)...")
-    sel = "No,AltICMIFB_Item,AltICMQuantity_x_Packaging,AltICMPackaging_x_Pallet,AltICMProduct_Type,AltICMVendor_Name"
-    rows = bc_fetch_all(token, f"Item_Card_Excel?$select={sel}")
+    rows = bc_fetch_all(token, "Item_Card_Excel")
     result = {}
     for r in rows:
         ifb_code = str(r.get("AltICMIFB_Item") or "").strip()
@@ -170,13 +169,13 @@ def build_transport_costs(token):
     return costs
 
 
-def build_item_prices(rows, pricetype_filter=None):
+def build_item_prices(rows):
     """
-    Price list lines (vendita o acquisto) per un cliente / fornitore.
-    PowerBI usa totlinediscountperc (non linediscount).
-    Discount = spurc + ssale: somma sconto acquisto + sconto vendita per cliente HK.
-    Restituisce: (item_codes, sale_slots)
-      - sale_slots: assetno -> {FCA/MTS/DAP: {unitprice, discount_purch, discount_sale, ...}}
+    Price list lines (vendita) per un cliente.
+    PowerBI: spurc = sconto da righe Purchase, ssale = sconto da righe Sale (cliente 40000854).
+    Amounttype:
+      Purchase discount → amounttype in {Price, Price & Discount}
+      Sale discount     → amounttype in {Discount, Price & Discount}
     """
     item_codes = set()
     sale_slots = defaultdict(lambda: {"FCA": {}, "MTS": {}, "DAP": {}})
@@ -185,39 +184,34 @@ def build_item_prices(rows, pricetype_filter=None):
         code = str(r.get("assetno") or "").strip()
         if not code:
             continue
-        if pricetype_filter and str(r.get("pricetype") or "").strip().lower() != pricetype_filter:
-            continue
         item_codes.add(code)
-        ed       = str(r.get("endingdate")   or "")
-        sd       = str(r.get("startingdate") or "")
-        ship     = classify_ship(r.get("shipmentmethodcode"))
-        slot     = sale_slots[code][ship]
-        up       = float(r.get("unitprice")          or 0)
-        dc       = float(r.get("directunitcost")     or 0)
-        # PowerBI usa totlinediscountperc (fallback linediscount)
-        disc     = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
-        ptype    = str(r.get("pricetype") or "").strip().lower()
-        active   = is_active_date(ed) and sd <= TODAY
-
-        # Prezzo assoluto (amounttype in {Price, Price & Discount}): usa il più recente valido
+        ed    = str(r.get("endingdate")   or "")
+        sd    = str(r.get("startingdate") or "")
+        ship  = classify_ship(r.get("shipmentmethodcode"))
+        slot  = sale_slots[code][ship]
+        up    = float(r.get("unitprice")           or 0)
+        dc    = float(r.get("directunitcost")      or 0)
+        disc  = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
+        ptype = str(r.get("pricetype") or "").strip().lower()
         atype = str(r.get("amounttype") or "").strip().lower()
-        if up > 0 and active and atype in ("price", "price & discount"):
+        valid = is_active_date(ed) and (not sd or sd <= TODAY)
+
+        # Prezzo assoluto dalle righe di vendita (amounttype Price o Price & Discount)
+        if up > 0 and valid and atype in ("price", "price & discount"):
             if slot.get("_sd_price", "") <= sd:
-                slot.update({
-                    "unitprice":   up,
-                    "directcost":  dc,
-                    "description": str(r.get("description") or "").strip(),
-                    "uom":         str(r.get("unitofmeasurecode") or "").strip(),
-                    "startdate":   sd,
-                    "enddate":     ed,
-                    "amounttype":  str(r.get("amounttype") or ""),
-                    "_sd_price":   sd,
-                })
-        # Sconto %: solo righe non scadute, amounttype in {Discount, Price & Discount}
-        if disc > 0 and active and atype in ("discount", "price & discount"):
-            if slot.get("_sd_disc", "") <= sd:
-                disc_key = "discount_purch" if ptype == "purchase" else "discount_sale"
-                slot.update({disc_key: disc, "_sd_disc": sd})
+                slot.update({"unitprice": up, "directcost": dc,
+                             "description": str(r.get("description") or "").strip(),
+                             "uom": str(r.get("unitofmeasurecode") or "").strip(),
+                             "startdate": sd, "enddate": ed,
+                             "amounttype": str(r.get("amounttype") or ""), "_sd_price": sd})
+        # Sconto acquisto (spurc): righe Purchase, amounttype in {Price, Price & Discount}
+        if disc > 0 and valid and ptype == "purchase" and atype in ("price", "price & discount"):
+            if slot.get("_sd_disc_p", "") <= sd:
+                slot.update({"discount_purch": disc, "_sd_disc_p": sd})
+        # Sconto vendita (ssale): righe Sale, amounttype in {Discount, Price & Discount}
+        if disc > 0 and valid and ptype == "sale" and atype in ("discount", "price & discount"):
+            if slot.get("_sd_disc_s", "") <= sd:
+                slot.update({"discount_sale": disc, "_sd_disc_s": sd})
         if not slot.get("description"):
             slot["description"] = str(r.get("description") or "").strip()
         if not slot.get("uom"):
@@ -557,7 +551,7 @@ if __name__ == "__main__":
         rows = fetch_price_lines(token, f"assigntono eq '{cust_no}' and status eq 'Active'")
         print(f"  {len(rows)} righe trovate")
 
-        _item_codes, active_discounts = build_item_prices(rows, pricetype_filter="sale")
+        _item_codes, active_discounts = build_item_prices(rows)
         with_price = sum(1 for s in active_discounts.values() for sh in s.values() if sh.get("unitprice",0) > 0)
         with_disc  = sum(1 for s in active_discounts.values() for sh in s.values() if sh.get("discount",0) > 0)
         print(f"  {with_price} slot con prezzo assoluto, {with_disc} con sconto attivo")
