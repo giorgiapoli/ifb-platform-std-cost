@@ -622,10 +622,21 @@ export default function App() {
                 const code = String(row["n"] || row["No_"] || "").trim();
                 if(!code) return;
                 const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
-                // Conversione UoM: se prezzo BC è per BOX e anagrafica ha qtyPerBox → dividi per PCS/BOX
-                const purchUom  = String(row["pu"] || "").trim().toUpperCase();
-                const qtyPerBox = (purchUom === "BOX" && prod?.qtyPerBox > 1) ? Number(prod.qtyPerBox) : 1;
-                const div = (p: number) => qtyPerBox > 1 ? p / qtyPerBox : p;
+                // Conversione UoM: converti prezzo BC da purchase UoM a base UoM per branch
+                // HK: usa macToHkConv (fattore specifico HK dall'anagrafica) se disponibile
+                // Altri branch: usa qtyPerBox (unità per cartone MAC)
+                const purchUom = String(row["pu"] || "").trim().toUpperCase();
+                let convFactor = 1;
+                if (purchUom && purchUom !== "PCS" && purchUom !== "KG" && prod) {
+                  if (branch === "HK") {
+                    // macToHkConv = fattore BOX→HK-PCS (es. 6 per PLP32: 1 BOX = 6 HK-PCS)
+                    const mtc = Number(prod.macToHkConv);
+                    convFactor = mtc > 1 ? mtc : (purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1);
+                  } else {
+                    convFactor = purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1;
+                  }
+                }
+                const div = (p: number) => convFactor > 1 ? p / convFactor : p;
                 newEntries.push({
                   productId:     prod?.id ?? `BC_${code}`,
                   itemCode:      code,
