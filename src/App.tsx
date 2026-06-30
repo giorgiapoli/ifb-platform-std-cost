@@ -4142,7 +4142,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
         const scFUE = cr?.cost?.step2FUE ?? null;
-        const scaRec = scAttualiMap[prod?.code||r.itemCode||""];
+        // CAN: scAttuali keyed by N COMIT → usa r.itemCode (N COMIT dall'invoice)
+        // HK:  scAttuali keyed by N HK  → usa prod.nHK o r.nHK (non IFB code)
+        const scaRec = branch==="CAN"
+          ? (scAttualiMap[r.itemCode||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""])
+          : (scAttualiMap[prod?.nHK||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""] || scAttualiMap[r.itemCode||""]);
         const bcStdCost = branch==="CAN" ? null : (prod?.standardCostHkd || null);
         const deltaSC = branch==="CAN" ? null
           : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
