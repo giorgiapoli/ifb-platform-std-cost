@@ -4038,6 +4038,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterIFBNo,setFilterIFBNo] = useState("");
   const [filterLocation,setFilterLocation] = useState<"all"|"ncj"|"non-ncj">("all");
   const [filterScBC,setFilterScBC] = useState<"all"|"assente">("all");
+  const [filterScCalc,setFilterScCalc] = useState<"all"|"assente">("all");
   const [filterMotivo,setFilterMotivo] = useState<"all"|"no-log"|"no-price">("all");
   const [search,setSearch]     = useState("");
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
@@ -4192,6 +4193,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
   if(filterScBC==="assente") displayed=displayed.filter(r=>
     branch==="CAN" ? (!r.scBcGcTf&&!r.scBcFueLan) : (!r.bcStdCost||r.bcStdCost===0));
+  if(filterScCalc==="assente"&&branch==="CAN") displayed=displayed.filter(r=>r.scGC==null||r.scGC===0);
   if(filterMotivo==="no-log") displayed=displayed.filter(r=>r.skipReason==="NO LOGISTICA");
   else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
@@ -4387,6 +4389,16 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
       <div style={{display:"flex",gap:"12px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
         <>
+          {branch==="CAN"&&(
+            <>
+              <span style={{fontSize:"11px",color:T.muted}}>SC GC/TF:</span>
+              <select value={filterScCalc} onChange={e=>setFilterScCalc(e.target.value as any)}
+                style={{background:filterScCalc!=="all"?`${T.gold}22`:T.surface,color:filterScCalc!=="all"?T.gold:T.muted,border:`1px solid ${filterScCalc!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
+                <option value="all">SC GC/TF: Tutte</option>
+                <option value="assente">SC GC/TF: vuoti (—)</option>
+              </select>
+            </>
+          )}
           <span style={{fontSize:"11px",color:T.muted}}>{branch==="CAN"?"SC NAV:":"SC BC:"}</span>
           <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
             style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
