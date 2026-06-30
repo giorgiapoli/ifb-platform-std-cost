@@ -4140,9 +4140,16 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
   const scAttualiMap=useMemo(()=>{
     const m: Record<string,any>={};
+    // Indice primario: N COMIT (r.code da scAttuali)
     (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
+    // Alias: aggiungi anche IFB code come chiave, cercando xref N COMIT → IFB
+    (scAttuali||[]).forEach((rec:any)=>{
+      if(!rec.code) return;
+      const xr=(xrefs||[]).find((x:any)=>x.nComit===rec.code);
+      if(xr?.ifbNo && !m[xr.ifbNo]) m[xr.ifbNo]=rec;
+    });
     return m;
-  },[scAttuali]);
+  },[scAttuali,xrefs]);
 
   const enriched=useMemo(()=>{
     return [...activeRows]
@@ -4166,10 +4173,16 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
         const scFUE = cr?.cost?.step2FUE ?? null;
-        // CAN: scAttuali keyed by N COMIT → usa r.itemCode (N COMIT dall'invoice)
-        // HK:  scAttuali keyed by N HK  → usa prod.nHK o r.nHK (non IFB code)
+        // CAN: scAttuali keyed by N COMIT (e alias IFB via xref aggiunto nella mappa)
+        //   1. r.itemCode (N COMIT o IFB — mappa copre entrambi)
+        //   2. N COMIT ricavato dall'xref se r.itemCode è IFB
+        //   3. prod.code (IFB) — già in mappa come alias
+        // HK:  scAttuali keyed by N HK  → usa prod.nHK o r.nHK
+        const nComitFromIfb = branch==="CAN"
+          ? ((xrefs||[]).find((x:any)=>x.ifbNo===r.itemCode)?.nComit||"")
+          : "";
         const scaRec = branch==="CAN"
-          ? (scAttualiMap[r.itemCode||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""])
+          ? (scAttualiMap[r.itemCode||""] || scAttualiMap[nComitFromIfb] || scAttualiMap[prod?.code||""])
           : (scAttualiMap[prod?.nHK||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""] || scAttualiMap[r.itemCode||""]);
         const bcStdCost = branch==="CAN" ? null : (prod?.standardCostHkd || null);
         const deltaSC = branch==="CAN" ? null
