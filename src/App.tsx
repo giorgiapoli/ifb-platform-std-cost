@@ -4190,7 +4190,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(filterLocation==="ncj")     displayed=displayed.filter(r=>String(r.location||"").toUpperCase().includes("NCJ"));
   else if(filterLocation==="non-ncj") displayed=displayed.filter(r=>!String(r.location||"").toUpperCase().includes("NCJ"));
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
-  if(filterScBC==="assente") displayed=displayed.filter(r=>!r.bcStdCost||r.bcStdCost===0);
+  if(filterScBC==="assente") displayed=displayed.filter(r=>
+    branch==="CAN" ? (!r.scBcGcTf&&!r.scBcFueLan) : (!r.bcStdCost||r.bcStdCost===0));
   if(filterMotivo==="no-log") displayed=displayed.filter(r=>r.skipReason==="NO LOGISTICA");
   else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
@@ -4385,16 +4386,14 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
       <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca codice, ${branchN(branch)}, descrizione, location…`}/>
 
       <div style={{display:"flex",gap:"12px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
-        {branch!=="CAN"&&(
-          <>
-            <span style={{fontSize:"11px",color:T.muted}}>SC BC:</span>
-            <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
-              style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
-              <option value="all">SC BC: Tutte</option>
-              <option value="assente">SC BC: assente (-)</option>
-            </select>
-          </>
-        )}
+        <>
+          <span style={{fontSize:"11px",color:T.muted}}>{branch==="CAN"?"SC NAV:":"SC BC:"}</span>
+          <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
+            style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
+            <option value="all">{branch==="CAN"?"SC NAV: Tutte":"SC BC: Tutte"}</option>
+            <option value="assente">{branch==="CAN"?"SC NAV: vuoti (—)":"SC BC: assente (—)"}</option>
+          </select>
+        </>
         <span style={{fontSize:"11px",color:T.muted}}>Motivo:</span>
         <select value={filterMotivo} onChange={e=>setFilterMotivo(e.target.value as any)}
           style={{background:filterMotivo!=="all"?`${T.orange}22`:T.surface,color:filterMotivo!=="all"?T.orange:T.muted,border:`1px solid ${filterMotivo!=="all"?T.orange:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
