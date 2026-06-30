@@ -4038,7 +4038,6 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterIFBNo,setFilterIFBNo] = useState("");
   const [filterLocation,setFilterLocation] = useState<"all"|"ncj"|"non-ncj">("all");
   const [filterScBC,setFilterScBC] = useState<"all"|"assente">("all");
-  const [filterScCalc,setFilterScCalc] = useState<"all"|"assente">("all");
   const [filterMotivo,setFilterMotivo] = useState<"all"|"no-log"|"no-price">("all");
   const [search,setSearch]     = useState("");
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
@@ -4143,10 +4142,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
         const scFUE = cr?.cost?.step2FUE ?? null;
-        // Per CAN: scAttuali è keyed by N COMIT → usa r.itemCode (N COMIT dall'invoice) come chiave primaria
-        const scaRec = branch==="CAN"
-          ? (scAttualiMap[r.itemCode||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""])
-          : scAttualiMap[prod?.code||r.itemCode||""];
+        const scaRec = scAttualiMap[prod?.code||r.itemCode||""];
         const bcStdCost = branch==="CAN" ? null : (prod?.standardCostHkd || null);
         const deltaSC = branch==="CAN" ? null
           : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
@@ -4196,7 +4192,6 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(filterIFBNo) displayed=displayed.filter(r=>r.ifbNo===filterIFBNo);
   if(filterScBC==="assente") displayed=displayed.filter(r=>
     branch==="CAN" ? (!r.scBcGcTf&&!r.scBcFueLan) : (!r.bcStdCost||r.bcStdCost===0));
-  if(filterScCalc==="assente"&&branch==="CAN") displayed=displayed.filter(r=>r.scGC==null||r.scGC===0);
   if(filterMotivo==="no-log") displayed=displayed.filter(r=>r.skipReason==="NO LOGISTICA");
   else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
@@ -4392,16 +4387,6 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
       <div style={{display:"flex",gap:"12px",marginBottom:"10px",alignItems:"center",flexWrap:"wrap"}}>
         <>
-          {branch==="CAN"&&(
-            <>
-              <span style={{fontSize:"11px",color:T.muted}}>SC GC/TF:</span>
-              <select value={filterScCalc} onChange={e=>setFilterScCalc(e.target.value as any)}
-                style={{background:filterScCalc!=="all"?`${T.gold}22`:T.surface,color:filterScCalc!=="all"?T.gold:T.muted,border:`1px solid ${filterScCalc!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
-                <option value="all">SC GC/TF: Tutte</option>
-                <option value="assente">SC GC/TF: vuoti (—)</option>
-              </select>
-            </>
-          )}
           <span style={{fontSize:"11px",color:T.muted}}>{branch==="CAN"?"SC NAV:":"SC BC:"}</span>
           <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
             style={{background:filterScBC!=="all"?`${T.gold}22`:T.surface,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"6px",padding:"5px 10px",fontSize:"11px",cursor:"pointer",outline:"none"}}>
@@ -4922,15 +4907,15 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
         <table style={{borderCollapse:"collapse",width:"100%"}}>
           <THead cols={isCAN
             ? ["Codice","Descrizione","SC Standard €","FIFO unit €","SC GC €","SC LAN €","Last Purchase","Stock Qty"]
-            : ["Codice","Descrizione","SC Attuale HK$","FIFO unit HK$","Vendite 3m","Last Purchase","Stock Qty"]}
+            : ["Codice","Descrizione","SC Attuale €","FIFO unit €","Vendite 3m","Last Purchase","Stock Qty"]}
           />
           <tbody>
             {rows.slice(0,400).map((r:any,i:number)=>(
               <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:i%2?"transparent":`${T.surface}33`}}>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,fontFamily:"monospace",whiteSpace:"nowrap"}}>{r.code}</td>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
-                <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.lastSC>0?`${isCAN?"€":"HK$"} ${r.lastSC.toFixed(2)}`:"—"}</td>
-                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.fifoUnit>0?`${isCAN?"":"HK$"} ${r.fifoUnit.toFixed(4)}`.trim():"—"}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.lastSC>0?`€ ${r.lastSC.toFixed(2)}`:"—"}</td>
+                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"—"}</td>
                 {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
                 {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
                 {!isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}

@@ -1076,6 +1076,10 @@
     "ifbNo": "FVB22"
   },
   {
+    "nHK": "FVB23",
+    "ifbNo": "FVB23"
+  },
+  {
     "nHK": "FY0086-EU",
     "ifbNo": "OVO01"
   },
@@ -2976,6 +2980,10 @@
     "ifbNo": "MNC36"
   },
   {
+    "nHK": "MNC37",
+    "ifbNo": "MNC37"
+  },
+  {
     "nHK": "MNC38",
     "ifbNo": "MNC38"
   },
@@ -4114,6 +4122,10 @@
   {
     "nHK": "SMPNKT-24",
     "ifbNo": "SMPNKT-24"
+  },
+  {
+    "nHK": "SMROCOPNS-22",
+    "ifbNo": "SMROCOPNS-22"
   },
   {
     "nHK": "SMROS-25",
