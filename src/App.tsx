@@ -452,6 +452,7 @@ export default function App() {
   const[logistics,setLogistics] = useState<any[]>(SEED_LOGISTIC);
   const[prices,setPrices]       = useState<any[]>([]);
   const[bcListini,setBcListini] = useState<any[]>([]); // prezzi BC listini — separati da prices per evitare re-render globali
+  const[listiniReloadKey,setListiniReloadKey] = useState(0); // incrementa per forzare re-fetch listini
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
   const[xrefs,setXrefs]         = useState<any[]>([]);
   const[airList,setAirList]     = useState<any[]>([]);
@@ -589,88 +590,84 @@ export default function App() {
         } catch(_) { /* offline — usa dati IDB */ }
       }
 
-      // Auto-fetch listini IFB da GitHub (HK + CAN + MAC, prezzi aggiornati da BC)
-      if(["HK","CAN","MAC"].includes(branch)) {
-        const IDB_KEY = `ifb_listini_entries_${branch}`;
-        const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
-
-        // 1) Carica subito da IDB (cache locale) — nessun parsing, nessun network
-        const cached: any[] = await IDB.get(IDB_KEY, []);
-        if(cached.length > 0) {
-          startTransition(() => { setBcListini(cached); setDataSource(`listini_${branch}`, "bc"); });
-        }
-
-        // 2) Fetch in background per aggiornare la cache
-        try {
-          let resp = await fetch(`${base}data/ifb_listini_${branch}.json?t=${Date.now()}`);
-          if(!resp.ok) resp = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`);
-          if(resp.ok) {
-            const raw = await resp.json();
-            const all = Array.isArray(raw) ? raw.filter((r:any) => (r.b || r.Branch) === branch) : [];
-            if(all.length > 0) {
-              const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
-              const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
-              const byCode: Record<string,any> = {};
-              const byNHK:  Record<string,any> = {};
-              prods.forEach((p: any) => { if(p.code) byCode[String(p.code)]=p; if(p.nHK) byNHK[String(p.nHK)]=p; });
-              const xrByIfb: Record<string,string> = {};
-              xrs.forEach((x: any) => { if(x.ifbNo && x.nHK) xrByIfb[String(x.ifbNo)]=String(x.nHK); });
-
-              const nowMonth = new Date().toISOString().slice(0,7);
-              const newEntries: any[] = [];
-              all.forEach((row: any) => {
-                const code = String(row["n"] || row["No_"] || "").trim();
-                if(!code) return;
-                const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
-                // Conversione UoM: il JSON può avere i prezzi già convertiti in base UoM (cf>1)
-                // o ancora in purchase UoM (cf=1/assente). Se non convertiti, l'app converte.
-                const purchUom = String(row["pu"] || "").trim().toUpperCase();
-                const scriptCf = Number(row["cf"] || 1); // fattore già applicato dallo script
-                let convFactor = 1;
-                if (scriptCf <= 1 && purchUom && purchUom !== "PCS" && purchUom !== "KG" && prod) {
-                  // Script non ha convertito → app converte
-                  if (branch === "HK") {
-                    const mtc = Number(prod.macToHkConv);
-                    convFactor = mtc > 1 ? mtc : (purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1);
-                  } else {
-                    convFactor = purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1;
-                  }
-                }
-                // scriptCf>1: prezzi già in base UoM dallo script, nessuna ulteriore conversione
-                const div = (p: number) => convFactor > 1 ? p / convFactor : p;
-                newEntries.push({
-                  productId:     prod?.id ?? `BC_${code}`,
-                  itemCode:      code,
-                  nHK:           prod?.nHK || "",
-                  bcDesc:        String(row["d"] || row["Description"] || "").trim(),
-                  pu:            purchUom,
-                  branch, month: nowMonth,
-                  fcaPrice:      div(Number(row["fp"] ?? row["FCA_Price"]      ?? 0)),
-                  fcaDiscounted: div(Number(row["fc"] ?? row["FCA_Discounted"] ?? 0)),
-                  dapPrice:      div(Number(row["dp"] ?? row["DAP_Price"]      ?? 0)),
-                  dapDiscounted: div(Number(row["dc"] ?? row["DAP_Discounted"] ?? 0)),
-                  carriageCost:  div(Number(row["cr"] ?? row["Carriage"]       ?? 0)),
-                  dapFinal: (()=>{
-                    const dc=div(Number(row["dc"]??row["DAP_Final"]??row["DAP_Discounted"]??0));
-                    if(dc>0) return dc;
-                    const fc=div(Number(row["fc"]??row["FCA_Discounted"]??0));
-                    const fp=div(Number(row["fp"]??row["FCA_Price"]??0));
-                    const cr=div(Number(row["cr"]??row["Carriage"]??0));
-                    if(cr>0&&(fc>0||fp>0)) return (fc||fp)+cr;
-                    return 0;
-                  })(),
-                  mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
-                });
-              });
-              // Salva in IDB per il prossimo hard refresh (nessun parsing la volta dopo)
-              IDB.set(IDB_KEY, newEntries);
-              startTransition(() => { setBcListini(newEntries); setDataSource(`listini_${branch}`, "bc"); });
-            }
-          }
-        } catch(_) { /* offline — usa dati IDB già caricati sopra */ }
-      }
     })();
   },[branch]);
+
+  // Fetch listini separato — si riattiva su cambio branch O su ricarica manuale (listiniReloadKey)
+  useEffect(()=>{
+    if(!branch || !["HK","CAN","MAC"].includes(branch)) return;
+    const IDB_KEY = `ifb_listini_entries_${branch}`;
+    const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+    (async()=>{
+      // 1) Carica subito da IDB (cache locale)
+      const cached: any[] = await IDB.get(IDB_KEY, []);
+      if(cached.length > 0) {
+        startTransition(() => { setBcListini(cached); setDataSource(`listini_${branch}`, "bc"); });
+      }
+      // 2) Fetch JSON aggiornato da GitHub
+      try {
+        let resp = await fetch(`${base}data/ifb_listini_${branch}.json?t=${Date.now()}`);
+        if(!resp.ok) resp = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`);
+        if(resp.ok) {
+          const raw = await resp.json();
+          const all = Array.isArray(raw) ? raw.filter((r:any) => (r.b || r.Branch) === branch) : [];
+          if(all.length > 0) {
+            const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
+            const xrs: any[]   = await IDB.get(`ifb_xrefs_${branch}`, []);
+            const byCode: Record<string,any> = {};
+            const byNHK:  Record<string,any> = {};
+            prods.forEach((p: any) => { if(p.code) byCode[String(p.code)]=p; if(p.nHK) byNHK[String(p.nHK)]=p; });
+            const xrByIfb: Record<string,string> = {};
+            xrs.forEach((x: any) => { if(x.ifbNo && x.nHK) xrByIfb[String(x.ifbNo)]=String(x.nHK); });
+            const nowMonth = new Date().toISOString().slice(0,7);
+            const newEntries: any[] = [];
+            all.forEach((row: any) => {
+              const code = String(row["n"] || row["No_"] || "").trim();
+              if(!code) return;
+              const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
+              const purchUom = String(row["pu"] || "").trim().toUpperCase();
+              const scriptCf = Number(row["cf"] || 1);
+              let convFactor = 1;
+              if (scriptCf <= 1 && purchUom && purchUom !== "PCS" && purchUom !== "KG" && prod) {
+                if (branch === "HK") {
+                  const mtc = Number(prod.macToHkConv);
+                  convFactor = mtc > 1 ? mtc : (purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1);
+                } else {
+                  convFactor = purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1;
+                }
+              }
+              const div = (p: number) => convFactor > 1 ? p / convFactor : p;
+              newEntries.push({
+                productId:     prod?.id ?? `BC_${code}`,
+                itemCode:      code,
+                nHK:           prod?.nHK || "",
+                bcDesc:        String(row["d"] || row["Description"] || "").trim(),
+                pu:            purchUom,
+                branch, month: nowMonth,
+                fcaPrice:      div(Number(row["fp"] ?? row["FCA_Price"]      ?? 0)),
+                fcaDiscounted: div(Number(row["fc"] ?? row["FCA_Discounted"] ?? 0)),
+                dapPrice:      div(Number(row["dp"] ?? row["DAP_Price"]      ?? 0)),
+                dapDiscounted: div(Number(row["dc"] ?? row["DAP_Discounted"] ?? 0)),
+                carriageCost:  div(Number(row["cr"] ?? row["Carriage"]       ?? 0)),
+                dapFinal: (()=>{
+                  const dc=div(Number(row["dc"]??row["DAP_Final"]??row["DAP_Discounted"]??0));
+                  if(dc>0) return dc;
+                  const fc=div(Number(row["fc"]??row["FCA_Discounted"]??0));
+                  const fp=div(Number(row["fp"]??row["FCA_Price"]??0));
+                  const cr=div(Number(row["cr"]??row["Carriage"]??0));
+                  if(cr>0&&(fc>0||fp>0)) return (fc||fp)+cr;
+                  return 0;
+                })(),
+                mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
+              });
+            });
+            IDB.set(IDB_KEY, newEntries);
+            startTransition(() => { setBcListini(newEntries); setDataSource(`listini_${branch}`, "bc"); });
+          }
+        }
+      } catch(_) { /* offline — usa dati IDB già caricati */ }
+    })();
+  },[branch, listiniReloadKey]);
 
   const showToast = (msg,color=T.green) => { setToast({msg,color}); setTimeout(()=>setToast(null),3500); };
   const bumpImportTs = () => { const ts=Date.now(); setLastImportTs(ts); LS.set("ifb_last_import_ts",ts); return ts; };
@@ -933,6 +930,7 @@ export default function App() {
   prices={prices}
   setPrices={setPrices}
   bcListini={bcListini}
+  setBcListini={setBcListini}
   products={products}
   branch={branch}
   month={month}
@@ -944,6 +942,7 @@ export default function App() {
   setSnapshots={setSnapshots}
   showToast={showToast}
   bumpImportTs={bumpImportTs}
+  reloadListini={()=>{ setBcListini([]); setListiniReloadKey(k=>k+1); }}
 />,
 
 
@@ -2797,8 +2796,8 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
 }
 
 // ─── PRICES (con import integrato e storico) ─────────────────────────────────
-function Prices({ prices, setPrices, bcListini = [], products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [],
-  importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
+function Prices({ prices, setPrices, bcListini = [], setBcListini, products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [],
+  importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs, reloadListini }) {
 const [search, setSearch] = useState("");
 const [invoiceOnly, setInvoiceOnly] = useState(false);
 const [importStep, setImportStep] = useState<"idle"|"map"|"preview"|"done">("idle");
@@ -3164,7 +3163,7 @@ return (
 <button onClick={async ()=>{
   await IDB.del(`ifb_listini_entries_${branch}`);
   showToast("Cache listini svuotata — ricaricamento…", T.gold);
-  setTimeout(()=>window.location.reload(), 600);
+  reloadListini?.();
 }} style={{padding:"6px 14px",background:T.surface,border:`1px solid ${T.gold}66`,borderRadius:"6px",color:T.gold,cursor:"pointer",fontSize:"12px"}}>
   🔄 Ricarica listini
 </button>
