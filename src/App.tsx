@@ -4178,11 +4178,16 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     const m: Record<string,any>={};
     // Indice primario: N COMIT (r.code da scAttuali)
     (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
-    // Alias: aggiungi anche IFB code come chiave, cercando xref N COMIT (=nHK) → IFB
+    // Caso A: scAttuali usa N COMIT → alias IFB code (HK/MAC)
+    // Caso B: scAttuali usa IFB code → alias N COMIT (CAN, fatture usano N COMIT)
     (scAttuali||[]).forEach((rec:any)=>{
       if(!rec.code) return;
-      const xr=(xrefs||[]).find((x:any)=>x.nHK===rec.code);
-      if(xr?.ifbNo && !m[xr.ifbNo]) m[xr.ifbNo]=rec;
+      // Cerca per nHK (rec.code = N COMIT) → aggiungi alias ifbNo
+      const xrByNHK=(xrefs||[]).find((x:any)=>x.nHK===rec.code);
+      if(xrByNHK?.ifbNo && !m[xrByNHK.ifbNo]) m[xrByNHK.ifbNo]=rec;
+      // Cerca per ifbNo (rec.code = IFB code) → aggiungi alias nHK (N COMIT per CAN)
+      const xrByIfb=(xrefs||[]).find((x:any)=>x.ifbNo===rec.code);
+      if(xrByIfb?.nHK && !m[xrByIfb.nHK]) m[xrByIfb.nHK]=rec;
     });
     return m;
   },[scAttuali,xrefs]);
