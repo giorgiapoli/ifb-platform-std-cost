@@ -519,28 +519,19 @@ export default function App() {
       setPrices(await IDB.get(`ifb_prices_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
 
-      // Auto-fetch dati BC aggiornati da GitHub (HK + CAN usano stessa anagrafica IFB)
-      if(branch === "HK" || branch === "CAN") {
+      // Auto-fetch dati BC aggiornati da GitHub (solo HK — CAN è su NAV, solo caricamento manuale)
+      if(branch === "HK") {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         const t = Date.now();
         try {
-          const fetches: Promise<Response>[] = [fetch(`${base}data/hk_anagrafica.json?t=${t}`)];
-          if(branch === "HK") {
-            fetches.unshift(
-              fetch(`${base}data/hk_xref.json?t=${t}`),
-              fetch(`${base}data/hk_sc.json?t=${t}`),
-            );
-          }
-          const results = await Promise.all(fetches);
-          if(branch === "HK") {
-            const [rxref, rsc, rana] = results;
-            if(rxref.ok) { const d=await rxref.json(); if(Array.isArray(d)&&d.length>0){setXrefs(d);IDB.set(`ifb_xrefs_${branch}`,d);setDataSource(`xref_${branch}`,"bc");} }
-            if(rsc.ok)  { const d=await rsc.json();  if(Array.isArray(d)&&d.length>0){setScAttuali(d);IDB.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
-            if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);IDB.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
-          } else {
-            const [rana] = results;
-            if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);IDB.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
-          }
+          const [rxref, rsc, rana] = await Promise.all([
+            fetch(`${base}data/hk_xref.json?t=${t}`),
+            fetch(`${base}data/hk_sc.json?t=${t}`),
+            fetch(`${base}data/hk_anagrafica.json?t=${t}`),
+          ]);
+          if(rxref.ok) { const d=await rxref.json(); if(Array.isArray(d)&&d.length>0){setXrefs(d);IDB.set(`ifb_xrefs_${branch}`,d);setDataSource(`xref_${branch}`,"bc");} }
+          if(rsc.ok)  { const d=await rsc.json();  if(Array.isArray(d)&&d.length>0){setScAttuali(d);IDB.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
+          if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);IDB.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
 
@@ -726,12 +717,12 @@ export default function App() {
         )
       );
 
-      const airEntry = airList.find((a:any)=>
+      const airEntry = branch!=="CAN" ? airList.find((a:any)=>
           a.productId === prod.id ||
           (a.code && a.code === prod.code) ||
           (a.nHK && prod.nHK && a.nHK === prod.nHK)
-        );
-      if((airEntry && isAirTransport(airEntry.transportation)) || isAirTransport(prod.bcTransportation))
+        ) : null;
+      if(branch!=="CAN" && ((airEntry && isAirTransport(airEntry.transportation)) || isAirTransport(prod.bcTransportation)))
         return { ...prod, cost:null, prevCost:null, priceInput:null, isAir:true, skipReason:"AIR" };
 
       const logRaw = logistics.find(l=>l.productId===prod.id&&l.branch===branch);
@@ -4123,9 +4114,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
       .map((r:any)=>{
         const prod=findProduct(r.itemCode,products,xrefs);
         const cr=prod?costRows.find((c:any)=>c.id===prod.id):null;
-        const isAir=r.transport==="AIR"||cr?.isAir===true||cr?.skipReason==="AIR";
-        const locationIsNCJ=String(r.location||"").toUpperCase().includes("NCJ");
-        const mismatch=(isAir&&!locationIsNCJ)||(!isAir&&locationIsNCJ);
+        const isAir=branch!=="CAN"&&(r.transport==="AIR"||cr?.isAir===true||cr?.skipReason==="AIR");
+        const locationIsNCJ=branch!=="CAN"&&String(r.location||"").toUpperCase().includes("NCJ");
+        const mismatch=branch!=="CAN"&&((isAir&&!locationIsNCJ)||(!isAir&&locationIsNCJ));
         const newHkd=cr?.cost?.step2Hkd??null;
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
@@ -5632,6 +5623,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
 function Products({ products, setProducts, branch, importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
   const [search, setSearch] = useState("");
   const [onlyIFB, setOnlyIFB] = useState(true);
+  const [sortAna, setSortAna] = useState<"default"|"az"|"za">("default");
   const [importStep, setImportStep] = useState<"idle" | "map" | "preview">("idle");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<any[]>([]);
@@ -5890,9 +5882,8 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
   }
 
   const q = search.trim().toLowerCase();
-  // Applica prima il filtro vendor, poi la ricerca testuale
   const baseList = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
-  const filtered = q
+  let filtered = q
     ? products.filter((p: any) =>
         String(p.description||"").toLowerCase().includes(q) ||
         String(p.code||"").toLowerCase().includes(q) ||
@@ -5900,13 +5891,15 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
         String(p.vendorName||"").toLowerCase().includes(q)
       )
     : baseList;
+  if(sortAna==="az") filtered=[...filtered].sort((a:any,b:any)=>String(a.code||"").localeCompare(String(b.code||"")));
+  else if(sortAna==="za") filtered=[...filtered].sort((a:any,b:any)=>String(b.code||"").localeCompare(String(a.code||"")));
 
   return (
     <div>
       <PageHeader title="Anagrafica Articoli" sub={`${products.length} articoli · ${products.filter((p: any) => isIFBVendor(p.vendorName)).length} INALCA F&B`} srcKey={`anagrafica_${branch}`}/>
-      <BcBanner title={branch==="CAN" ? "Anagrafica prodotti IFB (codici da BC Brightview HK)" : "Dati aggiornati automaticamente da BC Brightview (HK)"}>
+      <BcBanner title={branch==="CAN" ? "Anagrafica manuale — sistema gestionale NAV" : "Dati aggiornati automaticamente da BC Brightview (HK)"}>
         {branch==="CAN"
-          ? <>Anagrafica caricata da <b style={{color:T.text}}>Business Central Brightview HK</b> — usata <b style={{color:T.orange}}>solo per codici IFB, descrizioni, UoM e specifiche logistiche</b> (kg/box, pz/box, temperatura). I <b style={{color:T.text}}>prezzi e costi</b> vengono esclusivamente da <b style={{color:T.text}}>BC IFB Italia</b> (listino acquisto). È possibile importare manualmente da file per sovrascrivere.</>
+          ? <>Le Canarie sono gestite su <b style={{color:T.text}}>NAV</b> (non su BC), senza accesso API diretto. L'anagrafica va caricata <b style={{color:T.orange}}>manualmente da file export NAV</b>: codice articolo, descrizione, UoM, kg/box, pz/box, temperatura. I <b style={{color:T.text}}>prezzi e listini</b> vengono dalla pagina Listini (import separato da BC IFB Italia).</>
           : <>Anagrafica articoli caricata ogni giorno alle 07:00 dall'item card di <b style={{color:T.text}}>Business Central Brightview</b>: descrizione, categoria, UoM, kg/box, pz/box, box/pallet, temperatura, fornitore, <b style={{color:T.text}}>Transportation</b> (AIR/SEA) e <b style={{color:T.text}}>Standard Cost</b> a sistema. È possibile importare manualmente da file per sovrascrivere.</>
         }
       </BcBanner>
@@ -5914,7 +5907,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       {/* Toolbar import */}
       <div style={{ display: "flex", gap: "10px", marginBottom: "16px", alignItems: "center", flexWrap: "wrap" }}>
         <label style={{ display: "inline-block", padding: "8px 16px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>
-          📂 Carica anagrafica (BC export)
+          📂 Carica anagrafica ({branch==="CAN"?"NAV export":"BC export"})
           <input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
         </label>
 
@@ -5977,6 +5970,13 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
           }}
         >
           {onlyIFB ? `✓ Solo IF&B (${baseList.length})` : `Mostra tutti (${products.length})`}
+        </button>
+
+        <button
+          onClick={()=>setSortAna((s:any)=>s==="az"?"za":s==="za"?"default":"az")}
+          style={{padding:"5px 12px",background:sortAna!=="default"?`${T.blue}20`:T.surface,color:sortAna!=="default"?T.blue:T.muted,border:`1px solid ${sortAna!=="default"?T.blue:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}
+        >
+          {sortAna==="az"?"A→Z cod.":sortAna==="za"?"Z→A cod.":"Ordine cod. ▾"}
         </button>
       </div>
 
