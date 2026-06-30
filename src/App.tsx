@@ -1024,7 +1024,7 @@ export default function App() {
             <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>✉ Mail</button>
           </div>
         </div>
-        <div style={{flex:1,paddingTop:"20px",paddingLeft:"28px",paddingBottom:"20px",paddingRight:0,overflow:"auto",width:"calc(100% - 200px)",boxSizing:"border-box"}}>
+        <div style={{flex:1,paddingTop:"20px",paddingLeft:"28px",paddingBottom:"20px",paddingRight:"24px",overflow:"auto",minWidth:0,boxSizing:"border-box"}}>
   {isCAN && (page==="air" || page==="fx") ? pages["dashboard"] : pages[page]}
 </div>
       </div>
@@ -1255,7 +1255,7 @@ function NotesPage() {
   );
 
   return(
-    <div style={{maxWidth:"800px"}}>
+    <div>
       <PageHeader title="📝 Guida rapida" sub="Come si usa la piattaforma — passo per passo"/>
 
       {/* FLUSSO VISIVO */}
@@ -1873,7 +1873,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
   if(step==="map") return(
     <div>
       <PageHeader title={`Mappatura Anagrafica · ${fileName}`} sub={`${rows.length} righe · mappatura auto da export BC`}/>
-      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",maxWidth:"960px",marginBottom:"20px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:"12px",marginBottom:"20px"}}>
         {FIELDS.map(f=>{
           const isRequired = f==="code"||f==="description";
           const isCurrent = branch==="CAN"&&f==="aiem";
@@ -4251,7 +4251,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(step==="map") return(
     <div>
       <PageHeader title="📋 Fatture & Costi · Mappatura" sub={`${fileName} · ${rawRows.length} righe`}/>
-      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"20px",maxWidth:"800px"}}>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:"12px",marginBottom:"20px"}}>
         {([["itemCode","Codice articolo *",true],["description","Descrizione",false],["date","Data fattura",false],["qty","Quantità",false],["unitPrice","Prezzo unitario",false],["location","Location",false]] as [string,string,boolean][]).map(([field,label,req])=>(
           <div key={field}>
             <label style={{display:"block",fontSize:"11px",color:req?T.gold:T.muted,marginBottom:"5px"}}>{label}{req?" *":""}</label>
@@ -4679,7 +4679,7 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
   }
 
   return (
-    <div style={{padding:"28px 32px",maxWidth:"900px"}}>
+    <div style={{padding:"0"}}>
       <div style={{marginBottom:"24px"}}>
         <div style={{fontSize:"10px",letterSpacing:"3px",color:T.gold,textTransform:"uppercase",marginBottom:"4px"}}>Filiale · {branch}</div>
         <h2 style={{margin:0,fontSize:"20px",fontWeight:"bold"}}>⚡ Eccezioni Prezzi</h2>
