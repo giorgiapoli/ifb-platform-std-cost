@@ -4181,18 +4181,18 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
   const scAttualiMap=useMemo(()=>{
     const m: Record<string,any>={};
-    // Indice primario: N COMIT (r.code da scAttuali)
-    (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
-    // Caso A: scAttuali usa N COMIT → alias IFB code (HK/MAC)
-    // Caso B: scAttuali usa IFB code → alias N COMIT (CAN, fatture usano N COMIT)
+    // Indice primario: qualunque codice è in rec.code (N COMIT per CAN, N HK per HK)
+    (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) m[String(r.code)]=r; });
+    // Alias bidirezionale tramite xref: aggiunge sia IFB code che N COMIT come chiavi
     (scAttuali||[]).forEach((rec:any)=>{
-      if(!rec.code) return;
-      // Cerca per nHK (rec.code = N COMIT) → aggiungi alias ifbNo
-      const xrByNHK=(xrefs||[]).find((x:any)=>x.nHK===rec.code);
-      if(xrByNHK?.ifbNo && !m[xrByNHK.ifbNo]) m[xrByNHK.ifbNo]=rec;
-      // Cerca per ifbNo (rec.code = IFB code) → aggiungi alias nHK (N COMIT per CAN)
-      const xrByIfb=(xrefs||[]).find((x:any)=>x.ifbNo===rec.code);
-      if(xrByIfb?.nHK && !m[xrByIfb.nHK]) m[xrByIfb.nHK]=rec;
+      if(rec.code==null) return;
+      const k = String(rec.code);
+      // rec.code = N COMIT → alias IFB code
+      const xrByNHK=(xrefs||[]).find((x:any)=>String(x.nHK)===k);
+      if(xrByNHK?.ifbNo){ const ak=String(xrByNHK.ifbNo); if(!m[ak]) m[ak]=rec; }
+      // rec.code = IFB code → alias N COMIT
+      const xrByIfb=(xrefs||[]).find((x:any)=>String(x.ifbNo)===k);
+      if(xrByIfb?.nHK){ const ak=String(xrByIfb.nHK); if(!m[ak]) m[ak]=rec; }
     });
     return m;
   },[scAttuali,xrefs]);
@@ -4224,12 +4224,21 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         //   2. N COMIT ricavato dall'xref se r.itemCode è IFB
         //   3. prod.code (IFB) — già in mappa come alias
         // HK:  scAttuali keyed by N HK  → usa prod.nHK o r.nHK
+        // CAN: itemCode = N COMIT (fatture Comit), scAttuali keyed by N COMIT (Item No)
+        // Fallback: cerca anche per IFB code (tramite xref o prod.code)
+        const sItemCode = String(r.itemCode||"");
         const nComitFromIfb = branch==="CAN"
-          ? ((xrefs||[]).find((x:any)=>x.ifbNo===r.itemCode)?.nHK||"")
+          ? (String((xrefs||[]).find((x:any)=>String(x.ifbNo)===sItemCode)?.nHK||""))
+          : "";
+        const ifbFromNComit = branch==="CAN"
+          ? (String((xrefs||[]).find((x:any)=>String(x.nHK)===sItemCode)?.ifbNo||""))
           : "";
         const scaRec = branch==="CAN"
-          ? (scAttualiMap[r.itemCode||""] || scAttualiMap[nComitFromIfb] || scAttualiMap[prod?.code||""])
-          : (scAttualiMap[prod?.nHK||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""] || scAttualiMap[r.itemCode||""]);
+          ? (scAttualiMap[sItemCode]           // 1. N COMIT diretto
+             || scAttualiMap[nComitFromIfb]    // 2. N COMIT via xref (se itemCode era IFB)
+             || scAttualiMap[ifbFromNComit]    // 3. IFB code via xref (se itemCode era N COMIT)
+             || scAttualiMap[prod?.code||""])  // 4. IFB code da prodotto
+          : (scAttualiMap[prod?.nHK||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""] || scAttualiMap[sItemCode]);
         const bcStdCost = branch==="CAN" ? null : (prod?.standardCostHkd || null);
         const deltaSC = branch==="CAN" ? null
           : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
