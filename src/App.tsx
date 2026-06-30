@@ -4040,6 +4040,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterScBC,setFilterScBC] = useState<"all"|"assente">("all");
   const [filterMotivo,setFilterMotivo] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old">("all");
   const [filterScNavGC,setFilterScNavGC] = useState<"all"|"assente">("all");
+  const [showNoAna,setShowNoAna] = useState(false);
   const [search,setSearch]     = useState("");
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
 
@@ -4130,7 +4131,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         return sortDir==="desc"?b.date.localeCompare(a.date):a.date.localeCompare(b.date);
       })
       .map((r:any)=>{
-        const prod=findProduct(r.itemCode,products,xrefs);
+        // CAN: r.itemCode = N COMIT → xref → prod. Fallback: prova IFB code diretto
+        const prod=findProduct(r.itemCode,products,xrefs)
+          ||(branch==="CAN"?products?.find((p:any)=>p.code===r.itemCode)||null:null);
         const cr=prod?costRows.find((c:any)=>c.id===prod.id):null;
         const isAir=branch!=="CAN"&&(r.transport==="AIR"||cr?.isAir===true||cr?.skipReason==="AIR");
         const locationIsNCJ=branch!=="CAN"&&String(r.location||"").toUpperCase().includes("NCJ");
@@ -4209,6 +4212,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
+  if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
 
   // ── STEPS IMPORT ──────────────────────────────────────────────────────────
   if(step==="map") return(
@@ -4364,6 +4368,14 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <button onClick={()=>setDedup(v=>!v)}
           style={{padding:"6px 14px",background:dedup?`${T.purple}25`:T.surface,color:dedup?T.purple:T.muted,border:`1px solid ${dedup?T.purple:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:dedup?"bold":"normal"}}>
           {dedup?"✓ Senza duplicati":"⧉ Senza duplicati"}
+        </button>
+        <button onClick={()=>setShowNoAna(v=>!v)}
+          style={{padding:"6px 14px",background:showNoAna?`${T.red}20`:T.surface,color:showNoAna?T.red:T.muted,border:`1px solid ${showNoAna?T.red+"66":T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:showNoAna?"bold":"normal"}}>
+          {showNoAna?"✓ Non in Ana.":"👁 Non in Ana."}
+        </button>
+        <button onClick={()=>window.location.reload()}
+          style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
+          🔄 Ricarica
         </button>
         <button onClick={()=>setSortDir(d=>d==="desc"?"asc":"desc")}
           style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
