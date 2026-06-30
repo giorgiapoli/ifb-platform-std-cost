@@ -1071,10 +1071,10 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
         setHeaders(hdrs);setRawRows(rows);
         // Alias per la colonna filiale (N COMIT per CAN, N HK per altri)
         const nhkA = branch==="CAN"
-          ? ["n comit","ncomit","comit","canarie","can no","can n","n°","numero comit","codice comit","cod comit","codcan","n_comit"]
+          ? ["n comit","ncomit","comit","canarie","can no","can n","n°","numero comit","codice comit","cod comit","codcan","n_comit","no_"]
           : ["n hk","nhk","hk","n_hk","gc code","gc no","hk code","hk no","hong kong"];
-        // Alias per colonna IFB (espliciti prima, generici dopo)
-        const ifbA=["ifb n","ifb no","ifb no.","ifb item","bv no","bv n","no_ifb","ifb","no_","code","item no"];
+        // Alias per colonna IFB — "no_" e "code" tolti (troppo generici, matchano N COMIT)
+        const ifbA=["ifb n","ifb no","ifb no.","ifb item","bv no","bv n","no_ifb","ifb","item no"];
         // Match esatto o inclusione, alias filiale prima degli alias IFB (evita false positiv)
         const normH = (h:string) => h.toLowerCase().replace(/[°\s_]/g,"");
         const pickCol = (aliases:string[]) =>
