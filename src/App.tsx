@@ -2797,7 +2797,8 @@ function exportToExcel() {
       "N HK":         prod?.nHK    || "",
       "IFB No":       prod?.code   || p.itemCode  || "",
       "Descrizione":  prod?.description || p.bcDesc || "",
-      "UoM":          prod?.uom    || "",
+      "Base UoM":     prod?.uom    || "",
+      "Purchase UoM": p.pu         || "",
       "MTS Price":    p.mtsPrice   || "",
       "FCA Price":    p.fcaPrice   || "",
       "FCA Disc.":    p.fcaDiscounted || "",
@@ -3245,13 +3246,25 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={[branchN(branch),"IFB No","Descrizione","UoM","FCA Price","FCA Disc.","Carriage","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
+<THead cols={[branchN(branch),"IFB No","Descrizione (Base UoM)","Purchase UoM","FCA Price","FCA Disc.","Carriage","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
 <tbody>
 {displayed.slice(0, 150).map((p: any, i: number) => {
 const prod = prodById[String(p.productId)];
 const inInvoice = invoiceProductIds.has(p.productId);
 const puom = p.pu || "";
-const qtyPerBox = puom === "BOX" ? (products.find((pr:any) => pr.code === (p.n || p.itemCode))?.qtyPerBox || 1) : 1;
+const baseUom = prod?.uom || "";
+// Fattore di conversione da Purchase UOM a Base UOM
+const _pr = prod || products.find((pr:any) => pr.code === (p.n || p.itemCode));
+const _qpb = Number(_pr?.qtyPerBox) || 1;
+const _kpb = Number(_pr?.kgPerBox)  || 0;
+let convFactor = 1;
+if (puom && baseUom && puom !== baseUom) {
+  if      (puom === "BOX" && baseUom === "PCS") convFactor = 1 / _qpb;
+  else if (puom === "BOX" && baseUom === "KG")  convFactor = 1 / (_kpb || 1);
+  else if (puom === "KG"  && baseUom === "PCS") convFactor = _kpb > 0 ? _kpb / _qpb : 1;
+  else if (puom === "PCS" && baseUom === "KG")  convFactor = _kpb > 0 ? _kpb / _qpb : 1;
+}
+const needsConv = convFactor !== 1;
 return (
   <tr key={p.productId} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
     <TD mono><span style={{ color: T.muted }}>{prod?.nHK || "—"}</span></TD>
@@ -3259,12 +3272,18 @@ return (
       <span style={{ color: T.gold }}>{prod?.code || p.itemCode || p.productId}</span>
       {inInvoice && <span style={{ marginLeft: "5px", fontSize: "9px", color: T.blue }}>📋</span>}
     </TD>
-    <TD>{prod?.description || p.bcDesc || <span style={{ color: T.dim, fontSize: "11px" }}>{p.itemCode}</span>}</TD>
-    <TD mono><span style={{ color: puom ? T.gold : T.dim, fontSize: "10px" }}>{puom || "—"}</span></TD>
+    <TD>
+      <div style={{display:"flex",alignItems:"center",gap:"6px"}}>
+        <span>{prod?.description || p.bcDesc || <span style={{ color: T.dim, fontSize: "11px" }}>{p.itemCode}</span>}</span>
+        {baseUom && <span style={{fontSize:"9px",color:T.gold,background:`${T.gold}18`,padding:"1px 5px",borderRadius:"4px",fontFamily:"monospace",whiteSpace:"nowrap"}}>{baseUom}</span>}
+        {needsConv && <span style={{fontSize:"8px",color:T.muted,whiteSpace:"nowrap"}}>{puom}→{baseUom}</span>}
+      </div>
+    </TD>
+    <TD mono><span style={{ color: puom ? T.muted : T.dim, fontSize: "10px" }}>{puom || "—"}</span></TD>
     {COLS.map(f => (
       <TD key={f} mono>
         <span style={{ color: (p[f] || 0) > 0 ? T.text : T.dim }}>
-          {(p[f] || 0) > 0 ? `€ ${roundN((p[f] || 0) * qtyPerBox).toFixed(2)}` : "—"}
+          {(p[f] || 0) > 0 ? `€ ${roundN((p[f] || 0) * convFactor).toFixed(4).replace(/\.?0+$/,"")}` : "—"}
         </span>
       </TD>
     ))}
