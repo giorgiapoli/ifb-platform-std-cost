@@ -627,17 +627,22 @@ export default function App() {
               const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
               const purchUom = String(row["pu"] || "").trim().toUpperCase();
               const scriptCf = Number(row["cf"] || 1);
-              let convFactor = 1; // >1 = dividi, <1 = moltiplica (es. KG→BOX: 1/qtyPerBox)
+              let convFactor = 1; // >1 = dividi (BOX→PCS), <1 = moltiplica (KG→BOX)
               if (scriptCf === 1 && purchUom && purchUom !== "PCS" && prod) {
                 const qpb = Number(prod.qtyPerBox);
+                const kpb = Number(prod.kgPerBox);
                 const mtc = Number(prod.macToHkConv);
+                const hkUom: string = prod.uom || "PCS";
                 if (branch === "HK") {
                   if (mtc > 1) {
-                    convFactor = mtc;                    // MAC BOX → HK PCS
+                    convFactor = mtc;                         // MAC BOX → HK PCS
                   } else if (purchUom === "BOX" && qpb > 1) {
-                    convFactor = qpb;                    // BOX → PCS: price/qpb
-                  } else if (purchUom === "KG" && qpb > 1) {
-                    convFactor = 1 / qpb;               // KG → BOX: price×qpb = price/(1/qpb)
+                    convFactor = qpb;                         // acquisto BOX → BC base PCS
+                  } else if (purchUom === "KG") {
+                    // converte prezzo/KG BC → prezzo/HK_uom
+                    if (hkUom === "BOX" && qpb > 1) convFactor = 1 / qpb;   // ×qpb (es. MMA05: ×10)
+                    else if (hkUom === "PCS" && kpb > 1) convFactor = 1 / kpb; // ×kpb (es. MMA42: ×12.5)
+                    // hkUom==="KG" o kpb<=1 (=1kg/pcs): nessuna conversione
                   }
                 } else {
                   if (purchUom === "BOX" && qpb > 1) convFactor = qpb;
