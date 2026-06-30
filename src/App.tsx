@@ -622,20 +622,21 @@ export default function App() {
                 const code = String(row["n"] || row["No_"] || "").trim();
                 if(!code) return;
                 const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
-                // Conversione UoM: converti prezzo BC da purchase UoM a base UoM per branch
-                // HK: usa macToHkConv (fattore specifico HK dall'anagrafica) se disponibile
-                // Altri branch: usa qtyPerBox (unità per cartone MAC)
+                // Conversione UoM: il JSON può avere i prezzi già convertiti in base UoM (cf>1)
+                // o ancora in purchase UoM (cf=1/assente). Se non convertiti, l'app converte.
                 const purchUom = String(row["pu"] || "").trim().toUpperCase();
+                const scriptCf = Number(row["cf"] || 1); // fattore già applicato dallo script
                 let convFactor = 1;
-                if (purchUom && purchUom !== "PCS" && purchUom !== "KG" && prod) {
+                if (scriptCf <= 1 && purchUom && purchUom !== "PCS" && purchUom !== "KG" && prod) {
+                  // Script non ha convertito → app converte
                   if (branch === "HK") {
-                    // macToHkConv = fattore BOX→HK-PCS (es. 6 per PLP32: 1 BOX = 6 HK-PCS)
                     const mtc = Number(prod.macToHkConv);
                     convFactor = mtc > 1 ? mtc : (purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1);
                   } else {
                     convFactor = purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1;
                   }
                 }
+                // scriptCf>1: prezzi già in base UoM dallo script, nessuna ulteriore conversione
                 const div = (p: number) => convFactor > 1 ? p / convFactor : p;
                 newEntries.push({
                   productId:     prod?.id ?? `BC_${code}`,
@@ -3160,6 +3161,14 @@ return (
 
 {/* Toolbar import */}
 <div style={{ display: "flex", gap: "10px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
+<button onClick={async ()=>{
+  await IDB.set(`ifb_listini_entries_${branch}`, []);
+  setBcListini([]);
+  showToast("Cache listini svuotata — ricaricamento in corso…", T.gold);
+  setTimeout(()=>window.location.reload(), 800);
+}} style={{padding:"6px 14px",background:T.surface,border:`1px solid ${T.gold}66`,borderRadius:"6px",color:T.gold,cursor:"pointer",fontSize:"12px"}}>
+  🔄 Ricarica listini
+</button>
 <label style={{ display: "inline-block", padding: "6px 14px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>
 📂 Carica listini
 <input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />

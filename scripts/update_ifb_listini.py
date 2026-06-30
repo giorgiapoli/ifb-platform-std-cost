@@ -249,7 +249,7 @@ def build_uom_conversions(token):
         if item and code:
             conv.setdefault(item, {})[code] = qty
     # Debug: verifica conversioni per articoli chiave
-    for test_code in ["HA7021-IB", "Z3774", "BD0501", "CF0051-IFA"]:
+    for test_code in ["HA7021-IB", "Z3774", "BD0501", "CF0051-IFA", "PLP32", "TMSO-2001"]:
         if test_code in conv:
             print(f"    {test_code}: {conv[test_code]}")
         else:
@@ -287,10 +287,12 @@ def build_purchase_prices(token, uom_conv=None):
         # Anche sconto acquisto (spurc in PowerBI = totlinediscountperc da Purchase)
         disc_purch = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
+        conv_qty = 1  # fattore conversione applicato (>1 = prezzo già in base UoM)
         if price and puom and puom not in ("PCS", "", " ") and uom_conv:
             qty = (uom_conv.get(code) or {}).get(puom)
             if qty and qty > 1:
                 price = price / qty
+                conv_qty = qty
         ship     = classify_ship(r.get("shipmentmethodcode"))
         slot     = result[code][ship]
         expired  = not is_active_date(ed)
@@ -307,7 +309,8 @@ def build_purchase_prices(token, uom_conv=None):
             return sl.get("_sd", "") <= sd   # stessa categoria: più recente per startdate
         if better():
             slot.update({"price": price, "disc_purch": disc_purch,
-                         "_sd": sd_r, "_open": is_open, "_expired": expired})
+                         "_sd": sd_r, "_open": is_open, "_expired": expired,
+                         "conv_qty": conv_qty})
         elif disc_purch > 0 and not slot.get("disc_purch"):
             slot["disc_purch"] = disc_purch
         if not result[code]["uom"]:
@@ -468,11 +471,14 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
             or dap_sale.get("enddate") or "")
 
     puom = pur.get("puom", "") if pur else ""
+    # cf = conversion factor già applicato dallo script (>1 = prezzo in base UoM, app NON deve riconvertire)
+    cf = pur.get("FCA", {}).get("conv_qty", 1) if pur else 1
     return {
         "b":  branch,
         "n":  code,
         "d":  desc[:60] if desc else "",
-        "pu": puom,  # UoM acquisto (BOX/PCS/KG) — serve per conversione in app
+        "pu": puom,  # UoM acquisto (BOX/PCS/KG)
+        "cf": cf,    # fattore conversione applicato (1 = non convertito, >1 = già in base UoM)
         "fp": round(fca_price, 6),
         "fd": round(fca_disc, 4),
         "fc": round(fca_discounted, 6),
