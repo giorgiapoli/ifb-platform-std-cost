@@ -4747,17 +4747,34 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
 // Only shows items with |delta| > 3% (point 7)
 // ─── SC ATTUALI ───────────────────────────────────────────────────────────────
 function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch, showToast}) {
-  const [step, setStep] = useState("main");
+  const isCAN = branch === "CAN";
+  const [step, setStep] = useState<"main"|"map"|"preview">("main");
   const [fileName, setFileName] = useState("");
+  const [rawHeaders, setRawHeaders] = useState<string[]>([]);
+  const [rawRows, setRawRows] = useState<any[][]>([]);
+  const [colMap, setColMap] = useState<Record<string,string>>({});
   const [preview, setPreview] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [importMonth, setImportMonth] = useState(()=>{
     const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   });
-  const [selEntry, setSelEntry] = useState<any>(null); // entry storico selezionata
+  const [selEntry, setSelEntry] = useState<any>(null);
   const [histOpen, setHistOpen] = useState(true);
 
-  function parseFile(file) {
+  // Campi da mappare
+  const MAP_FIELDS: {key:string; label:string; required?:boolean; canOnly?:boolean; hkOnly?:boolean}[] = [
+    {key:"code",            label:"Codice articolo",         required:true},
+    {key:"description",     label:"Descrizione"},
+    {key:"lastSC",          label:isCAN?"Standard Cost corrente":"Last Standard Cost"},
+    {key:"fifoUnit",        label:"FIFO Unit Cost"},
+    {key:"scGC",            label:"SC GC / TF",              canOnly:true},
+    {key:"scLan",           label:"SC FUE / LAN",            canOnly:true},
+    {key:"salesLast3m",     label:"Vendite ultimi 3 mesi",   hkOnly:true},
+    {key:"lastPurchaseDate",label:"Last Purchase Date"},
+    {key:"stockQty",        label:"Stock Qty"},
+  ].filter(f => isCAN ? !f.hkOnly : !f.canOnly);
+
+  function loadFile(file: File) {
     setFileName(file.name);
     const reader = new FileReader();
     reader.onload = (e:any) => {
@@ -4766,50 +4783,94 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
         const ws = wb.Sheets[wb.SheetNames[0]];
         const data: any[][] = XLSX.utils.sheet_to_json(ws, {header:1, defval:""});
         if (data.length < 2) { showToast("File vuoto", T.red); return; }
+        // Trova riga intestazione
         let hi = 0;
-        for (let i=0; i<Math.min(6, data.length); i++) {
+        for (let i=0; i<Math.min(8, data.length); i++) {
           const rn = data[i].map((c:any)=>String(c||"").toLowerCase());
-          if (rn.some((c:string)=>c.includes("item no")||c.includes("standard cost")||c.includes("last standard"))) { hi=i; break; }
+          if (rn.some((c:string)=>c.includes("item no")||c.includes("item no.")||c.includes("no_")||c.includes("standard cost")||c.includes("last standard")||c.includes("codice"))) { hi=i; break; }
         }
-        const hdrs = data[hi].map((c:any)=>String(c||"").trim());
+        const hdrs = data[hi].map((c:any)=>String(c||"").trim()).filter(h=>h!=="");
         const rows = data.slice(hi+1).filter((r:any[])=>r.some((c:any)=>c!==""));
-        const fi = (aliases:string[]) => hdrs.findIndex(h=>aliases.some(a=>h.toLowerCase().replace(/[\s_%()/]/g,"").includes(a.replace(/[\s_%()/]/g,""))));
-        const isHK = hdrs.some(h=>h.toLowerCase().includes("last standard cost"));
-        const iCode     = fi(["itemno","item no"]);
-        const iDesc     = fi(["description","descrizione"]);
-        const iFifo     = isHK ? fi(["unitcost"]) : fi(["unitcost(fifo","unit cost"]);
-        const iLastSC   = isHK ? fi(["laststandard","last standard"]) : fi(["standardcost","standard cost"]);
-        const iSales3m  = fi(["saleslast","sales last","vendite"]);
-        const iLastDate = fi(["lastpurchase","last purchase"]);
-        const iStockQty = fi(["stockqty","stock quantity","stock"]);
-        const iScGC     = !isHK ? fi(["scgrancanaria","gran canaria"]) : -1;
-        const iScLan    = !isHK ? fi(["sclanzarote","lanzarote"]) : -1;
-
-        const num = (v:any) => typeof v==="number" ? v : parseFloat(String(v||"").replace(/[€$,\s]/g,""))||0;
-        const str = (v:any) => String(v||"").trim();
-
-        const parsed = rows.map((row:any[])=>{
-          const code = str(iCode>=0?row[iCode]:"");
-          if (!code) return null;
-          return {
-            code,
-            description: str(iDesc>=0?row[iDesc]:""),
-            lastSC:   num(iLastSC>=0?row[iLastSC]:0),
-            fifoUnit: num(iFifo>=0?row[iFifo]:0),
-            salesLast3m: num(iSales3m>=0?row[iSales3m]:0),
-            lastPurchaseDate: str(iLastDate>=0?row[iLastDate]:""),
-            stockQty: num(iStockQty>=0?row[iStockQty]:0),
-            scGC:  iScGC>=0  ? num(row[iScGC])  : 0,
-            scLan: iScLan>=0 ? num(row[iScLan]) : 0,
-          };
-        }).filter(Boolean);
-
-        if (!parsed.length) { showToast("Nessuna riga valida trovata", T.red); return; }
-        setPreview(parsed);
-        setStep("preview");
+        setRawHeaders(hdrs);
+        setRawRows(rows);
+        // Auto-detect suggerimenti
+        const norm = (s:string) => s.toLowerCase().replace(/[\s_%()/]/g,"");
+        const suggest: Record<string,string> = {};
+        const HINTS: Record<string,string[]> = {
+          code:             ["itemno","item no","no_","codice","code"],
+          description:      ["description","descrizione","desc"],
+          lastSC:           ["standardcost","standard cost","laststandard","last standard"],
+          fifoUnit:         ["unitcost","unit cost","fifoda item","fifo da item"],
+          scGC:             ["scgrancanaria","gran canaria","scgc","grancanaria"],
+          scLan:            ["sclanzarote","lanzarote","sclan"],
+          salesLast3m:      ["saleslast","sales last","vendite"],
+          lastPurchaseDate: ["lastpurchase","last purchase"],
+          stockQty:         ["stockqty","stock quantity","stock","giacenza"],
+        };
+        MAP_FIELDS.forEach(f=>{
+          const hints = HINTS[f.key]||[];
+          const found = hdrs.find(h=>hints.some(hint=>norm(h).includes(hint)));
+          if(found) suggest[f.key]=found;
+        });
+        setColMap(suggest);
+        setStep("map");
       } catch(err:any) { showToast("Errore lettura file: "+err.message, T.red); }
     };
     reader.readAsBinaryString(file);
+  }
+
+  function buildPreview() {
+    const num = (v:any) => typeof v==="number" ? v : parseFloat(String(v||"").replace(/[€$,\s]/g,""))||0;
+    const str = (v:any) => String(v||"").trim();
+    const idx = (field:string) => rawHeaders.indexOf(colMap[field]||"");
+    const get = (row:any[], field:string) => { const i=idx(field); return i>=0?row[i]:""; };
+    const parsed = rawRows.map((row:any[])=>{
+      const code = str(get(row,"code"));
+      if(!code) return null;
+      return {
+        code,
+        description:      str(get(row,"description")),
+        lastSC:           num(get(row,"lastSC")),
+        fifoUnit:         num(get(row,"fifoUnit")),
+        scGC:             num(get(row,"scGC")),
+        scLan:            num(get(row,"scLan")),
+        salesLast3m:      num(get(row,"salesLast3m")),
+        lastPurchaseDate: str(get(row,"lastPurchaseDate")),
+        stockQty:         num(get(row,"stockQty")),
+      };
+    }).filter(Boolean);
+    if(!parsed.length) { showToast("Nessuna riga valida", T.red); return; }
+    setPreview(parsed);
+    setStep("preview");
+  }
+
+  function executeImport() {
+    const entry = {
+      id: Date.now(),
+      month: importMonth,
+      fileName,
+      date: new Date().toISOString(),
+      branch,
+      count: preview.length,
+      rows: preview,
+    };
+    setScAttuali(preview);
+    setDataSource(`scattuali_${branch}`,"manual");
+    const newHist = [entry, ...scHistory].slice(0, 24);
+    setScHistory(newHist);
+    IDB.set(`ifb_schistory_${branch}`, newHist);
+    setSelEntry(entry);
+    showToast(`SC Attuali ${importMonth}: ${preview.length} articoli importati ✓`, T.gold);
+    setStep("main");
+    setPreview([]);
+  }
+
+  function clearAll() {
+    if(!window.confirm(`Svuotare tutti i dati SC Attuali per ${branch}?`)) return;
+    setScAttuali([]);
+    IDB.set(`ifb_scattuali_${branch}`,[]);
+    setSelEntry(null);
+    showToast("SC Attuali svuotati", T.orange);
   }
 
   function executeImport() {
@@ -4845,9 +4906,9 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
     return (
       <div style={{overflowX:"auto"}}>
         <table style={{borderCollapse:"collapse",width:"100%"}}>
-          <THead cols={isHKReport
-            ? ["Codice","Descrizione","SC Attuale €","FIFO unit €","Vendite 3m","Last Purchase","Stock Qty"]
-            : ["N COMIT","Descrizione","SC Standard €","FIFO unit €","SC GC €","SC LAN €","Last Purchase","Stock Qty"]}
+          <THead cols={isCAN
+            ? ["Codice","Descrizione","SC Standard €","FIFO unit €","SC GC €","SC LAN €","Last Purchase","Stock Qty"]
+            : ["Codice","Descrizione","SC Attuale €","FIFO unit €","Vendite 3m","Last Purchase","Stock Qty"]}
           />
           <tbody>
             {rows.slice(0,400).map((r:any,i:number)=>(
@@ -4856,9 +4917,9 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.lastSC>0?`€ ${r.lastSC.toFixed(2)}`:"—"}</td>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.fifoUnit>0?r.fifoUnit.toFixed(4):"—"}</td>
-                {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
-                {!isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
-                {isHKReport&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
+                {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
+                {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
+                {!isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.stockQty!=null?r.stockQty:"—"}</td>
               </tr>
@@ -4877,7 +4938,37 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
         srcKey={`scattuali_${branch}`}/>
 
       {/* ── IMPORT ── */}
-      {step==="preview" ? (
+      {step==="map" ? (
+        <Section title={`Mappa colonne — ${fileName} (${rawHeaders.length} colonne trovate)`}>
+          <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:"10px",marginBottom:"14px"}}>
+            {MAP_FIELDS.map(f=>(
+              <div key={f.key} style={{display:"flex",flexDirection:"column",gap:"3px"}}>
+                <label style={{fontSize:"10px",color:f.required?T.gold:T.muted,fontWeight:f.required?"bold":"normal"}}>
+                  {f.label}{f.required?" *":""}
+                </label>
+                <select value={colMap[f.key]||""} onChange={e=>setColMap(m=>({...m,[f.key]:e.target.value}))}
+                  style={{...inputStyle(),fontFamily:"monospace",fontSize:"11px"}}>
+                  <option value="">— non mappare —</option>
+                  {rawHeaders.map((h,i)=><option key={i} value={h}>{h}</option>)}
+                </select>
+              </div>
+            ))}
+          </div>
+          <div style={{marginBottom:"10px",fontSize:"11px",color:T.dim}}>
+            Anteprima prime 3 righe del file:
+            <div style={{overflowX:"auto",marginTop:"6px"}}>
+              <table style={{borderCollapse:"collapse",fontSize:"10px"}}>
+                <thead><tr>{rawHeaders.map((h,i)=><th key={i} style={{padding:"2px 6px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,whiteSpace:"nowrap"}}>{h}</th>)}</tr></thead>
+                <tbody>{rawRows.slice(0,3).map((row,ri)=><tr key={ri}>{rawHeaders.map((_,ci)=><td key={ci} style={{padding:"2px 6px",color:T.text,border:`1px solid ${T.border}22`,whiteSpace:"nowrap",maxWidth:"120px",overflow:"hidden",textOverflow:"ellipsis"}}>{String(row[ci]??"")} </td>)}</tr>)}</tbody>
+              </table>
+            </div>
+          </div>
+          <div style={{display:"flex",gap:"10px"}}>
+            <ActionBtn label="← Annulla" onClick={()=>{setStep("main");setRawHeaders([]);setRawRows([]);}}/>
+            <ActionBtn label={`Anteprima →`} onClick={buildPreview} primary disabled={!colMap["code"]}/>
+          </div>
+        </Section>
+      ) : step==="preview" ? (
         <Section title={`Anteprima — ${fileName} · ${preview.length} articoli`}>
           <div style={{display:"flex",gap:"12px",alignItems:"center",flexWrap:"wrap",marginBottom:"14px"}}>
             <div style={{display:"flex",flexDirection:"column",gap:"4px"}}>
@@ -4892,21 +4983,26 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
             </div>
           </div>
           <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="← Annulla" onClick={()=>{setStep("main");setPreview([]);}}/>
+            <ActionBtn label="← Mappa" onClick={()=>setStep("map")}/>
             <ActionBtn label={`✓ Salva come ${importMonth} (${preview.length} art.)`} onClick={executeImport} primary/>
           </div>
         </Section>
       ) : (
-        <Section title="Carica report SC da BC / Navision">
+        <Section title="Carica report SC da NAV / BC">
           <div style={{display:"flex",gap:"12px",alignItems:"center",flexWrap:"wrap"}}>
             <label style={{display:"inline-block",padding:"8px 16px",background:`${T.gold}22`,border:`1px solid ${T.gold}44`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.gold}}>
               📂 Carica Report SC ({branch})
-              <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>e.target.files?.[0]&&parseFile(e.target.files[0])}/>
+              <input type="file" accept=".xlsx,.xls,.csv" style={{display:"none"}} onChange={e=>e.target.files?.[0]&&loadFile(e.target.files[0])}/>
             </label>
+            {scAttuali.length>0&&(
+              <button onClick={clearAll} style={{padding:"8px 14px",background:`${T.red}18`,border:`1px solid ${T.red}44`,borderRadius:"6px",cursor:"pointer",fontSize:"12px",color:T.red}}>
+                🗑 Svuota SC Attuali
+              </button>
+            )}
             <div style={{fontSize:"11px",color:T.muted,lineHeight:"1.6"}}>
               {branch==="CAN"
-                ? "Navision: Item No · STANDARD COST · SC GRANCANARIA · SC LANZAROTE · Stock Qty"
-                : "BC: Item No · Last Standard Cost · FIFO · Sales 3m · Stock Qty"}
+                ? "NAV: Item No · STANDARD COST · SC GRANCANARIA · SC LANZAROTE (poi mappi le colonne)"
+                : "BC: Item No · Last Standard Cost · FIFO · Sales 3m · Stock Qty (poi mappi le colonne)"}
             </div>
           </div>
         </Section>
