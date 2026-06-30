@@ -22,7 +22,7 @@ BC_COMPANY_HK = "BRIGHT%20VIEW%20TRADING%20HK%20LIMITED"
 OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "ifb_listini.json"
 
 TODAY  = date.today().isoformat()
-MARKUP = 1 / 0.98  # markup IFB: PowerBI usa dir_unit_cost_conv * Fatt_Conv / 0.98
+MARKUP = 100 / 99  # markup IFB ~1% (intercompany — il 2% PowerBI non è ancora applicato)
 
 # Mappa temperatura BC -> chiave interna
 TEMP_NORM = {
@@ -436,8 +436,14 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     def apply(price, disc):
         return round(price * (1 - disc / 100), 6) if price else 0.0
 
-    # Se DAP=0 e FCA>0: usa ISS carriagecost (campo BC compilato manualmente) poi tabella trasporti
-    if dap_price == 0 and fca_price > 0:
+    # Condizione MARR S.P.A. (identica a PowerBI): DAP = FCA / 0.985
+    vendor_name = (item_card or {}).get(code, {}).get("vendorName", "") if item_card else ""
+    is_marr = vendor_name.upper() == "MARR S.P.A."
+    if is_marr and fca_price > 0:
+        dap_price = round(fca_price / 0.985, 6)
+        carriage  = round(dap_price - fca_price, 6)
+    # Se DAP=0 e FCA>0 (e non MARR): usa ISS carriagecost poi tabella trasporti
+    elif dap_price == 0 and fca_price > 0:
         iss_cr = float((iss_carriage or {}).get(code, 0))
         if iss_cr > 0:
             carriage  = round(iss_cr, 6)
