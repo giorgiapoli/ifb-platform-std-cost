@@ -627,16 +627,23 @@ export default function App() {
               const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
               const purchUom = String(row["pu"] || "").trim().toUpperCase();
               const scriptCf = Number(row["cf"] || 1);
-              let convFactor = 1;
+              let convFactor = 1; // >1 = dividi, <1 = moltiplica (es. KG→BOX: 1/qtyPerBox)
               if (scriptCf === 1 && purchUom && purchUom !== "PCS" && prod) {
+                const qpb = Number(prod.qtyPerBox);
+                const mtc = Number(prod.macToHkConv);
                 if (branch === "HK") {
-                  const mtc = Number(prod.macToHkConv);
-                  convFactor = mtc > 1 ? mtc : (purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1);
+                  if (mtc > 1) {
+                    convFactor = mtc;                    // MAC BOX → HK PCS
+                  } else if (purchUom === "BOX" && qpb > 1) {
+                    convFactor = qpb;                    // BOX → PCS: price/qpb
+                  } else if (purchUom === "KG" && qpb > 1) {
+                    convFactor = 1 / qpb;               // KG → BOX: price×qpb = price/(1/qpb)
+                  }
                 } else {
-                  convFactor = purchUom === "BOX" && Number(prod.qtyPerBox) > 1 ? Number(prod.qtyPerBox) : 1;
+                  if (purchUom === "BOX" && qpb > 1) convFactor = qpb;
                 }
               }
-              const div = (p: number) => convFactor > 1 ? p / convFactor : p;
+              const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
               newEntries.push({
                 productId:     prod?.id ?? `BC_${code}`,
                 itemCode:      code,
