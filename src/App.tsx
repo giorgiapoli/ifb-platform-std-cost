@@ -4171,10 +4171,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     const m: Record<string,any>={};
     // Indice primario: N COMIT (r.code da scAttuali)
     (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
-    // Alias: aggiungi anche IFB code come chiave, cercando xref N COMIT → IFB
+    // Alias: aggiungi anche IFB code come chiave, cercando xref N COMIT (=nHK) → IFB
     (scAttuali||[]).forEach((rec:any)=>{
       if(!rec.code) return;
-      const xr=(xrefs||[]).find((x:any)=>x.nComit===rec.code);
+      const xr=(xrefs||[]).find((x:any)=>x.nHK===rec.code);
       if(xr?.ifbNo && !m[xr.ifbNo]) m[xr.ifbNo]=rec;
     });
     return m;
@@ -4208,7 +4208,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         //   3. prod.code (IFB) — già in mappa come alias
         // HK:  scAttuali keyed by N HK  → usa prod.nHK o r.nHK
         const nComitFromIfb = branch==="CAN"
-          ? ((xrefs||[]).find((x:any)=>x.ifbNo===r.itemCode)?.nComit||"")
+          ? ((xrefs||[]).find((x:any)=>x.ifbNo===r.itemCode)?.nHK||"")
           : "";
         const scaRec = branch==="CAN"
           ? (scAttualiMap[r.itemCode||""] || scAttualiMap[nComitFromIfb] || scAttualiMap[prod?.code||""])
