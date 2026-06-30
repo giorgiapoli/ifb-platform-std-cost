@@ -4143,7 +4143,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
         const scFUE = cr?.cost?.step2FUE ?? null;
-        const scaRec = scAttualiMap[prod?.code||r.itemCode||""];
+        // Per CAN: scAttuali è keyed by N COMIT → usa r.itemCode (N COMIT dall'invoice) come chiave primaria
+        const scaRec = branch==="CAN"
+          ? (scAttualiMap[r.itemCode||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""])
+          : scAttualiMap[prod?.code||r.itemCode||""];
         const bcStdCost = branch==="CAN" ? null : (prod?.standardCostHkd || null);
         const deltaSC = branch==="CAN" ? null
           : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
