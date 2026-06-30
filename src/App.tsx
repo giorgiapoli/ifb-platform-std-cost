@@ -940,7 +940,7 @@ export default function App() {
     bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} showToast={showToast}/>,
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
-    invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali}/>,
     scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast}/>,
     storico: <Storico
       snapshots={snapshots}
@@ -3668,10 +3668,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               </>}
               <TH accent={T.purple} w={65}>WH €</TH>
               {branch==="CAN" ? <>
-                <TH accent={T.green} w={72}>New SC GC</TH>
-                <TH accent={T.green} w={72}>New SC TF</TH>
-                <TH accent={T.green} w={72}>New SC LAN</TH>
-                <TH accent={T.green} w={85}>New SC FUE ✓</TH>
+                <TH accent={T.green} w={80}>New SC GC/TF</TH>
+                <TH accent={T.green} w={85}>New SC FUE/LAN ✓</TH>
               </> : <>
                 <TH accent={T.green} w={72}>New SC €</TH>
                 <TH accent={T.green} w={85}>New SC HKD ✓</TH>
@@ -3834,8 +3832,6 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                   {/* step 2 */}
                   {branch==="CAN" ? <>
                     <td style={cell(T.green,true)}>{c?`€${c.step2GC.toFixed(4)}`:"—"}</td>
-                    <td style={cell(T.green,true)}>{c?`€${c.step2TF.toFixed(4)}`:"—"}</td>
-                    <td style={cell(T.green,true)}>{c?`€${c.step2LAN.toFixed(4)}`:"—"}</td>
                     <td style={cell(T.green,true)}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
                         {c?`€${c.step2FUE.toFixed(4)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
@@ -4017,7 +4013,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 
 
-function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,logistics,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,logistics,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,scAttuali}) {
   const [step,setStep]         = useState(()=>rows?.length?"view":"upload");
   const [preview,setPreview]   = useState<any[]>([]);
   const [headers,setHeaders]   = useState<string[]>([]);
@@ -4112,6 +4108,12 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
   const activeRows=useMemo(()=>(rows||[]).filter((r:any)=>!r.branch||r.branch===branch),[rows,branch]);
 
+  const scAttualiMap=useMemo(()=>{
+    const m: Record<string,any>={};
+    (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
+    return m;
+  },[scAttuali]);
+
   const enriched=useMemo(()=>{
     return [...activeRows]
       .sort((a:any,b:any)=>{
@@ -4124,26 +4126,27 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const isAir=r.transport==="AIR"||cr?.isAir===true||cr?.skipReason==="AIR";
         const locationIsNCJ=String(r.location||"").toUpperCase().includes("NCJ");
         const mismatch=(isAir&&!locationIsNCJ)||(!isAir&&locationIsNCJ);
-        const newHkd=cr?.cost?.step2Hkd??null; // GC canonico (usato per filtri)
+        const newHkd=cr?.cost?.step2Hkd??null;
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
         const skipReason=isAir?"AIR":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
         const logTransport=logEntry?.transport||"";
-        // CAN: 4 isole
         const scGC  = cr?.cost?.step2GC  ?? null;
-        const scTF  = cr?.cost?.step2TF  ?? null;
-        const scLAN = cr?.cost?.step2LAN ?? null;
         const scFUE = cr?.cost?.step2FUE ?? null;
-        const bcStdCost = prod?.standardCostHkd || null;
-        const deltaSC = (newHkd != null && bcStdCost != null && bcStdCost > 0)
-          ? newHkd - bcStdCost : null;
+        const scaRec = scAttualiMap[prod?.code||r.itemCode||""];
+        const bcStdCost = branch==="CAN"
+          ? (scaRec?.lastSC || null)
+          : (prod?.standardCostHkd || null);
+        const deltaSC = branch==="CAN"
+          ? (scGC != null && bcStdCost != null && bcStdCost > 0 ? scGC - bcStdCost : null)
+          : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
-          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason,scGC,scTF,scLAN,scFUE,
+          isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason,scGC,scFUE,
           bcStdCost,deltaSC};
       });
-  },[activeRows,costRows,products,xrefs,sortDir]);
+  },[activeRows,costRows,products,xrefs,sortDir,scAttualiMap]);
 
   const mismatches  = enriched.filter((r:any)=>r.mismatch);
   const airCount    = enriched.filter((r:any)=>r.isAir).length;
@@ -4316,10 +4319,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
             "Mag./Trasp.":r.isAir?"AIR":r.ubicazione||"",
             "Old SC":r.oldHkd!=null?roundN(r.oldHkd):"",
             ...(branch==="CAN"
-              ? {"SC GC":r.isAir?"AIR":r.scGC!=null?roundN(r.scGC):"MANCANTE",
-                 "SC TF":r.isAir?"AIR":r.scTF!=null?roundN(r.scTF):"MANCANTE",
-                 "SC LAN":r.isAir?"AIR":r.scLAN!=null?roundN(r.scLAN):"MANCANTE",
-                 "SC FUE":r.isAir?"AIR":r.scFUE!=null?roundN(r.scFUE):"MANCANTE"}
+              ? {"SC GC/TF":r.isAir?"AIR":r.scGC!=null?roundN(r.scGC):"MANCANTE",
+                 "SC FUE/LAN":r.isAir?"AIR":r.scFUE!=null?roundN(r.scFUE):"MANCANTE",
+                 "SC BC":r.bcStdCost>0?roundN(r.bcStdCost):"",
+                 "Δ SC":r.deltaSC!=null?roundN(r.deltaSC):""}
               : {"New SC":r.isAir?"AIR":(r.unitPrice===0||r.unitPrice===0.01)?"SAMPLE":r.newHkd!=null?roundN(r.newHkd):"MANCANTE",
                  "SC BC":r.bcStdCost>0?roundN(r.bcStdCost):"",
                  "Δ SC":r.deltaSC!=null?roundN(r.deltaSC):""}),
@@ -4398,7 +4401,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC ▾","SC TF","SC LAN","SC FUE"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC BC","Δ SC"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4439,11 +4442,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     </select>
                   </th>
                 );
-                if(c==="SC GC ▾") return(
+                if(c==="SC GC/TF ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={scFilter} onChange={e=>setScFilter(e.target.value as any)}
                       style={{background:scFilter!=="all"?`${T.gold}22`:T.card,color:scFilter!=="all"?T.gold:T.muted,border:`1px solid ${scFilter!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
-                      <option value="all">SC GC ▾</option>
+                      <option value="all">SC GC/TF ▾</option>
                       <option value="ok">✅ Con costo</option>
                       <option value="mancante">❌ MANCANTE</option>
                       <option value="sample">📦 SAMPLE</option>
@@ -4478,7 +4481,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></td>
                     {branch==="CAN" ? (
                       <>
-                        {([r.scGC,r.scTF,r.scLAN,r.scFUE] as (number|null)[]).map((v,i)=>(
+                        {([r.scGC,r.scFUE] as (number|null)[]).map((v,i)=>(
                           <td key={i} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
                             {r.isAir
                               ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
@@ -4490,6 +4493,16 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                             }
                           </td>
                         ))}
+                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                          <span style={{color:T.muted}}>{r.bcStdCost>0?r.bcStdCost.toFixed(2):"—"}</span>
+                        </td>
+                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                          {r.deltaSC!=null
+                            ? <span style={{color:r.deltaSC>1?T.red:r.deltaSC<-1?T.green:T.text,fontWeight:Math.abs(r.deltaSC)>1?"bold":"normal"}}>
+                                {r.deltaSC>0?"+":""}{r.deltaSC.toFixed(2)}
+                              </span>
+                            : <span style={{color:T.dim}}>—</span>}
+                        </td>
                       </>
                     ) : (
                       <>
