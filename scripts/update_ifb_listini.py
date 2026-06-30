@@ -22,7 +22,7 @@ BC_COMPANY_HK = "BRIGHT%20VIEW%20TRADING%20HK%20LIMITED"
 OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "ifb_listini.json"
 
 TODAY  = date.today().isoformat()
-MARKUP = 100 / 99  # markup IFB ~1% (intercompany — il 2% PowerBI non è ancora applicato)
+MARKUP = 100 / 98  # markup IFB 2% intercompany (PowerBI: directunitcost / 0.98)
 
 # Mappa temperatura BC -> chiave interna
 TEMP_NORM = {
