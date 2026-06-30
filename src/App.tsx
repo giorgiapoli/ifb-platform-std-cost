@@ -1,4 +1,4 @@
-// v2026-06-30
+﻿// v2026-06-30
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 
@@ -943,7 +943,7 @@ export default function App() {
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali}/>,
-    scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast}/>,
+    scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast} xrefs={xrefs}/>,
     storico: <Storico
       snapshots={snapshots}
       setSnapshots={setSnapshots}
@@ -953,7 +953,7 @@ export default function App() {
       showToast={showToast}
       macHkCostRows={macHkCostRows}
     />,
-    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products}/>,
+    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products} logistics={logistics}/>,
     mail:  <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
   };
@@ -1240,7 +1240,7 @@ function NotesPage() {
         style={{width:"100%",display:"flex",alignItems:"center",gap:"10px",padding:"12px 16px",
           background:isOpen?`${color}12`:"transparent",border:"none",cursor:"pointer",textAlign:"left",fontFamily:"inherit"}}>
         <span style={{fontSize:"15px",width:"22px",textAlign:"center"}}>{icon}</span>
-        <span style={{flex:1,fontSize:"13px",fontWeight:"bold",color:isOpen?color:T.text}}>{label}</span>
+        <span style={{flex:1,fontSize:"13px",fontWeight:"bold",color:color}}>{label}</span>
         <span style={{fontSize:"10px",color:T.dim}}>{isOpen?"▲":"▼"}</span>
       </button>
       {isOpen&&(
@@ -5134,8 +5134,10 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 }
 
 // ─── CHECK MENSILE ────────────────────────────────────────────────────────────
-function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products}) {
-  // Mesi disponibili dalle fatture (posting date)
+function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[]}) {
+  const isCAN = branch === "CAN";
+  const cur = isCAN ? "€" : "HK$";
+
   const availableMonths = useMemo(()=>{
     const s = new Set<string>();
     (salesRows||[]).forEach((r:any)=>{
@@ -5147,32 +5149,42 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
 
   const [selectedMonth, setSelectedMonth] = useState<string>("");
   const [threshold, setThreshold] = useState(3);
-  const [showOK, setShowOK] = useState(false);
 
   useEffect(()=>{
     if(!selectedMonth && availableMonths.length>0) setSelectedMonth(availableMonths[0]);
   },[availableMonths]);
 
-  // mappe di lookup
-  const xrefByIFB = useMemo(()=>{
+  // xref: nHK (=N COMIT per CAN) → ifbNo
+  const xrefByNFiliale = useMemo(()=>{
     const m: Record<string,string>={};
-    (xrefs||[]).forEach((x:any)=>{ if(x.ifbNo&&x.nHK) m[x.ifbNo]=x.nHK; });
+    (xrefs||[]).forEach((x:any)=>{ if(x.nHK&&x.ifbNo) m[x.nHK]=x.ifbNo; });
     return m;
   },[xrefs]);
 
+  // costMap: keyed by IFB code (priorità IFB per listini)
   const costMap = useMemo(()=>{
     const m: Record<string,any>={};
-    (costRows||[]).forEach((r:any)=>{ m[r.id||r.code]=r; });
+    (costRows||[]).forEach((r:any)=>{
+      if(r.code) m[r.code]=r;
+      if(r.id) m[String(r.id)]=r;
+    });
     return m;
   },[costRows]);
 
+  // scMap keyed by N COMIT / N HK
   const scMap = useMemo(()=>{
     const m: Record<string,any>={};
     (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
     return m;
   },[scAttuali]);
 
-  // fatture del mese selezionato
+  // logMap keyed by productId
+  const logMap = useMemo(()=>{
+    const m: Record<string,any>={};
+    (logistics||[]).forEach((l:any)=>{ if(l.productId) m[String(l.productId)]=l; });
+    return m;
+  },[logistics]);
+
   const monthRows = useMemo(()=>{
     if(!selectedMonth) return [];
     return (salesRows||[]).filter((r:any)=>{
@@ -5181,92 +5193,82 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
     });
   },[salesRows, selectedMonth]);
 
-  // righe analisi: un articolo per IFB No
   const analysisRows = useMemo(()=>{
     if(!selectedMonth||!monthRows.length) return [];
     const seen = new Set<string>();
     const rows: any[] = [];
     for (const inv of monthRows) {
-      const ifbNo = inv.itemCode;
-      if(!ifbNo||seen.has(ifbNo)) continue;
-      seen.add(ifbNo);
-      const nFiliale = xrefByIFB[ifbNo] || ifbNo;
+      const nFiliale = inv.itemCode;
+      if(!nFiliale||seen.has(nFiliale)) continue;
+      seen.add(nFiliale);
+      const ifbNo = xrefByNFiliale[nFiliale] || nFiliale;
       const scEntry  = scMap[nFiliale];
-      const cr       = costMap[ifbNo];
+      const cr       = costMap[ifbNo] || costMap[nFiliale];
+      const prod     = (products||[]).find((p:any)=>p.code===ifbNo);
+      const logEntry = prod ? logMap[String(prod.id)] : null;
+      const lastOrderD = logEntry?.lastOrderDate ? new Date(logEntry.lastOrderDate) : null;
+      const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
       const oldSC    = scEntry?.lastSC || 0;
-      // Step2: per CAN usa step2GC; per HK usa step2Eur
-      const newSC    = branch==="CAN"
+      const newSC    = isCAN
         ? (cr?.cost?.step2GC || cr?.cost?.step2Eur || 0)
         : (cr?.cost?.step2Eur || 0);
       const deltaAbs = oldSC>0 ? newSC-oldSC : 0;
       const deltaPct = oldSC>0 ? deltaAbs/oldSC*100 : 0;
-
-      let azione:string, note="";
-      if (!oldSC)                       { azione="NUOVO ARTICOLO"; }
-      else if (Math.abs(deltaPct)>threshold) { azione="DA AGGIORNARE"; note=deltaPct>0?"aumentato listino":"calato listino"; }
-      else                              { azione="OK"; }
-
+      const noCalc   = !newSC && !cr?.cost;
       rows.push({
-        codice:     nFiliale,
-        ifbNo,
+        nFiliale, ifbNo,
         description: cr?.description || inv.description || "",
-        isNuovo:    !oldSC,
-        oldSC,
-        newSC,
-        deltaPct,
-        scFinale:   newSC,
-        lastDate:   scEntry?.lastPurchaseDate || "",
-        stockQty:   scEntry?.stockQty ?? "",
-        azione,
-        note,
-        noCalc:     !newSC && !cr?.cost,
+        oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
+        lastDate: scEntry?.lastPurchaseDate || "",
+        stockQty: scEntry?.stockQty ?? "",
+        isKeepOld,
+        isNuovo:  !oldSC && !noCalc,
+        isDelta:  oldSC>0 && Math.abs(deltaPct)>threshold,
+        isKeepOldOrdered: isKeepOld,
       });
     }
-    return rows.sort((a,b)=>{
-      const order = {DA_AGGIORNARE:0,"NUOVO ARTICOLO":1,OK:2};
-      return (order[a.azione.replace(/ /g,"_")]??9)-(order[b.azione.replace(/ /g,"_")]??9);
-    });
-  },[monthRows, xrefByIFB, scMap, costMap, branch, threshold, selectedMonth]);
+    return rows;
+  },[monthRows, xrefByNFiliale, scMap, costMap, products, logMap, isCAN, threshold, selectedMonth]);
 
-  const nuovi = analysisRows.filter(r=>r.azione==="NUOVO ARTICOLO");
-  const daAgg = analysisRows.filter(r=>r.azione==="DA AGGIORNARE");
-  const okRows= analysisRows.filter(r=>r.azione==="OK");
-  const toAct = [...daAgg,...nuovi];
-  const displayed = showOK ? analysisRows : toAct;
+  const alert1 = analysisRows.filter(r=>r.isNuovo);
+  const alert2 = analysisRows.filter(r=>r.isDelta);
+  const alert3 = analysisRows.filter(r=>r.isKeepOldOrdered && !r.isNuovo);
 
   function exportExcel() {
-    const branchCode = branch==="CAN"?"COMIT":"HK";
+    const branchCode = isCAN?"COMIT":"HK";
     const monthFmt = selectedMonth.replace("-","_").slice(0,7);
-    const mLabel = selectedMonth ? new Date(selectedMonth+"-01").toLocaleDateString("it-IT",{month:"short",year:"numeric"}) : "";
-    const data = toAct.map((r:any)=>({
-      "Codice":    r.codice,
-      "IFB":       r.ifbNo,
+    const all = [
+      ...alert1.map((r:any)=>({...r,tipo:"DA INSERIRE"})),
+      ...alert2.map((r:any)=>({...r,tipo:"TO UPDATE (Delta%)"})),
+      ...alert3.map((r:any)=>({...r,tipo:"TO UPDATE (Keep Old)"})),
+    ];
+    const data = all.map((r:any)=>({
+      "Tipo":        r.tipo,
+      "N Filiale":   r.nFiliale,
+      "IFB":         r.ifbNo,
       "Descrizione": r.description,
-      "NUOVO":     r.isNuovo?"SI":"",
-      "Old_SC":    r.oldSC>0 ? Number(r.oldSC.toFixed(2)) : "",
-      "New_SC":    r.newSC>0 ? Number(r.newSC.toFixed(2)) : "",
-      "Δ %":       r.oldSC>0 ? (r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%" : "",
-      "SC_FINALE": r.scFinale>0 ? Number(r.scFinale.toFixed(2)) : "",
-      "Last_Date": r.lastDate,
-      "Quantity":  r.stockQty,
-      "AZIONE":    r.azione,
-      "NOTE":      r.note,
+      "Old SC":      r.oldSC>0 ? Number(r.oldSC.toFixed(2)) : "",
+      "New SC":      r.newSC>0 ? Number(r.newSC.toFixed(2)) : "",
+      "Delta %":     r.oldSC>0 ? (r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%" : "",
+      "Last Date":   r.lastDate,
+      "Stock Qty":   r.stockQty,
     }));
     exportXLSX(data, "SC_Analisi", `STDC_Analisi_${branchCode}_${monthFmt}.xlsx`);
   }
 
-  const AC:{[k:string]:string} = {
-    "DA AGGIORNARE": T.orange,
-    "NUOVO ARTICOLO": T.blue,
-    "OK": T.green,
-  };
+  const TH = ({h}:{h:string}) => <th style={{padding:"3px 8px",fontSize:"9px",color:T.gold,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap",textAlign:"left",letterSpacing:"0.5px",textTransform:"uppercase"}}>{h}</th>;
+  const tdC  = (v:string) => <td style={{padding:"3px 8px",fontSize:"10px",color:T.text,fontFamily:"monospace",whiteSpace:"nowrap"}}>{v||"—"}</td>;
+  const tdM  = (v:any)    => <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,whiteSpace:"nowrap"}}>{v!=null&&v!==""?v:"—"}</td>;
+  const tdD  = (v:string) => <td style={{padding:"3px 8px",fontSize:"10px",color:T.text,maxWidth:"220px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v}</td>;
+  const tdSC = (v:number) => <td style={{padding:"3px 8px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{v>0?`${cur} ${v.toFixed(2)}`:"—"}</td>;
+  const tdDp = (pct:number,old:number) => <td style={{padding:"3px 8px",fontSize:"10px",textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap",color:pct>0?T.orange:T.red}}>{old>0?(pct>0?"+":"")+pct.toFixed(2)+"%":"—"}</td>;
+  const fCode = isCAN ? "N COMIT" : "N HK";
 
   return (
     <div>
-      <PageHeader title={`📅 Check Mensile · ${branch}`} sub="Confronto SC calcolato vs SC Attuali — soglia: > +3% o < -3%"/>
+      <PageHeader title={`📅 Check Mensile · ${branch}`} sub="TODO list aggiornamento Standard Cost"/>
 
-      {/* Selezione mese + threshold */}
-      <Section title="Filtri">
+      <Section title="Mese di riferimento">
         <div style={{display:"flex",gap:"16px",alignItems:"flex-end",flexWrap:"wrap"}}>
           <div>
             <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Mese fatture</label>
@@ -5274,8 +5276,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
               ? <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>⚠ Nessuna fattura caricata</div>
               : <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} style={{...inputStyle(),minWidth:"160px",cursor:"pointer"}}>
                   {availableMonths.map(m=><option key={m} value={m}>{m}</option>)}
-                </select>
-            }
+                </select>}
           </div>
           <div>
             <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Soglia Δ%</label>
@@ -5284,86 +5285,101 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products})
           </div>
           {scAttuali.length===0&&(
             <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>
-              ⚠ SC Attuali non caricati — vai alla pagina <strong>SC Attuali</strong>
+              ⚠ SC Attuali non caricati
             </div>
           )}
-          {monthRows.length>0&&<div style={{fontSize:"11px",color:T.muted,paddingBottom:"2px"}}>
-            {monthRows.length} righe fattura · {analysisRows.length} articoli univoci
+          {analysisRows.length>0&&<div style={{display:"flex",gap:"10px",alignItems:"center"}}>
+            <span style={{fontSize:"11px",color:T.muted}}>{monthRows.length} righe · {analysisRows.length} articoli univoci</span>
+            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={alert1.length+alert2.length+alert3.length===0}/>
           </div>}
         </div>
       </Section>
 
-      {/* Riepilogo KPI */}
-      {analysisRows.length>0&&(
-        <Section title="Riepilogo">
-          <div style={{display:"flex",gap:"20px",flexWrap:"wrap",marginBottom:"14px"}}>
-            {[
-              {label:"DA AGGIORNARE",n:daAgg.length,c:T.orange,icon:"⬆️"},
-              {label:"NUOVI",n:nuovi.length,c:T.blue,icon:"🆕"},
-              {label:"OK (nessuna azione)",n:okRows.length,c:T.green,icon:"✅"},
-            ].map(({label,n,c,icon})=>(
-              <div key={label} style={{background:`${c}11`,border:`1px solid ${c}44`,borderRadius:"8px",padding:"10px 18px",minWidth:"130px"}}>
-                <div style={{fontSize:"9px",color:c,letterSpacing:"1px",textTransform:"uppercase",marginBottom:"2px"}}>{icon} {label}</div>
-                <div style={{fontSize:"22px",fontWeight:"bold",color:c}}>{n}</div>
-              </div>
-            ))}
-          </div>
-          <div style={{display:"flex",gap:"10px",flexWrap:"wrap"}}>
-            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={toAct.length===0}/>
-            <ActionBtn label={showOK?"Nascondi OK ✓":"Mostra anche OK ✓"} onClick={()=>setShowOK(s=>!s)}/>
-          </div>
-        </Section>
-      )}
+      {analysisRows.length>0&&<>
+        {/* KPI */}
+        <div style={{display:"flex",gap:"14px",flexWrap:"wrap",padding:"0 0 18px"}}>
+          {([
+            {label:"DA INSERIRE",n:alert1.length,c:T.blue,icon:"🆕"},
+            {label:"TO UPDATE (Δ%)",n:alert2.length,c:T.orange,icon:"⬆"},
+            {label:"TO UPDATE (Keep Old)",n:alert3.length,c:T.purple,icon:"♻"},
+          ] as {label:string,n:number,c:string,icon:string}[]).map(({label,n,c,icon})=>(
+            <div key={label} style={{background:`${c}11`,border:`1px solid ${c}44`,borderRadius:"8px",padding:"10px 18px",minWidth:"140px"}}>
+              <div style={{fontSize:"9px",color:c,letterSpacing:"1px",textTransform:"uppercase",marginBottom:"2px"}}>{icon} {label}</div>
+              <div style={{fontSize:"24px",fontWeight:"bold",color:n>0?c:T.dim}}>{n}</div>
+            </div>
+          ))}
+        </div>
 
-      {/* Tabella */}
-      {displayed.length>0 ? (
-        <Section title={`Articoli · ${displayed.length} mostrati`}>
+        {/* ALERT 1 */}
+        <Section title={`🆕 1. DA INSERIRE — nuovo articolo senza SC (${alert1.length})`} accent={T.blue}>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Articoli ordinati questo mese che non hanno ancora uno Standard Cost in sistema.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>
-                {["Codice","IFB","Descrizione","NUOVO","Old SC €","New SC €","Δ %","SC FINALE €","Last Date","Stock","AZIONE","NOTE"].map(h=>(
-                  <th key={h} style={{padding:"3px 6px",fontSize:"9px",color:T.gold,borderBottom:`1px solid ${T.border}`,textAlign:"right",whiteSpace:"nowrap"}}>{h}</th>
-                ))}
-              </tr></thead>
+              <thead><tr><TH h={fCode}/><TH h="IFB Item"/><TH h="Descrizione"/><TH h="New SC Calc"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
               <tbody>
-                {displayed.map((r:any,i:number)=>{
-                  const ac = AC[r.azione]||T.muted;
-                  const isNuovo = r.azione==="NUOVO ARTICOLO";
-                  const isDa    = r.azione==="DA AGGIORNARE";
-                  return (
-                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${ac}09`}}>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,fontFamily:"monospace",whiteSpace:"nowrap"}}>{r.codice}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>{r.ifbNo}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.text,maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.blue,textAlign:"center",fontWeight:"bold"}}>{isNuovo?"SI":""}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.oldSC>0?`€ ${r.oldSC.toFixed(2)}`:"—"}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold"}}>{r.newSC>0?`€ ${r.newSC.toFixed(2)}`:r.noCalc?"NC":"—"}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",textAlign:"right",fontWeight:"bold",
-                        color:r.deltaPct>0?T.orange:r.deltaPct<0?"#e05a5a":T.muted}}>
-                        {r.oldSC>0?(r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%":"—"}
-                      </td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.green,textAlign:"right",fontWeight:"bold"}}>{r.scFinale>0?`€ ${r.scFinale.toFixed(2)}`:"—"}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastDate||"—"}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right"}}>{r.stockQty!==""?r.stockQty:"—"}</td>
-                      <td style={{padding:"3px 6px",textAlign:"center"}}>
-                        <span style={{padding:"2px 6px",borderRadius:"4px",fontSize:"9px",fontWeight:"bold",whiteSpace:"nowrap",
-                          background:`${ac}22`,color:ac}}>{r.azione}</span>
-                      </td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,fontStyle:"italic",whiteSpace:"nowrap"}}>{r.note}</td>
+                {alert1.length===0
+                  ? <tr><td colSpan={6} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  : alert1.map((r:any,i:number)=>(
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.blue}07`}}>
+                      {tdC(r.nFiliale)}{tdC(r.ifbNo)}{tdD(r.description)}
+                      {tdSC(r.newSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
                     </tr>
-                  );
-                })}
+                  ))}
               </tbody>
             </table>
           </div>
         </Section>
-      ) : selectedMonth&&!analysisRows.length ? (
+
+        {/* ALERT 2 */}
+        <Section title={`⬆ 2. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC in macchina vs SC calcolato: variazione oltre la soglia.</div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
+              <thead><tr><TH h={fCode}/><TH h="IFB Item"/><TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Stock"/></tr></thead>
+              <tbody>
+                {alert2.length===0
+                  ? <tr><td colSpan={7} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  : alert2.map((r:any,i:number)=>(
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:r.deltaPct>0?`${T.orange}07`:`${T.red}07`}}>
+                      {tdC(r.nFiliale)}{tdC(r.ifbNo)}{tdD(r.description)}
+                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
+                      {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}{tdM(r.stockQty)}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
+        {/* ALERT 3 */}
+        <Section title={`♻ 3. TO UPDATE — Keep Old tornato a ordine (${alert3.length})`} accent={T.purple}>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Non ordinati da &gt;180 giorni ma presenti nelle fatture di questo mese — SC probabilmente da aggiornare.</div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
+              <thead><tr><TH h={fCode}/><TH h="IFB Item"/><TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
+              <tbody>
+                {alert3.length===0
+                  ? <tr><td colSpan={8} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  : alert3.map((r:any,i:number)=>(
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.purple}07`}}>
+                      {tdC(r.nFiliale)}{tdC(r.ifbNo)}{tdD(r.description)}
+                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
+                      {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+      </>}
+
+      {!analysisRows.length&&selectedMonth&&(
         <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
           {scAttuali.length===0
             ? "⚠️ Carica prima il report SC Attuali (pagina SC Attuali)."
             : `Nessun articolo nelle fatture di ${selectedMonth}.`}
         </div>
-      ) : null}
+      )}
     </div>
   );
 }
