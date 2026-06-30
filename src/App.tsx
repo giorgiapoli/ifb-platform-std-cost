@@ -3676,8 +3676,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               </>}
               <TH accent={T.purple} w={65}>WH €</TH>
               {branch==="CAN" ? <>
-                <TH accent={T.green} w={80}>New SC GC/TF</TH>
-                <TH accent={T.green} w={85}>New SC FUE/LAN ✓</TH>
+                <TH accent={T.gold} w={80}>New SC GC/TF</TH>
+                <TH accent={T.gold} w={85}>New SC FUE/LAN ✓</TH>
               </> : <>
                 <TH accent={T.green} w={72}>New SC €</TH>
                 <TH accent={T.green} w={85}>New SC HKD ✓</TH>
@@ -3839,8 +3839,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
                   {/* step 2 */}
                   {branch==="CAN" ? <>
-                    <td style={cell(T.green,true)}>{c?`€${c.step2GC.toFixed(4)}`:"—"}</td>
-                    <td style={cell(T.green,true)}>
+                    <td style={cell(T.gold,true)}>{c?`€${c.step2GC.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.gold,true)}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
                         {c?`€${c.step2FUE.toFixed(4)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                       </span>
@@ -4143,16 +4143,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const scGC  = cr?.cost?.step2GC  ?? null;
         const scFUE = cr?.cost?.step2FUE ?? null;
         const scaRec = scAttualiMap[prod?.code||r.itemCode||""];
-        const bcStdCost = branch==="CAN"
-          ? (scaRec?.lastSC || null)
-          : (prod?.standardCostHkd || null);
-        const deltaSC = branch==="CAN"
-          ? (scGC != null && bcStdCost != null && bcStdCost > 0 ? scGC - bcStdCost : null)
+        const bcStdCost = branch==="CAN" ? null : (prod?.standardCostHkd || null);
+        const deltaSC = branch==="CAN" ? null
           : (newHkd != null && bcStdCost != null && bcStdCost > 0 ? newHkd - bcStdCost : null);
+        const scBcGcTf  = branch==="CAN" ? (scaRec?.scGC  || null) : null;
+        const scBcFueLan= branch==="CAN" ? (scaRec?.scLan || null) : null;
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
           isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct,skipReason,scGC,scFUE,
-          bcStdCost,deltaSC};
+          bcStdCost,deltaSC,scBcGcTf,scBcFueLan};
       });
   },[activeRows,costRows,products,xrefs,sortDir,scAttualiMap]);
 
@@ -4327,10 +4326,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
             "Mag./Trasp.":r.isAir?"AIR":r.ubicazione||"",
             "Old SC":r.oldHkd!=null?roundN(r.oldHkd):"",
             ...(branch==="CAN"
-              ? {"SC GC/TF":r.isAir?"AIR":r.scGC!=null?roundN(r.scGC):"MANCANTE",
-                 "SC FUE/LAN":r.isAir?"AIR":r.scFUE!=null?roundN(r.scFUE):"MANCANTE",
-                 "SC BC":r.bcStdCost>0?roundN(r.bcStdCost):"",
-                 "Δ SC":r.deltaSC!=null?roundN(r.deltaSC):""}
+              ? {"SC GC/TF":r.scGC!=null?roundN(r.scGC):"MANCANTE",
+                 "SC FUE/LAN":r.scFUE!=null?roundN(r.scFUE):"MANCANTE",
+                 "SC NAV GC/TF":r.scBcGcTf!=null&&r.scBcGcTf>0?roundN(r.scBcGcTf):"",
+                 "SC NAV FUE/LAN":r.scBcFueLan!=null&&r.scBcFueLan>0?roundN(r.scBcFueLan):""}
               : {"New SC":r.isAir?"AIR":(r.unitPrice===0||r.unitPrice===0.01)?"SAMPLE":r.newHkd!=null?roundN(r.newHkd):"MANCANTE",
                  "SC BC":r.bcStdCost>0?roundN(r.bcStdCost):"",
                  "Δ SC":r.deltaSC!=null?roundN(r.deltaSC):""}),
@@ -4409,7 +4408,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC BC","Δ SC"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF","SC NAV FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4491,26 +4490,19 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                       <>
                         {([r.scGC,r.scFUE] as (number|null)[]).map((v,i)=>(
                           <td key={i} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                            {r.isAir
-                              ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
-                              : (r.unitPrice===0||r.unitPrice===0.01)
-                                ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
-                                : v!=null
-                                  ? <span style={{color:T.gold,fontWeight:"bold"}}>{v.toFixed(2)}</span>
-                                  : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
+                            {(r.unitPrice===0||r.unitPrice===0.01)
+                              ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
+                              : v!=null
+                                ? <span style={{color:T.gold,fontWeight:"bold"}}>{v.toFixed(2)}</span>
+                                : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
                             }
                           </td>
                         ))}
-                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                          <span style={{color:T.muted}}>{r.bcStdCost>0?r.bcStdCost.toFixed(2):"—"}</span>
-                        </td>
-                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                          {r.deltaSC!=null
-                            ? <span style={{color:r.deltaSC>1?T.red:r.deltaSC<-1?T.green:T.text,fontWeight:Math.abs(r.deltaSC)>1?"bold":"normal"}}>
-                                {r.deltaSC>0?"+":""}{r.deltaSC.toFixed(2)}
-                              </span>
-                            : <span style={{color:T.dim}}>—</span>}
-                        </td>
+                        {([r.scBcGcTf,r.scBcFueLan] as (number|null)[]).map((v,i)=>(
+                          <td key={`bc${i}`} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                            <span style={{color:T.muted}}>{v!=null&&v>0?v.toFixed(2):"—"}</span>
+                          </td>
+                        ))}
                       </>
                     ) : (
                       <>
