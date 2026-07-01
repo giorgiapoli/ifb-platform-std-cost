@@ -538,8 +538,8 @@ export default function App() {
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
 
-      // Auto-fetch fatture IFB da GitHub (HK + CAN + MAC, sempre aggiornato)
-      if(["HK","CAN","MAC"].includes(branch)) {
+      // Auto-fetch fatture IFB da GitHub (solo HK e MAC — CAN è su NAV, caricamento manuale)
+      if(branch === "HK" || branch === "MAC") {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         try {
           const r = await fetch(`${base}data/ifb_fatture.json?t=${Date.now()}`);
