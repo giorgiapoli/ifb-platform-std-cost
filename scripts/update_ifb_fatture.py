@@ -54,7 +54,7 @@ def bc_get(token, endpoint):
 def get_fatture_for_customer(token, customer_no, branch):
     fields = ",".join([
         "no", "description", "postingdate",
-        "quantity", "unitprice", "locationcode",
+        "quantity", "unitprice", "amount", "locationcode",
         "documentno", "billtocustomerno", "selltocustomerno",
     ])
     def make_endpoint(field, value):
@@ -97,7 +97,7 @@ if __name__ == "__main__":
                 "Vendor Name":       "",
                 "Last Posting Date": str(item.get("postingdate") or ""),
                 "Quantity":          float(item.get("quantity") or 0),
-                "Price":             float(item.get("unitprice") or 0),
+                "Price":             float(item.get("amount") or 0) / float(item.get("quantity") or 1) if float(item.get("quantity") or 0) != 0 else 0,
                 "Location Code":     str(item.get("locationcode") or "").strip(),
                 "Section Description": "",
                 "Branch":            br,
