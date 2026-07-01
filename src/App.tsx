@@ -823,8 +823,22 @@ export default function App() {
           skipReason: cost2 ? undefined : "CALC=0", _fromMeatList:true };
       }
 
-      const pi  = selectPrice(pr, ub);
-      const piP = prPrev ? selectPrice(prPrev, ub) : null;
+      // Converti prezzo da Purchase UoM a Base UoM del prodotto (uguale a come fa la pagina Listini)
+      const uomConvFactor = (() => {
+        if (!isCAN_b) return 1; // HK/MAC: conversion già avviene in loadListini
+        const puom = (pr?.pu || "").toUpperCase();
+        const buom = (prod?.uom || "").toUpperCase();
+        if (puom === buom || !puom || !buom) return 1;
+        const kpb = Number(prod?.kgPerBox) || 0;
+        const qpb = Number(prod?.qtyPerBox) || 1;
+        if (puom === "KG"  && buom === "PCS") return kpb > 0 ? kpb : 1;
+        if (puom === "KG"  && buom === "BOX") return kpb > 0 ? kpb * qpb : 1;
+        if (puom === "BOX" && buom === "PCS") return qpb > 0 ? qpb : 1;
+        if (puom === "PCS" && buom === "KG")  return kpb > 0 ? 1/kpb : 1;
+        return 1;
+      })();
+      const pi  = (selectPrice(pr, ub) || 0) * uomConvFactor;
+      const piP = prPrev ? (selectPrice(prPrev, ub) || 0) * uomConvFactor : null;
 
       // Prezzo zero → fallback listino carne
       if (!pi || pi === 0) {
@@ -4218,6 +4232,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
   const activeRows=useMemo(()=>(rows||[]).filter((r:any)=>!r.branch||r.branch===branch),[rows,branch]);
 
+  // Trova xref per ifbNo preferendo nHK puramente numerico (N COMIT reale vs codice BC alfanumerico)
+  const xrefByIfbNoPreferNumeric = useMemo(()=>{
+    const fn = (ifbNo:string) => {
+      const matches=(xrefs||[]).filter((x:any)=>String(x.ifbNo)===ifbNo);
+      return matches.find((x:any)=>/^\d+$/.test(String(x.nHK)))||matches[0]||null;
+    };
+    return fn;
+  },[xrefs]);
+
   const scAttualiMap=useMemo(()=>{
     const m: Record<string,any>={};
     // Indice primario: qualunque codice è in rec.code (N COMIT per CAN, N HK per HK)
@@ -4226,15 +4249,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     (scAttuali||[]).forEach((rec:any)=>{
       if(rec.code==null) return;
       const k = String(rec.code);
-      // rec.code = N COMIT → alias IFB code
+      // rec.code = N COMIT → alias IFB code (exact: nHK===k)
       const xrByNHK=(xrefs||[]).find((x:any)=>String(x.nHK)===k);
       if(xrByNHK?.ifbNo){ const ak=String(xrByNHK.ifbNo); if(!m[ak]) m[ak]=rec; }
-      // rec.code = IFB code → alias N COMIT
-      const xrByIfb=(xrefs||[]).find((x:any)=>String(x.ifbNo)===k);
+      // rec.code = IFB code → alias N COMIT (prefer numeric nHK)
+      const xrByIfb=xrefByIfbNoPreferNumeric(k);
       if(xrByIfb?.nHK){ const ak=String(xrByIfb.nHK); if(!m[ak]) m[ak]=rec; }
     });
     return m;
-  },[scAttuali,xrefs]);
+  },[scAttuali,xrefs,xrefByIfbNoPreferNumeric]);
 
   const enriched=useMemo(()=>{
     return [...activeRows]
@@ -4269,7 +4292,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         // Fallback: cerca anche per IFB code (tramite xref o prod.code)
         const sItemCode = String(r.itemCode||"");
         const nComitFromIfb = branch==="CAN"
-          ? (String((xrefs||[]).find((x:any)=>String(x.ifbNo)===sItemCode)?.nHK||""))
+          ? (String(xrefByIfbNoPreferNumeric(sItemCode)?.nHK||""))
           : "";
         const ifbFromNComit = branch==="CAN"
           ? (String((xrefs||[]).find((x:any)=>String(x.nHK)===sItemCode)?.ifbNo||""))
@@ -5277,6 +5300,10 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[]}) {
   const isCAN = branch === "CAN";
   const cur = isCAN ? "€" : "HK$";
+  const xrefByIfbNoPreferNumeric = (ifbNo:string) => {
+    const matches=(xrefs||[]).filter((x:any)=>String(x.ifbNo)===ifbNo);
+    return matches.find((x:any)=>/^\d+$/.test(String(x.nHK)))||matches[0]||null;
+  };
 
   const availableMonths = useMemo(()=>{
     const s = new Set<string>();
@@ -5345,7 +5372,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       if(inv.transport==="AIR") continue;
       const sCode = String(nFiliale);
       // Risolvi xref bidirezionale
-      const nComitFromIfb2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.ifbNo)===sCode)?.nHK||"") : "";
+      const nComitFromIfb2 = isCAN ? String(xrefByIfbNoPreferNumeric(sCode)?.nHK||"") : "";
       const ifbFromNComit2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.nHK)===sCode)?.ifbNo||"") : "";
       const ifbNoLookup = xrefByNFiliale[nFiliale];
       const ifbNo = ifbNoLookup && ifbNoLookup!==nFiliale ? ifbNoLookup : (ifbFromNComit2||nFiliale);
@@ -5374,15 +5401,19 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         : (cr?.cost?.step2Hkd || 0);
       const deltaAbs = oldSC>0 ? newSC-oldSC : 0;
       const deltaPct = oldSC>0 ? deltaAbs/oldSC*100 : 0;
-      const noCalc   = !newSC && !cr?.cost;
+      // noCalc = DA INSERIRE: sia newSC che oldSC mancanti (nessun dato per calcolare)
+      const noCalc   = newSC===0 && oldSC===0;
+      // isNuovo = NUOVI ARTICOLI: newSC calcolato presente, ma oldSC (SC BC/NAV) assente
+      const isNuovo  = newSC>0 && oldSC===0 && !isKeepOld;
       rows.push({
         nFiliale, ifbNo, sameCode,
         description: cr?.description || inv.description || "",
         oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
+        skipReason: cr?.skipReason || "",
         lastDate: scEntry?.lastPurchaseDate || "",
         stockQty: scEntry?.stockQty ?? "",
         isKeepOld,
-        isNuovo:  (!oldSC || newSC===0) && !noCalc && !isKeepOld,
+        isNuovo,
         isDelta:  oldSC>0 && newSC>0 && Math.abs(deltaPct)>threshold,
         isKeepOldOrdered: isKeepOld,
       });
@@ -5390,15 +5421,17 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     return rows;
   },[monthRows, xrefByNFiliale, scMap, costMap, products, logMap, isCAN, threshold, selectedMonth]);
 
-  const alert1 = analysisRows.filter(r=>r.isNuovo);
-  const alert2 = analysisRows.filter(r=>r.isDelta);
+  const alert1 = analysisRows.filter(r=>r.isNuovo);          // NUOVI ARTICOLI: newSC calcolato, oldSC assente
+  const alert2 = analysisRows.filter(r=>r.isDelta);          // TO UPDATE Δ%
   const alert3 = analysisRows.filter(r=>r.isKeepOldOrdered && !r.isNuovo);
+  const alert4 = analysisRows.filter(r=>r.noCalc);           // DA INSERIRE: sia newSC che oldSC mancanti
 
   function exportExcel() {
     const branchCode = isCAN?"COMIT":"HK";
     const monthFmt = selectedMonth.replace("-","_").slice(0,7);
     const all = [
-      ...alert1.map((r:any)=>({...r,tipo:"DA INSERIRE"})),
+      ...alert1.map((r:any)=>({...r,tipo:"NUOVI ARTICOLI"})),
+      ...alert4.map((r:any)=>({...r,tipo:"DA INSERIRE"})),
       ...alert2.map((r:any)=>({...r,tipo:"TO UPDATE (Delta%)"})),
       ...alert3.map((r:any)=>({...r,tipo:"TO UPDATE (Keep Old)"})),
     ];
@@ -5462,7 +5495,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           )}
           {analysisRows.length>0&&<div style={{display:"flex",gap:"10px",alignItems:"center"}}>
             <span style={{fontSize:"11px",color:T.muted}}>{monthRows.length} righe · {analysisRows.length} articoli univoci</span>
-            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={alert1.length+alert2.length+alert3.length===0}/>
+            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={alert1.length+alert2.length+alert3.length+alert4.length===0}/>
           </div>}
         </div>
       </Section>
@@ -5471,7 +5504,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         {/* KPI */}
         <div style={{display:"flex",gap:"14px",flexWrap:"wrap",padding:"0 0 18px"}}>
           {([
-            {label:"DA INSERIRE",n:alert1.length,c:T.blue,icon:"🆕"},
+            {label:"NUOVI ARTICOLI",n:alert1.length,c:T.blue,icon:"🆕"},
+            {label:"DA INSERIRE",n:alert4.length,c:T.red,icon:"❌"},
             {label:"TO UPDATE (Δ%)",n:alert2.length,c:T.orange,icon:"⬆"},
             {label:"TO UPDATE (Keep Old)",n:alert3.length,c:T.purple,icon:"♻"},
           ] as {label:string,n:number,c:string,icon:string}[]).map(({label,n,c,icon})=>(
@@ -5482,9 +5516,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           ))}
         </div>
 
-        {/* ALERT 1 */}
-        <Section title={`🆕 1. DA INSERIRE — nuovo articolo senza SC (${alert1.length})`} accent={T.blue}>
-          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Articoli ordinati questo mese che non hanno ancora uno Standard Cost in sistema.</div>
+        {/* ALERT 1 — NUOVI ARTICOLI */}
+        <Section title={`🆕 1. NUOVI ARTICOLI — SC calcolato, non ancora in sistema (${alert1.length})`} accent={T.blue}>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC BC/NAV assente ma Standard Cost calcolabile dal listino — da inserire in Business Central.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
               <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="New SC Calc"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
@@ -5502,8 +5536,29 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           </div>
         </Section>
 
+        {/* ALERT 4 — DA INSERIRE (entrambi mancanti) */}
+        <Section title={`❌ 2. DA INSERIRE — SC mancante e non calcolabile (${alert4.length})`} accent={T.red}>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Né New SC né SC BC/NAV presenti — mancano listino o logistica per poter calcolare.</div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Skip Reason"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
+              <tbody>
+                {alert4.length===0
+                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  : alert4.map((r:any,i:number)=>(
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.red}07`}}>
+                      {tdCodes(r)}{tdD(r.description)}
+                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"left"}}>{r.skipReason||"—"}</td>
+                      {tdM(r.stockQty)}{tdM(r.lastDate)}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
         {/* ALERT 2 */}
-        <Section title={`⬆ 2. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
+        <Section title={`⬆ 3. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC in macchina vs SC calcolato: variazione oltre la soglia.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
@@ -5524,7 +5579,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         </Section>
 
         {/* ALERT 3 */}
-        <Section title={`♻ 3. TO UPDATE — Keep Old tornato a ordine (${alert3.length})`} accent={T.purple}>
+        <Section title={`♻ 4. TO UPDATE — Keep Old tornato a ordine (${alert3.length})`} accent={T.purple}>
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Non ordinati da &gt;180 giorni ma presenti nelle fatture di questo mese — SC probabilmente da aggiornare.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
