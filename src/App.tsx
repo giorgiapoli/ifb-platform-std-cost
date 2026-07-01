@@ -998,7 +998,7 @@ export default function App() {
       showToast={showToast}
       macHkCostRows={macHkCostRows}
     />,
-    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products} logistics={logistics}/>,
+    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} scAttualiMap={scAttualiMap} products={products} logistics={logistics}/>,
     mail:  <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
   };
@@ -5297,7 +5297,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 }
 
 // ─── CHECK MENSILE ────────────────────────────────────────────────────────────
-function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[]}) {
+function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, scAttualiMap: scAttualiMapProp, products, logistics=[]}) {
   const isCAN = branch === "CAN";
   const cur = isCAN ? "€" : "HK$";
   const xrefByIfbNoPreferNumeric = (ifbNo:string) => {
@@ -5338,12 +5338,14 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     return m;
   },[costRows]);
 
-  // scMap keyed by N COMIT / N HK
+  // scMap: usa scAttualiMap dal padre (ha già alias xref IFB↔N COMIT)
+  // fallback: costruisce mappa semplice da scAttuali se prop non disponibile
   const scMap = useMemo(()=>{
+    if(scAttualiMapProp && Object.keys(scAttualiMapProp).length>0) return scAttualiMapProp;
     const m: Record<string,any>={};
     (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
     return m;
-  },[scAttuali]);
+  },[scAttuali, scAttualiMapProp]);
 
   // logMap keyed by productId
   const logMap = useMemo(()=>{
