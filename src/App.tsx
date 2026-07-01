@@ -1103,9 +1103,6 @@ export default function App() {
           <span style={{fontSize:"11px",color:T.gold}}>{month}</span>
           {needsRecalc&&<span style={{padding:"2px 10px",background:`${T.orange}20`,color:T.orange,borderRadius:"10px",fontSize:"11px"}}>⚠ Nuovi dati — ricalcola Standard Cost</span>}
           <div style={{marginLeft:"auto",display:"flex",gap:"6px"}}>
-            <button onClick={()=>setPage("importAnag")} style={{padding:"5px 12px",background:`${T.blue}15`,border:`1px solid ${T.blue}44`,borderRadius:"5px",color:T.blue,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>⇪ Anagrafica</button>
-            <button onClick={()=>setPage("importPrice")} style={{padding:"5px 12px",background:`${T.purple}15`,border:`1px solid ${T.purple}44`,borderRadius:"5px",color:T.purple,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>💶 Listini</button>
-            <button onClick={()=>setPage("costs")} style={{padding:"5px 12px",background:"rgba(255,255,255,0.05)",border:`1px solid ${T.border}`,borderRadius:"5px",color:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>◆ Costi</button>
             <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>✉ Mail</button>
           </div>
         </div>
@@ -4518,16 +4515,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         </BcBanner>
       )}
 
-      {/* Mismatch banner */}
+      {/* Mismatch banner — compact */}
       {mismatches.length>0&&(
-        <div style={{background:`${T.orange}15`,border:`1px solid ${T.orange}`,borderRadius:"6px",padding:"10px 16px",marginBottom:"14px",display:"flex",alignItems:"center",gap:"12px",flexWrap:"wrap"}}>
-          <span style={{color:T.orange,fontWeight:"bold"}}>
-            ⚠ {mismatches.filter((r:any)=>r.isAir&&!r.locationIsNCJ).length} AIR senza NCJ &nbsp;·&nbsp;
-            {mismatches.filter((r:any)=>!r.isAir&&r.locationIsNCJ).length} NCJ ma SEA
-          </span>
+        <div style={{display:"flex",alignItems:"center",gap:"8px",marginBottom:"8px",fontSize:"10px",color:T.orange,opacity:0.7}}>
+          <span>⚠ {mismatches.filter((r:any)=>r.isAir&&!r.locationIsNCJ).length} AIR senza NCJ · {mismatches.filter((r:any)=>!r.isAir&&r.locationIsNCJ).length} NCJ ma SEA</span>
           <button onClick={()=>setFilterTransport(v=>v==="mismatch"?"all":"mismatch")}
-            style={{padding:"4px 12px",background:filterTransport==="mismatch"?T.purple:T.surface,color:filterTransport==="mismatch"?"#fff":T.purple,border:`1px solid ${T.purple}`,borderRadius:"4px",cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
-            {filterTransport==="mismatch"?"Mostra tutte":"Mostra mismatch"}
+            style={{padding:"1px 8px",background:"none",color:T.purple,border:`1px solid ${T.purple}44`,borderRadius:"3px",cursor:"pointer",fontSize:"9px"}}>
+            {filterTransport==="mismatch"?"Tutte":"Filtra"}
           </button>
         </div>
       )}
