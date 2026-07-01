@@ -58894,72 +58894,6 @@
     "Branch": "HK"
   },
   {
-    "No_": "Y4600",
-    "Description": "FARINA 00 PIZZA NAPOLETANA 5 STAGIONI 25KG SACCO ROSSO",
-    "Vendor Name": "",
-    "Last Posting Date": "2025-06-30",
-    "Quantity": 24000.0,
-    "Price": 0.772,
-    "Location Code": "FOR",
-    "Section Description": "",
-    "Branch": "CAN"
-  },
-  {
-    "No_": "FL186",
-    "Description": "LIEVITO DI BIRRA ISTANTANEO 5 STAGIONI 500GR",
-    "Vendor Name": "",
-    "Last Posting Date": "2025-06-30",
-    "Quantity": 200.0,
-    "Price": 2.955,
-    "Location Code": "FOR",
-    "Section Description": "",
-    "Branch": "CAN"
-  },
-  {
-    "No_": "Y4600",
-    "Description": "FARINA 00 PIZZA NAPOLETANA 5 STAGIONI 25KG SACCO ROSSO",
-    "Vendor Name": "",
-    "Last Posting Date": "2025-06-30",
-    "Quantity": 10000.0,
-    "Price": 0.772,
-    "Location Code": "FOR",
-    "Section Description": "",
-    "Branch": "CAN"
-  },
-  {
-    "No_": "FL172",
-    "Description": "FARINA 00/S 5 STAGIONI 25KG POLONIA",
-    "Vendor Name": "",
-    "Last Posting Date": "2025-06-30",
-    "Quantity": 1000.0,
-    "Price": 0.782,
-    "Location Code": "FOR",
-    "Section Description": "",
-    "Branch": "CAN"
-  },
-  {
-    "No_": "FL157",
-    "Description": "FARINA 00/ORO 5 STAGIONI 25KG",
-    "Vendor Name": "",
-    "Last Posting Date": "2025-06-30",
-    "Quantity": 12000.0,
-    "Price": 0.854,
-    "Location Code": "FOR",
-    "Section Description": "",
-    "Branch": "CAN"
-  },
-  {
-    "No_": "FL173",
-    "Description": "SPOLVERIZZA 5 STAGIONI 10KG",
-    "Vendor Name": "",
-    "Last Posting Date": "2025-06-30",
-    "Quantity": 840.0,
-    "Price": 1.006,
-    "Location Code": "FOR",
-    "Section Description": "",
-    "Branch": "CAN"
-  },
-  {
     "No_": "LUNMON-20",
     "Description": "MONTEPULCIANO D'ABRUZZO DOC COSTE DI MORO 75CL",
     "Vendor Name": "",
@@ -150597,6 +150531,28 @@
     "Quantity": 37.5,
     "Price": 8.94,
     "Location Code": "UNIFR-TR",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "FREIGHT",
+    "Description": "FREIGHT",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-06-30",
+    "Quantity": 1.0,
+    "Price": 2632.0,
+    "Location Code": "",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "FREIGHT",
+    "Description": "FREIGHT",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-06-30",
+    "Quantity": 1.0,
+    "Price": 1200.0,
+    "Location Code": "",
     "Section Description": "",
     "Branch": "CAN"
   },

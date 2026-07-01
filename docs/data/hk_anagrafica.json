@@ -12520,6 +12520,26 @@
     "aiem": 0
   },
   {
+    "id": "HA9046-IB",
+    "code": "",
+    "nHK": "HA9046-IB",
+    "description": "Ciccioli Montanari Rossi Vacuum 500g",
+    "category": "OTHER CURED MEATS",
+    "uom": "KG",
+    "qtyPerBox": 1.0,
+    "boxPerPallet": 0.0,
+    "kgPerBox": 0.0,
+    "kgxplt": 0.0,
+    "temperature": "FRESH",
+    "bcTransportation": "CH AIR",
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "vendorName": "INALCA FOOD & BEVERAGE SRL",
+    "vendorName2": "",
+    "aiem": 0
+  },
+  {
     "id": "IBMSTD",
     "code": "",
     "nHK": "IBMSTD",
