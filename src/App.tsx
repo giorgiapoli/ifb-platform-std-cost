@@ -4541,8 +4541,6 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
             ]
           : [
               ["all",`Tutte (${enriched.length})`,T.text],
-              ["air",`✈ AIR (${airCount})`,T.orange],
-              ["sea",`⛴ SEA (${enriched.length-airCount})`,T.blue],
               ["mismatch",`⚠ Mismatch (${mismatches.length})`,T.purple],
             ]) as [string,string,string][]).map(([v,l,c])=>(
           <button key={v} onClick={()=>setFilterTransport(v)}
