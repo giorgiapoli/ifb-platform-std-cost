@@ -348,7 +348,6 @@ const BC_FIELD_ALIASES = {
   kgPerBox:    ["kgperbox","kg per box","net weight","peso netto","kg per cartone","netweight"],
   kgxplt: ["kgxplt","kg x pallet","kg per pallet","kgperpallet"],
   temperature: ["producttype","product type","product type rettificato","product type - anagrafica","item tracking code","temperatura","temperature","storage"],
-  commodityDirection: ["commodity direction","commoditydirection","comm. direction","comm direction","commodity dir","comm dir","direzione merceologica"],
   active:      ["blocked","bloccato","active","attivo"],
   vendorName:  ["vendorname","vendor name","vendor name 2","vendor","fornitore","vendor name2"],
 };
@@ -1826,7 +1825,6 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       macUom: r.macUom ? String(r.macUom).trim().toUpperCase() : "",
       hkUom:  r.hkUom  ? String(r.hkUom).trim().toUpperCase()  : "",
       macToHkConv: parseFloat(r.macToHkConv)>0 ? parseFloat(r.macToHkConv) : 1,
-      commodityDirection: String(r.commodityDirection||"").trim().toUpperCase(),
     }));
     const prevMap=Object.fromEntries(products.map(p=>[p.id,p]));
     const diffs=[];
@@ -4121,7 +4119,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterIFBNo,setFilterIFBNoRaw] = useState(()=>lsGet("filterIFBNo",""));
   const [filterLocation,setFilterLocationRaw] = useState<"all"|"ncj"|"non-ncj">(()=>lsGet("filterLocation","all"));
   const [filterScBC,setFilterScBCRaw] = useState<"all"|"assente">(()=>lsGet("filterScBC","all"));
-  const [filterMotivo,setFilterMotivoRaw] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"non-sample"|"keep-old"|"non-food">(()=>lsGet("filterMotivo","all"));
+  const [filterMotivo,setFilterMotivoRaw] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old">(()=>lsGet("filterMotivo","all"));
   const [filterScNavGC,setFilterScNavGCRaw] = useState<"all"|"assente">(()=>lsGet("filterScNavGC","all"));
   const [filterDeltaPct,setFilterDeltaPctRaw] = useState<"all"|"0-10"|"10-25"|"25-50"|"50+">(()=>lsGet("filterDeltaPct","all"));
   const [showNoAna,setShowNoAnaRaw] = useState(()=>lsGet("showNoAna",false));
@@ -4253,9 +4251,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const newHkd=cr?.cost?.step2Hkd??null;
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
-        const isNonFoodCAN = branch==="CAN" && /^HO\.RE\.CA\./i.test(String(prod?.category||""));
-        const isSampleRow  = r.unitPrice===0||r.unitPrice===0.01;
-        const skipReason=isAir?"AIR":isNonFoodCAN?"NON FOOD":isSampleRow?"SAMPLE":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
+        const skipReason=isAir?"AIR":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
@@ -4345,14 +4341,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
   else if(filterMotivo==="anagrafica") displayed=displayed.filter(r=>r.skipReason==="NON IN ANAGRAFICA");
   else if(filterMotivo==="sample") displayed=displayed.filter(r=>r.isSample===true);
-  else if(filterMotivo==="non-sample") displayed=displayed.filter(r=>!r.isSample);
   else if(filterMotivo==="keep-old") displayed=displayed.filter(r=>r.isKeepOld===true);
-  else if(filterMotivo==="non-food") displayed=displayed.filter(r=>r.skipReason==="NON FOOD");
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
   if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
-  if(filterMotivo!=="non-food") displayed=displayed.filter(r=>r.skipReason!=="NON FOOD");
   displayed=displayed.filter(r=>r.itemCode!=="ITEM"&&r.itemCode!=="item");
   if(excludeKeepOld) displayed=displayed.filter(r=>!r.isKeepOld);
   if(filterDeltaPct!=="all"){
@@ -4575,10 +4568,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           <option value="no-log">Senza Logistica</option>
           <option value="no-price">Senza Prezzo</option>
           <option value="anagrafica">Non in Anagrafica</option>
-          <option value="sample">Solo Sample</option>
-          <option value="non-sample">Non Sample</option>
+          <option value="sample">Sample</option>
           <option value="keep-old">Keep Old</option>
-          {branch==="CAN"&&<option value="non-food">Non Food</option>}
         </select>
         <span style={{fontSize:"11px",color:T.muted}}>|Δ%|:</span>
         {(["all","0-10","10-25","25-50","50+"] as const).map(v=>{
@@ -6163,7 +6154,6 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       active: parseActive(r.active),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
-      commodityDirection: String(r.commodityDirection||"").trim().toUpperCase(),
     }));
   
     // Calcola diff rispetto all'anagrafica attuale
