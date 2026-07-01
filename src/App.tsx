@@ -5407,7 +5407,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const lastOrderRaw2 = logEntry?.lastOrderDate || inv.date || inv.postingDate;
       const lastOrderD = lastOrderRaw2 ? new Date(String(lastOrderRaw2).slice(0,10)) : null;
       const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
-      const oldSC    = scEntry?.lastSC || 0;
+      const oldSC    = isCAN
+        ? (scEntry?.scGC || scEntry?.lastSC || 0)
+        : (scEntry?.lastSC || 0);
       const newSC    = isCAN
         ? (cr?.cost?.step2GC || cr?.cost?.step2Eur || 0)
         : (cr?.cost?.step2Hkd || 0);
