@@ -1848,9 +1848,11 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       hkUom:  r.hkUom  ? String(r.hkUom).trim().toUpperCase()  : "",
       macToHkConv: parseFloat(r.macToHkConv)>0 ? parseFloat(r.macToHkConv) : 1,
     }));
+    // Dedup per id (stesso articolo su più righe → ultima occorrenza vince)
+    const dedupMap=new Map<string,any>(); newProds.forEach(p=>dedupMap.set(p.id,p)); const dedupedProds=[...dedupMap.values()];
     const prevMap=Object.fromEntries(products.map(p=>[p.id,p]));
     const diffs=[];
-    for(const p of newProds){
+    for(const p of dedupedProds){
       const old=prevMap[p.id];
       if(!old) diffs.push({id:p.id,isNew:true,description:p.description,fields:[]});
       else{
@@ -1861,12 +1863,12 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
         if(fields.length) diffs.push({id:p.id,isNew:false,description:p.description,fields});
       }
     }
-    const snap={id:now,type:"anagrafica",date:new Date(now).toISOString(),count:newProds.length,diffs,products:newProds,branch};
+    const snap={id:now,type:"anagrafica",date:new Date(now).toISOString(),count:dedupedProds.length,diffs,products:dedupedProds,branch};
     const newSnaps=[snap,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
-    setProducts(newProds);
-    const savedProd = LS.set(`ifb_products_${branch}`, newProds);
+    setProducts(dedupedProds);
+    const savedProd = LS.set(`ifb_products_${branch}`, dedupedProds);
     if (!savedProd) showToast("⚠ LocalStorage piena: anagrafica NON salvata. Esporta i dati.", T.red);
-    const log={id:now,type:"anagrafica",date:new Date(now).toISOString(),msg:`Importati ${newProds.length} articoli`};
+    const log={id:now,type:"anagrafica",date:new Date(now).toISOString(),msg:`Importati ${dedupedProds.length} articoli`};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newCount=diffs.filter(d=>d.isNew).length,changed=diffs.filter(d=>!d.isNew&&d.fields.length>0).length;
     setDoneInfo({count:newProds.length,newCount,changed,unchanged:newProds.length-newCount-changed});
