@@ -4119,7 +4119,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterIFBNo,setFilterIFBNoRaw] = useState(()=>lsGet("filterIFBNo",""));
   const [filterLocation,setFilterLocationRaw] = useState<"all"|"ncj"|"non-ncj">(()=>lsGet("filterLocation","all"));
   const [filterScBC,setFilterScBCRaw] = useState<"all"|"assente">(()=>lsGet("filterScBC","all"));
-  const [filterMotivo,setFilterMotivoRaw] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old">(()=>lsGet("filterMotivo","all"));
+  const [filterMotivo,setFilterMotivoRaw] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old"|"non-food">(()=>lsGet("filterMotivo","all"));
   const [filterScNavGC,setFilterScNavGCRaw] = useState<"all"|"assente">(()=>lsGet("filterScNavGC","all"));
   const [filterDeltaPct,setFilterDeltaPctRaw] = useState<"all"|"0-10"|"10-25"|"25-50"|"50+">(()=>lsGet("filterDeltaPct","all"));
   const [showNoAna,setShowNoAnaRaw] = useState(()=>lsGet("showNoAna",false));
@@ -4251,7 +4251,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const newHkd=cr?.cost?.step2Hkd??null;
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
-        const skipReason=isAir?"AIR":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
+        const isNonFoodCAN = branch==="CAN" && /^(GMT|BCF|GHE|NON)/i.test(String(r.itemCode||""));
+        const skipReason=isAir?"AIR":isNonFoodCAN?"NON FOOD":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
@@ -4342,10 +4343,12 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(filterMotivo==="anagrafica") displayed=displayed.filter(r=>r.skipReason==="NON IN ANAGRAFICA");
   else if(filterMotivo==="sample") displayed=displayed.filter(r=>r.isSample===true);
   else if(filterMotivo==="keep-old") displayed=displayed.filter(r=>r.isKeepOld===true);
+  else if(filterMotivo==="non-food") displayed=displayed.filter(r=>r.skipReason==="NON FOOD");
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
   if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
+  if(filterMotivo!=="non-food") displayed=displayed.filter(r=>r.skipReason!=="NON FOOD");
   displayed=displayed.filter(r=>r.itemCode!=="ITEM"&&r.itemCode!=="item");
   if(excludeKeepOld) displayed=displayed.filter(r=>!r.isKeepOld);
   if(filterDeltaPct!=="all"){
@@ -4570,6 +4573,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           <option value="anagrafica">Non in Anagrafica</option>
           <option value="sample">Sample</option>
           <option value="keep-old">Keep Old</option>
+          {branch==="CAN"&&<option value="non-food">Non Food</option>}
         </select>
         <span style={{fontSize:"11px",color:T.muted}}>|Δ%|:</span>
         {(["all","0-10","10-25","25-50","50+"] as const).map(v=>{
