@@ -657,6 +657,22 @@ export default function App() {
                 }
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
+              const _fp=div(Number(row["fp"]??row["FCA_Price"]??0));
+              const _fc=div(Number(row["fc"]??row["FCA_Discounted"]??0));
+              const _dc=div(Number(row["dc"]??row["DAP_Final"]??row["DAP_Discounted"]??0));
+              const _cr=div(Number(row["cr"]??row["Carriage"]??0));
+              // Fallback carriage/DAP da logistica (wine=€60/pallet, FOR vendors)
+              const _derivedDap = (()=>{
+                if(_dc>0) return {dapFinal:_dc, carriageUnit:_cr};
+                if(_cr>0&&(_fc>0||_fp>0)) return {dapFinal:(_fc||_fp)+_cr, carriageUnit:_cr};
+                if(_fc>0||_fp>0) {
+                  const r=calcDAPFinal({dapDiscounted:0,fcaPrice:_fp,fcaDiscounted:_fc,
+                    vendorName:String(prod?.vendorName||prod?.vendorName2||""),
+                    section:prod?.category||"",products,code});
+                  return r;
+                }
+                return {dapFinal:0, carriageUnit:0};
+              })();
               newEntries.push({
                 productId:     prod?.id ?? `BC_${code}`,
                 itemCode:      code,
@@ -664,20 +680,12 @@ export default function App() {
                 bcDesc:        String(row["d"] || row["Description"] || "").trim(),
                 pu:            displayUom, // UoM del prezzo (HK base UoM per HK)
                 branch, month: nowMonth,
-                fcaPrice:      div(Number(row["fp"] ?? row["FCA_Price"]      ?? 0)),
-                fcaDiscounted: div(Number(row["fc"] ?? row["FCA_Discounted"] ?? 0)),
+                fcaPrice:      _fp,
+                fcaDiscounted: _fc,
                 dapPrice:      div(Number(row["dp"] ?? row["DAP_Price"]      ?? 0)),
-                dapDiscounted: div(Number(row["dc"] ?? row["DAP_Discounted"] ?? 0)),
-                carriageCost:  div(Number(row["cr"] ?? row["Carriage"]       ?? 0)),
-                dapFinal: (()=>{
-                  const dc=div(Number(row["dc"]??row["DAP_Final"]??row["DAP_Discounted"]??0));
-                  if(dc>0) return dc;
-                  const fc=div(Number(row["fc"]??row["FCA_Discounted"]??0));
-                  const fp=div(Number(row["fp"]??row["FCA_Price"]??0));
-                  const cr=div(Number(row["cr"]??row["Carriage"]??0));
-                  if(cr>0&&(fc>0||fp>0)) return (fc||fp)+cr;
-                  return 0;
-                })(),
+                dapDiscounted: _dc,
+                carriageCost:  _cr>0 ? _cr : _derivedDap.carriageUnit,
+                dapFinal:      _derivedDap.dapFinal,
                 mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
               });
             });
