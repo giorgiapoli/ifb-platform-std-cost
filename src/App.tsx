@@ -5397,6 +5397,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       if(seen.has(canonicalKey)) continue;
       seen.add(canonicalKey);
       const prod     = (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale);
+      // Salta righe non-articolo (FREIGHT, servizi, ecc.) — non in anagrafica e senza cost row
+      if(!prod && !costMap[ifbNo] && !costMap[nFiliale]) continue;
       const scEntry = isCAN
         ? (scMap[sCode] || scMap[nComitFromIfb2] || scMap[ifbFromNComit2] || scMap[prod?.code||""] || scMap[ifbNo])
         : (scMap[prod?.nHK||""] || scMap[sCode] || scMap[prod?.code||""] || scMap[ifbNo]);
