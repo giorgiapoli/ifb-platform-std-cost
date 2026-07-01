@@ -5369,8 +5369,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         lastDate: scEntry?.lastPurchaseDate || "",
         stockQty: scEntry?.stockQty ?? "",
         isKeepOld,
-        isNuovo:  !oldSC && !noCalc && !isKeepOld,
-        isDelta:  oldSC>0 && Math.abs(deltaPct)>threshold,
+        isNuovo:  (!oldSC || newSC===0) && !noCalc && !isKeepOld,
+        isDelta:  oldSC>0 && newSC>0 && Math.abs(deltaPct)>threshold,
         isKeepOldOrdered: isKeepOld,
       });
     }
