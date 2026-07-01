@@ -55,13 +55,13 @@ def get_fatture_for_customer(token, customer_no, branch):
     fields = ",".join([
         "no", "description", "postingdate",
         "quantity", "unitprice", "locationcode",
-        "documentno", "billtocustomerno",
+        "documentno", "billtocustomerno", "selltocustomerno",
     ])
     endpoint = (
         f"IFB_Sales_Invoice_Line"
         f"?$filter=postingdate ge {DATE_FROM}"
         f" and type eq 'Item'"
-        f" and billtocustomerno eq '{customer_no}'"
+        f" and (billtocustomerno eq '{customer_no}' or selltocustomerno eq '{customer_no}')"
         f"&$select={fields}&$top=50000"
     )
     print(f"  Fetching {branch} (customer {customer_no})...")
