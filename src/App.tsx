@@ -5344,14 +5344,17 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
       if(inv.transport==="AIR") continue;
       const sCode = String(nFiliale);
-      // Risolvi codice canonico via xref (bidirezionale) per dedup articoli con doppia codifica
+      // Risolvi xref bidirezionale
       const nComitFromIfb2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.ifbNo)===sCode)?.nHK||"") : "";
       const ifbFromNComit2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.nHK)===sCode)?.ifbNo||"") : "";
       const ifbNoLookup = xrefByNFiliale[nFiliale];
       const ifbNo = ifbNoLookup && ifbNoLookup!==nFiliale ? ifbNoLookup : (ifbFromNComit2||nFiliale);
       const sameCode = ifbNo===nFiliale;
-      // Usa il codice IFB come chiave canonica per dedup (evita doppi da codifiche diverse dello stesso item)
-      const canonicalKey = ifbNo || nFiliale;
+      // Chiave canonica = N COMIT numerico se disponibile, altrimenti IFB code
+      // Questo risolve doppia codifica (es. MT314 e 4144 = stesso item): sempre il numero vince
+      const isNumeric = (s:string) => /^\d+$/.test(s);
+      const numericNComit = isCAN && isNumeric(sCode) ? sCode : (isCAN && isNumeric(nComitFromIfb2) ? nComitFromIfb2 : "");
+      const canonicalKey = numericNComit || ifbNo || nFiliale;
       if(seen.has(canonicalKey)) continue;
       seen.add(canonicalKey);
       const prod     = (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale);
