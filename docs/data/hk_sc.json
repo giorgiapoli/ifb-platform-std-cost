@@ -9594,6 +9594,15 @@
     "stockQty": 0.0
   },
   {
+    "code": "SQU-FRZ",
+    "description": "FRZ Baby Squid",
+    "lastSC": 0.0,
+    "fifoUnit": 0.0,
+    "salesLast3m": 0.0,
+    "lastPurchaseDate": "",
+    "stockQty": 0.0
+  },
+  {
     "code": "STA02",
     "description": "FRZ. Cooked Whole Mussels Chile 50/70 ASC 1kg (5)",
     "lastSC": 24.27,
