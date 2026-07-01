@@ -4253,7 +4253,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const newHkd=cr?.cost?.step2Hkd??null;
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
-        const isNonFoodCAN = branch==="CAN" && (prod?.commodityDirection==="NON FOOD" || /^NON\s+FOOD/i.test(prod?.commodityDirection||""));
+        const isNonFoodCAN = branch==="CAN" && /^HO\.RE\.CA\./i.test(String(prod?.category||""));
         const isSampleRow  = r.unitPrice===0||r.unitPrice===0.01;
         const skipReason=isAir?"AIR":isNonFoodCAN?"NON FOOD":isSampleRow?"SAMPLE":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
