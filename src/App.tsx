@@ -330,10 +330,12 @@ function calcMAC({ hkCost, isHoff, macToHkConv = 1, temperature = "DRY", kgPerMa
 
 function selectPrice(pr, ubicazione) {
   if(!pr) return 0;
-  if(ubicazione==="FOR") return pr.fcaDiscounted || pr.dapFinal || 0;
-  if(ubicazione==="MTO") return pr.dapFinal || 0;
-  if(ubicazione==="MTS") { const m=pr.mtsPrice||0; return m!==0?m:(pr.dapFinal||0); }
-  return pr.dapFinal || 0;
+  const dap = pr.dapFinal || 0;
+  const fca = pr.fcaDiscounted || pr.fcaPrice || 0;
+  if(ubicazione==="FOR") return fca || dap;
+  if(ubicazione==="MTO") return dap || fca;
+  if(ubicazione==="MTS") { const m=pr.mtsPrice||0; return m!==0?m:(dap||fca); }
+  return dap || fca;
 }
 
 // ─── FIELD ALIASES ────────────────────────────────────────────────────────────
