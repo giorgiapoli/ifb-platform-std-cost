@@ -643,9 +643,14 @@ export default function App() {
                     convFactor = qpb; displayUom = hkUom;     // BOX → base
                   } else if (purchUom === "KG") {
                     // KG BC → HK base UoM
-                    if      (hkUom === "BOX" && qpb > 1)  { convFactor = 1/qpb; displayUom = "BOX"; }  // ×qpb
-                    else if (hkUom === "PCS" && kpb > 0)  { convFactor = 1/kpb; displayUom = "PCS"; }  // ×kpb (anche kpb=1)
-                    else if (hkUom === "KG")               { displayUom = "KG"; }                        // nessuna conv
+                    if (hkUom === "BOX") {
+                      // kgPerBox total = qtyPerBox × kgPerPcs; se kpb=0 fallback a qpb
+                      const kgPerBoxTotal = kpb > 0 ? qpb * kpb : qpb;
+                      if (kgPerBoxTotal > 0 && Math.abs(kgPerBoxTotal - 1) > 0.001) { convFactor = 1/kgPerBoxTotal; }
+                      displayUom = "BOX";
+                    }
+                    else if (hkUom === "PCS" && kpb > 0)  { convFactor = 1/kpb; displayUom = "PCS"; }
+                    else if (hkUom === "KG")               { displayUom = "KG"; }
                   }
                 } else {
                   if (purchUom === "BOX" && qpb > 1) { convFactor = qpb; displayUom = "PCS"; }
@@ -4100,21 +4105,41 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [mapping,setMapping]   = useState<any>({});
   const [rawRows,setRawRows]   = useState<any[]>([]);
   const [fileName,setFileName] = useState("");
-  const [excludeAir,setExcludeAir]     = useState(false);
-  const [last30,setLast30]             = useState(false);
-  const [dedup,setDedup]               = useState(false);
-  const [newHkdFilter,setNewHkdFilter] = useState<"all"|"ok"|"mancante"|"air">("all");
-  const [scFilter,setScFilter]         = useState<"all"|"ok"|"mancante"|"sample">("all");
-  const [filterTransport,setFilterTransport] = useState("all");
-  const [filterNHK,setFilterNHK]   = useState("");
-  const [filterIFBNo,setFilterIFBNo] = useState("");
-  const [filterLocation,setFilterLocation] = useState<"all"|"ncj"|"non-ncj">("all");
-  const [filterScBC,setFilterScBC] = useState<"all"|"assente">("all");
-  const [filterMotivo,setFilterMotivo] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old">("all");
-  const [filterScNavGC,setFilterScNavGC] = useState<"all"|"assente">("all");
-  const [filterDeltaPct,setFilterDeltaPct] = useState<"all"|"0-10"|"10-25"|"25-50"|"50+">("all");
-  const [showNoAna,setShowNoAna] = useState(false);
-  const [search,setSearch]     = useState("");
+  const FK = (k:string) => `inv_filter_${branch}_${k}`;
+  const lsGet = <T,>(k:string,def:T):T=>{ try{ const v=localStorage.getItem(FK(k)); return v!=null?JSON.parse(v):def; }catch{ return def; } };
+  const lsSet = (k:string,v:any)=>{ try{ localStorage.setItem(FK(k),JSON.stringify(v)); }catch{} };
+  const [excludeAir,setExcludeAirRaw]     = useState(()=>lsGet("excludeAir",false));
+  const [last30,setLast30Raw]             = useState(()=>lsGet("last30",false));
+  const [dedup,setDedupRaw]               = useState(()=>lsGet("dedup",false));
+  const [excludeKeepOld,setExcludeKeepOldRaw] = useState(()=>lsGet("excludeKeepOld",false));
+  const [newHkdFilter,setNewHkdFilterRaw] = useState<"all"|"ok"|"mancante"|"air">(()=>lsGet("newHkdFilter","all"));
+  const [scFilter,setScFilterRaw]         = useState<"all"|"ok"|"mancante"|"sample">(()=>lsGet("scFilter","all"));
+  const [filterTransport,setFilterTransportRaw] = useState(()=>lsGet("filterTransport","all"));
+  const [filterNHK,setFilterNHKRaw]   = useState(()=>lsGet("filterNHK",""));
+  const [filterIFBNo,setFilterIFBNoRaw] = useState(()=>lsGet("filterIFBNo",""));
+  const [filterLocation,setFilterLocationRaw] = useState<"all"|"ncj"|"non-ncj">(()=>lsGet("filterLocation","all"));
+  const [filterScBC,setFilterScBCRaw] = useState<"all"|"assente">(()=>lsGet("filterScBC","all"));
+  const [filterMotivo,setFilterMotivoRaw] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old">(()=>lsGet("filterMotivo","all"));
+  const [filterScNavGC,setFilterScNavGCRaw] = useState<"all"|"assente">(()=>lsGet("filterScNavGC","all"));
+  const [filterDeltaPct,setFilterDeltaPctRaw] = useState<"all"|"0-10"|"10-25"|"25-50"|"50+">(()=>lsGet("filterDeltaPct","all"));
+  const [showNoAna,setShowNoAnaRaw] = useState(()=>lsGet("showNoAna",false));
+  const [search,setSearchRaw]     = useState(()=>lsGet("search",""));
+  const setExcludeAir=(v:any)=>{ const nv=typeof v==="function"?v(excludeAir):v; setExcludeAirRaw(nv); lsSet("excludeAir",nv); };
+  const setLast30=(v:any)=>{ const nv=typeof v==="function"?v(last30):v; setLast30Raw(nv); lsSet("last30",nv); };
+  const setDedup=(v:any)=>{ const nv=typeof v==="function"?v(dedup):v; setDedupRaw(nv); lsSet("dedup",nv); };
+  const setExcludeKeepOld=(v:any)=>{ const nv=typeof v==="function"?v(excludeKeepOld):v; setExcludeKeepOldRaw(nv); lsSet("excludeKeepOld",nv); };
+  const setNewHkdFilter=(v:any)=>{ setNewHkdFilterRaw(v); lsSet("newHkdFilter",v); };
+  const setScFilter=(v:any)=>{ setScFilterRaw(v); lsSet("scFilter",v); };
+  const setFilterTransport=(v:any)=>{ setFilterTransportRaw(v); lsSet("filterTransport",v); };
+  const setFilterNHK=(v:any)=>{ setFilterNHKRaw(v); lsSet("filterNHK",v); };
+  const setFilterIFBNo=(v:any)=>{ setFilterIFBNoRaw(v); lsSet("filterIFBNo",v); };
+  const setFilterLocation=(v:any)=>{ setFilterLocationRaw(v); lsSet("filterLocation",v); };
+  const setFilterScBC=(v:any)=>{ setFilterScBCRaw(v); lsSet("filterScBC",v); };
+  const setFilterMotivo=(v:any)=>{ setFilterMotivoRaw(v); lsSet("filterMotivo",v); };
+  const setFilterScNavGC=(v:any)=>{ setFilterScNavGCRaw(v); lsSet("filterScNavGC",v); };
+  const setFilterDeltaPct=(v:any)=>{ setFilterDeltaPctRaw(v); lsSet("filterDeltaPct",v); };
+  const setShowNoAna=(v:any)=>{ const nv=typeof v==="function"?v(showNoAna):v; setShowNoAnaRaw(nv); lsSet("showNoAna",nv); };
+  const setSearch=(v:string)=>{ setSearchRaw(v); lsSet("search",v); };
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
 
   useEffect(()=>{ if(rows?.length&&step==="upload") setStep("view"); },[rows]);
@@ -4321,7 +4346,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
   if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
-  if(filterDeltaPct!=="all"){const[lo,hi]=filterDeltaPct==="50+"?[50,Infinity]:filterDeltaPct==="25-50"?[25,50]:filterDeltaPct==="10-25"?[10,25]:[0,10];displayed=displayed.filter(r=>r.pct!=null&&Math.abs(r.pct)>=lo&&Math.abs(r.pct)<hi);}
+  displayed=displayed.filter(r=>r.itemCode!=="ITEM"&&r.itemCode!=="item");
+  if(excludeKeepOld) displayed=displayed.filter(r=>!r.isKeepOld);
+  if(filterDeltaPct!=="all"){
+    const[lo,hi]=filterDeltaPct==="50+"?[50,Infinity]:filterDeltaPct==="25-50"?[25,50]:filterDeltaPct==="10-25"?[10,25]:[0,10];
+    displayed=displayed.filter(r=>r.pct!=null&&Math.abs(r.pct)>=lo&&Math.abs(r.pct)<hi);
+    displayed=[...displayed].sort((a,b)=>Math.abs(b.pct??0)-Math.abs(a.pct??0));
+  }
 
   // ── STEPS IMPORT ──────────────────────────────────────────────────────────
   if(step==="map") return(
@@ -4482,6 +4513,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           style={{padding:"6px 14px",background:showNoAna?`${T.red}20`:T.surface,color:showNoAna?T.red:T.muted,border:`1px solid ${showNoAna?T.red+"66":T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:showNoAna?"bold":"normal"}}>
           {showNoAna?"✓ Non in Ana.":"👁 Non in Ana."}
         </button>
+        <button onClick={()=>setExcludeKeepOld(v=>!v)}
+          style={{padding:"6px 14px",background:excludeKeepOld?`${T.orange}20`:T.surface,color:excludeKeepOld?T.orange:T.muted,border:`1px solid ${excludeKeepOld?T.orange:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeKeepOld?"bold":"normal"}}>
+          {excludeKeepOld?"✓ Keep Old esclusi":"⏰ Escludi Keep Old"}
+        </button>
         <button onClick={()=>window.location.reload()}
           style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
           🔄 Ricarica
@@ -4539,7 +4574,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <span style={{fontSize:"11px",color:T.muted}}>|Δ%|:</span>
         {(["all","0-10","10-25","25-50","50+"] as const).map(v=>{
           const active=filterDeltaPct===v;
-          const col=v==="50+"?T.red:v==="25-50"?T.orange:v==="10-25"?T.gold:T.muted;
+          const col=v==="50+"?T.red:v==="25-50"?T.orange:v==="10-25"?T.gold:v==="0-10"?T.blue:T.text;
           return(
             <button key={v} onClick={()=>setFilterDeltaPct(v)}
               style={{padding:"5px 10px",background:active?`${col}22`:T.surface,color:active?col:T.muted,border:`1px solid ${active?col:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:active?"bold":"normal"}}>
@@ -5237,7 +5272,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const availableMonths = useMemo(()=>{
     const s = new Set<string>();
     (salesRows||[]).forEach((r:any)=>{
-      const d = r.postingDate ? String(r.postingDate).slice(0,7) : "";
+      const d = (r.date||r.postingDate) ? String(r.date||r.postingDate).slice(0,7) : "";
       if(d&&d.length===7) s.add(d);
     });
     return [...s].sort().reverse();
@@ -5284,7 +5319,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const monthRows = useMemo(()=>{
     if(!selectedMonth) return [];
     return (salesRows||[]).filter((r:any)=>{
-      const d = r.postingDate ? String(r.postingDate).slice(0,7) : "";
+      const d = (r.date||r.postingDate) ? String(r.date||r.postingDate).slice(0,7) : "";
       return d===selectedMonth;
     });
   },[salesRows, selectedMonth]);
@@ -5302,13 +5337,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const cr       = costMap[ifbNo] || costMap[nFiliale];
       const prod     = (products||[]).find((p:any)=>p.code===ifbNo);
       const logEntry = prod ? logMap[String(prod.id)] : null;
-      const lastOrderRaw2 = logEntry?.lastOrderDate || inv.postingDate;
+      const lastOrderRaw2 = logEntry?.lastOrderDate || inv.date || inv.postingDate;
       const lastOrderD = lastOrderRaw2 ? new Date(String(lastOrderRaw2).slice(0,10)) : null;
       const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
       const oldSC    = scEntry?.lastSC || 0;
       const newSC    = isCAN
         ? (cr?.cost?.step2GC || cr?.cost?.step2Eur || 0)
-        : (cr?.cost?.step2Eur || 0);
+        : (cr?.cost?.step2Hkd || 0);
       const deltaAbs = oldSC>0 ? newSC-oldSC : 0;
       const deltaPct = oldSC>0 ? deltaAbs/oldSC*100 : 0;
       const noCalc   = !newSC && !cr?.cost;
