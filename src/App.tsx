@@ -5347,7 +5347,12 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const ifbNoLookup = xrefByNFiliale[nFiliale];
       const ifbNo = ifbNoLookup && ifbNoLookup!==nFiliale ? ifbNoLookup : nFiliale;
       const sameCode = !ifbNoLookup || ifbNoLookup===nFiliale;
-      const scEntry  = scMap[nFiliale];
+      const sCode = String(nFiliale||"");
+      const nComitFromIfb2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.ifbNo)===sCode)?.nHK||"") : "";
+      const ifbFromNComit2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.nHK)===sCode)?.ifbNo||"") : "";
+      const scEntry = isCAN
+        ? (scMap[sCode] || scMap[nComitFromIfb2] || scMap[ifbFromNComit2] || scMap[prod?.code||""] || scMap[ifbNo])
+        : (scMap[prod?.nHK||""] || scMap[sCode] || scMap[prod?.code||""] || scMap[ifbNo]);
       const cr       = costMap[ifbNo] || costMap[nFiliale];
       const prod     = (products||[]).find((p:any)=>p.code===ifbNo);
       // Escludi NON FOOD CAN (HO.RE.CA. SUPPLY)
