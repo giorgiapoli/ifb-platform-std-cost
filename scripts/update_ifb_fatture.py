@@ -57,15 +57,21 @@ def get_fatture_for_customer(token, customer_no, branch):
         "quantity", "unitprice", "locationcode",
         "documentno", "billtocustomerno", "selltocustomerno",
     ])
-    endpoint = (
-        f"IFB_Sales_Invoice_Line"
-        f"?$filter=postingdate ge {DATE_FROM}"
-        f" and type eq 'Item'"
-        f" and (billtocustomerno eq '{customer_no}' or selltocustomerno eq '{customer_no}')"
-        f"&$select={fields}&$top=50000"
-    )
+    def make_endpoint(field, value):
+        return (
+            f"IFB_Sales_Invoice_Line"
+            f"?$filter=postingdate ge {DATE_FROM}"
+            f" and type eq 'Item'"
+            f" and {field} eq '{value}'"
+            f"&$select={fields}&$top=50000"
+        )
     print(f"  Fetching {branch} (customer {customer_no})...")
-    rows = bc_get(token, endpoint)
+    rows_bill = bc_get(token, make_endpoint("billtocustomerno", customer_no))
+    rows_sell = bc_get(token, make_endpoint("selltocustomerno", customer_no))
+    # Dedup per (documentno, no) — priorità a billtocustomerno
+    seen = {(r.get("documentno",""), r.get("no","")) for r in rows_bill}
+    rows = rows_bill + [r for r in rows_sell if (r.get("documentno",""), r.get("no","")) not in seen]
+    print(f"    bill-to: {len(rows_bill)}, sell-to extra: {len(rows)-len(rows_bill)}, totale: {len(rows)}")
     print(f"    {len(rows)} righe trovate")
     return rows, branch
 
