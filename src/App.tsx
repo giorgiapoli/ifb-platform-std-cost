@@ -862,8 +862,22 @@ export default function App() {
         if (puom === "PCS" && buom === "KG")  return kpb > 0 ? 1/kpb : 1;
         return 1;
       })();
-      const pi  = (selectPrice(pr, ub) || 0) * uomConvFactor;
-      const piP = prPrev ? (selectPrice(prPrev, ub) || 0) * uomConvFactor : null;
+      // Per HK MTO: se dapFinal=0 ma fcaDiscounted>0, aggiungi carriage da work tab
+      const enrichPriceWithCarriage = (p: any) => {
+        if(!p || isCAN_b) return selectPrice(p, ub);
+        const sel = selectPrice(p, ub);
+        if(sel > 0) return sel;
+        // fallback: fca + carriage da logistica / unitsPerPlt
+        const fca = p.fcaDiscounted || p.fcaPrice || 0;
+        if(!fca) return 0;
+        const upm = prod.uom==="BOX" ? Number(prod.boxPerPallet)
+                  : prod.uom==="KG"  ? (Number(prod.kgxplt)||300)
+                  : Number(prod.qtyPerBox)*Number(prod.boxPerPallet);
+        const cu = upm > 0 ? (log.carriage||0) / upm : 0;
+        return fca + cu;
+      };
+      const pi  = (enrichPriceWithCarriage(pr)  || 0) * uomConvFactor;
+      const piP = prPrev ? (enrichPriceWithCarriage(prPrev) || 0) * uomConvFactor : null;
 
       // Prezzo zero → fallback listino carne
       if (!pi || pi === 0) {
