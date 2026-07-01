@@ -5339,22 +5339,26 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     const rows: any[] = [];
     for (const inv of monthRows) {
       const nFiliale = inv.itemCode;
-      if(!nFiliale||seen.has(nFiliale)) continue;
+      if(!nFiliale) continue;
       // Escludi SAMPLE (price=0), AIR
       if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
       if(inv.transport==="AIR") continue;
-      seen.add(nFiliale);
-      const ifbNoLookup = xrefByNFiliale[nFiliale];
-      const ifbNo = ifbNoLookup && ifbNoLookup!==nFiliale ? ifbNoLookup : nFiliale;
-      const sameCode = !ifbNoLookup || ifbNoLookup===nFiliale;
-      const sCode = String(nFiliale||"");
+      const sCode = String(nFiliale);
+      // Risolvi codice canonico via xref (bidirezionale) per dedup articoli con doppia codifica
       const nComitFromIfb2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.ifbNo)===sCode)?.nHK||"") : "";
       const ifbFromNComit2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.nHK)===sCode)?.ifbNo||"") : "";
+      const ifbNoLookup = xrefByNFiliale[nFiliale];
+      const ifbNo = ifbNoLookup && ifbNoLookup!==nFiliale ? ifbNoLookup : (ifbFromNComit2||nFiliale);
+      const sameCode = ifbNo===nFiliale;
+      // Usa il codice IFB come chiave canonica per dedup (evita doppi da codifiche diverse dello stesso item)
+      const canonicalKey = ifbNo || nFiliale;
+      if(seen.has(canonicalKey)) continue;
+      seen.add(canonicalKey);
+      const prod     = (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale);
       const scEntry = isCAN
         ? (scMap[sCode] || scMap[nComitFromIfb2] || scMap[ifbFromNComit2] || scMap[prod?.code||""] || scMap[ifbNo])
         : (scMap[prod?.nHK||""] || scMap[sCode] || scMap[prod?.code||""] || scMap[ifbNo]);
       const cr       = costMap[ifbNo] || costMap[nFiliale];
-      const prod     = (products||[]).find((p:any)=>p.code===ifbNo);
       // Escludi NON FOOD CAN (HO.RE.CA. SUPPLY)
       if(isCAN && /^HO\.RE\.CA\./i.test(String(prod?.category||""))) continue;
       const logEntry = prod ? logMap[String(prod.id)] : null;
