@@ -5383,9 +5383,12 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       // Risolvi xref bidirezionale
       const nComitFromIfb2 = isCAN ? String(xrefByIfbNoPreferNumeric(sCode)?.nHK||"") : "";
       const ifbFromNComit2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.nHK)===sCode)?.ifbNo||"") : "";
-      const ifbNoLookup = xrefByNFiliale[nFiliale];
-      const ifbNo = ifbNoLookup && ifbNoLookup!==nFiliale ? ifbNoLookup : (ifbFromNComit2||nFiliale);
-      const sameCode = ifbNo===nFiliale;
+      // Per CAN: nFiliale=IFB code, ifbNo=N COMIT (da xref ifbNo→nHK)
+      // Per HK:  nFiliale=N HK,    ifbNo=IFB code (da xref nHK→ifbNo)
+      const ifbNo = isCAN
+        ? (nComitFromIfb2 || nFiliale)
+        : (xrefByNFiliale[nFiliale] || ifbFromNComit2 || nFiliale);
+      const sameCode = ifbNo===nFiliale || !nComitFromIfb2 && isCAN;
       // Chiave canonica = N COMIT numerico se disponibile, altrimenti IFB code
       // Questo risolve doppia codifica (es. MT314 e 4144 = stesso item): sempre il numero vince
       const isNumeric = (s:string) => /^\d+$/.test(s);
