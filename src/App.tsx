@@ -4119,7 +4119,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterIFBNo,setFilterIFBNoRaw] = useState(()=>lsGet("filterIFBNo",""));
   const [filterLocation,setFilterLocationRaw] = useState<"all"|"ncj"|"non-ncj">(()=>lsGet("filterLocation","all"));
   const [filterScBC,setFilterScBCRaw] = useState<"all"|"assente">(()=>lsGet("filterScBC","all"));
-  const [filterMotivo,setFilterMotivoRaw] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old"|"non-food">(()=>lsGet("filterMotivo","all"));
+  const [filterMotivo,setFilterMotivoRaw] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"non-sample"|"keep-old"|"non-food">(()=>lsGet("filterMotivo","all"));
   const [filterScNavGC,setFilterScNavGCRaw] = useState<"all"|"assente">(()=>lsGet("filterScNavGC","all"));
   const [filterDeltaPct,setFilterDeltaPctRaw] = useState<"all"|"0-10"|"10-25"|"25-50"|"50+">(()=>lsGet("filterDeltaPct","all"));
   const [showNoAna,setShowNoAnaRaw] = useState(()=>lsGet("showNoAna",false));
@@ -4252,7 +4252,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
         const isNonFoodCAN = branch==="CAN" && /^(GMT|BCF|GHE|NON)/i.test(String(r.itemCode||""));
-        const skipReason=isAir?"AIR":isNonFoodCAN?"NON FOOD":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
+        const isSampleRow  = r.unitPrice===0||r.unitPrice===0.01;
+        const skipReason=isAir?"AIR":isNonFoodCAN?"NON FOOD":isSampleRow?"SAMPLE":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
@@ -4342,6 +4343,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
   else if(filterMotivo==="anagrafica") displayed=displayed.filter(r=>r.skipReason==="NON IN ANAGRAFICA");
   else if(filterMotivo==="sample") displayed=displayed.filter(r=>r.isSample===true);
+  else if(filterMotivo==="non-sample") displayed=displayed.filter(r=>!r.isSample);
   else if(filterMotivo==="keep-old") displayed=displayed.filter(r=>r.isKeepOld===true);
   else if(filterMotivo==="non-food") displayed=displayed.filter(r=>r.skipReason==="NON FOOD");
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
@@ -4571,7 +4573,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           <option value="no-log">Senza Logistica</option>
           <option value="no-price">Senza Prezzo</option>
           <option value="anagrafica">Non in Anagrafica</option>
-          <option value="sample">Sample</option>
+          <option value="sample">Solo Sample</option>
+          <option value="non-sample">Non Sample</option>
           <option value="keep-old">Keep Old</option>
           {branch==="CAN"&&<option value="non-food">Non Food</option>}
         </select>
