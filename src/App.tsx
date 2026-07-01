@@ -5351,6 +5351,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const scEntry  = scMap[nFiliale];
       const cr       = costMap[ifbNo] || costMap[nFiliale];
       const prod     = (products||[]).find((p:any)=>p.code===ifbNo);
+      // Escludi NON FOOD CAN (HO.RE.CA. SUPPLY)
+      if(isCAN && /^HO\.RE\.CA\./i.test(String(prod?.category||""))) continue;
       const logEntry = prod ? logMap[String(prod.id)] : null;
       const lastOrderRaw2 = logEntry?.lastOrderDate || inv.date || inv.postingDate;
       const lastOrderD = lastOrderRaw2 ? new Date(String(lastOrderRaw2).slice(0,10)) : null;
