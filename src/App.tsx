@@ -998,7 +998,7 @@ export default function App() {
       showToast={showToast}
       macHkCostRows={macHkCostRows}
     />,
-    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} scAttualiMap={scAttualiMap} products={products} logistics={logistics}/>,
+    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products} logistics={logistics}/>,
     mail:  <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
   };
@@ -5297,7 +5297,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 }
 
 // ─── CHECK MENSILE ────────────────────────────────────────────────────────────
-function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, scAttualiMap: scAttualiMapProp, products, logistics=[]}) {
+function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[]}) {
   const isCAN = branch === "CAN";
   const cur = isCAN ? "€" : "HK$";
   const xrefByIfbNoPreferNumeric = (ifbNo:string) => {
@@ -5338,14 +5338,21 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, scAttualiM
     return m;
   },[costRows]);
 
-  // scMap: usa scAttualiMap dal padre (ha già alias xref IFB↔N COMIT)
-  // fallback: costruisce mappa semplice da scAttuali se prop non disponibile
+  // scMap con alias bidirezionali IFB↔N COMIT via xref (stesso algoritmo di scAttualiMap nel padre)
   const scMap = useMemo(()=>{
-    if(scAttualiMapProp && Object.keys(scAttualiMapProp).length>0) return scAttualiMapProp;
     const m: Record<string,any>={};
-    (scAttuali||[]).forEach((r:any)=>{ if(r.code) m[r.code]=r; });
+    (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) m[String(r.code)]=r; });
+    (scAttuali||[]).forEach((rec:any)=>{
+      if(rec.code==null) return;
+      const k=String(rec.code);
+      const xrByNHK=(xrefs||[]).find((x:any)=>String(x.nHK)===k);
+      if(xrByNHK?.ifbNo){ const ak=String(xrByNHK.ifbNo); if(!m[ak]) m[ak]=rec; }
+      const matches=(xrefs||[]).filter((x:any)=>String(x.ifbNo)===k);
+      const xrByIfb=matches.find((x:any)=>/^\d+$/.test(String(x.nHK)))||matches[0];
+      if(xrByIfb?.nHK){ const ak=String(xrByIfb.nHK); if(!m[ak]) m[ak]=rec; }
+    });
     return m;
-  },[scAttuali, scAttualiMapProp]);
+  },[scAttuali, xrefs]);
 
   // logMap keyed by productId
   const logMap = useMemo(()=>{
