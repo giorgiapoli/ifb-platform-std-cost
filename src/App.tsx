@@ -4301,6 +4301,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     return m;
   },[scAttuali,xrefs,xrefByIfbNoPreferNumeric]);
 
+  // Items che appaiono in fattura → se hanno NO PREZZO ora, il listino era aperto e poi chiuso
+  const soldItemCodes = useMemo(()=>new Set(activeRows.map((r:any)=>String(r.itemCode||""))), [activeRows]);
+
   const enriched=useMemo(()=>{
     return [...activeRows]
       .sort((a:any,b:any)=>{
@@ -4320,8 +4323,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
         const isNonFoodCAN=branch==="CAN"&&/^HO\.RE\.CA\./i.test(String(prod?.category||""));
         const isSampleRow=r.unitPrice===0||r.unitPrice===0.01;
-        const skipReason=isAir?"AIR":isNonFoodCAN?"NON FOOD":isSampleRow?"SAMPLE":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
+        const skipReasonRaw=isAir?"AIR":isNonFoodCAN?"NON FOOD":isSampleRow?"SAMPLE":
+          cr?.skipReason||(!prod?"NON IN ANAGRAFICA":!cr&&!logEntry?"NO LOGISTICA":"");
+        // Se "NO PREZZO" ma l'articolo appare in fattura → listino era aperto e poi chiuso
+        const skipReason = skipReasonRaw?.includes("NO PREZZO") && soldItemCodes.has(String(r.itemCode||""))
+          ? skipReasonRaw.replace("NO PREZZO","LISTINO CHIUSO E NON RIAPERTO")
+          : skipReasonRaw;
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
         const scFUE = cr?.cost?.step2FUE ?? null;
