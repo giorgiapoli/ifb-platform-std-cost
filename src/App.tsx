@@ -5411,13 +5411,18 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const tdD  = (v:string) => <td style={{padding:"3px 8px",fontSize:"10px",color:T.text,maxWidth:"220px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{v}</td>;
   const tdSC = (v:number) => <td style={{padding:"3px 8px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{v>0?`${cur} ${v.toFixed(2)}`:"—"}</td>;
   const tdDp = (pct:number,old:number) => <td style={{padding:"3px 8px",fontSize:"10px",textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap",color:pct>0?T.orange:T.red}}>{old>0?(pct>0?"+":"")+pct.toFixed(2)+"%":"—"}</td>;
-  const fCode = isCAN ? "N COMIT" : "N HK";
+  const fCode = isCAN ? "IFB No" : "N HK";
   const hasDualCode = analysisRows.some((r:any)=>!r.sameCode);
+  // CAN: nFiliale=IFB code (da BC Italia), ifbNo=N COMIT (da xref) → ordine invertito rispetto a HK
   const tdCodes = (r:any) => hasDualCode
-    ? <>{tdC(r.nFiliale)}{tdC(r.sameCode?"":r.ifbNo)}</>
+    ? isCAN
+      ? <>{tdC(r.nFiliale)}{tdC(r.sameCode?"":r.ifbNo)}</>
+      : <>{tdC(r.nFiliale)}{tdC(r.sameCode?"":r.ifbNo)}</>
     : tdC(r.nFiliale);
   const thCodes = hasDualCode
-    ? <><TH h={fCode}/><TH h="IFB No"/></>
+    ? isCAN
+      ? <><TH h="IFB No"/><TH h="N COMIT"/></>
+      : <><TH h="N HK"/><TH h="IFB No"/></>
     : <TH h={fCode}/>;
 
   return (
