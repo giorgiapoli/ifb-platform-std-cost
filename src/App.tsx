@@ -348,6 +348,7 @@ const BC_FIELD_ALIASES = {
   kgPerBox:    ["kgperbox","kg per box","net weight","peso netto","kg per cartone","netweight"],
   kgxplt: ["kgxplt","kg x pallet","kg per pallet","kgperpallet"],
   temperature: ["producttype","product type","product type rettificato","product type - anagrafica","item tracking code","temperatura","temperature","storage"],
+  commodityDirection: ["commodity direction","commoditydirection","comm. direction","comm direction","commodity dir","comm dir","direzione merceologica"],
   active:      ["blocked","bloccato","active","attivo"],
   vendorName:  ["vendorname","vendor name","vendor name 2","vendor","fornitore","vendor name2"],
 };
@@ -1825,6 +1826,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
       macUom: r.macUom ? String(r.macUom).trim().toUpperCase() : "",
       hkUom:  r.hkUom  ? String(r.hkUom).trim().toUpperCase()  : "",
       macToHkConv: parseFloat(r.macToHkConv)>0 ? parseFloat(r.macToHkConv) : 1,
+      commodityDirection: String(r.commodityDirection||"").trim().toUpperCase(),
     }));
     const prevMap=Object.fromEntries(products.map(p=>[p.id,p]));
     const diffs=[];
@@ -4251,7 +4253,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const newHkd=cr?.cost?.step2Hkd??null;
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
-        const isNonFoodCAN = branch==="CAN" && /^(GMT|BCF|GHE|NON)/i.test(String(r.itemCode||""));
+        const isNonFoodCAN = branch==="CAN" && (prod?.commodityDirection==="NON FOOD" || /^NON\s+FOOD/i.test(prod?.commodityDirection||""));
         const isSampleRow  = r.unitPrice===0||r.unitPrice===0.01;
         const skipReason=isAir?"AIR":isNonFoodCAN?"NON FOOD":isSampleRow?"SAMPLE":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
@@ -6161,6 +6163,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
       active: parseActive(r.active),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
+      commodityDirection: String(r.commodityDirection||"").trim().toUpperCase(),
     }));
   
     // Calcola diff rispetto all'anagrafica attuale
