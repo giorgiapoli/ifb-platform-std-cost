@@ -4324,10 +4324,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(scFilter==="sample")   displayed=displayed.filter(r=>isSample(r));
   if(last30){ const cut=Date.now()-30*24*60*60*1000; displayed=displayed.filter(r=>{ const d=new Date(r.date); return !isNaN(d.getTime())&&d.getTime()>=cut; }); }
   if(dedup){
-    displayed=displayed.filter(r=>(r.qty??0)>=0);
     const best=new Map<string,any>();
     displayed.forEach(r=>{
-      const key=`${r.itemCode||r.ifbNo}__${r.location||""}`;
+      const key=String(r.itemCode||r.ifbNo||"");
       const prev=best.get(key);
       if(!prev||new Date(r.date)>new Date(prev.date)) best.set(key,r);
     });
