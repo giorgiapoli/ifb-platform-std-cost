@@ -4674,7 +4674,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                         : <><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
                       }
                     </td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?`HKD ${r.oldHkd.toFixed(2)}`:"—"}</span></td>
                     {branch==="CAN" ? (
                       <>
                         {([r.scGC,r.scFUE] as (number|null)[]).map((v,i)=>(
@@ -4710,12 +4710,12 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                             : (r.unitPrice===0||r.unitPrice===0.01)
                               ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
                               : r.newHkd!=null
-                                ? <span style={{color:T.gold,fontWeight:"bold"}}>{r.newHkd.toFixed(2)}</span>
+                                ? <span style={{color:T.gold,fontWeight:"bold"}}>HKD {r.newHkd.toFixed(2)}</span>
                                 : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
                           }
                         </td>
                         <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                          <span style={{color:T.muted}}>{r.bcStdCost>0?r.bcStdCost.toFixed(2):"—"}</span>
+                          <span style={{color:T.muted}}>{r.bcStdCost>0?`HKD ${r.bcStdCost.toFixed(2)}`:"—"}</span>
                         </td>
                         <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
                           {r.deltaSC!=null
