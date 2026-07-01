@@ -5341,8 +5341,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     for (const inv of monthRows) {
       const nFiliale = inv.itemCode;
       if(!nFiliale||seen.has(nFiliale)) continue;
+      // Escludi SAMPLE (price=0), AIR
+      if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
+      if(inv.transport==="AIR") continue;
       seen.add(nFiliale);
-      const ifbNo = xrefByNFiliale[nFiliale] || nFiliale;
+      const ifbNoLookup = xrefByNFiliale[nFiliale];
+      const ifbNo = ifbNoLookup && ifbNoLookup!==nFiliale ? ifbNoLookup : nFiliale;
+      const sameCode = !ifbNoLookup || ifbNoLookup===nFiliale;
       const scEntry  = scMap[nFiliale];
       const cr       = costMap[ifbNo] || costMap[nFiliale];
       const prod     = (products||[]).find((p:any)=>p.code===ifbNo);
@@ -5358,13 +5363,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const deltaPct = oldSC>0 ? deltaAbs/oldSC*100 : 0;
       const noCalc   = !newSC && !cr?.cost;
       rows.push({
-        nFiliale, ifbNo,
+        nFiliale, ifbNo, sameCode,
         description: cr?.description || inv.description || "",
         oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
         lastDate: scEntry?.lastPurchaseDate || "",
         stockQty: scEntry?.stockQty ?? "",
         isKeepOld,
-        isNuovo:  !oldSC && !noCalc,
+        isNuovo:  !oldSC && !noCalc && !isKeepOld,
         isDelta:  oldSC>0 && Math.abs(deltaPct)>threshold,
         isKeepOldOrdered: isKeepOld,
       });
@@ -5405,6 +5410,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const tdSC = (v:number) => <td style={{padding:"3px 8px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{v>0?`${cur} ${v.toFixed(2)}`:"—"}</td>;
   const tdDp = (pct:number,old:number) => <td style={{padding:"3px 8px",fontSize:"10px",textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap",color:pct>0?T.orange:T.red}}>{old>0?(pct>0?"+":"")+pct.toFixed(2)+"%":"—"}</td>;
   const fCode = isCAN ? "N COMIT" : "N HK";
+  const hasDualCode = analysisRows.some((r:any)=>!r.sameCode);
+  const tdCodes = (r:any) => hasDualCode
+    ? <>{tdC(r.nFiliale)}{tdC(r.sameCode?"":r.ifbNo)}</>
+    : tdC(r.nFiliale);
+  const thCodes = hasDualCode
+    ? <><TH h={fCode}/><TH h="IFB No"/></>
+    : <TH h={fCode}/>;
 
   return (
     <div>
@@ -5457,13 +5469,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Articoli ordinati questo mese che non hanno ancora uno Standard Cost in sistema.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr><TH h={fCode}/><TH h="IFB Item"/><TH h="Descrizione"/><TH h="New SC Calc"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="New SC Calc"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
               <tbody>
                 {alert1.length===0
-                  ? <tr><td colSpan={6} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
                   : alert1.map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.blue}07`}}>
-                      {tdC(r.nFiliale)}{tdC(r.ifbNo)}{tdD(r.description)}
+                      {tdCodes(r)}{tdD(r.description)}
                       {tdSC(r.newSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
                     </tr>
                   ))}
@@ -5477,13 +5489,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC in macchina vs SC calcolato: variazione oltre la soglia.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr><TH h={fCode}/><TH h="IFB Item"/><TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Stock"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Stock"/></tr></thead>
               <tbody>
                 {alert2.length===0
-                  ? <tr><td colSpan={7} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  ? <tr><td colSpan={6+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
                   : alert2.map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:r.deltaPct>0?`${T.orange}07`:`${T.red}07`}}>
-                      {tdC(r.nFiliale)}{tdC(r.ifbNo)}{tdD(r.description)}
+                      {tdCodes(r)}{tdD(r.description)}
                       <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
                       {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}{tdM(r.stockQty)}
                     </tr>
@@ -5498,13 +5510,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Non ordinati da &gt;180 giorni ma presenti nelle fatture di questo mese — SC probabilmente da aggiornare.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr><TH h={fCode}/><TH h="IFB Item"/><TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
               <tbody>
                 {alert3.length===0
-                  ? <tr><td colSpan={8} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  ? <tr><td colSpan={7+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
                   : alert3.map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.purple}07`}}>
-                      {tdC(r.nFiliale)}{tdC(r.ifbNo)}{tdD(r.description)}
+                      {tdCodes(r)}{tdD(r.description)}
                       <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
                       {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
                     </tr>
