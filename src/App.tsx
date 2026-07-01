@@ -4251,7 +4251,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const newHkd=cr?.cost?.step2Hkd??null;
         const oldHkd=cr?.prevCost?.step2Hkd??null;
         const pct=newHkd!=null&&oldHkd!=null&&oldHkd>0?(newHkd-oldHkd)/oldHkd*100:null;
-        const skipReason=isAir?"AIR":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
+        const isNonFoodCAN=branch==="CAN"&&/^HO\.RE\.CA\./i.test(String(prod?.category||""));
+        const isSampleRow=r.unitPrice===0||r.unitPrice===0.01;
+        const skipReason=isAir?"AIR":isNonFoodCAN?"NON FOOD":isSampleRow?"SAMPLE":cr?.skipReason||(!prod?"NON IN ANAGRAFICA":"");
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
         const logTransport=logEntry?.transport||"";
         const scGC  = cr?.cost?.step2GC  ?? null;
@@ -4340,12 +4342,16 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(filterMotivo==="no-log") displayed=displayed.filter(r=>r.skipReason==="NO LOGISTICA");
   else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
   else if(filterMotivo==="anagrafica") displayed=displayed.filter(r=>r.skipReason==="NON IN ANAGRAFICA");
-  else if(filterMotivo==="sample") displayed=displayed.filter(r=>r.isSample===true);
+  else if(filterMotivo==="sample") displayed=displayed.filter(r=>r.skipReason==="SAMPLE");
+  else if(filterMotivo==="non-sample") displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
   else if(filterMotivo==="keep-old") displayed=displayed.filter(r=>r.isKeepOld===true);
+  else if(filterMotivo==="non-food") displayed=displayed.filter(r=>r.skipReason==="NON FOOD");
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
   if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
+  if(filterMotivo!=="sample"&&filterMotivo!=="non-sample") displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
+  if(filterMotivo!=="non-food") displayed=displayed.filter(r=>r.skipReason!=="NON FOOD");
   displayed=displayed.filter(r=>r.itemCode!=="ITEM"&&r.itemCode!=="item");
   if(excludeKeepOld) displayed=displayed.filter(r=>!r.isKeepOld);
   if(filterDeltaPct!=="all"){
