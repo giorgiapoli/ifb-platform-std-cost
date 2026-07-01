@@ -1,6 +1,7 @@
-﻿// v2026-06-30
+﻿// v2026-07-01
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
+import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
 
 const T = {
   bg:"#0B0F14", surface:"#111720", panel:"#111720", card:"#161E28",
@@ -399,29 +400,7 @@ const LS = {
 
 // Seed data (minimal)
 // ─── IndexedDB per dati grandi ──────────────────────────────────────────────
-const IDB = (() => {
-  let dbP: Promise<IDBDatabase>|null = null;
-  const open = () => {
-    if(!dbP) dbP = new Promise((res,rej) => {
-      const r = indexedDB.open("ifb_store",1);
-      r.onupgradeneeded = e => (e.target as IDBOpenDBRequest).result.createObjectStore("store");
-      r.onsuccess = e => res((e.target as IDBOpenDBRequest).result);
-      r.onerror = () => { dbP=null; rej(); };
-    });
-    return dbP;
-  };
-  return {
-    set: async (key:string, val:any) => {
-      try { const db=await open(); await new Promise<void>((res,rej)=>{ const tx=db.transaction("store","readwrite"); tx.objectStore("store").put(val,key); tx.oncomplete=()=>res(); tx.onerror=rej; }); return true; } catch { return false; }
-    },
-    get: async (key:string, def:any=null) => {
-      try { const db=await open(); return await new Promise(res=>{ const tx=db.transaction("store","readonly"); const r=tx.objectStore("store").get(key); r.onsuccess=()=>res(r.result??def); r.onerror=()=>res(def); }); } catch { return def; }
-    },
-    del: async (key:string) => {
-      try { const db=await open(); await new Promise<void>((res)=>{ const tx=db.transaction("store","readwrite"); tx.objectStore("store").delete(key); tx.oncomplete=()=>res(); tx.onerror=()=>res(); }); } catch {}
-    }
-  };
-})();
+// IDB e CLOUD importati da supabase.ts
 
 const SEED_PRODUCTS = [];
 const SEED_LOGISTIC = [];
@@ -476,6 +455,44 @@ export default function App() {
   const [scHistory, setScHistory] = useState<any[]>([]); // storico SC Attuali per branch
   const [macHkCostRows, setMacHkCostRows] = useState<any[]>([]); // HK costs loaded for MAC derivation
 
+  // ── Auth state ──────────────────────────────────────────────────────────────
+  const supabaseEnabled = !!(import.meta.env.VITE_SUPABASE_URL && import.meta.env.VITE_SUPABASE_ANON_KEY);
+  const [authReady, setAuthReady] = useState(!supabaseEnabled); // if no supabase, always ready
+  const [authSession, setAuthSession] = useState<any>(null);
+  const [authRole, setAuthRole] = useState<'admin'|'viewer'|null>(supabaseEnabled ? null : 'admin');
+  const [authEmail, setAuthEmail] = useState("");
+  const [authSent, setAuthSent] = useState(false);
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+  const [showUserMgmt, setShowUserMgmt] = useState(false);
+  const [userList, setUserList] = useState<any[]>([]);
+  const [inviteEmail, setInviteEmail] = useState("");
+
+  useEffect(()=>{
+    if(!supabaseEnabled) return;
+    (async()=>{
+      const { supabase: sb } = await import("./supabase");
+      if(!sb) { setAuthReady(true); setAuthRole('admin'); return; }
+      const { data: { session } } = await sb.auth.getSession();
+      setAuthSession(session);
+      if(session?.user?.email) {
+        const role = await getUserRole(session.user.email);
+        setAuthRole(role);
+      }
+      setAuthReady(true);
+      sb.auth.onAuthStateChange(async (_e, s) => {
+        setAuthSession(s);
+        if(s?.user?.email) {
+          const role = await getUserRole(s.user.email);
+          setAuthRole(role);
+        } else {
+          setAuthRole(null);
+        }
+      });
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
   const navigate = (pageName, filter=null) => { setPageFilter(filter); setPage(pageName); };
 
   const branchRef = useRef(branch);
@@ -483,12 +500,12 @@ export default function App() {
   const branchLoadedRef = useRef<string>("");
   const globalLoadedRef = useRef(false); // blocks global saves until IDB load completes
 
-  // Load global data (logistics, meatPrices) from IDB on mount
+  // Load global data (logistics, meatPrices) from CLOUD (Supabase → IDB fallback)
   useEffect(()=>{
     (async()=>{
-      setLogistics(await IDB.get("ifb_logistics", SEED_LOGISTIC));
-      setMeatPrices(await IDB.get("ifb_meatprices", []));
-      setBevInfo(await IDB.get("ifb_bevinfo", []));
+      setLogistics(await CLOUD.get("ifb_logistics", SEED_LOGISTIC));
+      setMeatPrices(await CLOUD.get("ifb_meatprices", []));
+      setBevInfo(await CLOUD.get("ifb_bevinfo", []));
       globalLoadedRef.current = true;
     })();
   },[]);
@@ -497,31 +514,31 @@ export default function App() {
   useEffect(()=>{ if(branch) setPriceExceptions(LS.get(`ifb_exceptions_${branch}`,[])); },[branch]);
   // Save effects — only fire after load is complete
   useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
-  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_products_${branchRef.current}`, products); },[products]);
-  useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_logistics", logistics); }, [logistics]);
-  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_airlist_${branchRef.current}`, airList); },[airList]);
-  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_xrefs_${branchRef.current}`, xrefs); },[xrefs]);
-  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_sales_invoice_${branchRef.current}`, salesRows); },[salesRows]);
-  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_scattuali_${branchRef.current}`, scAttuali); },[scAttuali]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_products_${branchRef.current}`, products); },[products]);
+  useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_logistics", logistics); }, [logistics]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_airlist_${branchRef.current}`, airList); },[airList]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_xrefs_${branchRef.current}`, xrefs); },[xrefs]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_sales_invoice_${branchRef.current}`, salesRows); },[salesRows]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_scattuali_${branchRef.current}`, scAttuali); },[scAttuali]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_schistory_${branchRef.current}`, scHistory); },[scHistory]);
   // MAC: load saved HK costRows when switching to MAC branch
   useEffect(()=>{ if(branch==="MAC") IDB.get("ifb_hk_costrows_for_mac",[]).then((d:any[])=>setMacHkCostRows(d)); },[branch]);
-  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) IDB.set(`ifb_prices_${branchRef.current}`, prices); },[prices]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_prices_${branchRef.current}`, prices); },[prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
-  useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_meatprices", meatPrices); }, [meatPrices]);
-  useEffect(()=>{ if(globalLoadedRef.current) IDB.set("ifb_bevinfo", bevInfo); }, [bevInfo]);
+  useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_meatprices", meatPrices); }, [meatPrices]);
+  useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_bevinfo", bevInfo); }, [bevInfo]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
     branchLoadedRef.current = ""; // reset — block saves while loading
     (async()=>{
-      setProducts(await IDB.get(`ifb_products_${branch}`,[]));
-      setXrefs(await IDB.get(`ifb_xrefs_${branch}`,[]));
-      setAirList(await IDB.get(`ifb_airlist_${branch}`,[]));
-      setSalesRows(await IDB.get(`ifb_sales_invoice_${branch}`,[]));
-      setScAttuali(await IDB.get(`ifb_scattuali_${branch}`,[]));
+      setProducts(await CLOUD.get(`ifb_products_${branch}`,[]));
+      setXrefs(await CLOUD.get(`ifb_xrefs_${branch}`,[]));
+      setAirList(await CLOUD.get(`ifb_airlist_${branch}`,[]));
+      setSalesRows(await CLOUD.get(`ifb_sales_invoice_${branch}`,[]));
+      setScAttuali(await CLOUD.get(`ifb_scattuali_${branch}`,[]));
       setScHistory(await IDB.get(`ifb_schistory_${branch}`,[]));
-      setPrices(await IDB.get(`ifb_prices_${branch}`,[]));
+      setPrices(await CLOUD.get(`ifb_prices_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
 
       // Auto-fetch dati BC aggiornati da GitHub (solo HK — CAN è su NAV, solo caricamento manuale)
@@ -534,9 +551,9 @@ export default function App() {
             fetch(`${base}data/hk_sc.json?t=${t}`),
             fetch(`${base}data/hk_anagrafica.json?t=${t}`),
           ]);
-          if(rxref.ok) { const d=await rxref.json(); if(Array.isArray(d)&&d.length>0){setXrefs(d);IDB.set(`ifb_xrefs_${branch}`,d);setDataSource(`xref_${branch}`,"bc");} }
-          if(rsc.ok)  { const d=await rsc.json();  if(Array.isArray(d)&&d.length>0){setScAttuali(d);IDB.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
-          if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);IDB.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
+          if(rxref.ok) { const d=await rxref.json(); if(Array.isArray(d)&&d.length>0){setXrefs(d);CLOUD.set(`ifb_xrefs_${branch}`,d);setDataSource(`xref_${branch}`,"bc");} }
+          if(rsc.ok)  { const d=await rsc.json();  if(Array.isArray(d)&&d.length>0){setScAttuali(d);CLOUD.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
+          if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
 
@@ -584,7 +601,7 @@ export default function App() {
                 });
               if(branchRows.length > 0) {
                 setSalesRows(branchRows);
-                IDB.set(`ifb_sales_invoice_${branch}`, branchRows);
+                CLOUD.set(`ifb_sales_invoice_${branch}`, branchRows);
                 setDataSource(`fatture_${branch}`,"bc");
               }
             }
@@ -930,6 +947,59 @@ export default function App() {
   ];
   const NAV = NAV_ALL;
 
+  // ── Auth gate ───────────────────────────────────────────────────────────────
+  if(!authReady) return (
+    <div style={{display:"flex",height:"100vh",alignItems:"center",justifyContent:"center",background:T.bg,color:T.muted,fontFamily:"inherit",fontSize:"13px"}}>
+      Verifica accesso…
+    </div>
+  );
+
+  if(supabaseEnabled && !authSession) return (
+    <div style={{display:"flex",height:"100vh",width:"100vw",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif"}}>
+      <div style={{textAlign:"center",maxWidth:"420px",padding:"40px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"20px"}}>
+        <div style={{fontSize:"10px",letterSpacing:"4px",color:T.gold,textTransform:"uppercase",marginBottom:"8px"}}>IFB Platform</div>
+        <h2 style={{color:T.text,margin:"0 0 6px",fontSize:"24px"}}>Cost Intelligence</h2>
+        <div style={{color:T.muted,fontSize:"12px",marginBottom:"32px"}}>Accesso riservato al personale autorizzato</div>
+        {!authSent ? (
+          <>
+            <input
+              type="email" placeholder="La tua email aziendale" value={authEmail}
+              onChange={e=>setAuthEmail(e.target.value)}
+              onKeyDown={e=>{ if(e.key==="Enter") {
+                setAuthLoading(true); setAuthError("");
+                signInWithOtp(authEmail).then(()=>setAuthSent(true)).catch(err=>setAuthError(err.message)).finally(()=>setAuthLoading(false));
+              }}}
+              style={{width:"100%",padding:"12px 14px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:"8px",color:T.text,fontSize:"14px",outline:"none",boxSizing:"border-box",marginBottom:"12px"}}
+            />
+            <button
+              disabled={authLoading||!authEmail}
+              onClick={()=>{ setAuthLoading(true); setAuthError(""); signInWithOtp(authEmail).then(()=>setAuthSent(true)).catch(err=>setAuthError(err.message)).finally(()=>setAuthLoading(false)); }}
+              style={{width:"100%",padding:"12px",background:T.gold,border:"none",borderRadius:"8px",color:"#000",fontSize:"14px",fontWeight:"bold",cursor:"pointer",opacity:authLoading||!authEmail?0.6:1}}>
+              {authLoading ? "Invio…" : "Invia link di accesso"}
+            </button>
+            {authError && <div style={{marginTop:"10px",color:T.red,fontSize:"12px"}}>{authError}</div>}
+          </>
+        ) : (
+          <div style={{color:T.green,fontSize:"14px",lineHeight:"1.6"}}>
+            ✉ Link inviato a <strong>{authEmail}</strong><br/>
+            <span style={{color:T.muted,fontSize:"12px"}}>Controlla la tua email e clicca il link per accedere.</span>
+            <br/><br/>
+            <button onClick={()=>{ setAuthSent(false); setAuthEmail(""); }} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"12px",textDecoration:"underline"}}>
+              Usa un'altra email
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if(supabaseEnabled && authSession && authRole===null) return (
+    <div style={{display:"flex",height:"100vh",alignItems:"center",justifyContent:"center",background:T.bg,color:T.red,fontFamily:"inherit",fontSize:"13px",flexDirection:"column",gap:"12px"}}>
+      <div>⛔ Accesso non autorizzato per <strong>{authSession.user.email}</strong></div>
+      <button onClick={signOut} style={{padding:"8px 16px",background:"none",border:`1px solid ${T.border}`,borderRadius:"6px",color:T.muted,cursor:"pointer",fontSize:"12px"}}>Esci</button>
+    </div>
+  );
+
   // ── Page: branch selection splash ──────────────────────────────────────────
   if(page==="branchSelect") return (
     <div style={{display:"flex",height:"100vh",width:"100vw",background:T.bg,alignItems:"center",justifyContent:"center",fontFamily:"'Palatino Linotype','Book Antiqua',Palatino,serif"}}>
@@ -1102,7 +1172,22 @@ export default function App() {
           <span style={{color:T.dim}}>·</span>
           <span style={{fontSize:"11px",color:T.gold}}>{month}</span>
           {needsRecalc&&<span style={{padding:"2px 10px",background:`${T.orange}20`,color:T.orange,borderRadius:"10px",fontSize:"11px"}}>⚠ Nuovi dati — ricalcola Standard Cost</span>}
-          <div style={{marginLeft:"auto",display:"flex",gap:"6px"}}>
+          <div style={{marginLeft:"auto",display:"flex",gap:"6px",alignItems:"center"}}>
+            {supabaseEnabled && authSession && (
+              <span style={{fontSize:"10px",color:T.muted,maxWidth:"140px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}} title={authSession.user.email}>{authSession.user.email}</span>
+            )}
+            {supabaseEnabled && authRole==="admin" && (
+              <button onClick={async()=>{ setUserList(await listUsers()); setShowUserMgmt(true); }}
+                style={{padding:"5px 10px",background:"none",border:`1px solid ${T.border}`,borderRadius:"5px",color:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>
+                👥 Utenti
+              </button>
+            )}
+            {supabaseEnabled && authSession && (
+              <button onClick={()=>{ if(window.confirm("Esci dall'account?")) signOut(); }}
+                style={{padding:"5px 10px",background:"none",border:`1px solid ${T.border}`,borderRadius:"5px",color:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>
+                Esci
+              </button>
+            )}
             <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>✉ Mail</button>
           </div>
         </div>
@@ -1111,6 +1196,59 @@ export default function App() {
 </div>
       </div>
       {toast&&<div style={{position:"fixed",bottom:"24px",right:"24px",padding:"10px 18px",background:toast.color,borderRadius:"8px",color:"#fff",fontSize:"12px",fontWeight:"bold",boxShadow:"0 8px 24px rgba(0,0,0,0.4)",zIndex:1000}}>{toast.msg}</div>}
+      {showUserMgmt&&(
+        <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",zIndex:2000,display:"flex",alignItems:"center",justifyContent:"center"}} onClick={()=>setShowUserMgmt(false)}>
+          <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:"16px",padding:"28px",minWidth:"420px",maxWidth:"560px",width:"90%"}} onClick={e=>e.stopPropagation()}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"20px"}}>
+              <h3 style={{margin:0,color:T.text,fontSize:"16px"}}>Gestione Accessi</h3>
+              <button onClick={()=>setShowUserMgmt(false)} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"18px"}}>✕</button>
+            </div>
+            <div style={{marginBottom:"16px"}}>
+              <div style={{fontSize:"11px",color:T.muted,marginBottom:"6px"}}>Invita utente</div>
+              <div style={{display:"flex",gap:"8px"}}>
+                <input type="email" placeholder="email@inalcafb.com" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}
+                  style={{flex:1,padding:"8px 10px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:"6px",color:T.text,fontSize:"13px",outline:"none"}}/>
+                <button onClick={async()=>{
+                    if(!inviteEmail) return;
+                    await inviteUser(inviteEmail,"viewer");
+                    setUserList(await listUsers());
+                    setInviteEmail("");
+                    showToast(`${inviteEmail} aggiunto come viewer`, T.green);
+                  }}
+                  style={{padding:"8px 14px",background:T.gold,border:"none",borderRadius:"6px",color:"#000",fontSize:"12px",fontWeight:"bold",cursor:"pointer"}}>
+                  Aggiungi
+                </button>
+              </div>
+            </div>
+            <table style={{width:"100%",borderCollapse:"collapse"}}>
+              <thead><tr style={{borderBottom:`1px solid ${T.border}`}}>
+                <th style={{textAlign:"left",padding:"6px",color:T.muted,fontSize:"11px",fontWeight:"normal"}}>Email</th>
+                <th style={{textAlign:"left",padding:"6px",color:T.muted,fontSize:"11px",fontWeight:"normal"}}>Ruolo</th>
+                <th/>
+              </tr></thead>
+              <tbody>{userList.map((u:any)=>(
+                <tr key={u.email} style={{borderBottom:`1px solid ${T.border}22`}}>
+                  <td style={{padding:"8px 6px",color:T.text,fontSize:"13px"}}>{u.email}</td>
+                  <td style={{padding:"8px 6px"}}>
+                    <span style={{padding:"2px 8px",borderRadius:"10px",fontSize:"11px",background:u.role==="admin"?`${T.gold}22`:`${T.green}22`,color:u.role==="admin"?T.gold:T.green}}>{u.role}</span>
+                  </td>
+                  <td style={{padding:"8px 6px",textAlign:"right"}}>
+                    {u.email!==authSession?.user?.email&&(
+                      <button onClick={async()=>{
+                          if(!window.confirm(`Rimuovere accesso per ${u.email}?`)) return;
+                          await removeUser(u.email);
+                          setUserList(await listUsers());
+                          showToast(`${u.email} rimosso`, T.red);
+                        }}
+                        style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:"12px"}}>✕ Rimuovi</button>
+                    )}
+                  </td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
     </ErrorBoundary>
   );
@@ -1176,7 +1314,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
     const diffs=incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo,isNew:r._isNew,changed:r._changed,oldIFB:r._oldIFB}));
     const kept=xrefs.filter(x=>!incoming.find(i=>i.nHK===x.nHK));
     const next=[...incoming.map(r=>({nHK:r.nHK,ifbNo:r.ifbNo})),...kept];
-    setXrefs(next);IDB.set(`ifb_xrefs_${branch}`,next);setDataSource(`xref_${branch}`,"manual");
+    setXrefs(next);CLOUD.set(`ifb_xrefs_${branch}`,next);setDataSource(`xref_${branch}`,"manual");
     const log={id,type:"xref",fileName,date:new Date(id).toISOString(),count:incoming.length,diffs,branch};
     const newLogs=[log,...importLogs];setImportLogs(newLogs);LS.set("ifb_importlogs",newLogs);
     const newSnaps=[log,...snapshots].slice(0,50);setSnapshots(newSnaps);LS.set("ifb_snapshots",newSnaps);
@@ -1249,7 +1387,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
           <SearchBar value={search} onChange={setSearch} placeholder={`🔍 Cerca per ${branchCode} o IFB N…`}/>
           {xrefs.length>0&&(
             <div style={{marginBottom:"10px",display:"flex",justifyContent:"flex-end"}}>
-              <button onClick={()=>{if(window.confirm(`Eliminare tutte le ${xrefs.length} XRef di ${branch}?`)){setXrefs([]);IDB.set(`ifb_xrefs_${branch}`,[]);}}}
+              <button onClick={()=>{if(window.confirm(`Eliminare tutte le ${xrefs.length} XRef di ${branch}?`)){setXrefs([]);CLOUD.set(`ifb_xrefs_${branch}`,[]);}}}
                 style={{padding:"5px 14px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
                 ✕ Svuota lista ({xrefs.length})
               </button>
@@ -1263,7 +1401,7 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
                   <tr key={x.nHK+i} style={{borderBottom:`1px solid ${T.border}`}}>
                     <TD mono><span style={{color:T.gold}}>{x.nHK}</span></TD>
                     <TD mono>{x.ifbNo}</TD>
-                    <TD><MiniBtn label="✕" onClick={()=>{const n=xrefs.filter((_,j)=>j!==xrefs.indexOf(x));setXrefs(n);IDB.set(`ifb_xrefs_${branch}`,n);}} color={T.red}/></TD>
+                    <TD><MiniBtn label="✕" onClick={()=>{const n=xrefs.filter((_,j)=>j!==xrefs.indexOf(x));setXrefs(n);CLOUD.set(`ifb_xrefs_${branch}`,n);}} color={T.red}/></TD>
                   </tr>
                 ))}</tbody>
               </table>
@@ -1608,7 +1746,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
     });
     
     setPrices(updated);
-    IDB.set(`ifb_prices_${branch}`, updated);
+    CLOUD.set(`ifb_prices_${branch}`, updated);
     
     const log = {
       id: snId,
@@ -2048,7 +2186,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
       productId: r.productId, code: r.code, nHK: r.nHK,
       description: r.description, transportation: "AIR", branch
     }));
-    setAirList(next); IDB.set(`ifb_airlist_${branch}`, next);
+    setAirList(next); CLOUD.set(`ifb_airlist_${branch}`, next);
     const now = Date.now();
     IDB.set(`ifb_air_data_${now}`, next);
     const log = {id:now,type:"air",date:new Date(now).toISOString(),count:valid.length,diffs:[],branch};
@@ -2428,7 +2566,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
       next = [...logistics, getOrDefault(id)];
       setLogistics(next);
     }
-    IDB.set("ifb_logistics", next);
+    CLOUD.set("ifb_logistics", next);
     showToast("Salvato ✓", T.green);
     setEditingRows(prev=>{ const s=new Set(prev); s.delete(id); return s; });
   }
@@ -2454,7 +2592,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
       ? logistics.map(l => l.productId===productId&&l.branch===branch ? {...l, [field]:val} : l)
       : [...logistics, {...getOrDefault(productId), [field]: val}];
     setLogistics(next);
-    IDB.set("ifb_logistics", next);
+    CLOUD.set("ifb_logistics", next);
   }
 
   function parseLogFile(e) {
@@ -2606,7 +2744,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
     });
   
     setLogistics(next);
-    IDB.set("ifb_logistics", next);
+    CLOUD.set("ifb_logistics", next);
   
     if (countAir > 0) {
       showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
@@ -2764,7 +2902,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
       <div style={{marginBottom:"12px"}}>
         <button
           onClick={()=>{
-            IDB.set("ifb_logistics", logistics);
+            CLOUD.set("ifb_logistics", logistics);
             showToast("Salvato ✓", T.green);
           }}
           style={{padding:"8px 18px",background:`${T.green}20`,border:`1px solid ${T.green}66`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
@@ -3089,7 +3227,7 @@ count++;
 });
 
 setPrices(updated);
-IDB.set(`ifb_prices_${branch}`, updated);
+CLOUD.set(`ifb_prices_${branch}`, updated);
 
 const log = {
 id: snId,
@@ -4201,7 +4339,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
   function saveRows(data:any[]) {
     setRows(data);
-    IDB.set(`ifb_sales_invoice_${branch}`, data);
+    CLOUD.set(`ifb_sales_invoice_${branch}`, data);
     setDataSource(`fatture_${branch}`,"manual");
   }
 
@@ -5142,7 +5280,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
   function clearAll() {
     if(!window.confirm(`Svuotare tutti i dati SC Attuali per ${branch}?`)) return;
     setScAttuali([]);
-    IDB.set(`ifb_scattuali_${branch}`,[]);
+    CLOUD.set(`ifb_scattuali_${branch}`,[]);
     setSelEntry(null);
     showToast("SC Attuali svuotati", T.orange);
   }
@@ -6326,7 +6464,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     });
 
     setProducts(newProds);
-    IDB.set(`ifb_products_${branch}`, newProds);
+    CLOUD.set(`ifb_products_${branch}`, newProds);
     IDB.set(`ifb_anag_data_${now}`, newProds);
     setDataSource(`anagrafica_${branch}`,"manual");
     const log = { id:now, type:"anagrafica", date:new Date(now).toISOString(), count:newProds.length, branch, diffs };
