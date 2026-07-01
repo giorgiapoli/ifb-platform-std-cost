@@ -833,7 +833,12 @@ export default function App() {
 
       if(!pr) {
         const mf = meatFallback();
-        if(!mf) return { ...prod, cost:null, prevCost:null, priceInput:null, ubicazione:ub, skipReason:`NO PREZZO (${branch}/${month})` };
+        if(!mf) {
+          const skipReason = prPrev
+            ? `LISTINO CHIUSO E NON RIAPERTO (${branch}/${month})`
+            : `NO PREZZO (${branch}/${month})`;
+          return { ...prod, cost:null, prevCost:null, priceInput:null, ubicazione:ub, skipReason };
+        }
         const cost2 = calcCost(mf.pi);
         return { ...prod, cost:cost2, prevCost:null, delta:null, priceInput:mf.pi, isNew:true,
           flagged:false, ubicazione:ub, pltUsed:plt, area:log.area||"NORD", pltPerContainer:plt,
@@ -2277,7 +2282,7 @@ function Dashboard({costRows, branch, month, navigate}) {
   const calcOk   = costRows.filter((r:any)=>r.cost?.[costKey]!=null);
   const flagged  = costRows.filter((r:any)=>r.cost?.[costKey]!=null&&r.prevCost?.[costKey]!=null&&r.prevCost[costKey]>0&&Math.abs((r.cost[costKey]-r.prevCost[costKey])/r.prevCost[costKey])>=0.03);
   const air      = costRows.filter((r:any)=>r.isAir);
-  const noPrice  = costRows.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
+  const noPrice  = costRows.filter((r:any)=>!r.cost&&!r.isAir&&(r.skipReason?.includes("NO PREZZO")||r.skipReason?.includes("LISTINO CHIUSO")));
   const noLog    = costRows.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
   const calcZero = costRows.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
 
@@ -3533,7 +3538,7 @@ function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setL
   applyFlag(filterFlags.costCalculated, r=> r.cost?.step2Hkd!=null);
   applyFlag(filterFlags.flagged,        r=> r.flagged===true);
   applyFlag(filterFlags.air,            r=> r.isAir===true);
-  applyFlag(filterFlags.noPrice,        r=> !r.cost&&!r.isAir&&!!r.skipReason?.includes("NO PREZZO"));
+  applyFlag(filterFlags.noPrice,        r=> !r.cost&&!r.isAir&&!!(r.skipReason?.includes("NO PREZZO")||r.skipReason?.includes("LISTINO CHIUSO")));
   applyFlag(filterFlags.noLog,          r=> !r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
   applyFlag(filterFlags.calcZero,       r=> !r.cost&&!r.isAir&&!!r.skipReason?.includes("CALC=0"));
   applyFlag(filterFlags.keepOld,        r=> { const d=lastOrderDate[r.id]; return !!(d&&d<sixMonthsAgo); });
@@ -3545,7 +3550,7 @@ if(initFilter==="flagged") filtered=filtered.filter((r:any)=>r.flagged===true);
 else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("CALC=0"));
 
   const calc    = filtered.filter((r:any)=>r.cost?.step2Hkd!=null);
-  const noPrice = filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason?.includes("NO PREZZO"));
+  const noPrice = filtered.filter((r:any)=>!r.cost&&!r.isAir&&(r.skipReason?.includes("NO PREZZO")||r.skipReason?.includes("LISTINO CHIUSO")));
   const noLog   = filtered.filter((r:any)=>!r.cost&&!r.isAir&&r.skipReason==="NO LOGISTICA");
 
   // ── stile celle ──────────────────────────────────────────────────────────────
@@ -4384,7 +4389,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     branch==="CAN" ? (!r.scBcGcTf&&!r.scBcFueLan) : (!r.bcStdCost||r.bcStdCost===0));
   if(filterScNavGC==="assente") displayed=displayed.filter(r=>!r.scBcGcTf||r.scBcGcTf===0);
   if(filterMotivo==="no-log") displayed=displayed.filter(r=>r.skipReason==="NO LOGISTICA");
-  else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO"));
+  else if(filterMotivo==="no-price") displayed=displayed.filter(r=>r.skipReason?.includes("NO PREZZO")||r.skipReason?.includes("LISTINO CHIUSO"));
   else if(filterMotivo==="anagrafica") displayed=displayed.filter(r=>r.skipReason==="NON IN ANAGRAFICA");
   else if(filterMotivo==="sample") displayed=displayed.filter(r=>r.skipReason==="SAMPLE");
   else if(filterMotivo==="non-sample") displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
