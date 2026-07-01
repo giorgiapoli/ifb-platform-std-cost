@@ -657,35 +657,27 @@ export default function App() {
                 }
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
-              const _fp=div(Number(row["fp"]??row["FCA_Price"]??0));
-              const _fc=div(Number(row["fc"]??row["FCA_Discounted"]??0));
-              const _dc=div(Number(row["dc"]??row["DAP_Final"]??row["DAP_Discounted"]??0));
-              const _cr=div(Number(row["cr"]??row["Carriage"]??0));
-              // Fallback carriage/DAP da logistica (wine=€60/pallet, FOR vendors)
-              const _derivedDap = (()=>{
-                if(_dc>0) return {dapFinal:_dc, carriageUnit:_cr};
-                if(_cr>0&&(_fc>0||_fp>0)) return {dapFinal:(_fc||_fp)+_cr, carriageUnit:_cr};
-                if(_fc>0||_fp>0) {
-                  const r=calcDAPFinal({dapDiscounted:0,fcaPrice:_fp,fcaDiscounted:_fc,
-                    vendorName:String(prod?.vendorName||prod?.vendorName2||""),
-                    section:prod?.category||"",products,code});
-                  return r;
-                }
-                return {dapFinal:0, carriageUnit:0};
-              })();
               newEntries.push({
                 productId:     prod?.id ?? `BC_${code}`,
                 itemCode:      code,
                 nHK:           prod?.nHK || "",
                 bcDesc:        String(row["d"] || row["Description"] || "").trim(),
-                pu:            displayUom, // UoM del prezzo (HK base UoM per HK)
+                pu:            displayUom,
                 branch, month: nowMonth,
-                fcaPrice:      _fp,
-                fcaDiscounted: _fc,
+                fcaPrice:      div(Number(row["fp"] ?? row["FCA_Price"]      ?? 0)),
+                fcaDiscounted: div(Number(row["fc"] ?? row["FCA_Discounted"] ?? 0)),
                 dapPrice:      div(Number(row["dp"] ?? row["DAP_Price"]      ?? 0)),
-                dapDiscounted: _dc,
-                carriageCost:  _cr>0 ? _cr : _derivedDap.carriageUnit,
-                dapFinal:      _derivedDap.dapFinal,
+                dapDiscounted: div(Number(row["dc"] ?? row["DAP_Discounted"] ?? 0)),
+                carriageCost:  div(Number(row["cr"] ?? row["Carriage"]       ?? 0)),
+                dapFinal: (()=>{
+                  const dc=div(Number(row["dc"]??row["DAP_Final"]??row["DAP_Discounted"]??0));
+                  if(dc>0) return dc;
+                  const fc=div(Number(row["fc"]??row["FCA_Discounted"]??0));
+                  const fp=div(Number(row["fp"]??row["FCA_Price"]??0));
+                  const cr=div(Number(row["cr"]??row["Carriage"]??0));
+                  if(cr>0&&(fc>0||fp>0)) return (fc||fp)+cr;
+                  return 0;
+                })(),
                 mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
               });
             });
@@ -699,6 +691,24 @@ export default function App() {
 
   const showToast = (msg,color=T.green) => { setToast({msg,color}); setTimeout(()=>setToast(null),3500); };
   const bumpImportTs = () => { const ts=Date.now(); setLastImportTs(ts); LS.set("ifb_last_import_ts",ts); return ts; };
+
+  // Arricchisce bcListini con carriage/DAP derivati dalla logistica (wine=60€/plt, FOR vendors)
+  // Eseguito come useMemo per garantire che products sia già caricato
+  const bcListiniEnriched = useMemo(()=>{
+    if(!bcListini.length || !products.length) return bcListini;
+    return bcListini.map((p:any)=>{
+      if((p.carriageCost||0)>0 || (p.dapFinal||0)>0) return p;
+      const prod=products.find((pr:any)=>pr.id===p.productId||pr.code===(p.itemCode||p.n||""));
+      if(!prod) return p;
+      const r=calcDAPFinal({
+        dapDiscounted:p.dapDiscounted||0, fcaPrice:p.fcaPrice||0, fcaDiscounted:p.fcaDiscounted||0,
+        vendorName:prod.vendorName||prod.vendorName2||"",
+        section:prod.category||"", products, code:prod.code||"",
+      });
+      if(r.dapFinal>0||r.carriageUnit>0) return {...p, carriageCost:r.carriageUnit, dapFinal:r.dapFinal};
+      return p;
+    });
+  },[bcListini,products]);
 
   // Pallet/container default formula: =SE(temp="DRY";25;SE(temp="FRESH"||"FROZEN";23;20))
   // Matches Excel formula in STDC sheet column "Numero Pallet per Container"
@@ -786,7 +796,7 @@ export default function App() {
       const log = { ...logRaw, pltPerContainer: plt };
 
       const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month)
-                  || bcListini.find((p:any)=>(p.productId===prod.id||(p.itemCode||p.n)===prod.code)&&(p.branch||p.b)===branch);
+                  || bcListiniEnriched.find((p:any)=>(p.productId===prod.id||(p.itemCode||p.n)===prod.code)&&(p.branch||p.b)===branch);
       const prPrev = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
 
       const ub = log.ubicazione;
@@ -971,7 +981,7 @@ export default function App() {
     prices: <Prices
   prices={prices}
   setPrices={setPrices}
-  bcListini={bcListini}
+  bcListini={bcListiniEnriched}
   setBcListini={setBcListini}
   products={products}
   branch={branch}
