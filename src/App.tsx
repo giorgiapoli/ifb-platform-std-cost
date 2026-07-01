@@ -4112,6 +4112,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [last30,setLast30Raw]             = useState(()=>lsGet("last30",false));
   const [dedup,setDedupRaw]               = useState(()=>lsGet("dedup",false));
   const [excludeKeepOld,setExcludeKeepOldRaw] = useState(()=>lsGet("excludeKeepOld",false));
+  const [excludeSample,setExcludeSampleRaw]   = useState(()=>lsGet("excludeSample",false));
   const [newHkdFilter,setNewHkdFilterRaw] = useState<"all"|"ok"|"mancante"|"air">(()=>lsGet("newHkdFilter","all"));
   const [scFilter,setScFilterRaw]         = useState<"all"|"ok"|"mancante"|"sample">(()=>lsGet("scFilter","all"));
   const [filterTransport,setFilterTransportRaw] = useState(()=>lsGet("filterTransport","all"));
@@ -4128,6 +4129,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const setLast30=(v:any)=>{ const nv=typeof v==="function"?v(last30):v; setLast30Raw(nv); lsSet("last30",nv); };
   const setDedup=(v:any)=>{ const nv=typeof v==="function"?v(dedup):v; setDedupRaw(nv); lsSet("dedup",nv); };
   const setExcludeKeepOld=(v:any)=>{ const nv=typeof v==="function"?v(excludeKeepOld):v; setExcludeKeepOldRaw(nv); lsSet("excludeKeepOld",nv); };
+  const setExcludeSample=(v:any)=>{ const nv=typeof v==="function"?v(excludeSample):v; setExcludeSampleRaw(nv); lsSet("excludeSample",nv); };
   const setNewHkdFilter=(v:any)=>{ setNewHkdFilterRaw(v); lsSet("newHkdFilter",v); };
   const setScFilter=(v:any)=>{ setScFilterRaw(v); lsSet("scFilter",v); };
   const setFilterTransport=(v:any)=>{ setFilterTransportRaw(v); lsSet("filterTransport",v); };
@@ -4350,7 +4352,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
   if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
-  if(filterMotivo!=="sample"&&filterMotivo!=="non-sample") displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
+  if(excludeSample) displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
   if(filterMotivo!=="non-food") displayed=displayed.filter(r=>r.skipReason!=="NON FOOD");
   displayed=displayed.filter(r=>r.itemCode!=="ITEM"&&r.itemCode!=="item");
   if(excludeKeepOld) displayed=displayed.filter(r=>!r.isKeepOld);
@@ -4522,6 +4524,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <button onClick={()=>setExcludeKeepOld(v=>!v)}
           style={{padding:"6px 14px",background:excludeKeepOld?`${T.orange}20`:T.surface,color:excludeKeepOld?T.orange:T.muted,border:`1px solid ${excludeKeepOld?T.orange:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeKeepOld?"bold":"normal"}}>
           {excludeKeepOld?"✓ Keep Old esclusi":"⏰ Escludi Keep Old"}
+        </button>
+        <button onClick={()=>setExcludeSample(v=>!v)}
+          style={{padding:"6px 14px",background:excludeSample?`${T.purple}20`:T.surface,color:excludeSample?T.purple:T.muted,border:`1px solid ${excludeSample?T.purple:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeSample?"bold":"normal"}}>
+          {excludeSample?"✓ Sample esclusi":"🧪 Escludi Sample"}
         </button>
         <button onClick={()=>window.location.reload()}
           style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
