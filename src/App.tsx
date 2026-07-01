@@ -964,10 +964,11 @@ export default function App() {
 
   const pages = {
     dashboard:   <Dashboard costRows={costRows} branch={branch} month={month} navigate={navigate}/>,
-    products: <Products 
-  products={products} 
-  setProducts={setProducts} 
-  branch={branch} 
+    products: <Products
+  products={products}
+  setProducts={setProducts}
+  branch={branch}
+  xrefs={xrefs}
   importLogs={importLogs}
   setImportLogs={setImportLogs}
   snapshots={snapshots}
@@ -6092,7 +6093,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
 }
 
 // ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
-function Products({ products, setProducts, branch, importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
+function Products({ products, setProducts, branch, xrefs=[], importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
   const [search, setSearch] = useState("");
   const [onlyIFB, setOnlyIFB] = useState(true);
   const [sortAna, setSortAna] = useState<"default"|"az"|"za">("default");
@@ -6355,13 +6356,16 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
 
   const q = search.trim().toLowerCase();
   const baseList = onlyIFB ? products.filter((p: any) => isIFBVendor(p.vendorName)) : products;
+  const xrefIfbByNHK: Record<string,string> = {};
+  (xrefs||[]).forEach((x:any)=>{ if(x.nHK&&x.ifbNo) xrefIfbByNHK[String(x.nHK)]=String(x.ifbNo); });
   let filtered = q
-    ? products.filter((p: any) =>
-        String(p.description||"").toLowerCase().includes(q) ||
-        String(p.code||"").toLowerCase().includes(q) ||
-        String(p.nHK||"").toLowerCase().includes(q) ||
-        String(p.vendorName||"").toLowerCase().includes(q)
-      )
+    ? products.filter((p: any) => {
+        const ifbNo = p.code || xrefIfbByNHK[p.nHK] || "";
+        return String(p.description||"").toLowerCase().includes(q) ||
+          String(ifbNo).toLowerCase().includes(q) ||
+          String(p.nHK||"").toLowerCase().includes(q) ||
+          String(p.vendorName||"").toLowerCase().includes(q);
+      })
     : baseList;
   if(sortAna==="az") filtered=[...filtered].sort((a:any,b:any)=>String(a.code||"").localeCompare(String(b.code||"")));
   else if(sortAna==="za") filtered=[...filtered].sort((a:any,b:any)=>String(b.code||"").localeCompare(String(a.code||"")));
@@ -6544,7 +6548,7 @@ function Products({ products, setProducts, branch, importLogs, setImportLogs, sn
                 return (
                   <tr key={p.id} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
                     <td style={tdM}><span style={{ color: T.muted }}>{p.nHK || "—"}</span></td>
-                    <td style={tdM}><span style={{ color: T.gold }}>{p.code}</span></td>
+                    <td style={tdM}><span style={{ color: T.gold }}>{p.code || xrefIfbByNHK[p.nHK] || "—"}</span></td>
                     <td style={{...tdS,maxWidth:"180px",overflow:"hidden",textOverflow:"ellipsis"}} title={p.description}>{p.description}</td>
                     <td style={{...tdS,maxWidth:"110px",overflow:"hidden",textOverflow:"ellipsis"}}>
                       <span style={{ color: isIFBVendor(p.vendorName) ? T.gold : T.muted }}>{p.vendorName || "—"}</span>
