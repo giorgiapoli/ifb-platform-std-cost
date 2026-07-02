@@ -4830,9 +4830,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
               {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN","Δ GC/TF","Δ FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
                 const narrowW = ci===0?"80px":ci===1?"80px":ci===2?"70px":undefined;
                 if(c===branchN(branch)+" ▾") return(
-                  <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                  <th key={c} style={{padding:"4px 4px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10,width:"62px",maxWidth:"62px"}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
-                      style={{background:filterNHK?`${T.gold}22`:T.card,color:filterNHK?T.gold:T.muted,border:`1px solid ${filterNHK?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"110px"}}>
+                      style={{background:filterNHK?`${T.gold}22`:T.card,color:filterNHK?T.gold:T.muted,border:`1px solid ${filterNHK?T.gold:T.border}`,borderRadius:"4px",padding:"2px 4px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"60px",width:"60px"}}>
                       <option value="">{branchN(branch)} ▾</option>
                       <option value="__MISSING__">❌ Senza {branchN(branch)}</option>
                       {uniqueNHK.map(v=><option key={v} value={v}>{v}</option>)}
@@ -4840,9 +4840,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                   </th>
                 );
                 if(c==="IFB No ▾") return(
-                  <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                  <th key={c} style={{padding:"4px 4px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10,width:"54px",maxWidth:"54px"}}>
                     <select value={filterIFBNo} onChange={e=>setFilterIFBNo(e.target.value)}
-                      style={{background:filterIFBNo?`${T.gold}22`:T.card,color:filterIFBNo?T.gold:T.muted,border:`1px solid ${filterIFBNo?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"110px"}}>
+                      style={{background:filterIFBNo?`${T.gold}22`:T.card,color:filterIFBNo?T.gold:T.muted,border:`1px solid ${filterIFBNo?T.gold:T.border}`,borderRadius:"4px",padding:"2px 4px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"52px",width:"52px"}}>
                       <option value="">IFB No ▾</option>
                       {uniqueIFBNo.map(v=><option key={v} value={v}>{v}</option>)}
                     </select>
