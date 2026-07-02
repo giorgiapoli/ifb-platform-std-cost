@@ -854,6 +854,18 @@ export default function App() {
       if(!pr) {
         const mf = meatFallback();
         if(!mf) {
+          if(prPrev) {
+            // Listino chiuso: usa SC da scAttuali come KEEP OLD
+            const scEntry = scAttuali.find((s:any) => s.code === prod.code || s.code === String(prod.id));
+            if(scEntry && scEntry.lastSC > 0) {
+              const isCAN_b2 = branch === "CAN";
+              const keepCost = isCAN_b2
+                ? { step2Eur: scEntry.lastSC, step2Hkd: scEntry.lastSC * fxRate, _keepOld: true }
+                : { step2Hkd: scEntry.lastSC, step2Eur: scEntry.lastSC / fxRate, _keepOld: true };
+              return { ...prod, cost:keepCost, prevCost:null, delta:null, priceInput:null,
+                ubicazione:ub, skipReason:"KEEP OLD", _keepOld:true };
+            }
+          }
           const skipReason = prPrev
             ? `LISTINO CHIUSO E NON RIAPERTO (${branch}/${month})`
             : `NO PREZZO (${branch}/${month})`;
@@ -920,7 +932,7 @@ export default function App() {
         area:log.area||"NORD", pltPerContainer:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali]);
 
   // MAC: save HK costRows to IDB whenever they're computed (declared after costRows useMemo to avoid TDZ)
   useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
@@ -4056,6 +4068,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                   <td style={{...cellL(),maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis"}}>
                     {r.description}
                     {r.isAir&&<span style={{marginLeft:"4px",color:T.orange,fontSize:"9px"}}>✈</span>}
+                    {r._keepOld&&<span style={{marginLeft:"4px",color:T.orange,fontSize:"9px",fontWeight:"bold"}}>🔒 KEEP OLD</span>}
                   </td>
                   <td style={cell()}>{r.uom||"—"}</td>
                   <td style={cell()}>
