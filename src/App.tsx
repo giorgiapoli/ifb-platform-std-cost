@@ -661,7 +661,7 @@ export default function App() {
                 const bplt  = Number(prod.boxPerPallet) || 0;
                 const kgActualPerBox = (kgplt > 0 && bplt > 0) ? kgplt / bplt : (kpb > 0 ? kpb : 0);
                 // kg per PCS (per conversioni KG↔PCS)
-                const kgPerPCS = hkUom === "BOX" && kgActualPerBox > 0 ? kgActualPerBox / qpb : (kpb > 0 ? kpb : 0);
+                const kgPerPCS = kgActualPerBox > 0 && qpb > 0 ? kgActualPerBox / qpb : (kpb > 0 ? kpb / Math.max(qpb,1) : 0);
                 if (branch === "HK") {
                   if (mtc > 1) {
                     convFactor = mtc; displayUom = "PCS";     // MAC BOX → HK PCS
@@ -682,7 +682,20 @@ export default function App() {
                     convFactor = 1/qpb; displayUom = "BOX";
                   }
                 } else {
-                  if (purchUom === "BOX" && hkUom === "PCS" && qpb > 1) { convFactor = qpb; displayUom = "PCS"; }
+                  // CAN: stessa logica HK (senza macToHkConv)
+                  if (purchUom === hkUom) {
+                    displayUom = hkUom;
+                  } else if (purchUom === "KG" && hkUom === "BOX") {
+                    if (kgActualPerBox > 0 && Math.abs(kgActualPerBox - 1) > 0.001) { convFactor = 1/kgActualPerBox; }
+                    displayUom = "BOX";
+                  } else if (purchUom === "KG" && hkUom === "PCS") {
+                    const kgPcs = kgActualPerBox > 0 && qpb > 0 ? kgActualPerBox / qpb : (kpb > 0 ? kpb / Math.max(qpb,1) : 0);
+                    if (kgPcs > 0) { convFactor = 1/kgPcs; } displayUom = "PCS";
+                  } else if (purchUom === "BOX" && hkUom === "PCS") {
+                    if (qpb > 1) { convFactor = qpb; } displayUom = "PCS";
+                  } else if (purchUom === "PCS" && hkUom === "BOX") {
+                    if (qpb > 1) { convFactor = 1/qpb; } displayUom = "BOX";
+                  }
                 }
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
@@ -892,13 +905,18 @@ export default function App() {
         if (!isCAN_b) return 1; // HK/MAC: conversion già avviene in loadListini
         const puom = (pr?.pu || "").toUpperCase();
         const buom = (prod?.uom || "").toUpperCase();
-        if (puom === buom || !puom || !buom) return 1;
-        const kpb = Number(prod?.kgPerBox) || 0;
-        const qpb = Number(prod?.qtyPerBox) || 1;
-        if (puom === "KG"  && buom === "PCS") return kpb > 0 ? kpb : 1;
-        if (puom === "KG"  && buom === "BOX") return kpb > 0 ? kpb * qpb : 1;
-        if (puom === "BOX" && buom === "PCS") return qpb > 0 ? qpb : 1;
-        if (puom === "PCS" && buom === "KG")  return kpb > 0 ? 1/kpb : 1;
+        if (!puom || !buom || puom === buom) return 1;
+        const kpb   = Number(prod?.kgPerBox)      || 0;
+        const qpb   = Number(prod?.qtyPerBox)      || 1;
+        const kgplt = Number(prod?.kgxplt)         || 0;
+        const bplt  = Number(prod?.boxPerPallet)   || 0;
+        const kgBox = (kgplt > 0 && bplt > 0) ? kgplt / bplt : (kpb > 0 ? kpb : 0);
+        const kgPcs = kgBox > 0 && qpb > 0 ? kgBox / qpb : 0;
+        if (puom === "KG"  && buom === "PCS") return kgPcs > 0 ? kgPcs : 1;
+        if (puom === "KG"  && buom === "BOX") return kgBox > 0 ? kgBox : 1;
+        if (puom === "BOX" && buom === "PCS") return qpb > 0 ? 1 / qpb : 1;
+        if (puom === "PCS" && buom === "BOX") return qpb > 0 ? qpb : 1;
+        if (puom === "PCS" && buom === "KG")  return kgPcs > 0 ? 1 / kgPcs : 1;
         return 1;
       })();
       // Per HK MTO: se dapFinal=0 ma fcaDiscounted>0, aggiungi carriage da work tab
