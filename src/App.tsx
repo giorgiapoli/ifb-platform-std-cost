@@ -647,33 +647,42 @@ export default function App() {
               const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
               const purchUom = String(row["pu"] || "").trim().toUpperCase();
               const scriptCf = Number(row["cf"] || 1);
-              // Converti prezzo BC Italia (purchUom) → HK BASE UoM (prod.uom)
-              // Regola: listini mostrano prezzi in BASE UoM di HK (non sales UoM)
-              let convFactor = 1; // >1 = dividi, <1 = moltiplica (KG→BOX: ×qpb = ÷(1/qpb))
-              let displayUom = purchUom; // UoM del prezzo finale da mostrare
-              if (scriptCf === 1 && purchUom && purchUom !== "PCS" && prod) {
+              // Converti prezzo IFB (purchUom) → HK BASE UoM (prod.uom)
+              // div(p) = p / convFactor  →  convFactor < 1 moltiplica, convFactor > 1 divide
+              let convFactor = 1;
+              let displayUom = purchUom;
+              if (scriptCf === 1 && purchUom && prod) {
                 const qpb = Number(prod.qtyPerBox) || 1;
                 const kpb = Number(prod.kgPerBox)  || 0;
                 const mtc = Number(prod.macToHkConv);
                 const hkUom: string = prod.uom || "PCS";
+                // kg per BOX reale: preferisce kgxplt/boxPerPallet (più affidabile di kgPerBox BC)
+                const kgplt = Number(prod.kgxplt) || 0;
+                const bplt  = Number(prod.boxPerPallet) || 0;
+                const kgActualPerBox = (kgplt > 0 && bplt > 0) ? kgplt / bplt : (kpb > 0 ? kpb : 0);
+                // kg per PCS (per conversioni KG↔PCS)
+                const kgPerPCS = hkUom === "BOX" && kgActualPerBox > 0 ? kgActualPerBox / qpb : (kpb > 0 ? kpb : 0);
                 if (branch === "HK") {
                   if (mtc > 1) {
                     convFactor = mtc; displayUom = "PCS";     // MAC BOX → HK PCS
-                  } else if (purchUom === "BOX" && qpb > 1) {
-                    convFactor = qpb; displayUom = hkUom;     // BOX → base
-                  } else if (purchUom === "KG") {
-                    // KG BC → HK base UoM
-                    if (hkUom === "BOX") {
-                      // kgPerBox total = qtyPerBox × kgPerPcs; se kpb=0 fallback a qpb
-                      const kgPerBoxTotal = kpb > 0 ? qpb * kpb : qpb;
-                      if (kgPerBoxTotal > 0 && Math.abs(kgPerBoxTotal - 1) > 0.001) { convFactor = 1/kgPerBoxTotal; }
-                      displayUom = "BOX";
-                    }
-                    else if (hkUom === "PCS" && kpb > 0)  { convFactor = 1/kpb; displayUom = "PCS"; }
-                    else if (hkUom === "KG")               { displayUom = "KG"; }
+                  } else if (purchUom === hkUom) {
+                    displayUom = hkUom;                        // stessa UoM → nessuna conversione
+                  } else if (purchUom === "KG" && hkUom === "BOX") {
+                    // KG → BOX: ×kgActualPerBox (div usa 1/kgActualPerBox)
+                    if (kgActualPerBox > 0 && Math.abs(kgActualPerBox - 1) > 0.001) { convFactor = 1/kgActualPerBox; }
+                    displayUom = "BOX";
+                  } else if (purchUom === "KG" && hkUom === "PCS") {
+                    // KG → PCS: ×kgPerPCS
+                    if (kgPerPCS > 0) { convFactor = 1/kgPerPCS; } displayUom = "PCS";
+                  } else if (purchUom === "BOX" && hkUom === "PCS") {
+                    // BOX → PCS: ÷qpb
+                    convFactor = qpb; displayUom = "PCS";
+                  } else if (purchUom === "PCS" && hkUom === "BOX") {
+                    // PCS → BOX: ×qpb (prezzo per PCS → per BOX)
+                    convFactor = 1/qpb; displayUom = "BOX";
                   }
                 } else {
-                  if (purchUom === "BOX" && qpb > 1) { convFactor = qpb; displayUom = "PCS"; }
+                  if (purchUom === "BOX" && hkUom === "PCS" && qpb > 1) { convFactor = qpb; displayUom = "PCS"; }
                 }
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
