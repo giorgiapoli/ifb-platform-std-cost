@@ -1,0 +1,23 @@
+name: Diagnose HK Item Fields
+
+on:
+  workflow_dispatch:
+    inputs:
+      item_no:
+        description: 'N HK (es. CPS03 oppure CF5004-FG)'
+        required: false
+        default: 'CPS03'
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install requests
+      - name: Diagnose item fields
+        env:
+          BC_CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
+        run: python scripts/diagnose_hk_item.py "${{ github.event.inputs.item_no }}"
