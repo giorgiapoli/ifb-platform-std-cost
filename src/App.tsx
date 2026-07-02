@@ -3945,37 +3945,37 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 <TH w={60}>Δ%</TH>
                 <TH w={90}>Ultimo ordine</TH>
               </> : <>
-              <TH align="left" sticky w={70}>{branchN(branch)}</TH>
-              <TH align="left" w={70}>IFB No</TH>
-              <TH align="left" w={180}>Descrizione</TH>
-              <TH w={60}>UOM</TH>
-              <TH w={55}>Ubicaz.</TH>
-              {branch==="CAN"&&<TH w={65} align="center">Tratta</TH>}
-              <TH w={55} align="center">Temp.</TH>
-              <TH w={55} align="center">Rettif.</TH>
-              <TH accent={T.blue} w={70}>Prezzo €</TH>
+              <TH align="left" sticky w={55}>{branchN(branch)}</TH>
+              <TH align="left" w={55}>IFB No</TH>
+              <TH align="left" w={150}>Descrizione</TH>
+              <TH w={42}>UOM</TH>
+              <TH w={42}>Ubicaz.</TH>
+              {branch==="CAN"&&<TH w={50} align="center">Tratta</TH>}
+              <TH w={42} align="center">Temp.</TH>
+              <TH w={42} align="center">Rettif.</TH>
+              <TH accent={T.blue} w={58}>Prezzo €</TH>
               {branch==="CAN" ? <>
-                <TH accent={T.blue} w={65}>Trasp.</TH>
-                <TH accent={T.blue} w={60}>Pallet</TH>
-                <TH accent={T.blue} w={60}>AIEM</TH>
+                <TH accent={T.blue} w={52}>Trasp.</TH>
+                <TH accent={T.blue} w={48}>Pallet</TH>
+                <TH accent={T.blue} w={48}>AIEM</TH>
               </> : <>
-                <TH accent={T.blue} w={65}>FOB</TH>
-                <TH accent={T.blue} w={65}>LIC</TH>
-                <TH accent={T.blue} w={55}>VGM</TH>
-                <TH accent={T.blue} w={55}>Cert.</TH>
-                <TH accent={T.blue} w={60}>Pallet</TH>
-                <TH accent={T.blue} w={60}>Alc.Tax</TH>
+                <TH accent={T.blue} w={55}>FOB</TH>
+                <TH accent={T.blue} w={55}>LIC</TH>
+                <TH accent={T.blue} w={48}>VGM</TH>
+                <TH accent={T.blue} w={48}>Cert.</TH>
+                <TH accent={T.blue} w={52}>Pallet</TH>
+                <TH accent={T.blue} w={52}>Alc.Tax</TH>
               </>}
-              <TH accent={T.purple} w={65}>WH €</TH>
+              <TH accent={T.purple} w={52}>WH €</TH>
               {branch==="CAN" ? <>
-                <TH accent={T.gold} w={80}>New SC GC/TF</TH>
-                <TH accent={T.gold} w={85}>New SC FUE/LAN ✓</TH>
+                <TH accent={T.gold} w={68}>New SC GC/TF</TH>
+                <TH accent={T.gold} w={72}>New SC FUE/LAN ✓</TH>
               </> : <>
-                <TH accent={T.green} w={72}>New SC €</TH>
-                <TH accent={T.green} w={85}>New SC HKD ✓</TH>
+                <TH accent={T.green} w={65}>New SC €</TH>
+                <TH accent={T.green} w={78}>New SC HKD ✓</TH>
               </>}
-              <TH w={60}>Δ%</TH>
-              <TH w={90}>Ultimo ordine</TH>
+              <TH w={48}>Δ%</TH>
+              <TH w={72}>Ultimo ordine</TH>
               </>}
             </tr>
           </thead>
@@ -4070,7 +4070,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                   <td style={cellL()}>
                     <span style={{color:T.gold,fontFamily:"monospace",fontSize:"10px"}}>{r.code}</span>
                   </td>
-                  <td style={{...cellL(),maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis"}}>
+                  <td style={{...cellL(),maxWidth:"150px",whiteSpace:"normal",wordBreak:"break-word",lineHeight:"1.3"}}>
                     {r.description}
                     {r.isAir&&<span style={{marginLeft:"4px",color:T.orange,fontSize:"9px"}}>✈</span>}
                     {r._keepOld&&<span style={{marginLeft:"4px",color:T.orange,fontSize:"9px",fontWeight:"bold"}}>🔒 KEEP OLD</span>}
@@ -4897,43 +4897,43 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                 const mismatchType=r.mismatch?(r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"";
                 return(
                   <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r.mismatch?`${T.purple}10`:i%2===0?T.bg:T.surface}}>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"80px",maxWidth:"80px"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"80px",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"70px",maxWidth:"70px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",minWidth:"300px",whiteSpace:"nowrap"}}>
+                    <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",whiteSpace:"nowrap",width:"74px",maxWidth:"74px"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
+                    <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",whiteSpace:"nowrap",width:"60px",maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
+                    <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",whiteSpace:"nowrap",width:"52px",maxWidth:"52px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
+                    <td style={{padding:"2px 4px",fontSize:"10px",minWidth:"160px",maxWidth:"220px",whiteSpace:"normal",wordBreak:"break-word",lineHeight:"1.3"}}>
                       <span style={{color:r._prodFound===false?T.orange:T.text}}>{r.description}</span>
                     </td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                      {r.isSample?<Chip label="SAMPLE" color={T.purple}/>:<span style={{color:T.muted}}>{r.unitPrice>0?r.unitPrice.toFixed(2):"—"}</span>}
+                    <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"44px",maxWidth:"44px"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
+                    <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"50px",maxWidth:"50px"}}>
+                      {r.isSample?<Chip label="S" color={T.purple}/>:<span style={{color:T.muted}}>{r.unitPrice>0?r.unitPrice.toFixed(2):"—"}</span>}
                     </td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:r.mismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",whiteSpace:"nowrap"}}>
+                    <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",width:"50px",maxWidth:"50px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:r.mismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
+                    <td style={{padding:"2px 4px",fontSize:"9px",width:"44px",maxWidth:"44px"}}>
                       {r.isAir
-                        ? <><Chip label="✈ AIR" color={r.locationIsNCJ?T.green:T.orange}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
-                        : <><Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>{r.mismatch&&<span style={{marginLeft:"5px",fontSize:"9px",color:T.purple}}>⚠ {mismatchType}</span>}</>
+                        ? <Chip label="AIR" color={r.locationIsNCJ?T.green:T.orange}/>
+                        : <Chip label={r.ubicazione||"—"} color={r.ubicazione==="FOR"?T.purple:r.ubicazione==="MTS"?T.blue:T.green}/>
                       }
                     </td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.oldHkd!=null?`HKD ${r.oldHkd.toFixed(2)}`:"—"}</span></td>
+                    <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"50px",maxWidth:"50px"}}><span style={{color:T.muted}}>{r.oldHkd!=null?r.oldHkd.toFixed(2):"—"}</span></td>
                     {branch==="CAN" ? (
                       <>
                         {([r.scGC,r.scFUE] as (number|null)[]).map((v,i)=>(
-                          <td key={i} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                          <td key={i} style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"56px",maxWidth:"56px"}}>
                             {(r.unitPrice===0||r.unitPrice===0.01)
-                              ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
+                              ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMP.</span>
                               : v!=null
                                 ? <span style={{color:T.gold,fontWeight:"bold"}}>{v.toFixed(2)}</span>
-                                : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
+                                : <span style={{color:T.red,fontWeight:"bold"}}>MANC.</span>
                             }
                           </td>
                         ))}
                         {([r.scBcGcTf,r.scBcFueLan] as (number|null)[]).map((v,i)=>(
-                          <td key={`bc${i}`} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                          <td key={`bc${i}`} style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"50px",maxWidth:"50px"}}>
                             <span style={{color:T.muted}}>{v!=null&&v>0?v.toFixed(2):"—"}</span>
                           </td>
                         ))}
                         {([r.deltaGC,r.deltaFUE] as (number|null)[]).map((v,i)=>(
-                          <td key={`dcan${i}`} style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                          <td key={`dcan${i}`} style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"46px",maxWidth:"46px"}}>
                             {v!=null
                               ? <span style={{color:v>0.5?T.red:v<-0.5?T.green:T.text,fontWeight:Math.abs(v)>0.5?"bold":"normal"}}>
                                   {v>0?"+":""}{v.toFixed(2)}
@@ -4944,20 +4944,20 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                       </>
                     ) : (
                       <>
-                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                        <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"62px",maxWidth:"62px"}}>
                           {r.isAir
                             ? <span style={{color:T.orange,fontWeight:"bold"}}>AIR</span>
                             : (r.unitPrice===0||r.unitPrice===0.01)
-                              ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMPLE</span>
+                              ? <span style={{color:T.purple,fontWeight:"bold"}}>SAMP.</span>
                               : r.newHkd!=null
                                 ? <span style={{color:T.gold,fontWeight:"bold"}}>HKD {r.newHkd.toFixed(2)}</span>
-                                : <span style={{color:T.red,fontWeight:"bold"}}>MANCANTE</span>
+                                : <span style={{color:T.red,fontWeight:"bold"}}>MANC.</span>
                           }
                         </td>
-                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
-                          <span style={{color:T.muted}}>{r.bcStdCost>0?`HKD ${r.bcStdCost.toFixed(2)}`:"—"}</span>
+                        <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"56px",maxWidth:"56px"}}>
+                          <span style={{color:T.muted}}>{r.bcStdCost>0?r.bcStdCost.toFixed(2):"—"}</span>
                         </td>
-                        <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}>
+                        <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"46px",maxWidth:"46px"}}>
                           {r.deltaSC!=null
                             ? <span style={{color:r.deltaSC>1?T.red:r.deltaSC<-1?T.green:T.text,fontWeight:Math.abs(r.deltaSC)>1?"bold":"normal"}}>
                                 {r.deltaSC>0?"+":""}{r.deltaSC.toFixed(2)}
@@ -4966,10 +4966,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                         </td>
                       </>
                     )}
-                    <td style={{padding:"3px 6px",fontSize:"10px",textAlign:"right"}}>
+                    <td style={{padding:"2px 4px",fontSize:"9px",textAlign:"right",width:"42px",maxWidth:"42px"}}>
                       {r.pct!=null?<span style={{color:r.pct>3?T.red:r.pct<-3?T.green:T.text,fontWeight:Math.abs(r.pct)>3?"bold":"normal"}}>{r.pct>0?"+":""}{r.pct.toFixed(1)}%</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"130px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <td style={{padding:"2px 4px",fontSize:"9px",maxWidth:"90px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
                       {r.isKeepOld?<span style={{color:T.orange,fontWeight:"bold"}}>KEEP OLD</span>:r.skipReason?<span style={{color:T.orange,fontStyle:"italic"}}>{r.skipReason}</span>:<span style={{color:T.dim}}>—</span>}
                     </td>
                   </tr>
