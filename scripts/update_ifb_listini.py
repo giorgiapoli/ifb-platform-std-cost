@@ -424,6 +424,10 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     fca_price = to_sell(purch_fca)
     dap_price = to_sell(purch_dap)
     mts_price = to_sell(purch_mts)
+    # Sanity: DAP deve essere ≥ FCA (DAP = FCA + carriage). Se DAP < FCA, il dato BC è errato
+    # (es. prezzo FCA scontato finisce nel campo DAP) → si ignora e si ricalcola dai fallback
+    if dap_price > 0 and fca_price > 0 and dap_price < fca_price:
+        dap_price = 0.0
     carriage  = round(dap_price - fca_price, 4) if dap_price and fca_price else 0.0
 
     # Discount = spurc (purch) + ssale (sale) — PowerBI: spurc + ssale

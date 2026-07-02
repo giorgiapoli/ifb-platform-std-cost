@@ -4356,7 +4356,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const [filterScBC,setFilterScBCRaw] = useState<"all"|"assente">(()=>lsGet("filterScBC","all"));
   const [filterMotivo,setFilterMotivoRaw] = useState<"all"|"no-log"|"no-price"|"anagrafica"|"sample"|"keep-old">(()=>lsGet("filterMotivo","all"));
   const [filterScNavGC,setFilterScNavGCRaw] = useState<"all"|"assente">(()=>lsGet("filterScNavGC","all"));
-  const [filterDeltaPct,setFilterDeltaPctRaw] = useState<"all"|"0-10"|"10-25"|"25-50"|"50+">(()=>lsGet("filterDeltaPct","all"));
+  const [filterDeltaPct,setFilterDeltaPctRaw] = useState<"all"|"pos3"|"neg3">(()=>lsGet("filterDeltaPct","all"));
   const [showNoAna,setShowNoAnaRaw] = useState(()=>lsGet("showNoAna",false));
   const [search,setSearchRaw]     = useState(()=>lsGet("search",""));
   const setExcludeAir=(v:any)=>{ const nv=typeof v==="function"?v(excludeAir):v; setExcludeAirRaw(nv); lsSet("excludeAir",nv); };
@@ -4607,8 +4607,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   displayed=displayed.filter(r=>r.itemCode!=="ITEM"&&r.itemCode!=="item");
   if(excludeKeepOld) displayed=displayed.filter(r=>!r.isKeepOld);
   if(filterDeltaPct!=="all"){
-    const[lo,hi]=filterDeltaPct==="50+"?[50,Infinity]:filterDeltaPct==="25-50"?[25,50]:filterDeltaPct==="10-25"?[10,25]:[0,10];
-    displayed=displayed.filter(r=>r.pct!=null&&Math.abs(r.pct)>=lo&&Math.abs(r.pct)<hi);
+    if(filterDeltaPct==="pos3") displayed=displayed.filter(r=>r.pct!=null&&r.pct>=3);
+    else displayed=displayed.filter(r=>r.pct!=null&&r.pct<=-3);
     displayed=[...displayed].sort((a,b)=>Math.abs(b.pct??0)-Math.abs(a.pct??0));
   }
 
@@ -4828,14 +4828,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           <option value="sample">Sample</option>
           <option value="keep-old">Keep Old</option>
         </select>
-        <span style={{fontSize:"11px",color:T.muted}}>|Δ%|:</span>
-        {(["all","0-10","10-25","25-50","50+"] as const).map(v=>{
+        <span style={{fontSize:"11px",color:T.muted}}>Δ%:</span>
+        {(["all","pos3","neg3"] as const).map(v=>{
           const active=filterDeltaPct===v;
-          const col=v==="50+"?T.red:v==="25-50"?T.orange:v==="10-25"?T.gold:v==="0-10"?T.blue:T.text;
+          const col=v==="pos3"?T.red:v==="neg3"?T.blue:T.text;
+          const label=v==="all"?"Tutti":v==="pos3"?">+3%":"<-3%";
           return(
             <button key={v} onClick={()=>setFilterDeltaPct(v)}
               style={{padding:"5px 10px",background:active?`${col}22`:T.surface,color:active?col:T.muted,border:`1px solid ${active?col:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:active?"bold":"normal"}}>
-              {v==="all"?"Tutti":v==="50+"?">50%":`${v}%`}
+              {label}
             </button>
           );
         })}
