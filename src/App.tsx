@@ -74,6 +74,26 @@ const COSTS = {
   },
 };
 
+// ─── CANARIE CONV FACTORS (eccezioni per item) ───────────────────────────────
+const CAN_CONV_DEFAULTS: {nComit:string; factor:number; description:string}[] = [
+  { nComit:"17021", factor:2,           description:"LA DOLCISSIMA POLPA DI POMODORO BAG IN BOX 2*5 KG" },
+  { nComit:"35530", factor:100,         description:"** KREADOC CANNOLO SICILIANO VUOTO 100*30 GR" },
+  { nComit:"7220",  factor:0.02,        description:"CRODINO 48 X 10 CL" },
+  { nComit:"7221",  factor:0.1,         description:"CAMPARI SODA 10% 10*9.8CL" },
+  { nComit:"7231",  factor:0.33,        description:"PERONI N.AZZURRO BIRRA BOT. 33 CL" },
+  { nComit:"7240",  factor:0.33,        description:"PERONI CHILL LEMON BIRRA CLUSTER 3x33CL" },
+  { nComit:"7229",  factor:0.33,        description:"PERONI RED LABEL BIRRA 4.7 10.60PL CLUSTER 3x33CL" },
+  { nComit:"7234",  factor:0.33,        description:"" },
+  { nComit:"7235",  factor:0.33,        description:"ICHNUSA BIRRA VAP CLUSTER 3 x 33 CL" },
+  { nComit:"15307", factor:40,          description:"** ARANCINO DI RISO AL RAGU BOLSA 40X220GR" },
+  { nComit:"12234", factor:0.833333333, description:"** SOAVEGEL SUPPLI AL TELEFONO 1,2 KG" },
+  { nComit:"5114",  factor:1,           description:"GRANA PADANO DOP SCAGLIE 250 GR X 2" },
+  { nComit:"6741",  factor:1,           description:"" },
+  { nComit:"11020", factor:8,           description:"FAGGETTO" },
+  { nComit:"9650",  factor:0.2,         description:"RISO SCOTTI ARBORIO" },
+  { nComit:"9651",  factor:0.2,         description:"RISO SCOTTI CARNAROLI" },
+];
+
 // ─── CANARIE COST ENGINE ─────────────────────────────────────────────────────
 // Source: 05_Modello_Standard_Cost.xlsx — COSTS (LOG) sheet
 const COSTS_CAN = {
@@ -109,17 +129,18 @@ const COSTS_CAN = {
 
 const CAN_ISLANDS = ["GC","TF","LAN","FUE"] as const;
 
-function calcCAN({ priceInput, ubicazione, product, logistic, bevData }: any) {
+function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMultiplier=1 }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature, aiem: prodAiem } = product;
   const { pltPerContainer, area, hasAlcTax, alcTax, convFactor, transport } = logistic || {};
 
   const cf = Number(convFactor||1) || 1;
+  const pm = Number(priceMultiplier||1) || 1;
 
-  // unitsPerPlt (Y6 in modello): formula Excel IF(J="PCS",Q*R,IF(J="BOX",R,...)) / CM6
+  // unitsPerPlt (Y6 in modello): SE(J="PCS",Q*R,SE(J="BOX",R,...)) / CM (conv factor item)
   let unitsPerPlt: number;
-  if (uom==="BOX")      unitsPerPlt = Number(boxPerPallet) / cf;
-  else if (uom==="KG")  unitsPerPlt = (Number(kgxplt)>0 ? Number(kgxplt) : 300) / cf;
-  else                  unitsPerPlt = (Number(qtyPerBox) * Number(boxPerPallet)) / cf; // PCS
+  if (uom==="BOX")      unitsPerPlt = Number(boxPerPallet) / cf / pm;
+  else if (uom==="KG")  unitsPerPlt = (Number(kgxplt)>0 ? Number(kgxplt) : 300) / cf / pm;
+  else                  unitsPerPlt = (Number(qtyPerBox) * Number(boxPerPallet)) / cf / pm; // PCS
 
   // divisoreCollo (AC in modello): per MTS picking
   const divisoreCollo = uom==="BOX" ? 1 : uom==="KG" ? Number(kgPerBox||qtyPerBox) : Number(qtyPerBox);
@@ -128,7 +149,7 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData }: any) {
   const totalUnits = unitsPerPlt * plt_n;
   if (!unitsPerPlt || !totalUnits) return null;
 
-  const priceEur = Number(priceInput||0);
+  const priceEur = Number(priceInput||0) * pm;
   if (!priceEur) return null;
 
   const temp: string = temperature || "DRY";
@@ -451,6 +472,7 @@ export default function App() {
   const [meatPrices, setMeatPrices] = useState<any[]>([]);
   const [bevInfo, setBevInfo] = useState<any[]>([]); // CAN: dati alcolici per AIEM fisso
   const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
+  const [canConvFactors, setCanConvFactors] = useState<any[]>(() => LS.get("ifb_can_conv_factors", CAN_CONV_DEFAULTS));
   const [scAttuali, setScAttuali] = useState<any[]>([]);
   const [scHistory, setScHistory] = useState<any[]>([]); // storico SC Attuali per branch
   const [macHkCostRows, setMacHkCostRows] = useState<any[]>([]); // HK costs loaded for MAC derivation
@@ -515,6 +537,7 @@ export default function App() {
   useEffect(()=>{ if(branch) setPriceExceptions(LS.get(`ifb_exceptions_${branch}`,[])); },[branch]);
   // Save effects — only fire after load is complete
   useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
+  useEffect(()=>{ LS.set("ifb_can_conv_factors", canConvFactors); },[canConvFactors]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_products_${branchRef.current}`, products); },[products]);
   useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_logistics", logistics); }, [logistics]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_airlist_${branchRef.current}`, airList); },[airList]);
@@ -847,9 +870,12 @@ export default function App() {
       // Branch-agnostic calc helper
       const isCAN_b = branch === "CAN";
       const bevData = isCAN_b ? bevInfo.find((b:any) => b.ifbNo === prod.code) : null;
+      // Fattore di conversione item CAN (lookup per N COMIT via xrefs)
+      const nComit = isCAN_b ? (xrefs.find((x:any)=>x.productId===prod.id||x.ifbNo===prod.code)?.nHK||"") : "";
+      const itemCf = isCAN_b && nComit ? (canConvFactors.find((c:any)=>c.nComit===nComit)?.factor||1) : 1;
       const calcCost = (pi: number) =>
         isCAN_b
-          ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log, bevData })
+          ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log, bevData, priceMultiplier:itemCf })
           : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
 
       // Eccezione prezzo: bypassa listino e carne
@@ -959,7 +985,7 @@ export default function App() {
         area:log.area||"NORD", pltPerContainer:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali,xrefs,canConvFactors]);
 
   // MAC: save HK costRows to IDB whenever they're computed (declared after costRows useMemo to avoid TDZ)
   useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
@@ -1141,7 +1167,7 @@ export default function App() {
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} showToast={showToast}/>,
-    exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions}/>,
+    exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali}/>,
     scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast} xrefs={xrefs}/>,
@@ -5005,7 +5031,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
 
 // ─── PRICE EXCEPTIONS ─────────────────────────────────────────────────────────
-function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExceptions}) {
+function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExceptions, canConvFactors=[], setCanConvFactors=(_:any)=>{}}) {
   const [search, setSearch] = useState("");
   const [selectedProd, setSelectedProd] = useState<any>(null);
   const [inputPrice, setInputPrice] = useState("");
@@ -5196,6 +5222,133 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
           </table>
         </div>
       )}
+
+      {/* ── Sezione CAN: Fattori di Conversione ── */}
+      {isCAN && (
+        <div style={{marginTop:"36px"}}>
+          <div style={{fontSize:"10px",letterSpacing:"3px",color:T.gold,textTransform:"uppercase",marginBottom:"4px"}}>Canarie · Solo</div>
+          <h2 style={{margin:"0 0 6px",fontSize:"18px",fontWeight:"bold"}}>⚖️ Fattori di Conversione</h2>
+          <div style={{color:T.muted,fontSize:"12px",marginBottom:"18px"}}>
+            Moltiplicatore applicato al prezzo listino <em>e</em> divisore del calcolo unità/pallet (colonna CM del modello Excel).
+            Usare per articoli dove il fornitore esprime PCS/BOX in modo diverso dalla anagrafica.
+          </div>
+
+          {/* Form aggiunta/modifica */}
+          <CanConvFactorForm
+            canConvFactors={canConvFactors}
+            setCanConvFactors={setCanConvFactors}
+            xrefs={xrefs}
+            products={products}
+          />
+
+          {/* Tabella */}
+          <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:"10px",overflow:"hidden",marginTop:"16px"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:"11px"}}>
+              <thead>
+                <tr style={{background:T.surface}}>
+                  {["N COMIT","Fattore","Descrizione","·"].map(h=>(
+                    <th key={h} style={{padding:"6px 10px",textAlign:"left",fontSize:"9px",letterSpacing:"1px",
+                      color:T.muted,textTransform:"uppercase",fontWeight:"normal",borderBottom:`1px solid ${T.border}`}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {canConvFactors.map((row:any, i:number)=>(
+                  <tr key={i} style={{borderTop:`1px solid ${T.border}`}}>
+                    <td style={{padding:"5px 10px",color:T.gold,fontFamily:"monospace",fontWeight:"bold"}}>{row.nComit}</td>
+                    <td style={{padding:"5px 10px",color:row.factor===1?T.dim:T.green,fontFamily:"monospace",fontWeight:"bold"}}>
+                      ×{Number(row.factor).toLocaleString("it-IT",{maximumFractionDigits:6})}
+                    </td>
+                    <td style={{padding:"5px 10px",color:T.text,maxWidth:"280px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.description||"-"}</td>
+                    <td style={{padding:"5px 10px",textAlign:"center"}}>
+                      <button
+                        onClick={()=>setCanConvFactors((prev:any)=>prev.filter((_:any,j:number)=>j!==i))}
+                        style={{background:"transparent",border:`1px solid ${T.red||"#c55"}`,color:T.red||"#c55",
+                          borderRadius:"4px",padding:"2px 8px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>
+                        Rimuovi
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {canConvFactors.length===0 && (
+                  <tr><td colSpan={4} style={{padding:"24px",textAlign:"center",color:T.dim}}>Nessun fattore di conversione.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <button
+            onClick={()=>setCanConvFactors(CAN_CONV_DEFAULTS)}
+            style={{marginTop:"10px",padding:"5px 12px",background:"transparent",border:`1px solid ${T.border}`,
+              color:T.muted,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>
+            Ripristina default
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CanConvFactorForm({canConvFactors, setCanConvFactors, xrefs, products}:any) {
+  const [nComit, setNComit]       = useState("");
+  const [factor, setFactor]       = useState("");
+  const [desc, setDesc]           = useState("");
+
+  function save() {
+    const nc = nComit.trim();
+    const f  = parseFloat(factor.replace(",","."));
+    if(!nc || isNaN(f) || f <= 0) return;
+    setCanConvFactors((prev:any)=>{
+      const idx = prev.findIndex((r:any)=>r.nComit===nc);
+      const entry = {nComit:nc, factor:f, description:desc.trim()};
+      if(idx>=0){ const u=[...prev]; u[idx]=entry; return u; }
+      return [...prev, entry];
+    });
+    setNComit(""); setFactor(""); setDesc("");
+  }
+
+  // Auto-fill desc from xref when nComit matches
+  function onNComitChange(val:string) {
+    setNComit(val);
+    const xr = xrefs.find((x:any)=>x.nHK===val.trim());
+    if(xr){
+      const prod = products.find((p:any)=>p.id===xr.productId||p.code===xr.ifbNo);
+      if(prod) setDesc(prod.description||"");
+    }
+  }
+
+  const exists = canConvFactors.some((r:any)=>r.nComit===nComit.trim());
+
+  return (
+    <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:"10px",padding:"16px 18px"}}>
+      <div style={{fontSize:"11px",letterSpacing:"2px",color:T.gold,textTransform:"uppercase",marginBottom:"12px"}}>Aggiungi / Modifica fattore</div>
+      <div style={{display:"grid",gridTemplateColumns:"120px 140px 1fr auto",gap:"10px",alignItems:"end"}}>
+        <div>
+          <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>N COMIT</div>
+          <input value={nComit} onChange={e=>onNComitChange(e.target.value)} placeholder="es. 7231"
+            style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+              padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}} />
+        </div>
+        <div>
+          <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Fattore (×)</div>
+          <input value={factor} onChange={e=>setFactor(e.target.value)} placeholder="es. 0.33"
+            type="number" min="0" step="any"
+            style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+              padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}} />
+        </div>
+        <div>
+          <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Descrizione (opzionale)</div>
+          <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="Descrizione articolo"
+            style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+              padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}} />
+        </div>
+        <button onClick={save} disabled={!nComit||!factor}
+          style={{padding:"7px 16px",background:nComit&&factor?T.gold:"#333",
+            color:nComit&&factor?"#111":T.dim,border:"none",borderRadius:"6px",
+            cursor:nComit&&factor?"pointer":"default",fontFamily:"inherit",fontSize:"12px",fontWeight:"bold"}}>
+          {exists?"Aggiorna":"Aggiungi"}
+        </button>
+      </div>
     </div>
   );
 }
