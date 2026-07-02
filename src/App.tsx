@@ -4828,6 +4828,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
               {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN","Δ GC/TF","Δ FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
+                const narrowW = ci===0?"80px":ci===1?"80px":ci===2?"70px":undefined;
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4888,7 +4889,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     </select>
                   </th>
                 );
-                return <th key={c} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10}}>{c}</th>;
+                return <th key={c} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10,width:narrowW,maxWidth:narrowW,minWidth:ci===3?"300px":undefined}}>{c}</th>;
               })}
             </tr></thead>
             <tbody>
@@ -4896,10 +4897,10 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                 const mismatchType=r.mismatch?(r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"";
                 return(
                   <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r.mismatch?`${T.purple}10`:i%2===0?T.bg:T.surface}}>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"170px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"80px",maxWidth:"80px"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"80px",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"70px",maxWidth:"70px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",minWidth:"300px",whiteSpace:"nowrap"}}>
                       <span style={{color:r._prodFound===false?T.orange:T.text}}>{r.description}</span>
                     </td>
                     <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",textAlign:"right"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
