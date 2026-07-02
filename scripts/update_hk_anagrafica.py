@@ -12,7 +12,10 @@ CLIENT_ID     = "925de6e4-e71f-4c24-9e0a-f3ae544ae644"
 CLIENT_SECRET = os.environ.get("BC_CLIENT_SECRET", "")
 BC_ENV        = "Production_HK"
 COMPANY       = "BRIGHT%20VIEW%20TRADING%20HK%20LIMITED"
+BC_ENV_IFB    = "Production"
+COMPANY_IFB   = "Inalca%20Food%20%26%20Beverage%20s.r.l."
 BASE          = f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV}/ODataV4/Company('{COMPANY}')"
+BASE_IFB      = f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV_IFB}/ODataV4/Company('{COMPANY_IFB}')"
 OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "hk_anagrafica.json"
 
 # Mapping BC category values → app values
@@ -44,9 +47,11 @@ def get_token():
     return r.json()["access_token"]
 
 
-def bc_get(token, endpoint):
+def bc_get(token, endpoint, base=None):
+    if base is None:
+        base = BASE
     headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-    results, url = [], f"{BASE}/{endpoint}"
+    results, url = [], f"{base}/{endpoint}"
     while url:
         r = requests.get(url, headers=headers)
         r.raise_for_status()
@@ -54,6 +59,27 @@ def bc_get(token, endpoint):
         results.extend(data.get("value", []))
         url = data.get("@odata.nextLink")
     return results
+
+
+def get_ifb_weights(token):
+    """Fetch weight data from IFB BC (Italia) as fallback when HK BC weight = 0."""
+    print("  Fetch pesi da IFB BC Italia (fallback per kgPerBox=0)...")
+    try:
+        rows = bc_get(token, "Item_Card_Excel?$top=5000", base=BASE_IFB)
+        result = {}
+        for r in rows:
+            code = str(r.get("AltIFBIFB_Item") or r.get("No_") or "").strip()
+            if not code:
+                continue
+            kpb  = float(r.get("AltIFBNet_Weight") or 0)
+            kplt = float(r.get("AltIFBKg_x_PLT")   or 0)
+            if kpb > 0 or kplt > 0:
+                result[code] = {"kgPerBox": kpb, "kgxplt": kplt}
+        print(f"    {len(result)} articoli IFB con dati peso")
+        return result
+    except Exception as e:
+        print(f"    Fetch IFB pesi fallito: {e}")
+        return {}
 
 
 def get_anagrafica(token):
@@ -77,6 +103,10 @@ if __name__ == "__main__":
     print("Leggo anagrafica da BC...")
     items = get_anagrafica(token)
     print(f"  {len(items)} items trovati")
+
+    # Fetch IFB BC weights as fallback
+    ifb_weights = get_ifb_weights(token)
+
     products = []
     for item in items:
         code = str(item.get("AltICMIFB_Item") or "").strip()
@@ -84,6 +114,12 @@ if __name__ == "__main__":
         if not code and not nHK:
             continue
         blocked = item.get("Blocked") is True
+        kpb  = float(item.get("AltICMNet_Weight") or 0)
+        kplt = float(item.get("AltICMKg_x_PLT")   or 0)
+        # Fallback: usa dati peso da IFB BC se HK BC ha 0
+        if kpb == 0 and code and code in ifb_weights:
+            kpb  = ifb_weights[code].get("kgPerBox", 0)
+            kplt = ifb_weights[code].get("kgxplt",   0)
         products.append({
             "id":          code or nHK,
             "code":        code,
@@ -93,8 +129,8 @@ if __name__ == "__main__":
             "uom":         norm(item.get("Sales_Unit_of_Measure"), UOM_MAP),
             "qtyPerBox":   float(item.get("AltICMQuantity_x_Packaging") or 0),
             "boxPerPallet":float(item.get("AltICMPackaging_x_Pallet") or 0),
-            "kgPerBox":    float(item.get("AltICMNet_Weight") or 0),
-            "kgxplt":      float(item.get("AltICMKg_x_PLT") or 0),
+            "kgPerBox":    kpb,
+            "kgxplt":      kplt,
             "temperature":      norm(item.get("AltICMProduct_Type"), TEMP_MAP),
             "bcTransportation": str(item.get("Transportation") or "").strip().upper(),
             "standardCostHkd": float(item.get("Standard_Cost") or 0),
