@@ -2609,10 +2609,6 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   
   function update(productId, field, rawVal) {
     const existing = getLog(productId);
-    if(existing?.fromImport) {
-      showToast(`❌ ${field} non modificabile: dato importato da Work_tab`, T.red);
-      return;
-    }
     const val = ["ubicazione","area","transport"].includes(field) ? rawVal :
                 ["hasCert","hasAlcTax"].includes(field) ? (rawVal === "true") :
                 (parseFloat(rawVal) || 0);
@@ -2811,11 +2807,11 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
 
   return (
     <div>
-      <PageHeader title={`Logistica · ${branch}`} sub={`${withCount} con logistica (read-only) · ${missingCount} senza logistica (modificabili) — totale ${allIFBProducts.length} IFB`}/>
-      
+      <PageHeader title={`Logistica · ${branch}`} sub={`${withCount} con logistica · ${missingCount} senza logistica — totale ${allIFBProducts.length} IFB`}/>
+
       <div style={{fontSize:"11px", color:T.muted, marginBottom:"10px", padding:"6px 10px", background:`${T.gold}08`, borderRadius:"6px", border:`1px solid ${T.gold}22`}}>
-        🔒 Righe <strong style={{color:T.gold}}>dorate</strong> = importate da Work_tab (sola lettura) &nbsp;·&nbsp;
-        🟠 Righe arancioni = senza logistica (modificabili)
+        🟡 Righe <strong style={{color:T.gold}}>dorate</strong> = importate da Work_tab (modificabili) &nbsp;·&nbsp;
+        🟠 Righe arancioni = senza logistica
       </div>
 
       {mapStep === "idle" ? (
