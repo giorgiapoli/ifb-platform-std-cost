@@ -1771,7 +1771,7 @@
     "kgPerBox": 0.25,
     "kgxplt": 126.0,
     "temperature": "FRESH",
-    "bcTransportation": "",
+    "bcTransportation": "CH AIR",
     "standardCostHkd": 0.0,
     "isHoff": false,
     "active": true,
