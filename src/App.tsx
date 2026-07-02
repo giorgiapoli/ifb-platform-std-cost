@@ -2149,7 +2149,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
   const[colCode,setColCode]=useState("");
   const[preview,setPreview]=useState([]);
   const[fileName,setFileName]=useState("");
-  const[airSearch,setAirSearch]=useState("");
+  const[search,setSearch]=useState("");
 
   function parseFile(file) {
     setFileName(file.name);
@@ -2222,13 +2222,11 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
   );
   const allAirItems = [...bcAirItems, ...manualOnlyAir];
 
-  const _sq=airSearch.toLowerCase().trim();
-  const displayed=_sq
-    ? allAirItems.filter((a:any)=>
-        String(a.description||"").toLowerCase().includes(_sq)||
-        String(a.code||"").toLowerCase().includes(_sq)||
-        String(a.nHK||"").toLowerCase().includes(_sq))
-    : allAirItems;
+  const _sq=search.toLowerCase();
+  const displayed=allAirItems.filter((a:any)=>!search
+    ||a.description?.toLowerCase().includes(_sq)
+    ||a.code?.toLowerCase().includes(_sq)
+    ||a.nHK?.toLowerCase().includes(_sq));
 
   return(
     <div>
@@ -2356,7 +2354,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
 {/* Bottone Mostra lista - stile coerente con il tema */}
 <button
   onClick={() => {
-    setAirSearch("");
+    setSearch("");
     setStep("main");
   }}
   style={{
@@ -2404,7 +2402,7 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
 </div>
           {allAirItems.length>0&&(
             <>
-              <SearchBar value={airSearch} onChange={setAirSearch} placeholder="🔍 Cerca articolo AIR…"/>
+              <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo AIR…"/>
               <Section title={`${displayed.length} articoli AIR · ${bcAirCount} da BC · ${manualOnlyAir.length} manuali`}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
                   <THead cols={["Codice",branchN(branch),"Descrizione","Sorgente","Azioni"]}sticky/>
