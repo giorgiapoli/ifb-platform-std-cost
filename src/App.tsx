@@ -682,19 +682,7 @@ export default function App() {
                     convFactor = 1/qpb; displayUom = "BOX";
                   }
                 } else {
-                  // CAN: stessa logica HK ma senza macToHkConv
-                  if (purchUom === hkUom) {
-                    displayUom = hkUom;
-                  } else if (purchUom === "KG" && hkUom === "BOX") {
-                    if (kgActualPerBox > 0 && Math.abs(kgActualPerBox - 1) > 0.001) { convFactor = 1/kgActualPerBox; }
-                    displayUom = "BOX";
-                  } else if (purchUom === "KG" && hkUom === "PCS") {
-                    if (kgPerPCS > 0) { convFactor = 1/kgPerPCS; } displayUom = "PCS";
-                  } else if (purchUom === "BOX" && hkUom === "PCS") {
-                    if (qpb > 1) { convFactor = qpb; } displayUom = "PCS";
-                  } else if (purchUom === "PCS" && hkUom === "BOX") {
-                    if (qpb > 1) { convFactor = 1/qpb; } displayUom = "BOX";
-                  }
+                  if (purchUom === "BOX" && hkUom === "PCS" && qpb > 1) { convFactor = qpb; displayUom = "PCS"; }
                 }
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
@@ -4840,7 +4828,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
               {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN","Δ GC/TF","Δ FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
-                const narrowW = ci===0?"80px":ci===1?"62px":ci===2?"54px":undefined;
+                const narrowW = ci===0?"80px":ci===1?"80px":ci===2?"70px":undefined;
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
                     <select value={filterNHK} onChange={e=>setFilterNHK(e.target.value)}
@@ -4910,8 +4898,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                 return(
                   <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r.mismatch?`${T.purple}10`:i%2===0?T.bg:T.surface}}>
                     <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"80px",maxWidth:"80px"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"62px",maxWidth:"62px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
-                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"54px",maxWidth:"54px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"80px",maxWidth:"80px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
+                    <td style={{padding:"3px 6px",fontSize:"10px",fontFamily:"monospace",whiteSpace:"nowrap",width:"70px",maxWidth:"70px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
                     <td style={{padding:"3px 6px",fontSize:"10px",minWidth:"300px",whiteSpace:"nowrap"}}>
                       <span style={{color:r._prodFound===false?T.orange:T.text}}>{r.description}</span>
                     </td>
