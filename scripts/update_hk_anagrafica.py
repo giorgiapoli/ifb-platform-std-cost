@@ -58,25 +58,11 @@ def bc_get(token, endpoint):
 
 def get_anagrafica(token):
     vendor = "INALCA FOOD %26 BEVERAGE SRL"
-    fields = ",".join([
-        "No", "AltICMIFB_Item", "Description",
-        "AltICMSection_Description",   # category
-        "Sales_Unit_of_Measure",       # uom
-        "AltICMQuantity_x_Packaging",  # qtyPerBox
-        "AltICMPackaging_x_Pallet",    # boxPerPallet
-        "AltICMNet_Weight",            # kgPerBox
-        "AltICMKg_x_PLT",             # kgxplt
-        "AltICMProduct_Type",          # temperature
-        "Transportation",              # modalità trasporto (CH AIR / DRY AIR / FR AIR / SEA ...)
-        "Standard_Cost",               # standard cost HKD su BC Brightview
-        "Blocked",
-        "AltICMVendor_Name", "AltICMVendor_Name_2",
-        "AltICMHOFF",
-    ])
+    # Nota: non usiamo $select perché BC non restituisce Transportation con $select attivo
     endpoint = (
         f"Item_Card_Excel"
         f"?$filter=Gen_Prod_Posting_Group eq 'DS' and AltICMVendor_Name eq '{vendor}'"
-        f"&$select={fields}&$top=5000"
+        f"&$top=5000"
     )
     return bc_get(token, endpoint)
 
