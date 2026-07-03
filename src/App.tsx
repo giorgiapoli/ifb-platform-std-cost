@@ -759,8 +759,19 @@ export default function App() {
                 mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
               });
             });
-            IDB.set(IDB_KEY, newEntries);
-            startTransition(() => { setBcListini(newEntries); setDataSource(`listini_${branch}`, "bc"); });
+            // Dedup per productId: se stesso prodotto appare con N COMIT e IFB code, tieni quello con sconto migliore
+            const dedupMap = new Map<string, any>();
+            newEntries.forEach(e => {
+              const key = String(e.productId);
+              const prev = dedupMap.get(key);
+              if (!prev) { dedupMap.set(key, e); return; }
+              const eDisc  = (e.fcaDiscounted||0) < (e.fcaPrice||0) ? e : null;
+              const prevDisc = (prev.fcaDiscounted||0) < (prev.fcaPrice||0) ? prev : null;
+              if (eDisc && !prevDisc) dedupMap.set(key, e);  // nuovo ha sconto, vecchio no → sostituisci
+            });
+            const dedupEntries = [...dedupMap.values()];
+            IDB.set(IDB_KEY, dedupEntries);
+            startTransition(() => { setBcListini(dedupEntries); setDataSource(`listini_${branch}`, "bc"); });
           }
         }
       } catch(_) { /* offline — usa dati IDB già caricati */ }
