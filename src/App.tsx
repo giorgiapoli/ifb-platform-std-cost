@@ -1196,7 +1196,7 @@ export default function App() {
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} showToast={showToast}/>,
+    bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} xrefs={xrefs} showToast={showToast}/>,
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors} hkConvFactors={hkConvFactors} setHkConvFactors={setHkConvFactors}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali}/>,
@@ -7088,7 +7088,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
 }
 
 // ─── BEVERAGE INFO (CAN — AIEM alcolici) ──────────────────────────────────────
-function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
+function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast}: any) {
   const [step, setStep] = useState<"main"|"map"|"preview">("main");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<any[]>([]);
@@ -7200,9 +7200,12 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
     setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
   }
 
+  const getNComit = (ifbNo: string) => xrefs.find((x:any)=>x.ifbNo===ifbNo)?.nHK || "";
   const q = search.trim().toLowerCase();
   const displayed = q
-    ? bevInfo.filter((b:any) => b.ifbNo?.toLowerCase().includes(q) || products.find((p:any)=>p.code===b.ifbNo)?.description?.toLowerCase().includes(q))
+    ? bevInfo.filter((b:any) => b.ifbNo?.toLowerCase().includes(q)
+        || products.find((p:any)=>p.code===b.ifbNo)?.description?.toLowerCase().includes(q)
+        || getNComit(b.ifbNo).toLowerCase().includes(q))
     : bevInfo;
 
   return (
@@ -7283,13 +7286,14 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                {["IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit",""].map(h=>
+                {["N COMIT","IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit",""].map(h=>
                   <th key={h} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}>{h}</th>)}
               </tr></thead>
               <tbody>
                 {/* Nuova riga in cima se si sta aggiungendo */}
                 {editingIdx===-1&&(
                   <tr style={{background:`${T.gold}08`,borderBottom:`1px solid ${T.border}`}}>
+                    <td style={{padding:"2px 4px"}}><span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>—</span></td>
                     {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
                       <td key={ci} style={{padding:"2px 4px"}}>
                         {f===""
@@ -7309,11 +7313,13 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
                 {displayed.map((b:any,i:number)=>{
                   const realIdx = bevInfo.indexOf(b);
                   const prod = products.find((p:any)=>p.code===b.ifbNo);
+                  const nComit = getNComit(b.ifbNo);
                   const isEditing = editingIdx===realIdx;
                   return(
                     <tr key={b.ifbNo} style={{borderBottom:`1px solid ${T.border}`,background:isEditing?`${T.gold}08`:i%2===0?T.bg:T.surface}}>
                       {isEditing ? (
                         <>
+                          <td style={{padding:"2px 4px"}}><span style={{fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>{nComit||"—"}</span></td>
                           {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
                             <td key={ci} style={{padding:"2px 4px"}}>
                               {f===""
@@ -7330,6 +7336,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
                         </>
                       ) : (
                         <>
+                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.muted}}>{nComit||"—"}</td>
                           <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
                           <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
                           <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
