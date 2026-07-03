@@ -1136,6 +1136,7 @@ export default function App() {
   setSnapshots={setSnapshots}
   showToast={showToast}
   bumpImportTs={bumpImportTs}
+  reloadListini={()=>{ setBcListini([]); setListiniReloadKey(k=>k+1); }}
 />,
   
     xref:        <XRefPage 
@@ -6571,7 +6572,7 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
 }
 
 // ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
-function Products({ products, setProducts, branch, xrefs=[], importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
+function Products({ products, setProducts, branch, xrefs=[], importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs, reloadListini }) {
   const [search, setSearch] = useState("");
   const [onlyIFB, setOnlyIFB] = useState(true);
   const [sortAna, setSortAna] = useState<"default"|"az"|"za">("default");
@@ -6815,6 +6816,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     setSnapshots(newSnaps); LS.set("ifb_snapshots", newSnaps);
   
     bumpImportTs();
+    reloadListini?.();
     showToast(`Importati ${newProds.length} articoli`, T.gold);
     setImportStep("idle");
     setPreview([]);
