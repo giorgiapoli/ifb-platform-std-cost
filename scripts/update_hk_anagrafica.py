@@ -93,6 +93,13 @@ def get_anagrafica(token):
     return bc_get(token, endpoint)
 
 
+# Override hardcoded per articoli con dati peso errati/mancanti in BC
+# Formato: IFB code -> {kgPerBox, kgxplt}
+# kgPerBox = kg netti per box; kgxplt = kg totali per pallet
+KG_OVERRIDES = {
+    "MT386": {"kgPerBox": 12.0, "kgxplt": 600.0},  # 6 PCS/box × 2 kg/PCS = 12; 50 box/plt = 600
+}
+
 if __name__ == "__main__":
     if not CLIENT_SECRET:
         raise RuntimeError("BC_CLIENT_SECRET non impostato")
@@ -120,6 +127,10 @@ if __name__ == "__main__":
         if kpb == 0 and code and code in ifb_weights:
             kpb  = ifb_weights[code].get("kgPerBox", 0)
             kplt = ifb_weights[code].get("kgxplt",   0)
+        # Override hardcoded per articoli con dati BC errati/mancanti
+        if code and code in KG_OVERRIDES:
+            kpb  = KG_OVERRIDES[code]["kgPerBox"]
+            kplt = KG_OVERRIDES[code]["kgxplt"]
         products.append({
             "id":          code or nHK,
             "code":        code,
