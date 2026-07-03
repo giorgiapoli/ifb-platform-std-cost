@@ -7096,6 +7096,29 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
   const [preview, setPreview] = useState<any[]>([]);
   const [fileName, setFileName] = useState("");
   const [search, setSearch] = useState("");
+  const [editingIdx, setEditingIdx] = useState<number|null>(null);
+  const [editRow, setEditRow] = useState<any>({});
+
+  function saveEdit(idx: number) {
+    const lt = parseFloat(String(editRow.ltPerUnit||"").replace(",",".")) || 0;
+    const eurLt = parseFloat(String(editRow.eurPerLt||"").replace(",",".")) || 0;
+    const totRaw = parseFloat(String(editRow.totaleBottiglia||"").replace(",",".")) || 0;
+    const totaleBottiglia = totRaw > 0 ? totRaw : (lt > 0 && eurLt > 0 ? roundN(lt * eurLt, 4) : 0);
+    const updated = { ...editRow, ltPerUnit: parseFloat(String(editRow.ltPerUnit||"0").replace(",",".")) || 0,
+      gradoAlcolico: parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0,
+      eurPerLt: eurLt, totaleBottiglia };
+    const next = idx === -1
+      ? [...bevInfo, updated]
+      : bevInfo.map((b:any, i:number) => i===idx ? updated : b);
+    setBevInfo(next); IDB.set("ifb_bevinfo", next);
+    setEditingIdx(null); setEditRow({});
+    showToast("Salvato ✓", T.gold);
+  }
+
+  function startAdd() {
+    setEditingIdx(-1);
+    setEditRow({ ifbNo:"", ltPerUnit:"", gradoAlcolico:"", eurPerLt:"", totaleBottiglia:"" });
+  }
 
   const FIELDS = ["ifbNo","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"];
   const FLABELS: any = {
@@ -7250,31 +7273,75 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
         </Section>
       )}
 
-      <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca IFB No o descrizione…"/>
+      <div style={{display:"flex",gap:"8px",alignItems:"center",marginBottom:"10px"}}>
+        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca IFB No o descrizione…"/>
+        <button onClick={startAdd} style={{padding:"6px 14px",background:`${T.gold}20`,border:`1px solid ${T.gold}44`,borderRadius:"6px",color:T.gold,cursor:"pointer",fontSize:"12px",whiteSpace:"nowrap"}}>+ Aggiungi</button>
+      </div>
 
-      {displayed.length>0 ? (
+      {(displayed.length>0 || editingIdx===-1) ? (
         <Section title={`${displayed.length} articoli con AIEM alcolico`}>
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                {["IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit"].map(h=>
+                {["IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit",""].map(h=>
                   <th key={h} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}>{h}</th>)}
-                <th style={{padding:"3px 6px",background:T.card,borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}/>
               </tr></thead>
               <tbody>
-                {displayed.map((b:any,i:number)=>{
-                  const prod = products.find((p:any)=>p.code===b.ifbNo);
-                  return(
-                    <tr key={b.ifbNo} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
-                      <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
-                      <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
-                      <td style={{padding:"3px 6px"}}>
-                        <MiniBtn label="✕" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==bevInfo.indexOf(b));setBevInfo(n);IDB.set("ifb_bevinfo",n);}} color={T.red}/>
+                {/* Nuova riga in cima se si sta aggiungendo */}
+                {editingIdx===-1&&(
+                  <tr style={{background:`${T.gold}08`,borderBottom:`1px solid ${T.border}`}}>
+                    {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
+                      <td key={ci} style={{padding:"2px 4px"}}>
+                        {f===""
+                          ? <span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>—</span>
+                          : <input value={editRow[f]||""} onChange={e=>setEditRow((r:any)=>({...r,[f]:e.target.value}))}
+                              placeholder={f==="ifbNo"?"IFB No*":f} autoFocus={f==="ifbNo"}
+                              style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"80px",fontFamily:"monospace"}}/>
+                        }
                       </td>
+                    ))}
+                    <td style={{padding:"2px 4px",display:"flex",gap:"4px"}}>
+                      <MiniBtn label="✓" onClick={()=>saveEdit(-1)} color={T.green}/>
+                      <MiniBtn label="✕" onClick={()=>{setEditingIdx(null);setEditRow({});}} color={T.red}/>
+                    </td>
+                  </tr>
+                )}
+                {displayed.map((b:any,i:number)=>{
+                  const realIdx = bevInfo.indexOf(b);
+                  const prod = products.find((p:any)=>p.code===b.ifbNo);
+                  const isEditing = editingIdx===realIdx;
+                  return(
+                    <tr key={b.ifbNo} style={{borderBottom:`1px solid ${T.border}`,background:isEditing?`${T.gold}08`:i%2===0?T.bg:T.surface}}>
+                      {isEditing ? (
+                        <>
+                          {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
+                            <td key={ci} style={{padding:"2px 4px"}}>
+                              {f===""
+                                ? <span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>{prod?.description||"—"}</span>
+                                : <input value={editRow[f]||""} onChange={e=>setEditRow((r:any)=>({...r,[f]:e.target.value}))}
+                                    style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"80px",fontFamily:"monospace"}}/>
+                              }
+                            </td>
+                          ))}
+                          <td style={{padding:"2px 4px",display:"flex",gap:"4px"}}>
+                            <MiniBtn label="✓" onClick={()=>saveEdit(realIdx)} color={T.green}/>
+                            <MiniBtn label="✕" onClick={()=>{setEditingIdx(null);setEditRow({});}} color={T.muted}/>
+                          </td>
+                        </>
+                      ) : (
+                        <>
+                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
+                          <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
+                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
+                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
+                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
+                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
+                          <td style={{padding:"3px 6px",display:"flex",gap:"4px"}}>
+                            <MiniBtn label="✎" onClick={()=>{setEditingIdx(realIdx);setEditRow({...b});}} color={T.blue}/>
+                            <MiniBtn label="✕" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==realIdx);setBevInfo(n);IDB.set("ifb_bevinfo",n);}} color={T.red}/>
+                          </td>
+                        </>
+                      )}
                     </tr>
                   );
                 })}
@@ -7284,7 +7351,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, showToast}: any) {
         </Section>
       ) : (
         <div style={{color:T.muted,textAlign:"center",padding:"40px",fontSize:"13px"}}>
-          Nessun dato beverage. Carica il file con LT, Grado Alcolico e €/LT.
+          Nessun dato beverage. Carica il file o clicca "+ Aggiungi".
         </div>
       )}
     </div>
