@@ -74,6 +74,12 @@ const COSTS = {
   },
 };
 
+// ─── HK CONV FACTORS (eccezioni per item) ────────────────────────────────────
+const HK_CONV_DEFAULTS: {nHK:string; factor:number; description:string}[] = [
+  { nHK:"GCMA-1015", factor:3,   description:"VFF08" },
+  { nHK:"GCRI-1028", factor:0.5, description:"RST26" },
+];
+
 // ─── CANARIE CONV FACTORS (eccezioni per item) ───────────────────────────────
 const CAN_CONV_DEFAULTS: {nComit:string; factor:number; description:string}[] = [
   { nComit:"17021", factor:2,           description:"LA DOLCISSIMA POLPA DI POMODORO BAG IN BOX 2*5 KG" },
@@ -245,20 +251,21 @@ function exportXLSX(rows: any[], sheetName: string, fileName: string) {
  *   Step1 = purchasePrice + FOB + LIC + VGM + HC + PLT + alcTax + carriageUnit
  *   Step2 = Step1 + warehouseCost
  */
-function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
+function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMultiplier=1 }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature } = product;
   const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor } = logistic || {};
+  const pm = Number(priceMultiplier||1) || 1;
 
-  // ── Units per pallet ── (formula modello Excel)
+  // ── Units per pallet ── (formula modello Excel) / conv factor item
   // PCS: qtyPerBox × boxPerPallet
   // BOX: boxPerPallet
   // KG:  kgxplt (kg per pallet = KgPerBox × qtyPerBox × boxPerPallet)
   let unitsPerPlt: number;
-  if (uom==="BOX") unitsPerPlt = Number(boxPerPallet);
+  if (uom==="BOX") unitsPerPlt = Number(boxPerPallet) / pm;
   else if (uom==="KG") {
-    unitsPerPlt = Number(kgxplt) > 0 ? Number(kgxplt) : 300;
+    unitsPerPlt = (Number(kgxplt) > 0 ? Number(kgxplt) : 300) / pm;
   }
-  else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet); // PCS
+  else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet) / pm; // PCS
 
   // ── Divisore collo per MTS picking ──
   const divisoreCollo =
@@ -270,7 +277,7 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd }: any) {
   const totalUnits = unitsPerPlt * Number(pltPerContainer);
   if (!totalUnits) return null;
 
-  const priceEur = Number(priceInput||0) * Number(convFactor);
+  const priceEur = Number(priceInput||0) * Number(convFactor) * pm;
 
   // ✅ SE IL PREZZO È ZERO O NON VALIDO, NON CALCOLARE IL COSTO
   if (priceEur === 0 || !priceInput) {
@@ -473,6 +480,7 @@ export default function App() {
   const [bevInfo, setBevInfo] = useState<any[]>([]); // CAN: dati alcolici per AIEM fisso
   const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
   const [canConvFactors, setCanConvFactors] = useState<any[]>(() => LS.get("ifb_can_conv_factors", CAN_CONV_DEFAULTS));
+  const [hkConvFactors,  setHkConvFactors]  = useState<any[]>(() => LS.get("ifb_hk_conv_factors",  HK_CONV_DEFAULTS));
   const [scAttuali, setScAttuali] = useState<any[]>([]);
   const [scHistory, setScHistory] = useState<any[]>([]); // storico SC Attuali per branch
   const [macHkCostRows, setMacHkCostRows] = useState<any[]>([]); // HK costs loaded for MAC derivation
@@ -538,6 +546,7 @@ export default function App() {
   // Save effects — only fire after load is complete
   useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
   useEffect(()=>{ LS.set("ifb_can_conv_factors", canConvFactors); },[canConvFactors]);
+  useEffect(()=>{ LS.set("ifb_hk_conv_factors",  hkConvFactors);  },[hkConvFactors]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_products_${branchRef.current}`, products); },[products]);
   useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_logistics", logistics); }, [logistics]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_airlist_${branchRef.current}`, airList); },[airList]);
@@ -870,13 +879,15 @@ export default function App() {
       // Branch-agnostic calc helper
       const isCAN_b = branch === "CAN";
       const bevData = isCAN_b ? bevInfo.find((b:any) => b.ifbNo === prod.code) : null;
-      // Fattore di conversione item CAN (lookup per N COMIT via xrefs)
+      // Fattore di conversione item: CAN → lookup per N COMIT via xrefs; HK → lookup per nHK
       const nComit = isCAN_b ? (xrefs.find((x:any)=>x.productId===prod.id||x.ifbNo===prod.code)?.nHK||"") : "";
-      const itemCf = isCAN_b && nComit ? (canConvFactors.find((c:any)=>c.nComit===nComit)?.factor||1) : 1;
+      const itemCf = isCAN_b
+        ? (nComit ? (canConvFactors.find((c:any)=>c.nComit===nComit)?.factor||1) : 1)
+        : (hkConvFactors.find((c:any)=>c.nHK===prod.nHK)?.factor||1);
       const calcCost = (pi: number) =>
         isCAN_b
           ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log, bevData, priceMultiplier:itemCf })
-          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate });
+          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate, priceMultiplier:itemCf });
 
       // Eccezione prezzo: bypassa listino e carne
       if(exc && exc.price > 0) {
@@ -985,7 +996,7 @@ export default function App() {
         area:log.area||"NORD", pltPerContainer:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali,xrefs,canConvFactors]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali,xrefs,canConvFactors,hkConvFactors]);
 
   // MAC: save HK costRows to IDB whenever they're computed (declared after costRows useMemo to avoid TDZ)
   useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
@@ -1167,7 +1178,7 @@ export default function App() {
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} showToast={showToast}/>,
-    exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors}/>,
+    exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors} hkConvFactors={hkConvFactors} setHkConvFactors={setHkConvFactors}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali}/>,
     scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast} xrefs={xrefs}/>,
@@ -5031,7 +5042,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
 
 // ─── PRICE EXCEPTIONS ─────────────────────────────────────────────────────────
-function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExceptions, canConvFactors=[], setCanConvFactors=(_:any)=>{}}) {
+function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExceptions, canConvFactors=[], setCanConvFactors=(_:any)=>{}, hkConvFactors=[], setHkConvFactors=(_:any)=>{}}) {
   const [search, setSearch] = useState("");
   const [selectedProd, setSelectedProd] = useState<any>(null);
   const [inputPrice, setInputPrice] = useState("");
@@ -5223,6 +5234,59 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
         </div>
       )}
 
+      {/* ── Sezione HK: Fattori di Conversione ── */}
+      {!isCAN && (
+        <div style={{marginTop:"36px"}}>
+          <div style={{fontSize:"10px",letterSpacing:"3px",color:T.gold,textTransform:"uppercase",marginBottom:"4px"}}>Hong Kong · Solo</div>
+          <h2 style={{margin:"0 0 6px",fontSize:"18px",fontWeight:"bold"}}>⚖️ Fattori di Conversione</h2>
+          <div style={{color:T.muted,fontSize:"12px",marginBottom:"18px"}}>
+            Moltiplicatore applicato al prezzo listino <em>e</em> divisore del calcolo unità/pallet.
+            Usare per articoli dove il fornitore esprime PCS/BOX in modo diverso dall'anagrafica.
+          </div>
+          <HkConvFactorForm hkConvFactors={hkConvFactors} setHkConvFactors={setHkConvFactors} />
+          <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:"10px",overflow:"hidden",marginTop:"16px"}}>
+            <table style={{width:"100%",borderCollapse:"collapse",fontSize:"11px"}}>
+              <thead>
+                <tr style={{background:T.surface}}>
+                  {["N HK","Fattore","Descrizione","·"].map(h=>(
+                    <th key={h} style={{padding:"6px 10px",textAlign:"left",fontSize:"9px",letterSpacing:"1px",
+                      color:T.muted,textTransform:"uppercase",fontWeight:"normal",borderBottom:`1px solid ${T.border}`}}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {hkConvFactors.map((row:any, i:number)=>(
+                  <tr key={i} style={{borderTop:`1px solid ${T.border}`}}>
+                    <td style={{padding:"5px 10px",color:T.gold,fontFamily:"monospace",fontWeight:"bold"}}>{row.nHK}</td>
+                    <td style={{padding:"5px 10px",color:row.factor===1?T.dim:T.green,fontFamily:"monospace",fontWeight:"bold"}}>
+                      ×{Number(row.factor).toLocaleString("it-IT",{maximumFractionDigits:6})}
+                    </td>
+                    <td style={{padding:"5px 10px",color:T.text}}>{row.description||"-"}</td>
+                    <td style={{padding:"5px 10px",textAlign:"center"}}>
+                      <button
+                        onClick={()=>setHkConvFactors((prev:any)=>prev.filter((_:any,j:number)=>j!==i))}
+                        style={{background:"transparent",border:`1px solid ${T.red||"#c55"}`,color:T.red||"#c55",
+                          borderRadius:"4px",padding:"2px 8px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>
+                        Rimuovi
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {hkConvFactors.length===0 && (
+                  <tr><td colSpan={4} style={{padding:"24px",textAlign:"center",color:T.dim}}>Nessun fattore di conversione.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+          <button
+            onClick={()=>setHkConvFactors(HK_CONV_DEFAULTS)}
+            style={{marginTop:"10px",padding:"5px 12px",background:"transparent",border:`1px solid ${T.border}`,
+              color:T.muted,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontFamily:"inherit"}}>
+            Ripristina default
+          </button>
+        </div>
+      )}
+
       {/* ── Sezione CAN: Fattori di Conversione ── */}
       {isCAN && (
         <div style={{marginTop:"36px"}}>
@@ -5285,6 +5349,60 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
           </button>
         </div>
       )}
+    </div>
+  );
+}
+
+function HkConvFactorForm({hkConvFactors, setHkConvFactors}:any) {
+  const [nHK,   setNHK]   = useState("");
+  const [factor, setFactor] = useState("");
+  const [desc,   setDesc]   = useState("");
+
+  function save() {
+    const nk = nHK.trim();
+    const f  = parseFloat(factor.replace(",","."));
+    if(!nk || isNaN(f) || f <= 0) return;
+    setHkConvFactors((prev:any)=>{
+      const idx = prev.findIndex((r:any)=>r.nHK===nk);
+      const entry = {nHK:nk, factor:f, description:desc.trim()};
+      if(idx>=0){ const u=[...prev]; u[idx]=entry; return u; }
+      return [...prev, entry];
+    });
+    setNHK(""); setFactor(""); setDesc("");
+  }
+
+  const exists = hkConvFactors.some((r:any)=>r.nHK===nHK.trim());
+
+  return (
+    <div style={{background:T.card,border:`1px solid ${T.border}`,borderRadius:"10px",padding:"16px 18px"}}>
+      <div style={{fontSize:"11px",letterSpacing:"2px",color:T.gold,textTransform:"uppercase",marginBottom:"12px"}}>Aggiungi / Modifica fattore</div>
+      <div style={{display:"grid",gridTemplateColumns:"160px 140px 1fr auto",gap:"10px",alignItems:"end"}}>
+        <div>
+          <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>N HK (es. GCMA-1015)</div>
+          <input value={nHK} onChange={e=>setNHK(e.target.value)} placeholder="es. GCMA-1015"
+            style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+              padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}} />
+        </div>
+        <div>
+          <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Fattore (×)</div>
+          <input value={factor} onChange={e=>setFactor(e.target.value)} placeholder="es. 3"
+            type="number" min="0" step="any"
+            style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+              padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}} />
+        </div>
+        <div>
+          <div style={{fontSize:"10px",color:T.muted,marginBottom:"4px"}}>Descrizione (opzionale)</div>
+          <input value={desc} onChange={e=>setDesc(e.target.value)} placeholder="es. VFF08"
+            style={{width:"100%",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"6px",
+              padding:"7px 10px",color:T.text,fontSize:"12px",fontFamily:"inherit",boxSizing:"border-box"}} />
+        </div>
+        <button onClick={save} disabled={!nHK||!factor}
+          style={{padding:"7px 16px",background:nHK&&factor?T.gold:"#333",
+            color:nHK&&factor?"#111":T.dim,border:"none",borderRadius:"6px",
+            cursor:nHK&&factor?"pointer":"default",fontFamily:"inherit",fontSize:"12px",fontWeight:"bold"}}>
+          {exists?"Aggiorna":"Aggiungi"}
+        </button>
+      </div>
     </div>
   );
 }
