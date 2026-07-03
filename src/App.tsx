@@ -417,7 +417,7 @@ function calcDAPFinal({ dapDiscounted, fcaPrice, fcaDiscounted, vendorName, sect
   const dd=dapDiscounted||0, fp=fcaPrice||0, fd=fcaDiscounted||0;
   if(dd!==0) return { dapFinal:dd, carriageUnit:cu, note:"DAP Disc." };
   if(!isX)   return { dapFinal:0,  carriageUnit:0,  note:"non-X" };
-  if(isWine) return { dapFinal:fp!==0?fp+cu:0, carriageUnit:cu, note:"Wine FCA+C" };
+  if(isWine) return { dapFinal:(fd||fp)!==0?(fd||fp)+cu:0, carriageUnit:cu, note:"Wine FCA Disc+C" };
   return { dapFinal:fd!==0?fd+cu:0, carriageUnit:cu, note:"FCA Disc+C" };
 }
 
@@ -3591,7 +3591,7 @@ if (puom && baseUom && puom !== baseUom) {
 const needsConv = convFactor !== 1;
 return (
   <tr key={p.productId} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
-    <TD mono><span style={{ color: T.muted }}>{prod?.nHK || "—"}</span></TD>
+    <TD mono><span style={{ color: T.muted }}>{prod?.nHK || (xrefs.find((x:any)=>x.ifbNo===(prod?.code||p.n||p.itemCode))?.nHK) || "—"}</span></TD>
     <TD mono>
       <span style={{ color: T.gold }}>{prod?.code || p.itemCode || p.productId}</span>
       {inInvoice && <span style={{ marginLeft: "5px", fontSize: "9px", color: T.blue }}>📋</span>}
