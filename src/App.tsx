@@ -4595,7 +4595,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         return{...r,nHK:prod?.nHK||r.nHK||"",ifbNo:prod?.code||r.itemCode||"",
           description:r.description||prod?.description||"",ubicazione:cr?.ubicazione||"",logTransport,
           isAir,locationIsNCJ,mismatch,newHkd,oldHkd,pct:finalPct,skipReason,scGC,scFUE,
-          bcStdCost,deltaSC,scBcGcTf,scBcFueLan,deltaGC,deltaFUE,isKeepOld};
+          bcStdCost,deltaSC,scBcGcTf,scBcFueLan,deltaGC,deltaFUE,isKeepOld,
+          uomVendita:prod?.uom||"",uomAcquisto:prod?.baseUom||""};
       });
   },[activeRows,costRows,products,xrefs,sortDir,scAttualiMap]);
 
@@ -4781,7 +4782,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <button onClick={()=>exportXLSX(
           displayed.map((r:any)=>({
             "Data":r.date||"",[branchN(branch)]:r.nHK||"","IFB No":r.ifbNo||"","Descrizione":r.description||"",
-            "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"","Location":r.location||"",
+            "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"",
+            ...(branch==="CAN"?{"UOM IFB":r.uomVendita||"","UOM Acq.":r.uomAcquisto||""}:{}),
+            "Location":r.location||"",
             "Mismatch":r.mismatch?"⚠ "+( r.isAir&&!r.locationIsNCJ?"AIR senza NCJ":"NCJ ma SEA"):"",
             "Mag./Trasp.":r.isAir?"AIR":r.ubicazione||"",
             "Old SC":r.oldHkd!=null?roundN(r.oldHkd):"",
@@ -4897,7 +4900,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo","Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN","Δ GC/TF","Δ FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo",...(branch==="CAN"?["UOM IFB","UOM Acq."]:[] as any),"Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN","Δ GC/TF","Δ FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
                 const narrowW = ci===0?"80px":ci===1?"80px":ci===2?"70px":undefined;
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 4px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10,width:"62px",maxWidth:"62px"}}>
@@ -4977,6 +4980,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"50px",maxWidth:"50px"}}>
                       {r.isSample?<Chip label="S" color={T.purple}/>:<span style={{color:T.muted}}>{r.unitPrice>0?r.unitPrice.toFixed(2):"—"}</span>}
                     </td>
+                    {branch==="CAN"&&<td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"center",width:"40px",maxWidth:"40px"}}><span style={{color:T.blue}}>{r.uomVendita||"—"}</span></td>}
+                    {branch==="CAN"&&<td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"center",width:"40px",maxWidth:"40px"}}><span style={{color:T.gold}}>{r.uomAcquisto||"—"}</span></td>}
                     <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",width:"50px",maxWidth:"50px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:r.mismatch?T.purple:T.muted}}>{r.location||"—"}</span></td>
                     <td style={{padding:"2px 4px",fontSize:"9px",width:"44px",maxWidth:"44px"}}>
                       {r.isAir
@@ -6587,7 +6592,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
 
   // Campi per branch: solo quelli rilevanti
   const FIELDS_HK  = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","active","vendorName","vendorName2"];
-  const FIELDS_CAN = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","netWeightPcs","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
+  const FIELDS_CAN = ["nHK","code","description","category","uom","baseUom","qtyPerBox","boxPerPallet","netWeightPcs","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
   const FIELDS_MAC = ["nHK","code","description","isHoff","uom","hkUom","standardCostHkd","temperature","kgPerBox","qtyPerBox","active","vendorName"];
   const FIELDS = branch==="CAN" ? FIELDS_CAN : branch==="MAC" ? FIELDS_MAC : FIELDS_HK;
 
@@ -6596,7 +6601,8 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     code: "IFB Item / BV No *",
     description: "Descrizione *",
     category: "Section",
-    uom: branch==="MAC" ? "UOM vendita MACAO" : "UOM",
+    uom: branch==="MAC" ? "UOM vendita MACAO" : "UOM vendita IFB (Sales UOM)",
+    baseUom: "UOM acquisto filiale SC NAV GC/TF (Base UOM)",
     qtyPerBox: "Qty/Cartone (per conversione UOM)",
     boxPerPallet: "Cartoni/Pallet",
     netWeightPcs: "Peso Netto PCS (kg/pz) — per conversione €/KG→€/PCS",
@@ -6618,6 +6624,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     description: ["description"],
     category:    ["sectiondescription","section description","section"],
     uom:         ["salesunitofmeasure","sales unit of measure","macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom"],
+    baseUom:     ["baseunitofmeasure","base unit of measure","baseuom","base uom","uomacquisto","uom acquisto","uombase"],
     qtyPerBox:   ["quantityxpackaging","quantity x packaging"],
     boxPerPallet:["packagingxpallet","packaging x pallet"],
     netWeightPcs:["pesonettopcs","peso netto pcs","netweightpcs","net weight pcs","pesonettopz","peso netto pz","pcsnetweight","pcs net weight","netweightpcs","pcsnettweight"],
@@ -6775,6 +6782,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
       description: r.description,
       category: mapBCVal("category", r.category),
       uom: mapBCVal("uom", r.uom),
+      baseUom: r.baseUom ? String(r.baseUom).trim().toUpperCase() : "",
       qtyPerBox: parseFloat(String(r.qtyPerBox||"").replace(",",".")) || 0,
       boxPerPallet: parseFloat(r.boxPerPallet) || 0,
       netWeightPcs: parseFloat(String(r.netWeightPcs||"").replace(",",".")) || 0,
