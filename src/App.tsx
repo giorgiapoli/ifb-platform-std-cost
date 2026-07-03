@@ -943,13 +943,16 @@ export default function App() {
         const puom = (pr?.pu || "").toUpperCase();
         const buom = (prod?.uom || "").toUpperCase();
         if (!puom || !buom || puom === buom) return 1;
+        const nwPcs = Number(prod?.netWeightPcs)   || 0; // Peso Netto PCS (kg/pz) — priorità massima
         const kpb   = Number(prod?.kgPerBox)      || 0;
         const qpb   = Number(prod?.qtyPerBox)      || 1;
         const kgplt = Number(prod?.kgxplt)         || 0;
         const bplt  = Number(prod?.boxPerPallet)   || 0;
-        // Preferisce Net Weight (kpb) che è peso NETTO per box; kgxplt/bplt può essere lordo
+        // Priorità: Peso Netto PCS > Peso Netto BOX/qpb > Kg x PLT/box/qpb (lordo, fallback)
+        const kgPcs = nwPcs > 0 ? nwPcs
+          : kpb > 0 && qpb > 0 ? kpb / qpb
+          : (kgplt > 0 && bplt > 0 ? kgplt / bplt / qpb : 0);
         const kgBox = kpb > 0 ? kpb : ((kgplt > 0 && bplt > 0) ? kgplt / bplt : 0);
-        const kgPcs = kgBox > 0 && qpb > 0 ? kgBox / qpb : 0;
         if (puom === "KG"  && buom === "PCS") return kgPcs > 0 ? kgPcs : 1;
         if (puom === "KG"  && buom === "BOX") return kgBox > 0 ? kgBox : 1;
         if (puom === "BOX" && buom === "PCS") return qpb > 0 ? 1 / qpb : 1;
@@ -6580,7 +6583,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
 
   // Campi per branch: solo quelli rilevanti
   const FIELDS_HK  = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","active","vendorName","vendorName2"];
-  const FIELDS_CAN = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
+  const FIELDS_CAN = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","netWeightPcs","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
   const FIELDS_MAC = ["nHK","code","description","isHoff","uom","hkUom","standardCostHkd","temperature","kgPerBox","qtyPerBox","active","vendorName"];
   const FIELDS = branch==="CAN" ? FIELDS_CAN : branch==="MAC" ? FIELDS_MAC : FIELDS_HK;
 
@@ -6592,6 +6595,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     uom: branch==="MAC" ? "UOM vendita MACAO" : "UOM",
     qtyPerBox: "Qty/Cartone (per conversione UOM)",
     boxPerPallet: "Cartoni/Pallet",
+    netWeightPcs: "Peso Netto PCS (kg/pz) — per conversione €/KG→€/PCS",
     kgPerBox: "Kg per Cartone (per costi logistica)",
     kgxplt: "Kg x PLT",
     temperature: "Product Type (DRY/FRESH/FROZEN)",
@@ -6612,7 +6616,8 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     uom:         ["salesunitofmeasure","sales unit of measure","macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom"],
     qtyPerBox:   ["quantityxpackaging","quantity x packaging"],
     boxPerPallet:["packagingxpallet","packaging x pallet"],
-    kgPerBox:    ["netweight","net weight","pesonetto","peso netto","pesonetto box","peso netto box","net weight box","netweightbox"],
+    netWeightPcs:["pesonettopcs","peso netto pcs","netweightpcs","net weight pcs","pesonettopz","peso netto pz"],
+    kgPerBox:    ["netweightbox","net weight box","pesonetto","peso netto","pesonetto box","peso netto box","netweight","net weight"],
     kgxplt:      ["kgxplt","kg x pallet","kg per pallet","kgperpallet","kgplt","kgxplt netto","kg x plt netto","kg plt netto"],
     temperature: ["producttype","product type","product type rettificato"],
     aiem:        ["aiem","igic","alim","aiem%","aiem_perc","aiem_canarie","aiemperc"],
@@ -6768,6 +6773,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
       uom: mapBCVal("uom", r.uom),
       qtyPerBox: parseFloat(String(r.qtyPerBox||"").replace(",",".")) || 0,
       boxPerPallet: parseFloat(r.boxPerPallet) || 0,
+      netWeightPcs: parseFloat(String(r.netWeightPcs||"").replace(",",".")) || 0,
       kgPerBox: parseFloat(String(r.kgPerBox||"").replace(",",".")) || 0,
       temperature: mapBCVal("temperature", r.temperature) || "DRY",
       kgxplt: parseFloat(r.kgxplt) > 0 ? parseFloat(r.kgxplt) : roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.qtyPerBox) || 1) * (parseFloat(r.boxPerPallet) || 0)),
