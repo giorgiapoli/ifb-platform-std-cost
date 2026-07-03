@@ -166,9 +166,10 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   // Pallet (BO): COSTS(LOG)!I1 / Y6 = 15 / unitsPerPlt
   const plt = COSTS_CAN.PLT / unitsPerPlt;
 
-  // Tassa Alcolica: importo fisso/unit da Beverage Info (LT × €/LT).
-  // AIEM%: imposta Canarie su importazioni — si applica sempre, anche per gli alcolici (cumulativa).
-  const aiemFixed: number = (bevData?.totaleBottiglia ?? 0) > 0 ? Number(bevData.totaleBottiglia) : 0;
+  // Tassa Alcolica: importo fisso/unit da Beverage Info (LT × €/LT) — SOLO SPIRITS.
+  // Birre e vini non hanno tassa alcolica; l'AIEM% si applica a tutti (cumulativa).
+  const isSpirits = (product?.category || "").toUpperCase() === "SPIRITS";
+  const aiemFixed: number = isSpirits && (bevData?.totaleBottiglia ?? 0) > 0 ? Number(bevData.totaleBottiglia) : 0;
   const aiemPct = (Number(prodAiem)||0) > 0 ? Number(prodAiem) / 100
     : (hasAlcTax ? (Number(alcTax)||0) / 100 : 0);
 

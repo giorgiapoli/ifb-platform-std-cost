@@ -260,7 +260,7 @@ def build_uom_conversions(token):
         if item and code:
             conv.setdefault(item, {})[code] = qty
     # Debug: verifica conversioni per articoli chiave
-    for test_code in ["HA7021-IB", "Z3774", "BD0501", "CF0051-IFA", "PLP32", "TMSO-2001"]:
+    for test_code in ["HA7021-IB", "Z3774", "BD0501", "CF0051-IFA", "PLP32", "TMSO-2001", "LVC11-ES", "LVC11"]:
         if test_code in conv:
             print(f"    {test_code}: {conv[test_code]}")
         else:
@@ -300,6 +300,10 @@ def build_purchase_prices(token, uom_conv=None):
         conv_qty = 1  # fattore conversione applicato (!=1 = prezzo già in base UoM)
         if price and puom and puom not in ("PCS", "", " ") and uom_conv:
             qty = (uom_conv.get(code) or {}).get(puom)
+            # Fallback: codice senza suffisso lingua (es. LVC11-ES → LVC11) per articoli CAN
+            if qty is None and "-" in code:
+                base_code = code.rsplit("-", 1)[0]
+                qty = (uom_conv.get(base_code) or {}).get(puom)
             # Converti anche qty<1: es. KG→BOX quando base=BOX (qty[KG]=0.1 → price/0.1=×10)
             if qty and round(qty, 8) != 1.0:
                 price = price / qty
