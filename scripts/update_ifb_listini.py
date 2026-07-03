@@ -542,15 +542,16 @@ if __name__ == "__main__":
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
     print(f"  Articoli totali nel listino acquisto BC Italia: {len(all_purchase_codes)}")
 
-    # Vendor carriage HK: plt_cost (€/plt) per fornitori con trasporto a parte (flag X in Work_Tab)
+    # Vendor carriage HK: plt_cost (€/plt) per fornitore con trasporto a parte (flag X in Work_Tab)
     # Fonte: docs/data/hk_work_tab.json — rigenerare con scripts/update_hk_work_tab.py
+    # Si applica a TUTTI gli articoli di quel fornitore (presenti e futuri)
     vendor_carriage_map = {}
     try:
         work_tab_path = Path(__file__).parent.parent / "docs" / "data" / "hk_work_tab.json"
-        hk_plt_costs = json.loads(work_tab_path.read_text(encoding="utf-8"))
-        print(f"  HK Work_Tab: {len(hk_plt_costs)} articoli con costo pallet definito")
+        hk_plt_vendor = json.loads(work_tab_path.read_text(encoding="utf-8"))
+        print(f"  HK Work_Tab: {len(hk_plt_vendor)} fornitori con costo pallet definito")
     except Exception as e:
-        hk_plt_costs = {}
+        hk_plt_vendor = {}
         print(f"  Warning: hk_work_tab.json non disponibile ({e})")
 
     # Fetch ISS per TUTTI gli articoli: carriagecost per-articolo da BC + articoli HK non nel listino
@@ -560,17 +561,24 @@ if __name__ == "__main__":
         hk_data_path = Path(__file__).parent.parent / "docs" / "data" / "hk_anagrafica.json"
         hk_items = json.loads(hk_data_path.read_text(encoding="utf-8"))
         hk_codes = {str(item.get("code") or "").strip() for item in hk_items if item.get("code")}
-        # Vendor carriage: per articoli con plt cost → carriage_unit = plt_cost / units_per_plt (HK UoM)
-        if hk_plt_costs:
+        # Vendor carriage: per ogni articolo HK il cui fornitore è nel Work_Tab (vendorName o vendorName2)
+        # carriage_unit = plt_cost_fornitore / units_per_plt (calcolato da hk_anagrafica UoM)
+        # Si applica a TUTTI gli articoli del fornitore, anche futuri non presenti nel Work_Tab
+        if hk_plt_vendor:
             for it in hk_items:
                 ifb_code = str(it.get("code") or "").strip()
-                if not ifb_code or ifb_code not in hk_plt_costs:
+                if not ifb_code:
                     continue
-                plt_cost = hk_plt_costs[ifb_code]
-                uom   = str(it.get("uom") or "PCS").upper()
-                qpb   = float(it.get("qtyPerBox") or 0)
-                bpp   = float(it.get("boxPerPallet") or 0)
-                kplt  = float(it.get("kgxplt") or 0)
+                # Cerca plt_cost per vendorName (primario) o vendorName2 (secondario)
+                vn1 = str(it.get("vendorName")  or "").strip()
+                vn2 = str(it.get("vendorName2") or "").strip()
+                plt_cost = hk_plt_vendor.get(vn1) or hk_plt_vendor.get(vn2) or 0
+                if not plt_cost:
+                    continue
+                uom  = str(it.get("uom") or "PCS").upper()
+                qpb  = float(it.get("qtyPerBox") or 0)
+                bpp  = float(it.get("boxPerPallet") or 0)
+                kplt = float(it.get("kgxplt") or 0)
                 if uom == "BOX":
                     units_per_plt = bpp
                 elif uom == "KG":
@@ -579,7 +587,7 @@ if __name__ == "__main__":
                     units_per_plt = qpb * bpp
                 if units_per_plt > 0:
                     vendor_carriage_map[ifb_code] = round(plt_cost / units_per_plt, 8)
-            print(f"  Vendor carriage HK: {len(vendor_carriage_map)} articoli con carriage_unit calcolato")
+            print(f"  Vendor carriage HK: {len(vendor_carriage_map)} articoli coperti da fornitore con plt cost")
         # Fatt_Conv: per ogni articolo HK, la qty per HK-UoM nella tabella IFB UoM
         # Serve per: DAP fallback = FCA + carriagecost_ISS × Fatt_Conv (formula PBI)
         if uom_conv:
