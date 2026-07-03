@@ -7024,8 +7024,9 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
                 {([
                   [branchN(branch),"left","muted"],["IFB No","left","muted"],["Descrizione","left","muted"],
                   ["Vendor","left","muted"],["Cat.","left","muted"],["UOM","left","muted"],
-                  ["Qty/Box","right","muted"],["Box/Plt","right","muted"],["Kg/Box","right","muted"],
-                  ["Kg/Plt","right","muted"],["Temp","left","muted"],
+                  ["Qty/Box","right","muted"],["Box/Plt","right","muted"],
+                  ...(branch==="CAN"?[["Peso Netto PCS","right","blue"]]:[] as any),
+                  ["Kg/Box","right","muted"],["Kg/Plt","right","muted"],["Temp","left","muted"],
                   ...(branch==="CAN"?[["AIEM%","right","orange"]]:[]),
                   ["Attivo","left","muted"],
                 ] as [string,string,string][]).map(([label,align,col])=>(
@@ -7050,6 +7051,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
                     <td style={tdS}><Chip label={p.uom || "—"} color={T.muted} /></td>
                     <td style={{...tdM,textAlign:"right"}}>{p.qtyPerBox || "—"}</td>
                     <td style={{...tdM,textAlign:"right"}}>{p.boxPerPallet || "—"}</td>
+                    {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.netWeightPcs>0?T.blue:T.red}}>{p.netWeightPcs>0?p.netWeightPcs:"⚠ mancante"}</td>}
                     <td style={{...tdM,textAlign:"right"}}>{p.kgPerBox || "—"}</td>
                     <td style={{...tdM,textAlign:"right"}}><span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span></td>
                     <td style={tdS}><Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></td>
