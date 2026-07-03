@@ -6620,7 +6620,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     uom:         ["salesunitofmeasure","sales unit of measure","macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom"],
     qtyPerBox:   ["quantityxpackaging","quantity x packaging"],
     boxPerPallet:["packagingxpallet","packaging x pallet"],
-    netWeightPcs:["pesonettopcs","peso netto pcs","netweightpcs","net weight pcs","pesonettopz","peso netto pz"],
+    netWeightPcs:["pesonettopcs","peso netto pcs","netweightpcs","net weight pcs","pesonettopz","peso netto pz","pcsnetweight","pcs net weight","netweightpcs","pcsnettweight"],
     kgPerBox:    ["netweightbox","net weight box","pesonetto","peso netto","pesonetto box","peso netto box","netweight","net weight"],
     kgxplt:      ["kgxplt","kg x pallet","kg per pallet","kgperpallet","kgplt","kgxplt netto","kg x plt netto","kg plt netto"],
     temperature: ["producttype","product type","product type rettificato"],
