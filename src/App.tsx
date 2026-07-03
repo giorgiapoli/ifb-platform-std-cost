@@ -721,7 +721,11 @@ export default function App() {
                     if (kgActualPerBox > 0 && Math.abs(kgActualPerBox - 1) > 0.001) { convFactor = 1/kgActualPerBox; }
                     displayUom = "BOX";
                   } else if (purchUom === "KG" && hkUom === "PCS") {
-                    const kgPcs = kgActualPerBox > 0 && qpb > 0 ? kgActualPerBox / qpb : (kpb > 0 ? kpb / Math.max(qpb,1) : 0);
+                    // CAN: priorità NET weight — netWeightPcs > kgPerBox/qpb > kgxplt/bplt/qpb (lordo, fallback)
+                    const nwPcs = Number(prod.netWeightPcs) || 0;
+                    const kgPcs = nwPcs > 0 ? nwPcs
+                      : (kpb > 0 && qpb > 0 ? kpb / qpb
+                      : (kgActualPerBox > 0 && qpb > 0 ? kgActualPerBox / qpb : 0));
                     if (kgPcs > 0) { convFactor = 1/kgPcs; } displayUom = "PCS";
                   } else if (purchUom === "BOX" && hkUom === "PCS") {
                     if (qpb > 1) { convFactor = qpb; } displayUom = "PCS";
