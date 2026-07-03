@@ -4962,7 +4962,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     </select>
                   </th>
                 );
-                return <th key={c} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10,width:narrowW,maxWidth:narrowW,minWidth:ci===3?"200px":undefined}}>{c}</th>;
+                return <th key={c} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",position:"sticky",top:0,zIndex:10,width:narrowW,maxWidth:narrowW,minWidth:ci===3?"300px":undefined}}>{c}</th>;
               })}
             </tr></thead>
             <tbody>
@@ -4973,7 +4973,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                     <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",whiteSpace:"nowrap",width:"74px",maxWidth:"74px"}}><span style={{color:T.gold,fontWeight:"bold"}}>{r.date||"—"}</span></td>
                     <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",whiteSpace:"nowrap",width:"60px",maxWidth:"60px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.muted}}>{r.nHK||"—"}</span></td>
                     <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",whiteSpace:"nowrap",width:"52px",maxWidth:"52px",overflow:"hidden",textOverflow:"ellipsis"}}><span style={{color:T.gold}}>{r.ifbNo||r.itemCode||"—"}</span></td>
-                    <td style={{padding:"2px 4px",fontSize:"10px",minWidth:"120px",maxWidth:"170px",whiteSpace:"normal",wordBreak:"break-word",lineHeight:"1.3"}}>
+                    <td style={{padding:"2px 4px",fontSize:"10px",minWidth:"160px",maxWidth:"220px",whiteSpace:"normal",wordBreak:"break-word",lineHeight:"1.3"}}>
                       <span style={{color:r._prodFound===false?T.orange:T.text}}>{r.description}</span>
                     </td>
                     <td style={{padding:"2px 4px",fontSize:"9px",fontFamily:"monospace",textAlign:"right",width:"44px",maxWidth:"44px"}}><span style={{color:T.muted}}>{r.qty||"—"}</span></td>
