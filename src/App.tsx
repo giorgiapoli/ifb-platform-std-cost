@@ -6973,25 +6973,37 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
       {importStep === "preview" && (
         <div style={{ background: T.card, border: `1px solid ${T.green}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
           <div style={{ color: T.green, fontWeight: "bold", marginBottom: "12px" }}>Preview · {preview.length} articoli</div>
-          <div style={{ maxHeight: "200px", overflow: "auto", marginBottom: "12px", fontSize: "11px" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto", marginBottom: "12px", fontSize: "11px" }}>
+            <table style={{ borderCollapse: "collapse", whiteSpace: "nowrap" }}>
               <thead>
-                <tr>
-                  <th style={{ textAlign: "left", padding: "4px" }}>{branchN(branch)}</th>
-                  <th style={{ textAlign: "left", padding: "4px" }}>IFB No</th>
-                  <th style={{ textAlign: "left", padding: "4px" }}>Descrizione</th>
+                <tr style={{ background: T.card }}>
+                  {FIELDS.map(f => (
+                    <th key={f} style={{ textAlign: "left", padding: "3px 8px", borderBottom: `1px solid ${T.border}`, color: map[f] ? T.gold : T.dim, fontSize: "10px", fontWeight: "normal" }}>
+                      {FLABELS[f] || f}
+                      {map[f] && <div style={{ color: T.muted, fontSize: "9px", fontWeight: "normal" }}>← {map[f]}</div>}
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {preview.slice(0, 20).map((r, i) => (
-                  <tr key={i}>
-                    <td style={{ padding: "2px 4px" }}>{r.nHK}</td>
-                    <td style={{ padding: "2px 4px", color: T.gold }}>{r.code}</td>
-                    <td style={{ padding: "2px 4px" }}>{r.description}</td>
+                {preview.slice(0, 30).map((r: any, i: number) => (
+                  <tr key={i} style={{ borderBottom: `1px solid ${T.border}`, background: i % 2 === 0 ? T.bg : T.surface }}>
+                    {FIELDS.map(f => {
+                      const v = r[f];
+                      const isEmpty = v === "" || v == null;
+                      const isKey = f === "code" || f === "nHK";
+                      const isNum = ["qtyPerBox","boxPerPallet","netWeightPcs","kgPerBox","kgxplt","aiem"].includes(f);
+                      return (
+                        <td key={f} style={{ padding: "2px 8px", color: isEmpty ? T.dim : isKey ? T.gold : isNum && Number(v) > 0 ? T.text : T.muted, fontFamily: isNum || isKey ? "monospace" : "inherit" }}>
+                          {isEmpty ? "—" : String(v)}
+                        </td>
+                      );
+                    })}
                   </tr>
                 ))}
               </tbody>
             </table>
+            {preview.length > 30 && <div style={{ padding: "6px", color: T.dim, fontSize: "10px" }}>…e altri {preview.length - 30} articoli</div>}
           </div>
           <div style={{ display: "flex", gap: "10px" }}>
             <ActionBtn label="← Indietro" onClick={() => setImportStep("map")} />
