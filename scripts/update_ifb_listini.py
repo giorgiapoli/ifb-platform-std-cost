@@ -146,13 +146,15 @@ def build_item_card_data(token):
         vn1 = str(r.get("AltIFBVendor_Name")   or "").strip()
         vn2 = str(r.get("AltIFBVendor_Name_2") or "").strip()
         is_marr = bool(r.get("AltIFBArticolo_MARR") or False)
+        sec_raw = str(r.get("AltIFBSection_Description") or "").strip().upper()
         result[key] = {
-            "vendorName":   vn1,
-            "vendorName2":  vn2,
-            "isMarr":       is_marr,
-            "temperature":  TEMP_NORM.get(temp_raw, temp_raw.upper()),
-            "qtyPerBox":    float(r.get("AltIFBQuantity_x_Packaging") or 0),
-            "boxPerPallet": float(r.get("AltIFBPackaging_x_Pallet") or 0),
+            "vendorName":        vn1,
+            "vendorName2":       vn2,
+            "isMarr":            is_marr,
+            "temperature":       TEMP_NORM.get(temp_raw, temp_raw.upper()),
+            "sectionDescription": sec_raw,
+            "qtyPerBox":         float(r.get("AltIFBQuantity_x_Packaging") or 0),
+            "boxPerPallet":      float(r.get("AltIFBPackaging_x_Pallet") or 0),
         }
     # Debug: verifica DLZ08 e 006007
     for test_key in ("DLZ08", "006007"):
@@ -461,23 +463,13 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
         carriage  = round(dap_price - fca_price, 6)
         if mts_price == 0:
             mts_price = fca_price  # MARR: MTS = FCA se non esplicitamente definito
-    # Se DAP=0 e FCA>0 (e non MARR): usa ISS carriagecost poi tabella trasporti
+    # Se DAP=0 e FCA>0 (e non MARR): usa carriagecost da ISS (formula PBI: FCA + carriagecost)
+    # Se carriagecost=0 → DAP rimane 0 (allineato a PBI: "if FCA=0 OR carriagecost=0 → 0")
     elif dap_price == 0 and fca_price > 0:
         iss_cr = float((iss_carriage or {}).get(code, 0))
         if iss_cr > 0:
             carriage  = round(iss_cr, 6)
             dap_price = round(fca_price + carriage, 6)
-        elif item_card and transport_costs:
-            ic = item_card.get(code, {})
-            vendor   = ic.get("vendorName", "")
-            temp     = ic.get("temperature", "")
-            pallet1  = transport_costs.get((vendor, temp), 0)
-            qty_per_box    = ic.get("qtyPerBox", 0)
-            box_per_pallet = ic.get("boxPerPallet", 0)
-            pcs_per_pallet = qty_per_box * box_per_pallet
-            if pallet1 > 0 and pcs_per_pallet > 0:
-                carriage  = round(pallet1 / pcs_per_pallet, 6)
-                dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
     mts_discounted = apply(mts_price, mts_disc)

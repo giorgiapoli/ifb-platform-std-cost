@@ -130,9 +130,9 @@
     "description": "PROSECCO DOC BRUT AMOR DI VIGNA 75CL",
     "lastSC": 0.0,
     "fifoUnit": 54.66,
-    "salesLast3m": -6.0,
+    "salesLast3m": 0.0,
     "lastPurchaseDate": "2026-04-21",
-    "stockQty": 0.0
+    "stockQty": 6.0
   },
   {
     "code": "AMT02",
@@ -265,7 +265,7 @@
     "description": "500ml Balsamic Vinegar CASA EMILIA(12)",
     "lastSC": 15.4,
     "fifoUnit": 14.11036,
-    "salesLast3m": -442.0,
+    "salesLast3m": -466.0,
     "lastPurchaseDate": "2026-05-06",
     "stockQty": 929.0
   },
@@ -274,7 +274,7 @@
     "description": "5L Balsamic Vinegar CASA EMILIA (2)",
     "lastSC": 76.74,
     "fifoUnit": 64.51642,
-    "salesLast3m": -339.0,
+    "salesLast3m": -347.0,
     "lastPurchaseDate": "2026-06-26",
     "stockQty": 411.0
   },
@@ -282,19 +282,19 @@
     "code": "BA1006",
     "description": "Balsamic Cream 250ml (12)",
     "lastSC": 21.19,
-    "fifoUnit": 20.28332,
-    "salesLast3m": -981.0,
+    "fifoUnit": 20.28364,
+    "salesLast3m": -993.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 916.0
+    "stockQty": 922.0
   },
   {
     "code": "BA1007",
     "description": "White Gourmet Dressing-Nocturne 250ml(6)",
     "lastSC": 49.16,
-    "fifoUnit": 47.88186,
-    "salesLast3m": -311.0,
+    "fifoUnit": 47.88162,
+    "salesLast3m": -309.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 436.0
+    "stockQty": 438.0
   },
   {
     "code": "BA1007-AM",
@@ -327,10 +327,10 @@
     "code": "BA1012",
     "description": "Balsamic Vinegar BRONZE 500ml (6)",
     "lastSC": 30.85,
-    "fifoUnit": 28.49025,
+    "fifoUnit": 28.49165,
     "salesLast3m": -395.0,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 646.0
+    "stockQty": 648.0
   },
   {
     "code": "BA1015",
@@ -372,10 +372,10 @@
     "code": "BD0101-IF",
     "description": "Lady Finger SAVOIARDI 400g (15)",
     "lastSC": 14.3,
-    "fifoUnit": 11.40166,
-    "salesLast3m": -5946.0,
+    "fifoUnit": 11.4022,
+    "salesLast3m": -6018.0,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 998.0
+    "stockQty": 1027.0
   },
   {
     "code": "BD0102-IF",
@@ -463,7 +463,7 @@
     "description": "*Pizza Base Gluten Free 150g x 2 (8)",
     "lastSC": 287.51,
     "fifoUnit": 358.96481,
-    "salesLast3m": -64.0,
+    "salesLast3m": -65.0,
     "lastPurchaseDate": "2026-06-01",
     "stockQty": 27.0
   },
@@ -561,10 +561,10 @@
     "code": "BNT02",
     "description": "FRZ. Cooked Whole Clams Vietnam MSC 1kg (5)",
     "lastSC": 20.25,
-    "fifoUnit": 20.94991,
+    "fifoUnit": 20.92533,
     "salesLast3m": -171.0,
     "lastPurchaseDate": "2026-05-15",
-    "stockQty": 561.0
+    "stockQty": 563.0
   },
   {
     "code": "BVR03",
@@ -642,10 +642,10 @@
     "code": "CAA04",
     "description": "ITALIAN HARD CHEESE CASEIFICIO ALBIERO approx. 2.5 KG",
     "lastSC": 84.05,
-    "fifoUnit": 84.15154,
-    "salesLast3m": -2318.517,
+    "fifoUnit": 84.16749,
+    "salesLast3m": -2313.807,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 2322.663
+    "stockQty": 2352.248
   },
   {
     "code": "CAA09",
@@ -669,10 +669,10 @@
     "code": "CAA18",
     "description": "GRANA PADANO DOP 14 MONTHS 1/16",
     "lastSC": 111.35,
-    "fifoUnit": 112.51849,
-    "salesLast3m": -709.367,
+    "fifoUnit": 112.52474,
+    "salesLast3m": -709.333,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 1156.177
+    "stockQty": 1161.16
   },
   {
     "code": "CCF01",
@@ -687,10 +687,10 @@
     "code": "CEV01",
     "description": "Cooking WHITE Wine Il Galante 1L Brick (10)",
     "lastSC": 126.39,
-    "fifoUnit": 118.95957,
-    "salesLast3m": -283.0,
+    "fifoUnit": 118.93675,
+    "salesLast3m": -282.0,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 692.0
+    "stockQty": 693.0
   },
   {
     "code": "CEV02",
@@ -705,10 +705,10 @@
     "code": "CF0010-CS",
     "description": "Scamorza Smoked 250G  (10)",
     "lastSC": 23.51,
-    "fifoUnit": 23.66298,
-    "salesLast3m": -1050.0,
+    "fifoUnit": 23.66399,
+    "salesLast3m": -1060.0,
     "lastPurchaseDate": "2026-05-20",
-    "stockQty": 181.0
+    "stockQty": 183.0
   },
   {
     "code": "CF0024-IF",
@@ -724,7 +724,7 @@
     "description": "Pecorino Sardo Aged 120d - 3Kg(2)",
     "lastSC": 195.36545,
     "fifoUnit": 147.55579,
-    "salesLast3m": -50.257,
+    "salesLast3m": -53.049,
     "lastPurchaseDate": "2026-04-20",
     "stockQty": 49.877
   },
@@ -741,10 +741,10 @@
     "code": "CF0051-IFA",
     "description": "\"Natura\" Mascarpone 500g (6)",
     "lastSC": 153.03,
-    "fifoUnit": 144.6535,
-    "salesLast3m": -1932.0,
+    "fifoUnit": 144.30076,
+    "salesLast3m": -1954.0,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 7.85
+    "stockQty": 19.85
   },
   {
     "code": "CF0051-IFH",
@@ -759,10 +759,10 @@
     "code": "CF0053",
     "description": "Mascarpone Cheese Fresco Gourmet 500gr (6)",
     "lastSC": 145.57,
-    "fifoUnit": 141.88063,
-    "salesLast3m": -1255.0,
+    "fifoUnit": 142.20491,
+    "salesLast3m": -1263.0,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 159.0
+    "stockQty": 167.0
   },
   {
     "code": "CF4003",
@@ -813,10 +813,10 @@
     "code": "CF7201",
     "description": "*Bavarian Emmental \"Cepparo\" 3kg (4)",
     "lastSC": 54.42,
-    "fifoUnit": 60.03215,
-    "salesLast3m": -309.065,
+    "fifoUnit": 59.99062,
+    "salesLast3m": -306.089,
     "lastPurchaseDate": "2026-05-20",
-    "stockQty": 406.239
+    "stockQty": 409.215
   },
   {
     "code": "CF7202",
@@ -840,10 +840,10 @@
     "code": "CF7203",
     "description": "*Gouda Cheese Block \"Cepparo\" 3kg (4)",
     "lastSC": 38.12,
-    "fifoUnit": 40.28671,
-    "salesLast3m": -227.96,
+    "fifoUnit": 40.27551,
+    "salesLast3m": -231.17,
     "lastPurchaseDate": "2026-05-21",
-    "stockQty": 240.45
+    "stockQty": 243.51
   },
   {
     "code": "CF7206",
@@ -885,10 +885,10 @@
     "code": "CF8053",
     "description": "Smoked Provolone +/-1.8 kg (4)",
     "lastSC": 90.15,
-    "fifoUnit": 89.59307,
-    "salesLast3m": -149.259,
+    "fifoUnit": 89.59282,
+    "salesLast3m": -147.407,
     "lastPurchaseDate": "2026-05-20",
-    "stockQty": 23.444
+    "stockQty": 25.296
   },
   {
     "code": "CFS1201-Q",
@@ -922,7 +922,7 @@
     "description": "*Gorgonzola Piccante 1.5Kg",
     "lastSC": 95.44,
     "fifoUnit": 144.67429,
-    "salesLast3m": -164.3,
+    "salesLast3m": -165.64,
     "lastPurchaseDate": "2026-06-08",
     "stockQty": 42.0
   },
@@ -930,10 +930,10 @@
     "code": "CH0003-C",
     "description": "Gorgonzola Dop Ciresa  1.5Kg (4)",
     "lastSC": 80.48,
-    "fifoUnit": 96.8196,
-    "salesLast3m": -345.63,
+    "fifoUnit": 96.24582,
+    "salesLast3m": -342.75,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 138.58
+    "stockQty": 143.07
   },
   {
     "code": "CH0004-C",
@@ -948,16 +948,16 @@
     "code": "CH0004-C1",
     "description": "Provolone salamino 1kg (12)",
     "lastSC": 94.47,
-    "fifoUnit": 141.98374,
-    "salesLast3m": -408.914,
+    "fifoUnit": 142.05795,
+    "salesLast3m": -408.868,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 124.512
+    "stockQty": 126.728
   },
   {
     "code": "CH0018-C",
     "description": "*Parmigiano Reggiano DOP 300G (33)",
     "lastSC": 57.58764,
-    "fifoUnit": 63.19508,
+    "fifoUnit": 62.92689,
     "salesLast3m": -246.0,
     "lastPurchaseDate": "2026-06-29",
     "stockQty": 61.0
@@ -966,10 +966,10 @@
     "code": "CH0021-C",
     "description": "*Pecorino Romano PDO Portioned 2kg  (4)",
     "lastSC": 136.93,
-    "fifoUnit": 150.71087,
-    "salesLast3m": -239.594,
+    "fifoUnit": 150.91586,
+    "salesLast3m": -239.454,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 137.438
+    "stockQty": 139.498
   },
   {
     "code": "CIO01",
@@ -1002,10 +1002,10 @@
     "code": "CPS03-HK",
     "description": "BURRATA FRESCO GOURMET 2 X125 G HK (8)",
     "lastSC": 39.64,
-    "fifoUnit": 22.82835,
-    "salesLast3m": -2377.0,
+    "fifoUnit": 22.684,
+    "salesLast3m": -2350.0,
     "lastPurchaseDate": "2026-07-02",
-    "stockQty": 188.0
+    "stockQty": 215.0
   },
   {
     "code": "CPS03-HKFRZ",
@@ -1020,10 +1020,10 @@
     "code": "CPS06",
     "description": "MOZZARELLA DI BUFALA LA BUFALAT 125 G (24)",
     "lastSC": 20.52,
-    "fifoUnit": 10.8037,
-    "salesLast3m": -1164.0,
+    "fifoUnit": 10.80276,
+    "salesLast3m": -1130.0,
     "lastPurchaseDate": "2026-07-02",
-    "stockQty": 527.0
+    "stockQty": 561.0
   },
   {
     "code": "CPS07",
@@ -1344,19 +1344,19 @@
     "code": "CW0002-2KG",
     "description": "Parmigiano Reggiano 24Month 2KG (4)",
     "lastSC": 178.13,
-    "fifoUnit": 165.23772,
-    "salesLast3m": -555.412,
+    "fifoUnit": 165.23714,
+    "salesLast3m": -552.304,
     "lastPurchaseDate": "2026-02-27",
-    "stockQty": 123.298
+    "stockQty": 128.698
   },
   {
     "code": "CW0002-FM",
     "description": "Parmigiano Reggiano 24Months Full Moon Cut",
     "lastSC": 145.27,
-    "fifoUnit": 164.01366,
-    "salesLast3m": -253.62,
+    "fifoUnit": 163.31011,
+    "salesLast3m": -213.61,
     "lastPurchaseDate": "",
-    "stockQty": 176.4
+    "stockQty": 216.41
   },
   {
     "code": "CW0002-L",
@@ -1660,7 +1660,7 @@
     "description": "FRZ. Burrata Fresco Gourmet1.5KG (125gx12)",
     "lastSC": 142.01,
     "fifoUnit": 154.90852,
-    "salesLast3m": -1122.3,
+    "salesLast3m": -1205.3,
     "lastPurchaseDate": "2026-05-13",
     "stockQty": 338.0
   },
@@ -1677,10 +1677,10 @@
     "code": "FB5004-DEFL",
     "description": "Burrata Fresco Gourmet 1.5KG (125gx12)",
     "lastSC": 150.63,
-    "fifoUnit": 153.42444,
-    "salesLast3m": -1783.0,
+    "fifoUnit": 153.42688,
+    "salesLast3m": -1796.0,
     "lastPurchaseDate": "",
-    "stockQty": 18.0
+    "stockQty": 32.0
   },
   {
     "code": "FB5006",
@@ -1974,10 +1974,10 @@
     "code": "FGM25",
     "description": "Grana Style \"Fresco Gourmet\" approx. 2KG (8)",
     "lastSC": 79.45,
-    "fifoUnit": 79.3959,
-    "salesLast3m": -164.808,
+    "fifoUnit": 79.39621,
+    "salesLast3m": -169.35,
     "lastPurchaseDate": "2025-12-29",
-    "stockQty": 17.613
+    "stockQty": 20.007
   },
   {
     "code": "FGM25_FR",
@@ -2352,10 +2352,10 @@
     "code": "FY0086-EUL",
     "description": "FRZ. Egg Yolk Super Yellow 1Lt (6)",
     "lastSC": 75.23,
-    "fifoUnit": 74.6026,
-    "salesLast3m": -6797.0,
+    "fifoUnit": 74.64187,
+    "salesLast3m": -6808.0,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 1637.0
+    "stockQty": 1731.0
   },
   {
     "code": "FY0088-EU",
@@ -2370,10 +2370,10 @@
     "code": "FZ0001",
     "description": "#Tortelli Ricotta & Spinach 3kg (1)",
     "lastSC": 188.48,
-    "fifoUnit": 180.1697,
-    "salesLast3m": -149.1,
+    "fifoUnit": 180.16998,
+    "salesLast3m": -148.1,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 176.9
+    "stockQty": 177.9
   },
   {
     "code": "FZ0003",
@@ -2388,10 +2388,10 @@
     "code": "FZ0004",
     "description": "Lunette with Truffle 3kg/ctn",
     "lastSC": 322.46,
-    "fifoUnit": 309.29151,
-    "salesLast3m": -29.1,
+    "fifoUnit": 309.25316,
+    "salesLast3m": -28.1,
     "lastPurchaseDate": "2026-05-13",
-    "stockQty": 25.9
+    "stockQty": 26.9
   },
   {
     "code": "FZ0005",
@@ -2415,10 +2415,10 @@
     "code": "FZ0007",
     "description": "#Strozzapreti 3kg (1)",
     "lastSC": 122.99,
-    "fifoUnit": 112.22619,
-    "salesLast3m": -123.0,
+    "fifoUnit": 112.31182,
+    "salesLast3m": -122.0,
     "lastPurchaseDate": "2026-04-15",
-    "stockQty": 21.0
+    "stockQty": 22.0
   },
   {
     "code": "FZ0008",
@@ -2434,7 +2434,7 @@
     "description": "#Sfoglidea - Pastry Sheet 3.22kg  (7)",
     "lastSC": 108.4,
     "fifoUnit": 105.1,
-    "salesLast3m": -45.0,
+    "salesLast3m": -47.0,
     "lastPurchaseDate": "",
     "stockQty": 0.0
   },
@@ -2452,7 +2452,7 @@
     "description": "#Gnocchetti Di Patata 1kg",
     "lastSC": 28.82,
     "fifoUnit": 28.23597,
-    "salesLast3m": -482.0,
+    "salesLast3m": -486.0,
     "lastPurchaseDate": "2026-06-22",
     "stockQty": 816.0
   },
@@ -2460,10 +2460,10 @@
     "code": "FZ0020",
     "description": "#Tagliatelle 1.5kg (1)",
     "lastSC": 69.37,
-    "fifoUnit": 56.19272,
-    "salesLast3m": -487.0,
+    "fifoUnit": 56.18793,
+    "salesLast3m": -480.0,
     "lastPurchaseDate": "2026-05-13",
-    "stockQty": 606.0
+    "stockQty": 613.0
   },
   {
     "code": "FZ0022",
@@ -2497,7 +2497,7 @@
     "description": "FRZ. Potato Gnocchi Big 1KG(6)",
     "lastSC": 29.02,
     "fifoUnit": 27.76738,
-    "salesLast3m": -193.0,
+    "salesLast3m": -199.0,
     "lastPurchaseDate": "2026-04-15",
     "stockQty": 126.0
   },
@@ -2578,7 +2578,7 @@
     "description": "FRZ. Fresh Spaghetti Bronze Die 2KG",
     "lastSC": 66.44,
     "fifoUnit": 55.69,
-    "salesLast3m": -190.0,
+    "salesLast3m": -195.0,
     "lastPurchaseDate": "2026-04-15",
     "stockQty": 156.0
   },
@@ -2703,10 +2703,10 @@
     "code": "FZ0035-L",
     "description": "FRZ. Lasagna Classica in tray (2.5kgx2) 5KG/box",
     "lastSC": 252.19,
-    "fifoUnit": 232.2613,
-    "salesLast3m": -48.0,
+    "fifoUnit": 232.015,
+    "salesLast3m": -46.0,
     "lastPurchaseDate": "2026-04-15",
-    "stockQty": 46.0
+    "stockQty": 48.0
   },
   {
     "code": "FZ0036",
@@ -2775,10 +2775,10 @@
     "code": "FZ0039-VL",
     "description": "FRZ. Pesto alla Genovese 500G (6)",
     "lastSC": 53.99,
-    "fifoUnit": 51.75572,
-    "salesLast3m": -114.0,
+    "fifoUnit": 51.73358,
+    "salesLast3m": -112.0,
     "lastPurchaseDate": "2026-05-15",
-    "stockQty": 1782.0
+    "stockQty": 1784.0
   },
   {
     "code": "FZ0040-V1",
@@ -2829,10 +2829,10 @@
     "code": "FZB001",
     "description": "*#Frozen Italy Butter 1KG (10)",
     "lastSC": 49.4,
-    "fifoUnit": 57.28846,
-    "salesLast3m": -1354.0,
+    "fifoUnit": 57.31539,
+    "salesLast3m": -1347.0,
     "lastPurchaseDate": "2026-05-13",
-    "stockQty": 2472.0
+    "stockQty": 2488.0
   },
   {
     "code": "GAL02",
@@ -2856,17 +2856,17 @@
     "code": "GC0059",
     "description": "*Wheat Flour \"0\" Bread&Pizza 1Kg (10)",
     "lastSC": 9.12,
-    "fifoUnit": 8.85931,
-    "salesLast3m": -865.0,
+    "fifoUnit": 8.85926,
+    "salesLast3m": -857.0,
     "lastPurchaseDate": "2026-05-29",
-    "stockQty": 621.0
+    "stockQty": 631.0
   },
   {
     "code": "GC0059-25",
     "description": "*Wheat Flour \"0\" Bread&Pizza 25kg (1)",
     "lastSC": 185.83,
     "fifoUnit": 176.00615,
-    "salesLast3m": -167.0,
+    "salesLast3m": -170.0,
     "lastPurchaseDate": "2026-06-25",
     "stockQty": 187.0
   },
@@ -2875,7 +2875,7 @@
     "description": "Wheat Flour \"00\" 25kg (1)",
     "lastSC": 212.02,
     "fifoUnit": 201.98051,
-    "salesLast3m": -283.0,
+    "salesLast3m": -284.0,
     "lastPurchaseDate": "2026-06-25",
     "stockQty": 311.0
   },
@@ -2884,7 +2884,7 @@
     "description": "Durum Wheat Remilled SEMOLINA 25kg",
     "lastSC": 226.01,
     "fifoUnit": 218.16922,
-    "salesLast3m": -130.0,
+    "salesLast3m": -133.0,
     "lastPurchaseDate": "2026-06-25",
     "stockQty": 309.0
   },
@@ -2901,10 +2901,10 @@
     "code": "GC0064-25",
     "description": "Wheat Flour \"00\" RINFORZATA-Pizza 25KG",
     "lastSC": 228.09,
-    "fifoUnit": 219.58856,
-    "salesLast3m": -634.0,
+    "fifoUnit": 219.59357,
+    "salesLast3m": -645.0,
     "lastPurchaseDate": "2026-06-25",
-    "stockQty": 693.0
+    "stockQty": 695.0
   },
   {
     "code": "GC0064-AIR",
@@ -2928,35 +2928,35 @@
     "code": "GC0066-A",
     "description": "Wheat Flour \"00\" Special Pasta 1kgx10",
     "lastSC": 99.27,
-    "fifoUnit": 96.61118,
-    "salesLast3m": -1399.3,
+    "fifoUnit": 96.61193,
+    "salesLast3m": -1403.3,
     "lastPurchaseDate": "2026-06-25",
-    "stockQty": 1982.4
+    "stockQty": 1988.4
   },
   {
     "code": "GC0067",
     "description": "Wheat Flour \"00\" Pastry 1kg (10)",
     "lastSC": 9.12,
-    "fifoUnit": 8.81344,
-    "salesLast3m": -1945.0,
+    "fifoUnit": 8.81356,
+    "salesLast3m": -1946.0,
     "lastPurchaseDate": "2026-06-25",
-    "stockQty": 1933.0
+    "stockQty": 1938.0
   },
   {
     "code": "GC0068",
     "description": "Durum Wheat Remilled Semolina 1kg  (10)",
     "lastSC": 10.17,
-    "fifoUnit": 9.55253,
-    "salesLast3m": -10189.0,
+    "fifoUnit": 9.55613,
+    "salesLast3m": -10182.0,
     "lastPurchaseDate": "2026-06-25",
-    "stockQty": 7032.0
+    "stockQty": 7163.0
   },
   {
     "code": "GC0070",
     "description": "Flour \"Volare\" 12.5 KG",
     "lastSC": 116.29,
     "fifoUnit": 136.5,
-    "salesLast3m": -56.0,
+    "salesLast3m": -58.0,
     "lastPurchaseDate": "2026-04-29",
     "stockQty": 0.0
   },
@@ -2965,7 +2965,7 @@
     "description": "Flour \"Volare\" Forte 12.5 KG",
     "lastSC": 121.2,
     "fifoUnit": 112.62617,
-    "salesLast3m": -79.0,
+    "salesLast3m": -85.0,
     "lastPurchaseDate": "2026-06-25",
     "stockQty": 94.0
   },
@@ -2973,17 +2973,17 @@
     "code": "GC0106-V1",
     "description": "Dried Cannellini Beans \"Zorzi\" 500g (12)",
     "lastSC": 11.49,
-    "fifoUnit": 7.85718,
-    "salesLast3m": -402.0,
+    "fifoUnit": 7.89481,
+    "salesLast3m": -389.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 973.0
+    "stockQty": 987.0
   },
   {
     "code": "GC0107-V1",
     "description": "Dried Green Lentil- \"Zorzi\" 500g (12)",
     "lastSC": 10.57,
     "fifoUnit": 6.13319,
-    "salesLast3m": -318.0,
+    "salesLast3m": -330.0,
     "lastPurchaseDate": "2026-05-29",
     "stockQty": 549.0
   },
@@ -3081,26 +3081,26 @@
     "code": "GC0203-IF-A",
     "description": "#♦SeaSalt Rock \"Fior di Sale\" 1KG  (12)",
     "lastSC": 40.59,
-    "fifoUnit": 39.53926,
-    "salesLast3m": -38.08334,
+    "fifoUnit": 39.53213,
+    "salesLast3m": -37.08334,
     "lastPurchaseDate": "2026-05-21",
-    "stockQty": 22.717
+    "stockQty": 23.717
   },
   {
     "code": "GC0233-1",
     "description": "MANITALY Wheat Flour \"0\" 1kg (10)",
     "lastSC": 10.33,
-    "fifoUnit": 9.95299,
-    "salesLast3m": -978.0,
+    "fifoUnit": 9.95833,
+    "salesLast3m": -958.0,
     "lastPurchaseDate": "2026-06-25",
-    "stockQty": 231.0
+    "stockQty": 251.0
   },
   {
     "code": "GC0233-25",
     "description": "Wheat Flour \"0\" MANITALY 25kg",
     "lastSC": 238.13,
     "fifoUnit": 231.16541,
-    "salesLast3m": -576.0,
+    "salesLast3m": -579.0,
     "lastPurchaseDate": "2026-06-05",
     "stockQty": 603.0
   },
@@ -3145,7 +3145,7 @@
     "description": "Wheat Flour MAZI  12.5kg",
     "lastSC": 134.48,
     "fifoUnit": 129.36578,
-    "salesLast3m": -184.0,
+    "salesLast3m": -204.0,
     "lastPurchaseDate": "2026-06-25",
     "stockQty": 109.0
   },
@@ -3270,10 +3270,10 @@
     "code": "GC0311",
     "description": "Grilled Artichoke in Oil 950g  (6)",
     "lastSC": 51.33,
-    "fifoUnit": 51.1126,
-    "salesLast3m": -906.0,
+    "fifoUnit": 51.11079,
+    "salesLast3m": -902.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 1742.0
+    "stockQty": 1748.0
   },
   {
     "code": "GC0312",
@@ -3297,19 +3297,19 @@
     "code": "GC0315",
     "description": "Gherkins in Vinegar 950g (6)",
     "lastSC": 23.63,
-    "fifoUnit": 22.5393,
-    "salesLast3m": -381.0,
+    "fifoUnit": 22.55985,
+    "salesLast3m": -385.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 258.0
+    "stockQty": 260.0
   },
   {
     "code": "GC0324",
     "description": "Stuffed Chili Pepper with Cheese 950g (6)",
     "lastSC": 66.11,
-    "fifoUnit": 64.29824,
-    "salesLast3m": -480.0,
+    "fifoUnit": 64.35564,
+    "salesLast3m": -476.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 335.0
+    "stockQty": 342.0
   },
   {
     "code": "GC0325",
@@ -3361,7 +3361,7 @@
     "description": "Italian Squid Ink 500g (12)",
     "lastSC": 96.86,
     "fifoUnit": 99.40284,
-    "salesLast3m": -70.0,
+    "salesLast3m": -71.0,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 95.0
   },
@@ -3378,10 +3378,10 @@
     "code": "GC0537",
     "description": "*Nduja Paste \"Sila\" approx. 400gr (10)",
     "lastSC": 91.86,
-    "fifoUnit": 106.5586,
-    "salesLast3m": -596.74,
+    "fifoUnit": 106.11322,
+    "salesLast3m": -596.723,
     "lastPurchaseDate": "2026-05-20",
-    "stockQty": 51.604
+    "stockQty": 52.995
   },
   {
     "code": "GC1011-IF",
@@ -3495,10 +3495,10 @@
     "code": "GC4102-IF-V1",
     "description": "Marinat White Anchovies Fillet 650g (4)",
     "lastSC": 146.00697,
-    "fifoUnit": 139.97333,
+    "fifoUnit": 140.09672,
     "salesLast3m": -113.0,
     "lastPurchaseDate": "2026-06-17",
-    "stockQty": 57.0
+    "stockQty": 58.0
   },
   {
     "code": "GC4201",
@@ -3576,10 +3576,10 @@
     "code": "GC9128",
     "description": "*Hazelnut Toasted IGP   1KG (4)",
     "lastSC": 248.24,
-    "fifoUnit": 240.97481,
-    "salesLast3m": -148.0,
+    "fifoUnit": 240.97477,
+    "salesLast3m": -141.0,
     "lastPurchaseDate": "2026-05-06",
-    "stockQty": 79.0
+    "stockQty": 86.0
   },
   {
     "code": "GC9136",
@@ -3604,7 +3604,7 @@
     "description": "Black Cherries \"Fabbri\" 1.25kg (6)",
     "lastSC": 150.98,
     "fifoUnit": 123.54174,
-    "salesLast3m": -111.0,
+    "salesLast3m": -113.0,
     "lastPurchaseDate": "2026-05-06",
     "stockQty": 23.0
   },
@@ -3667,7 +3667,7 @@
     "description": "FRZ. Arancini with Nduja 30g - 3 kgs (1.5 Kgs x 2)",
     "lastSC": 200.0,
     "fifoUnit": 187.24724,
-    "salesLast3m": -6.766,
+    "salesLast3m": -8.766,
     "lastPurchaseDate": "2026-06-22",
     "stockQty": 118.234
   },
@@ -3748,7 +3748,7 @@
     "description": "FRZ. Porcini Cubes 2 SILVER 1kg (6)",
     "lastSC": 56.33,
     "fifoUnit": 50.99281,
-    "salesLast3m": -158.0,
+    "salesLast3m": -160.0,
     "lastPurchaseDate": "2026-04-10",
     "stockQty": 420.0
   },
@@ -3783,10 +3783,10 @@
     "code": "GCMA-2006L",
     "description": "FRZ.Porcini Mushroom Whole 1A 1kg (5)",
     "lastSC": 91.72,
-    "fifoUnit": 89.61133,
-    "salesLast3m": -427.0,
+    "fifoUnit": 89.61202,
+    "salesLast3m": -434.0,
     "lastPurchaseDate": "2026-05-07",
-    "stockQty": 728.0
+    "stockQty": 726.0
   },
   {
     "code": "GCMA-3001",
@@ -3811,7 +3811,7 @@
     "description": "FRZ. Spinach in Cubes  2.5kg (2)",
     "lastSC": 44.14,
     "fifoUnit": 41.37307,
-    "salesLast3m": -66.0,
+    "salesLast3m": -67.0,
     "lastPurchaseDate": "2026-06-29",
     "stockQty": 137.0
   },
@@ -3819,10 +3819,10 @@
     "code": "GCMA-3013",
     "description": "FRZ. Wild Berries mix 3 type 1kg (5)",
     "lastSC": 34.97,
-    "fifoUnit": 33.80268,
-    "salesLast3m": -263.0,
+    "fifoUnit": 33.79925,
+    "salesLast3m": -261.0,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 436.0
+    "stockQty": 439.0
   },
   {
     "code": "GCMA-3015",
@@ -3874,7 +3874,7 @@
     "description": "FRZ. ITA Salamella Pork Sausage 1kg (5)",
     "lastSC": 65.09,
     "fifoUnit": 62.48444,
-    "salesLast3m": -254.0,
+    "salesLast3m": -256.0,
     "lastPurchaseDate": "2026-06-22",
     "stockQty": 865.0
   },
@@ -3883,7 +3883,7 @@
     "description": "FRZ. IT Luganega Pork Sausage 1kg (6)",
     "lastSC": 57.63,
     "fifoUnit": 55.55078,
-    "salesLast3m": -1907.0,
+    "salesLast3m": -1924.0,
     "lastPurchaseDate": "2026-06-29",
     "stockQty": 1578.0
   },
@@ -3891,10 +3891,10 @@
     "code": "GCMA-4020",
     "description": "FRZ. ITA Pork Sausage Paste 肉醬 1kg(6)",
     "lastSC": 53.01,
-    "fifoUnit": 51.28232,
-    "salesLast3m": -1319.0,
+    "fifoUnit": 51.27908,
+    "salesLast3m": -1318.0,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 1552.0
+    "stockQty": 1574.0
   },
   {
     "code": "GCMA-4020A",
@@ -3918,10 +3918,10 @@
     "code": "GCMA-4026",
     "description": "*♦FRZ. FASSONA Beef Tartare 100gx20 RED",
     "lastSC": 404.89,
-    "fifoUnit": 427.21419,
+    "fifoUnit": 427.16748,
     "salesLast3m": -691.5,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 393.1
+    "stockQty": 400.1
   },
   {
     "code": "GCMA-4028",
@@ -3982,7 +3982,7 @@
     "description": "Boretto Onion w/Balsamic Vinegar 800g(6)",
     "lastSC": 40.26,
     "fifoUnit": 39.45393,
-    "salesLast3m": -131.0,
+    "salesLast3m": -145.0,
     "lastPurchaseDate": "2026-05-22",
     "stockQty": 326.0
   },
@@ -3999,35 +3999,35 @@
     "code": "GCRI-1003",
     "description": "Pitted Green Olives 2.4kg (6)",
     "lastSC": 62.74,
-    "fifoUnit": 59.317,
-    "salesLast3m": -2016.0,
+    "fifoUnit": 59.31777,
+    "salesLast3m": -1997.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 160.0
+    "stockQty": 179.0
   },
   {
     "code": "GCRI-1004",
     "description": "Pitted Black Olives 2.4kg (6)",
     "lastSC": 59.96,
-    "fifoUnit": 56.23556,
-    "salesLast3m": -584.0,
+    "fifoUnit": 56.23258,
+    "salesLast3m": -577.0,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 81.0
+    "stockQty": 89.0
   },
   {
     "code": "GCRI-1005",
     "description": "Artichoke Hearts 2.4kg  (6)",
     "lastSC": 87.88,
-    "fifoUnit": 85.44133,
-    "salesLast3m": -397.0,
+    "fifoUnit": 85.44521,
+    "salesLast3m": -403.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 210.0
+    "stockQty": 211.0
   },
   {
     "code": "GCRI-1006",
     "description": "Caper Fruits in Vinegar (有枝)530g/jar (6)",
     "lastSC": 38.62,
     "fifoUnit": 37.62942,
-    "salesLast3m": -882.0,
+    "salesLast3m": -893.0,
     "lastPurchaseDate": "2026-05-26",
     "stockQty": 1007.0
   },
@@ -4036,7 +4036,7 @@
     "description": "*Roman Style Artichokes 750g  (6)",
     "lastSC": 70.74,
     "fifoUnit": 69.505,
-    "salesLast3m": -208.0,
+    "salesLast3m": -214.0,
     "lastPurchaseDate": "2026-05-26",
     "stockQty": 2.0
   },
@@ -4044,17 +4044,17 @@
     "code": "GCRI-1008",
     "description": "Grilled Red & Yellow Peppers 800g (6)",
     "lastSC": 50.88,
-    "fifoUnit": 50.33263,
-    "salesLast3m": -762.0,
+    "fifoUnit": 50.33209,
+    "salesLast3m": -761.0,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 999.0
+    "stockQty": 1000.0
   },
   {
     "code": "GCRI-1009",
     "description": "Cannellini Beans 400g  (12)",
     "lastSC": 5.81,
     "fifoUnit": 5.3748,
-    "salesLast3m": -280.0,
+    "salesLast3m": -292.0,
     "lastPurchaseDate": "2026-05-26",
     "stockQty": 5144.0
   },
@@ -4071,28 +4071,28 @@
     "code": "GCRI-1011",
     "description": "Chickpeas  800g  (6)",
     "lastSC": 13.47,
-    "fifoUnit": 12.49211,
-    "salesLast3m": -562.0,
+    "fifoUnit": 12.49153,
+    "salesLast3m": -560.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 109.0
+    "stockQty": 111.0
   },
   {
     "code": "GCRI-1012",
     "description": "\"Lacrimella\" Capers in Vinegar (無枝)540g (6)",
     "lastSC": 32.15,
-    "fifoUnit": 31.09366,
-    "salesLast3m": -710.0,
+    "fifoUnit": 31.09384,
+    "salesLast3m": -715.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 586.5
+    "stockQty": 589.5
   },
   {
     "code": "GCRI-1013",
     "description": "Grilled Piquillo Peppers 660g/tin  (6)",
     "lastSC": 52.58,
-    "fifoUnit": 51.46412,
-    "salesLast3m": -2301.0,
+    "fifoUnit": 51.46795,
+    "salesLast3m": -2296.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 1037.0
+    "stockQty": 1046.0
   },
   {
     "code": "GCRI-1014",
@@ -4107,10 +4107,10 @@
     "code": "GCRI-1015",
     "description": "White Butter Beans 2.5kg  (6)",
     "lastSC": 38.93,
-    "fifoUnit": 34.1032,
-    "salesLast3m": -377.0,
+    "fifoUnit": 34.12899,
+    "salesLast3m": -369.0,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 666.0
+    "stockQty": 674.0
   },
   {
     "code": "GCRI-1016",
@@ -4125,37 +4125,37 @@
     "code": "GCRI-1017",
     "description": "Anchovies in Fillets 700g  (6)",
     "lastSC": 100.17,
-    "fifoUnit": 99.7181,
-    "salesLast3m": -1126.0,
+    "fifoUnit": 99.65562,
+    "salesLast3m": -1100.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 1067.0
+    "stockQty": 1102.0
   },
   {
     "code": "GCRI-1018",
     "description": "Round Sliced Black Olives  2.4kg  (6)",
     "lastSC": 60.89,
-    "fifoUnit": 57.26877,
-    "salesLast3m": -149.0,
+    "fifoUnit": 57.26629,
+    "salesLast3m": -147.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 154.0
+    "stockQty": 159.0
   },
   {
     "code": "GCRI-1019-V1",
     "description": "Tuna in Olive Oil aluminum Bag 1kg (8)",
     "lastSC": 76.14,
-    "fifoUnit": 72.26457,
+    "fifoUnit": 72.26449,
     "salesLast3m": -435.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 230.0
+    "stockQty": 234.0
   },
   {
     "code": "GCRI-1019-V2",
     "description": "Tuna Chunks in Olive Oil 1730g (6)",
     "lastSC": 114.11,
-    "fifoUnit": 111.83816,
-    "salesLast3m": -316.0,
+    "fifoUnit": 111.83883,
+    "salesLast3m": -320.0,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 402.0
+    "stockQty": 403.0
   },
   {
     "code": "GCRI-1021",
@@ -4188,10 +4188,10 @@
     "code": "GCRI-1024",
     "description": "Mezzanella Capers in Salt Ristoris 1kg (6)",
     "lastSC": 48.98,
-    "fifoUnit": 46.75844,
-    "salesLast3m": -65.0,
+    "fifoUnit": 46.75752,
+    "salesLast3m": -64.0,
     "lastPurchaseDate": "2026-05-21",
-    "stockQty": 205.0
+    "stockQty": 206.0
   },
   {
     "code": "GCRI-1025",
@@ -4233,10 +4233,10 @@
     "code": "GCRI-1029",
     "description": "Polenta Express 500g  (20)",
     "lastSC": 13.14,
-    "fifoUnit": 11.36834,
-    "salesLast3m": -298.0,
+    "fifoUnit": 11.36825,
+    "salesLast3m": -316.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 483.0
+    "stockQty": 485.0
   },
   {
     "code": "GCRI-1033",
@@ -4288,7 +4288,7 @@
     "description": "Turnip Tops FRIARIELLI for Pizza 750g(6)",
     "lastSC": 56.88,
     "fifoUnit": 55.13685,
-    "salesLast3m": -16.0,
+    "salesLast3m": -22.0,
     "lastPurchaseDate": "2026-06-26",
     "stockQty": 54.0
   },
@@ -4305,28 +4305,28 @@
     "code": "GCRI-1040",
     "description": "Sweet And Sour Red Pepper Drop 793g (6)",
     "lastSC": 63.35,
-    "fifoUnit": 62.12432,
-    "salesLast3m": -443.0,
+    "fifoUnit": 62.12966,
+    "salesLast3m": -429.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 928.0
+    "stockQty": 942.0
   },
   {
     "code": "GCRI-1041",
     "description": "Sweet & Sour Yellow Pepper Drop 793g (6)",
     "lastSC": 75.35,
-    "fifoUnit": 74.05214,
-    "salesLast3m": -473.0,
+    "fifoUnit": 74.0513,
+    "salesLast3m": -458.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 562.0
+    "stockQty": 577.0
   },
   {
     "code": "GCRI-1042",
     "description": "Taggiasche Pitted Olive Brine   900g (6)",
     "lastSC": 77.56,
-    "fifoUnit": 74.76132,
-    "salesLast3m": -520.0,
+    "fifoUnit": 74.76271,
+    "salesLast3m": -516.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 438.0
+    "stockQty": 443.0
   },
   {
     "code": "GCRI-1047-A",
@@ -4350,10 +4350,10 @@
     "code": "GCRI-1050",
     "description": "Kalamata Olives Pitted 800g (6)",
     "lastSC": 37.03,
-    "fifoUnit": 35.72829,
-    "salesLast3m": -352.0,
+    "fifoUnit": 35.72827,
+    "salesLast3m": -337.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 193.0
+    "stockQty": 208.0
   },
   {
     "code": "GCRI-1051",
@@ -4701,10 +4701,10 @@
     "code": "GCTQ-1008",
     "description": "Capers in Sea Salt Caliber 4/5 1KG  (16)",
     "lastSC": 154.05,
-    "fifoUnit": 169.77729,
-    "salesLast3m": -44.0,
+    "fifoUnit": 169.52718,
+    "salesLast3m": -43.0,
     "lastPurchaseDate": "2026-05-06",
-    "stockQty": 70.0
+    "stockQty": 71.0
   },
   {
     "code": "GCTQ-1009",
@@ -4737,10 +4737,10 @@
     "code": "GCTQ-1016",
     "description": "Extra Virgin Olive Oil   0.5Lt (6)",
     "lastSC": 139.91,
-    "fifoUnit": 139.08649,
-    "salesLast3m": -37.0,
+    "fifoUnit": 139.065,
+    "salesLast3m": -36.0,
     "lastPurchaseDate": "2026-05-06",
-    "stockQty": 37.0
+    "stockQty": 38.0
   },
   {
     "code": "GCTQ-1020S",
@@ -4827,10 +4827,10 @@
     "code": "GIA03",
     "description": "Red Prawn III (36-55 pc/kg) 1kg (12)",
     "lastSC": 373.74,
-    "fifoUnit": 350.2756,
-    "salesLast3m": -142.0,
+    "fifoUnit": 350.15077,
+    "salesLast3m": -140.0,
     "lastPurchaseDate": "2026-04-15",
-    "stockQty": 50.0
+    "stockQty": 52.0
   },
   {
     "code": "GIA04",
@@ -4900,7 +4900,7 @@
     "description": "FROZEN CLEAN CUTTLEFISH 500G/Pack(15)",
     "lastSC": 76.52,
     "fifoUnit": 241.76417,
-    "salesLast3m": -225.0,
+    "salesLast3m": -230.0,
     "lastPurchaseDate": "2026-06-22",
     "stockQty": 115.0
   },
@@ -4990,7 +4990,7 @@
     "description": "Mortadella \"BLU\" 3Kg - Ø14cm (2)",
     "lastSC": 54.08,
     "fifoUnit": 51.03214,
-    "salesLast3m": -348.967,
+    "salesLast3m": -357.457,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 199.391
   },
@@ -4998,19 +4998,19 @@
     "code": "HA0060-IB",
     "description": "Mortadella PISTACHIO 2,5Kg - Ø14cm (2)",
     "lastSC": 49.83,
-    "fifoUnit": 48.22078,
-    "salesLast3m": -2247.992,
+    "fifoUnit": 48.22068,
+    "salesLast3m": -2263.392,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 397.455
+    "stockQty": 399.67
   },
   {
     "code": "HA7009-IB",
     "description": "Spicy Spianata Calabra approx. 2kg (2)",
     "lastSC": 81.35,
-    "fifoUnit": 84.96339,
-    "salesLast3m": -1233.159,
+    "fifoUnit": 84.84895,
+    "salesLast3m": -1240.233,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 498.401
+    "stockQty": 508.599
   },
   {
     "code": "HA7015",
@@ -5025,17 +5025,17 @@
     "code": "HA7016-IB",
     "description": "Parma Ham 18M DOP Deboned Tied 9kg(2)",
     "lastSC": 146.97,
-    "fifoUnit": 148.09375,
-    "salesLast3m": -430.8,
+    "fifoUnit": 148.10806,
+    "salesLast3m": -421.93,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 926.488
+    "stockQty": 935.358
   },
   {
     "code": "HA7017-IB",
     "description": "Parma Ham 24M DOP Deboned Tied 9kg(2)",
     "lastSC": 161.21,
     "fifoUnit": 156.79947,
-    "salesLast3m": -558.455,
+    "salesLast3m": -566.715,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 564.765
   },
@@ -5151,19 +5151,19 @@
     "code": "HA8002-IB",
     "description": "Prosciutto Crudo BOSCO  +/- 6kg (2)",
     "lastSC": 83.82,
-    "fifoUnit": 84.43969,
-    "salesLast3m": -643.331,
+    "fifoUnit": 84.45267,
+    "salesLast3m": -635.871,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 981.779
+    "stockQty": 989.239
   },
   {
     "code": "HA8003-IB",
     "description": "Salame Milano 3Kg. Ø95mm (2)",
     "lastSC": 83.87,
-    "fifoUnit": 81.12298,
-    "salesLast3m": -1041.293,
+    "fifoUnit": 81.1281,
+    "salesLast3m": -1047.641,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 1278.848
+    "stockQty": 1283.83
   },
   {
     "code": "HA8004-IB",
@@ -5178,37 +5178,37 @@
     "code": "HA8005-IB",
     "description": "Coppa half     1.25kg (4)",
     "lastSC": 115.51,
-    "fifoUnit": 113.33534,
-    "salesLast3m": -188.172,
+    "fifoUnit": 113.52883,
+    "salesLast3m": -188.368,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 169.626
+    "stockQty": 170.986
   },
   {
     "code": "HA8006-IB",
     "description": "SLICED Parma Ham 15 months 500g (4)",
     "lastSC": 117.03,
-    "fifoUnit": 116.17532,
-    "salesLast3m": -957.0,
+    "fifoUnit": 116.17693,
+    "salesLast3m": -955.0,
     "lastPurchaseDate": "2026-05-20",
-    "stockQty": 483.0
+    "stockQty": 485.0
   },
   {
     "code": "HA8007-IB",
     "description": "SLICED Pepperoni Spicy-1kg Ø45mm (6)",
     "lastSC": 83.32,
-    "fifoUnit": 99.19903,
-    "salesLast3m": -550.0,
+    "fifoUnit": 98.59938,
+    "salesLast3m": -563.0,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 93.0
+    "stockQty": 96.0
   },
   {
     "code": "HA8008-IB",
     "description": "SLICED Salame Milano ATP 500g (6)",
     "lastSC": 60.57,
-    "fifoUnit": 63.05711,
-    "salesLast3m": -2017.0,
+    "fifoUnit": 62.17461,
+    "salesLast3m": -1973.0,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 256.0
+    "stockQty": 306.0
   },
   {
     "code": "HA8010-IB",
@@ -5223,26 +5223,26 @@
     "code": "HA8011-IB",
     "description": "Pancetta Flat Smoked \"BACON\" +/-1.5Kg(2)",
     "lastSC": 88.97,
-    "fifoUnit": 88.40484,
-    "salesLast3m": -832.111,
+    "fifoUnit": 90.2618,
+    "salesLast3m": -832.801,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 133.397
+    "stockQty": 141.023
   },
   {
     "code": "HA8013-IB",
     "description": "Guanciale with Pepper +/- 1.5kg (2)",
     "lastSC": 83.3,
-    "fifoUnit": 78.71704,
-    "salesLast3m": -3027.802,
+    "fifoUnit": 78.74098,
+    "salesLast3m": -3015.108,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 972.579
+    "stockQty": 999.527
   },
   {
     "code": "HA8014-IB",
     "description": "Bresaola Valtellina Half 1.5Kg  (4)",
     "lastSC": 240.03,
     "fifoUnit": 235.481,
-    "salesLast3m": -142.474,
+    "salesLast3m": -144.415,
     "lastPurchaseDate": "2026-06-08",
     "stockQty": 122.111
   },
@@ -5277,10 +5277,10 @@
     "code": "HA8020-IB",
     "description": "Speck Half +/- 2.5Kg (4)",
     "lastSC": 73.78,
-    "fifoUnit": 78.16768,
-    "salesLast3m": -208.138,
+    "fifoUnit": 77.99632,
+    "salesLast3m": -203.322,
     "lastPurchaseDate": "2026-05-20",
-    "stockQty": 114.145
+    "stockQty": 118.961
   },
   {
     "code": "HA8021-IB-V1",
@@ -5296,9 +5296,9 @@
     "description": "SLICED Cured Ham 500g (6)",
     "lastSC": 65.87,
     "fifoUnit": 78.08403,
-    "salesLast3m": -2068.0,
+    "salesLast3m": -2073.0,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 134.0
+    "stockQty": 144.0
   },
   {
     "code": "HA8023-IB",
@@ -5313,10 +5313,10 @@
     "code": "HA8025-IB",
     "description": "*Cooked Ham PRAGA 8.3kg (2)",
     "lastSC": 60.28,
-    "fifoUnit": 72.9942,
-    "salesLast3m": -427.963,
+    "fifoUnit": 72.90577,
+    "salesLast3m": -420.143,
     "lastPurchaseDate": "2026-05-09",
-    "stockQty": 906.259
+    "stockQty": 914.079
   },
   {
     "code": "HA8026-IB",
@@ -5359,7 +5359,7 @@
     "description": "Cooked Ham \"BACIO\"1/2   4.4kg(4)",
     "lastSC": 64.35,
     "fifoUnit": 64.14091,
-    "salesLast3m": -1170.647,
+    "salesLast3m": -1180.592,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 1192.503
   },
@@ -5394,17 +5394,17 @@
     "code": "HA8058-IB",
     "description": "Culatta di Busseto Half 2.7Kg (2)",
     "lastSC": 203.08,
-    "fifoUnit": 210.12914,
-    "salesLast3m": -589.09,
+    "fifoUnit": 210.12906,
+    "salesLast3m": -601.904,
     "lastPurchaseDate": "2026-06-24",
-    "stockQty": 354.818
+    "stockQty": 354.808
   },
   {
     "code": "HA8060-IB",
     "description": "*Salame Finocchiona 2.5Kg (2)",
     "lastSC": 130.5081,
     "fifoUnit": 122.2973,
-    "salesLast3m": -383.21,
+    "salesLast3m": -391.361,
     "lastPurchaseDate": "2026-06-22",
     "stockQty": 84.325
   },
@@ -5494,7 +5494,7 @@
     "description": "Coppa Parma Legata BN 90 IGT 1.5kg (2)",
     "lastSC": 188.52667,
     "fifoUnit": 148.59843,
-    "salesLast3m": -33.434,
+    "salesLast3m": -35.306,
     "lastPurchaseDate": "2026-06-29",
     "stockQty": 16.346
   },
@@ -5503,7 +5503,7 @@
     "description": "Coppa Parma Igp Gourme' 100% ITA 1/2 Sv 1.2Kg",
     "lastSC": 206.11212,
     "fifoUnit": 190.30219,
-    "salesLast3m": -8.94,
+    "salesLast3m": -9.95,
     "lastPurchaseDate": "2026-05-11",
     "stockQty": 9.034
   },
@@ -5556,10 +5556,10 @@
     "code": "HA8098-IB",
     "description": "Cured Ham Bauletto Bosco SC approx. 5KG",
     "lastSC": 118.69,
-    "fifoUnit": 121.26043,
-    "salesLast3m": -599.322,
+    "fifoUnit": 121.26241,
+    "salesLast3m": -609.492,
     "lastPurchaseDate": "2026-05-09",
-    "stockQty": 665.368
+    "stockQty": 660.538
   },
   {
     "code": "HA8099-IB",
@@ -5709,10 +5709,10 @@
     "code": "IMP04",
     "description": "♦Superior Tonic IMPERDIBILE 200ml (12)",
     "lastSC": 40.75,
-    "fifoUnit": 42.82493,
-    "salesLast3m": -35.0,
+    "fifoUnit": 42.8237,
+    "salesLast3m": -32.0,
     "lastPurchaseDate": "2026-05-14",
-    "stockQty": 373.0
+    "stockQty": 376.0
   },
   {
     "code": "IMP05",
@@ -5763,19 +5763,19 @@
     "code": "IMP13-V1",
     "description": "♦Analcolico Spritz 200ml (12)",
     "lastSC": 57.6906,
-    "fifoUnit": 47.486,
-    "salesLast3m": -29.2,
+    "fifoUnit": 47.48598,
+    "salesLast3m": -28.2,
     "lastPurchaseDate": "",
-    "stockQty": 238.6
+    "stockQty": 239.6
   },
   {
     "code": "IMP14",
     "description": "♦Pink Soda \"Imperdibile\" 200ml (12)",
     "lastSC": 56.26,
-    "fifoUnit": 34.39472,
-    "salesLast3m": -16.0,
+    "fifoUnit": 34.39474,
+    "salesLast3m": -14.0,
     "lastPurchaseDate": "2025-12-24",
-    "stockQty": 32.2
+    "stockQty": 34.2
   },
   {
     "code": "IMP20",
@@ -5826,10 +5826,10 @@
     "code": "IMP24-L",
     "description": "POMPELMO ROSA BIO SAN GRAZIANO 275 ML",
     "lastSC": 85.02,
-    "fifoUnit": 117.75494,
-    "salesLast3m": -51.0,
+    "fifoUnit": 114.20522,
+    "salesLast3m": -49.0,
     "lastPurchaseDate": "2026-04-14",
-    "stockQty": 34.4
+    "stockQty": 36.4
   },
   {
     "code": "INA25A",
@@ -6141,19 +6141,19 @@
     "code": "LVC11-EN",
     "description": "FROZEN BURRATA WITH TOP KNOT LA VERACE TUB 125 G (8)",
     "lastSC": 93.64,
-    "fifoUnit": 86.16667,
-    "salesLast3m": -10.0,
+    "fifoUnit": 86.14651,
+    "salesLast3m": -2.0,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 3870.0
+    "stockQty": 3958.0
   },
   {
     "code": "LVC11-EN-DEF",
     "description": "BURRATA WITH TOP KNOT LA VERACE TUB 125 G (8)",
     "lastSC": 93.64,
-    "fifoUnit": 85.03875,
+    "fifoUnit": 83.54099,
     "salesLast3m": 0.0,
     "lastPurchaseDate": "",
-    "stockQty": 80.0
+    "stockQty": 0.0
   },
   {
     "code": "LVC12-EN",
@@ -7113,10 +7113,10 @@
     "code": "MC0001",
     "description": "Selected Minced Beef IQF 1kg (6)",
     "lastSC": 84.34,
-    "fifoUnit": 81.90383,
-    "salesLast3m": -858.0,
+    "fifoUnit": 81.90039,
+    "salesLast3m": -856.0,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 919.0
+    "stockQty": 927.0
   },
   {
     "code": "MEN10",
@@ -7528,7 +7528,7 @@
     "description": "FRZ. Baby Musky Flower Octopus (50-100g) 400g/tray (8)",
     "lastSC": 87.107,
     "fifoUnit": 69.47528,
-    "salesLast3m": -140.0,
+    "salesLast3m": -150.0,
     "lastPurchaseDate": "",
     "stockQty": 106.0
   },
@@ -7627,7 +7627,7 @@
     "description": "Chilled Mozzarella Filone MAMMA TINA 1kg (5) [MT325]",
     "lastSC": 67.57,
     "fifoUnit": 69.11,
-    "salesLast3m": -975.0,
+    "salesLast3m": -990.0,
     "lastPurchaseDate": "2026-06-01",
     "stockQty": 19.0
   },
@@ -7636,16 +7636,16 @@
     "description": "Frozen Mozzarella Filone MAMMA TINA 1kg (5)[MT331]",
     "lastSC": 64.43,
     "fifoUnit": 38.31652,
-    "salesLast3m": -278.0,
+    "salesLast3m": -269.0,
     "lastPurchaseDate": "2026-06-04",
-    "stockQty": 1306.0
+    "stockQty": 1315.0
   },
   {
     "code": "MZ0011",
     "description": "Chilled Smoked Mozzarella Filone  MAMMA TINA1kg (5) [MT362]",
     "lastSC": 76.0,
     "fifoUnit": 80.888,
-    "salesLast3m": -400.0,
+    "salesLast3m": -409.0,
     "lastPurchaseDate": "2026-06-01",
     "stockQty": 0.0
   },
@@ -7654,16 +7654,16 @@
     "description": "Frozen Smoked Mozzarella Filone MAMMA TINA 1kg (5)[mt364]",
     "lastSC": 51.19,
     "fifoUnit": 46.84992,
-    "salesLast3m": -79.0,
+    "salesLast3m": -67.0,
     "lastPurchaseDate": "2026-06-04",
-    "stockQty": 242.0
+    "stockQty": 254.0
   },
   {
     "code": "MZ2001",
     "description": "Chilled Mozzarella Shredded MAMMA TINA",
     "lastSC": 218.47,
     "fifoUnit": 212.275,
-    "salesLast3m": -516.0,
+    "salesLast3m": -526.0,
     "lastPurchaseDate": "2026-06-01",
     "stockQty": 2.0
   },
@@ -7672,9 +7672,9 @@
     "description": "Frozen Mozzarella Shredded Mamma Tina 3kg/tray (4)[MT333]",
     "lastSC": 131.35,
     "fifoUnit": 115.59459,
-    "salesLast3m": -203.0,
+    "salesLast3m": -190.0,
     "lastPurchaseDate": "2026-06-04",
-    "stockQty": 1337.0
+    "stockQty": 1350.0
   },
   {
     "code": "MZ2001-FR",
@@ -7690,7 +7690,7 @@
     "description": "Chilled Mozzarella Cubes MAMMA TINA 3kg/tray (4) [MT326]",
     "lastSC": 202.0,
     "fifoUnit": 217.63444,
-    "salesLast3m": -361.0,
+    "salesLast3m": -363.0,
     "lastPurchaseDate": "2026-06-01",
     "stockQty": 36.0
   },
@@ -7698,10 +7698,10 @@
     "code": "MZ4001-F",
     "description": "Frozen Mozzarella Cubes MAMMA TINA 3kg/tray (4)[MT332]",
     "lastSC": 132.71,
-    "fifoUnit": 115.59469,
-    "salesLast3m": -120.0,
+    "fifoUnit": 115.5947,
+    "salesLast3m": -118.0,
     "lastPurchaseDate": "2026-06-04",
-    "stockQty": 573.0
+    "stockQty": 575.0
   },
   {
     "code": "MZ4001-FR",
@@ -7744,7 +7744,7 @@
     "description": "Chilled Mozzarella Fiordilatte Napoli Cut MAMMA TINA 3kg/tray (4) [MT361]",
     "lastSC": 221.0,
     "fifoUnit": 225.07,
-    "salesLast3m": -411.0,
+    "salesLast3m": -423.0,
     "lastPurchaseDate": "2026-05-26",
     "stockQty": 2.0
   },
@@ -7753,9 +7753,9 @@
     "description": "Frozen Mozzarella Fiordilatte Napoli Cut Mamma Tina3kg[MT323]",
     "lastSC": 150.72,
     "fifoUnit": 133.3011,
-    "salesLast3m": -179.0,
+    "salesLast3m": -171.0,
     "lastPurchaseDate": "2026-06-04",
-    "stockQty": 508.0
+    "stockQty": 516.0
   },
   {
     "code": "MZ5008",
@@ -7770,26 +7770,26 @@
     "code": "MZ6002",
     "description": "Grated Parmigiano Reggiano 1kg (10)",
     "lastSC": 193.16,
-    "fifoUnit": 189.02395,
-    "salesLast3m": -377.0,
+    "fifoUnit": 189.28553,
+    "salesLast3m": -373.0,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 86.0
+    "stockQty": 94.0
   },
   {
     "code": "MZ6003",
     "description": "Parmesan Grated Mix 1KG (10)",
     "lastSC": 97.0,
-    "fifoUnit": 93.87458,
-    "salesLast3m": -3440.0,
+    "fifoUnit": 93.87453,
+    "salesLast3m": -3441.0,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 574.0
+    "stockQty": 618.0
   },
   {
     "code": "MZ6005",
     "description": "Chilled Mozzarella Fiordilatte Filone MAMMA TINA 1kg (5) [MT324]",
     "lastSC": 73.71,
     "fifoUnit": 75.06368,
-    "salesLast3m": -906.0,
+    "salesLast3m": -926.0,
     "lastPurchaseDate": "2026-05-26",
     "stockQty": 19.0
   },
@@ -7851,26 +7851,26 @@
     "code": "OCT0002",
     "description": "FRZ.Spanish Raw Octopus/Tray N1 2/3kg(8)",
     "lastSC": 110.45,
-    "fifoUnit": 111.64388,
-    "salesLast3m": -874.472,
+    "fifoUnit": 111.71395,
+    "salesLast3m": -842.518,
     "lastPurchaseDate": "2026-06-22",
-    "stockQty": 1200.61
+    "stockQty": 1232.564
   },
   {
     "code": "OCT0005",
     "description": "FRZ. Cooked Octopus Tentacles \"L\" approx. 280G (110-170g x 2pcs)",
     "lastSC": 293.87,
-    "fifoUnit": 303.60786,
-    "salesLast3m": -1253.624,
+    "fifoUnit": 303.62516,
+    "salesLast3m": -1245.484,
     "lastPurchaseDate": "2026-05-07",
-    "stockQty": 959.487
+    "stockQty": 969.587
   },
   {
     "code": "OL0508-IFL",
     "description": "Grapeseed Oil SOL D'OLIO 1lt (12) Pet ",
     "lastSC": 26.12,
     "fifoUnit": 31.48612,
-    "salesLast3m": -481.0,
+    "salesLast3m": -482.0,
     "lastPurchaseDate": "2026-05-22",
     "stockQty": 1130.0
   },
@@ -7887,19 +7887,19 @@
     "code": "OL0509-IF",
     "description": "Extra Virgin Olive Oil 5lt    (4)",
     "lastSC": 238.28,
-    "fifoUnit": 226.05917,
+    "fifoUnit": 226.06412,
     "salesLast3m": -841.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 1646.0
+    "stockQty": 1649.0
   },
   {
     "code": "OL0510-IF",
     "description": "Pomace Olive Oil \"Olitalia\" 5Lt (2)",
     "lastSC": 121.47,
-    "fifoUnit": 115.69581,
-    "salesLast3m": -655.0,
+    "fifoUnit": 115.70019,
+    "salesLast3m": -657.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 1904.0
+    "stockQty": 1906.0
   },
   {
     "code": "OL0510P",
@@ -7959,10 +7959,10 @@
     "code": "OL0605-VL",
     "description": "Oil 5 Star Casa Oilala 10 L Bag in Box",
     "lastSC": 569.38,
-    "fifoUnit": 568.1153,
-    "salesLast3m": -23.0,
+    "fifoUnit": 568.12941,
+    "salesLast3m": -22.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 117.0
+    "stockQty": 118.0
   },
   {
     "code": "OL0613",
@@ -7987,7 +7987,7 @@
     "description": "PERANZANA Extra Virgin Oilve Oil 5L (4)",
     "lastSC": 543.3,
     "fifoUnit": 544.55695,
-    "salesLast3m": -66.0,
+    "salesLast3m": -67.0,
     "lastPurchaseDate": "2026-05-21",
     "stockQty": 95.0
   },
@@ -8203,7 +8203,7 @@
     "description": "Sunflower Seed Oil \"David\" 5lt Pet  (2)",
     "lastSC": 82.41,
     "fifoUnit": 75.72162,
-    "salesLast3m": -230.0,
+    "salesLast3m": -232.0,
     "lastPurchaseDate": "2026-05-06",
     "stockQty": 216.0
   },
@@ -8328,10 +8328,10 @@
     "code": "OL1062",
     "description": "Giant Green Olive with Seed 2900g (4)",
     "lastSC": 101.29,
-    "fifoUnit": 98.66431,
-    "salesLast3m": -623.0,
+    "fifoUnit": 98.66999,
+    "salesLast3m": -638.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 794.0
+    "stockQty": 795.0
   },
   {
     "code": "OL1064",
@@ -8589,19 +8589,19 @@
     "code": "PT6001-S",
     "description": "SPAGHETTI \"Mancini\" 1kg/bag (6)",
     "lastSC": 33.77,
-    "fifoUnit": 32.37564,
-    "salesLast3m": -2248.0,
+    "fifoUnit": 32.37617,
+    "salesLast3m": -2246.0,
     "lastPurchaseDate": "2026-06-05",
-    "stockQty": 1423.0
+    "stockQty": 1425.0
   },
   {
     "code": "PT6002-S",
     "description": "LINGUINE \"Mancini\" 1kg/bag (6)",
     "lastSC": 33.77,
-    "fifoUnit": 32.44544,
-    "salesLast3m": -2415.0,
+    "fifoUnit": 32.44208,
+    "salesLast3m": -2425.0,
     "lastPurchaseDate": "2026-06-05",
-    "stockQty": 1876.0
+    "stockQty": 1884.0
   },
   {
     "code": "PT6003-S",
@@ -8616,10 +8616,10 @@
     "code": "PT6004-S",
     "description": "PENNE \"Mancini\" 1kg/bag (6)",
     "lastSC": 36.8,
-    "fifoUnit": 31.91633,
+    "fifoUnit": 31.9135,
     "salesLast3m": -414.0,
     "lastPurchaseDate": "2026-06-05",
-    "stockQty": 548.0
+    "stockQty": 554.0
   },
   {
     "code": "PT6005-S",
@@ -8644,7 +8644,7 @@
     "description": "MEZZE MANICHE \"Mancini\"  1kg/bag (6)",
     "lastSC": 39.22,
     "fifoUnit": 32.75107,
-    "salesLast3m": -711.0,
+    "salesLast3m": -717.0,
     "lastPurchaseDate": "2026-06-05",
     "stockQty": 243.0
   },
@@ -8751,10 +8751,10 @@
     "code": "PT6062",
     "description": "RIGATONI \"Mancini\" 1kg/bag (6)",
     "lastSC": 39.22,
-    "fifoUnit": 32.21956,
-    "salesLast3m": -1120.0,
+    "fifoUnit": 32.22162,
+    "salesLast3m": -1114.0,
     "lastPurchaseDate": "2026-06-05",
-    "stockQty": 1546.0
+    "stockQty": 1552.0
   },
   {
     "code": "PT6063-PB",
@@ -8788,7 +8788,7 @@
     "description": "Spaghetti Gluten Free Schar 500g(6)",
     "lastSC": 26.98,
     "fifoUnit": 22.12871,
-    "salesLast3m": -36.0,
+    "salesLast3m": -38.0,
     "lastPurchaseDate": "2026-05-06",
     "stockQty": 202.0
   },
@@ -8905,7 +8905,7 @@
     "description": "Candele Corte \"Gentile\" 500G (12)",
     "lastSC": 22.72,
     "fifoUnit": 24.78822,
-    "salesLast3m": -6.0,
+    "salesLast3m": -12.0,
     "lastPurchaseDate": "2026-06-05",
     "stockQty": 73.0
   },
@@ -9013,7 +9013,7 @@
     "description": "FRZ. Naples style Pizza Base 29cm/260g (32)",
     "lastSC": 467.76,
     "fifoUnit": 284.21209,
-    "salesLast3m": -75.22,
+    "salesLast3m": -77.22,
     "lastPurchaseDate": "2026-06-29",
     "stockQty": 111.98
   },
@@ -9030,28 +9030,28 @@
     "code": "PZ007-L",
     "description": "FRZ. Margherita Naples style 28cm/360g (10)",
     "lastSC": 156.65,
-    "fifoUnit": 133.92276,
-    "salesLast3m": -390.0,
+    "fifoUnit": 133.8801,
+    "salesLast3m": -385.0,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 254.8
+    "stockQty": 265.8
   },
   {
     "code": "RC0051-IF",
     "description": "Alibaba Couscous 1kg (10)",
     "lastSC": 15.1,
     "fifoUnit": 14.60097,
-    "salesLast3m": -162.0,
+    "salesLast3m": -157.0,
     "lastPurchaseDate": "2026-04-30",
-    "stockQty": 678.0
+    "stockQty": 683.0
   },
   {
     "code": "RC1001-IF-A",
     "description": "#Arborio Rice 'Don Luigi'  1Kg   (10)",
     "lastSC": 180.47,
-    "fifoUnit": 181.39177,
-    "salesLast3m": -245.7,
+    "fifoUnit": 181.52583,
+    "salesLast3m": -242.7,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 316.0
+    "stockQty": 319.0
   },
   {
     "code": "RC1002-IF-A",
@@ -9085,7 +9085,7 @@
     "description": "Acquerello Rice 2.5kg     (4)",
     "lastSC": 142.65,
     "fifoUnit": 142.92745,
-    "salesLast3m": -639.0,
+    "salesLast3m": -640.0,
     "lastPurchaseDate": "2026-05-21",
     "stockQty": 652.0
   },
@@ -9165,10 +9165,10 @@
     "code": "RF004-L",
     "description": "FRZ. Mango Alphonso Puree NO sugar 1KG (6)",
     "lastSC": 45.55,
-    "fifoUnit": 46.68846,
-    "salesLast3m": -721.0,
+    "fifoUnit": 46.68795,
+    "salesLast3m": -715.0,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 3441.0
+    "stockQty": 3447.0
   },
   {
     "code": "RF005",
@@ -10029,10 +10029,10 @@
     "code": "TF5011-B",
     "description": "Black Truffle Flavored Oil 250ml (6)",
     "lastSC": 61.48,
-    "fifoUnit": 63.83806,
+    "fifoUnit": 63.83096,
     "salesLast3m": -80.0,
     "lastPurchaseDate": "2026-05-21",
-    "stockQty": 449.0
+    "stockQty": 450.0
   },
   {
     "code": "TF5011-IF",
@@ -10093,7 +10093,7 @@
     "description": "White Truffle Olive Oil 250ml (6)",
     "lastSC": 67.3,
     "fifoUnit": 66.89093,
-    "salesLast3m": -155.0,
+    "salesLast3m": -157.0,
     "lastPurchaseDate": "2026-05-26",
     "stockQty": 321.0
   },
@@ -10120,18 +10120,18 @@
     "description": "Black Truffle Sauce DN 1% 500g (12)",
     "lastSC": 57.41,
     "fifoUnit": 56.54912,
-    "salesLast3m": -161.0,
+    "salesLast3m": -159.0,
     "lastPurchaseDate": "2026-05-21",
-    "stockQty": 977.0
+    "stockQty": 980.0
   },
   {
     "code": "TF5029-IF",
     "description": "Black Truffle Sauce DN 15% 500g (12)",
     "lastSC": 112.83,
     "fifoUnit": 112.0196,
-    "salesLast3m": -554.0,
+    "salesLast3m": -555.0,
     "lastPurchaseDate": "2026-01-08",
-    "stockQty": 702.0
+    "stockQty": 703.0
   },
   {
     "code": "TF5036",
@@ -10236,19 +10236,19 @@
     "code": "TM0201",
     "description": "Sun-dried Tomatoes in Oil  950g (6)",
     "lastSC": 31.01,
-    "fifoUnit": 30.19861,
-    "salesLast3m": -2384.0,
+    "fifoUnit": 30.20217,
+    "salesLast3m": -2449.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 2788.0
+    "stockQty": 2795.0
   },
   {
     "code": "TM0202",
     "description": "Semi-Dried Tomatoes in Oil 950g (6)",
     "lastSC": 41.45,
-    "fifoUnit": 39.88795,
-    "salesLast3m": -790.0,
+    "fifoUnit": 39.89747,
+    "salesLast3m": -796.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 706.0
+    "stockQty": 708.0
   },
   {
     "code": "TM0202-V1",
@@ -10299,37 +10299,37 @@
     "code": "TMRI-2003-A",
     "description": "#Tomatoes Puree  2.5kg (6)",
     "lastSC": 216.96,
-    "fifoUnit": 200.64981,
-    "salesLast3m": -151.0,
+    "fifoUnit": 200.64685,
+    "salesLast3m": -150.0,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 154.6
+    "stockQty": 155.6
   },
   {
     "code": "TMRI-2004",
     "description": "Semi-Dried Long Tomatoes  750g (6)",
     "lastSC": 59.65,
-    "fifoUnit": 58.50739,
-    "salesLast3m": -135.0,
+    "fifoUnit": 58.50741,
+    "salesLast3m": -134.0,
     "lastPurchaseDate": "2026-05-21",
-    "stockQty": 111.0
+    "stockQty": 112.0
   },
   {
     "code": "TMRI-2005",
     "description": "2.15kg D.Concentrate Tomatoes Paste (6)",
     "lastSC": 59.01,
-    "fifoUnit": 56.83479,
-    "salesLast3m": -344.0,
+    "fifoUnit": 56.83482,
+    "salesLast3m": -345.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 449.0
+    "stockQty": 450.0
   },
   {
     "code": "TMRI-2006-A",
     "description": "#♦Pizza Sauce 4.1kg (3)",
     "lastSC": 174.02,
-    "fifoUnit": 162.20373,
-    "salesLast3m": -102.1,
+    "fifoUnit": 162.23026,
+    "salesLast3m": -99.1,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 85.9
+    "stockQty": 88.9
   },
   {
     "code": "TMRI-2007-V1",
@@ -10353,28 +10353,28 @@
     "code": "TMSO-2001",
     "description": "San Marzano Peeled Tomatoes DOP 2.5kg(6)",
     "lastSC": 43.25,
-    "fifoUnit": 42.56186,
-    "salesLast3m": -3867.0,
+    "fifoUnit": 42.56238,
+    "salesLast3m": -3828.0,
     "lastPurchaseDate": "2026-05-07",
-    "stockQty": 2979.0
+    "stockQty": 3018.0
   },
   {
     "code": "TMSO-2001H",
     "description": "Whole Peeled Tomatoes 6x2.5KG",
     "lastSC": 156.04,
-    "fifoUnit": 149.94533,
-    "salesLast3m": -779.0,
+    "fifoUnit": 149.94448,
+    "salesLast3m": -784.0,
     "lastPurchaseDate": "2026-05-26",
-    "stockQty": 2732.8
+    "stockQty": 2733.8
   },
   {
     "code": "TMSO-2002H",
     "description": "Diced Tomato Pulp 6x2.5KG",
     "lastSC": 154.82,
-    "fifoUnit": 149.81933,
-    "salesLast3m": -296.16467,
+    "fifoUnit": 149.76052,
+    "salesLast3m": -294.16467,
     "lastPurchaseDate": "2026-05-07",
-    "stockQty": 330.595
+    "stockQty": 333.595
   },
   {
     "code": "TMSO-2005L",
@@ -10434,10 +10434,10 @@
     "code": "TPF04",
     "description": "FRZ Cooked Premium Octopus Tentacles 150-200g/pce (6pcs/tray) -1kg(8)",
     "lastSC": 276.62,
-    "fifoUnit": 278.42617,
-    "salesLast3m": -582.0,
+    "fifoUnit": 278.38167,
+    "salesLast3m": -580.0,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 838.0
+    "stockQty": 860.0
   },
   {
     "code": "TPF05",
@@ -10560,10 +10560,10 @@
     "code": "VIITMER-24",
     "description": "VIITAM MERLOT TERRE SICILIANE IGP 75CL 2024",
     "lastSC": 19.77,
-    "fifoUnit": 19.00344,
-    "salesLast3m": -155.0,
+    "fifoUnit": 19.00321,
+    "salesLast3m": -143.0,
     "lastPurchaseDate": "2026-05-14",
-    "stockQty": 1735.0
+    "stockQty": 1747.0
   },
   {
     "code": "VIITNERAPP-23",
@@ -10686,10 +10686,10 @@
     "code": "VLFR31602",
     "description": "*FRZ. Boneless Loin approx. 3kg",
     "lastSC": 162.48,
-    "fifoUnit": 125.04428,
-    "salesLast3m": -98.25,
+    "fifoUnit": 122.95919,
+    "salesLast3m": -94.02,
     "lastPurchaseDate": "",
-    "stockQty": 15.13
+    "stockQty": 19.36
   },
   {
     "code": "VLFR31643",
@@ -10750,7 +10750,7 @@
     "description": "*FRZ. Veal Tail approx. 700gx2",
     "lastSC": 80.58,
     "fifoUnit": 81.86971,
-    "salesLast3m": -201.91,
+    "salesLast3m": -221.88,
     "lastPurchaseDate": "2026-06-22",
     "stockQty": 425.14
   },
@@ -10767,10 +10767,10 @@
     "code": "VLFR32761",
     "description": "*FRZ. Eye Round (Girello) +/- 2kg ",
     "lastSC": 92.33,
-    "fifoUnit": 102.03527,
-    "salesLast3m": -811.8,
+    "fifoUnit": 102.03439,
+    "salesLast3m": -811.73,
     "lastPurchaseDate": "2026-05-13",
-    "stockQty": 1189.97
+    "stockQty": 1194.77
   },
   {
     "code": "VLFR32764",
@@ -11253,10 +11253,10 @@
     "code": "WCAN01-NV",
     "description": "Lambrusco \"Otello 1813\" 11%",
     "lastSC": 46.85,
-    "fifoUnit": 41.99714,
-    "salesLast3m": -264.0,
+    "fifoUnit": 42.02699,
+    "salesLast3m": -255.0,
     "lastPurchaseDate": "2026-05-14",
-    "stockQty": 573.0
+    "stockQty": 582.0
   },
   {
     "code": "WCAN01-NVM",
@@ -11487,19 +11487,19 @@
     "code": "WCG01-NV",
     "description": "Prosecco DOC \"Casa Gheller\" NV",
     "lastSC": 35.85,
-    "fifoUnit": 33.60467,
-    "salesLast3m": -4834.0,
+    "fifoUnit": 33.60562,
+    "salesLast3m": -4761.0,
     "lastPurchaseDate": "2026-03-27",
-    "stockQty": 5803.0
+    "stockQty": 5924.0
   },
   {
     "code": "WCH01",
     "description": "Chateau Highball G&T (6) 750ml",
     "lastSC": 88.57,
     "fifoUnit": 88.57,
-    "salesLast3m": -14.0,
+    "salesLast3m": -2.0,
     "lastPurchaseDate": "",
-    "stockQty": 650.0
+    "stockQty": 662.0
   },
   {
     "code": "WCH02",
@@ -11515,16 +11515,16 @@
     "description": "Chateau Highball W&S (6) 750 ml",
     "lastSC": 88.57,
     "fifoUnit": 88.57,
-    "salesLast3m": -14.0,
+    "salesLast3m": -2.0,
     "lastPurchaseDate": "",
-    "stockQty": 174.0
+    "stockQty": 186.0
   },
   {
     "code": "WCHA01-NV",
     "description": "Champagne Premier Cru Brut 12.5%",
     "lastSC": 148.99,
     "fifoUnit": 139.3161,
-    "salesLast3m": -52.0,
+    "salesLast3m": -58.0,
     "lastPurchaseDate": "2026-04-13",
     "stockQty": 561.0
   },
@@ -12883,7 +12883,7 @@
     "description": "Robymarton Gin IGP Premium 47% 700ml (6)",
     "lastSC": 173.9,
     "fifoUnit": 103.74,
-    "salesLast3m": -1.0,
+    "salesLast3m": -2.0,
     "lastPurchaseDate": "",
     "stockQty": 2.0
   },
@@ -12991,7 +12991,7 @@
     "description": "Rabitt Bitter Summer Edition 1L(6)",
     "lastSC": 124.29,
     "fifoUnit": 131.42,
-    "salesLast3m": 1.0,
+    "salesLast3m": 0.0,
     "lastPurchaseDate": "",
     "stockQty": 69.0
   },
@@ -13071,19 +13071,19 @@
     "code": "WGRA03-23",
     "description": "Nero d'Avola Usulea DOC 2023",
     "lastSC": 31.64,
-    "fifoUnit": 30.43444,
-    "salesLast3m": -1071.0,
+    "fifoUnit": 30.3787,
+    "salesLast3m": -1057.0,
     "lastPurchaseDate": "2026-02-23",
-    "stockQty": 9.0
+    "stockQty": 23.0
   },
   {
     "code": "WGRA03-24",
     "description": "Nero d'Avola Usulea DOC 2024",
     "lastSC": 31.55,
-    "fifoUnit": 30.31688,
-    "salesLast3m": -26.0,
+    "fifoUnit": 30.31692,
+    "salesLast3m": -18.0,
     "lastPurchaseDate": "2026-05-22",
-    "stockQty": 112.0
+    "stockQty": 120.0
   },
   {
     "code": "WGRA03-25",
@@ -13251,10 +13251,10 @@
     "code": "WIFB03-24",
     "description": "PUMO DEL FATO PRIMITIVO PUGLIA IGP 75CL 14%",
     "lastSC": 20.69,
-    "fifoUnit": 18.82335,
-    "salesLast3m": -254.0,
+    "fifoUnit": 18.83327,
+    "salesLast3m": -242.0,
     "lastPurchaseDate": "2026-01-02",
-    "stockQty": 1580.0
+    "stockQty": 1592.0
   },
   {
     "code": "WIFB03-25",
@@ -13449,10 +13449,10 @@
     "code": "WINAL19-A",
     "description": "Limoncello LIQUEUR SOLE DEL GOLFO 1LT(6)",
     "lastSC": 196.84,
-    "fifoUnit": 172.33099,
-    "salesLast3m": -36.0,
+    "fifoUnit": 172.32833,
+    "salesLast3m": -34.0,
     "lastPurchaseDate": "2026-04-13",
-    "stockQty": 85.26
+    "stockQty": 87.26
   },
   {
     "code": "WISO",
@@ -13647,10 +13647,10 @@
     "code": "WLUM01-23",
     "description": "Montepulciano d'Abruzzo Riparosso DOC 2023",
     "lastSC": 37.27,
-    "fifoUnit": 36.6305,
-    "salesLast3m": -631.0,
+    "fifoUnit": 36.62856,
+    "salesLast3m": -625.0,
     "lastPurchaseDate": "2026-05-14",
-    "stockQty": 4137.0
+    "stockQty": 4143.0
   },
   {
     "code": "WLUM02-24",
@@ -14637,10 +14637,10 @@
     "code": "WN3002-V2",
     "description": "Cooking RED Wine Goccianello 1LT BRIK (15)",
     "lastSC": 172.63,
-    "fifoUnit": 180.55768,
-    "salesLast3m": -90.0,
+    "fifoUnit": 180.51044,
+    "salesLast3m": -91.0,
     "lastPurchaseDate": "",
-    "stockQty": 132.1
+    "stockQty": 133.1
   },
   {
     "code": "WN5001",
@@ -14845,7 +14845,7 @@
     "description": "Pierrick Harang IGP Pays d'Oc Viognier Sauvignon Blanc 2024 11%",
     "lastSC": 24.05,
     "fifoUnit": 22.83292,
-    "salesLast3m": -371.0,
+    "salesLast3m": -407.0,
     "lastPurchaseDate": "2026-04-13",
     "stockQty": 739.0
   },
@@ -15069,10 +15069,10 @@
     "code": "WSAN01-NV",
     "description": "Prosecco Extra Dry DOC",
     "lastSC": 37.83,
-    "fifoUnit": 35.34945,
-    "salesLast3m": -1717.0,
+    "fifoUnit": 35.34995,
+    "salesLast3m": -1711.0,
     "lastPurchaseDate": "2026-05-22",
-    "stockQty": 11138.0
+    "stockQty": 11144.0
   },
   {
     "code": "WSAN02-HB",
@@ -15195,10 +15195,10 @@
     "code": "WSAN06-25",
     "description": "PINOT GRIGIO VALDADIGE DOC SANTA MARGHERITA 75CL",
     "lastSC": 52.71,
-    "fifoUnit": 41.18428,
-    "salesLast3m": -585.0,
+    "fifoUnit": 41.1843,
+    "salesLast3m": -573.0,
     "lastPurchaseDate": "2026-05-22",
-    "stockQty": 423.0
+    "stockQty": 435.0
   },
   {
     "code": "WSAN06-HB",
@@ -15213,10 +15213,10 @@
     "code": "WSAN07-NV",
     "description": "Spumante Rosè VS Brut NV",
     "lastSC": 68.77,
-    "fifoUnit": 53.82804,
-    "salesLast3m": -92.0,
+    "fifoUnit": 53.82739,
+    "salesLast3m": -89.0,
     "lastPurchaseDate": "2026-02-23",
-    "stockQty": 460.0
+    "stockQty": 463.0
   },
   {
     "code": "WSAN08-22",
@@ -15240,10 +15240,10 @@
     "code": "WSAN08-24",
     "description": "ROSE' TREVENEZIE IGT 75CL",
     "lastSC": 48.83,
-    "fifoUnit": 59.86692,
-    "salesLast3m": -331.0,
+    "fifoUnit": 59.86691,
+    "salesLast3m": -322.0,
     "lastPurchaseDate": "2026-02-23",
-    "stockQty": 347.0
+    "stockQty": 356.0
   },
   {
     "code": "WSAT01-17M",
@@ -15277,9 +15277,9 @@
     "description": "BOLGHERI ROSSO DOC 75CL",
     "lastSC": 106.49855,
     "fifoUnit": 101.64,
-    "salesLast3m": -16.0,
+    "salesLast3m": -4.0,
     "lastPurchaseDate": "",
-    "stockQty": 52.0
+    "stockQty": 64.0
   },
   {
     "code": "WSAT01-22M",
@@ -15673,7 +15673,7 @@
     "description": "Liquore delle Sirene  23% 700ml",
     "lastSC": 82.27,
     "fifoUnit": 73.97,
-    "salesLast3m": 0.0,
+    "salesLast3m": -1.0,
     "lastPurchaseDate": "",
     "stockQty": 128.0
   },
@@ -15826,7 +15826,7 @@
     "description": "ETNA BIANCO DOC TASCANTE BUONORA 75CL",
     "lastSC": 98.32,
     "fifoUnit": 98.10081,
-    "salesLast3m": -11.0,
+    "salesLast3m": -17.0,
     "lastPurchaseDate": "2026-02-23",
     "stockQty": 258.0
   },
@@ -15835,7 +15835,7 @@
     "description": "ETNA ROSSO DOC TASCANTE GHIAIA NERA 75CL",
     "lastSC": 98.23,
     "fifoUnit": 98.09921,
-    "salesLast3m": -20.0,
+    "salesLast3m": -22.0,
     "lastPurchaseDate": "2026-02-23",
     "stockQty": 114.0
   },
@@ -15880,7 +15880,7 @@
     "description": "CONTRADA RAMPANTE ETNA DOC TASCANTE 75CL",
     "lastSC": 212.97,
     "fifoUnit": 215.4025,
-    "salesLast3m": 0.0,
+    "salesLast3m": -2.0,
     "lastPurchaseDate": "2026-02-23",
     "stockQty": 52.0
   },
@@ -15907,7 +15907,7 @@
     "description": "CONTRADA PIANODARIO ETNA DOC TASCANTE 75CL",
     "lastSC": 214.62,
     "fifoUnit": 243.24269,
-    "salesLast3m": 0.0,
+    "salesLast3m": -2.0,
     "lastPurchaseDate": "2026-02-23",
     "stockQty": 52.0
   },
@@ -16032,10 +16032,10 @@
     "code": "WTSF01-22",
     "description": "Chianti Putto DOCG 2022 13.5%",
     "lastSC": 45.13,
-    "fifoUnit": 37.8651,
-    "salesLast3m": -341.0,
+    "fifoUnit": 37.94375,
+    "salesLast3m": -335.0,
     "lastPurchaseDate": "2026-05-14",
-    "stockQty": 439.0
+    "stockQty": 445.0
   },
   {
     "code": "WTSF02-22",
@@ -16185,19 +16185,19 @@
     "code": "WV0001-BO",
     "description": "White Wine Vinegar 6%  1lt/bot (12)",
     "lastSC": 14.54,
-    "fifoUnit": 14.35057,
-    "salesLast3m": -344.0,
+    "fifoUnit": 14.35055,
+    "salesLast3m": -347.0,
     "lastPurchaseDate": "2026-01-08",
-    "stockQty": 471.0
+    "stockQty": 475.0
   },
   {
     "code": "WV0002-BO",
     "description": "Red Wine VINEGAR 1L/bot 6% (12)",
     "lastSC": 14.54,
-    "fifoUnit": 13.62792,
-    "salesLast3m": -402.0,
+    "fifoUnit": 13.62842,
+    "salesLast3m": -407.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 872.0
+    "stockQty": 875.0
   },
   {
     "code": "WVAC",
