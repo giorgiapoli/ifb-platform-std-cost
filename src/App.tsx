@@ -5247,16 +5247,19 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:"11px"}}>
               <thead>
                 <tr style={{background:T.surface}}>
-                  {["N HK","Fattore","Descrizione","·"].map(h=>(
+                  {["N HK","IFB N","Fattore","Descrizione","·"].map(h=>(
                     <th key={h} style={{padding:"6px 10px",textAlign:"left",fontSize:"9px",letterSpacing:"1px",
                       color:T.muted,textTransform:"uppercase",fontWeight:"normal",borderBottom:`1px solid ${T.border}`}}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {hkConvFactors.map((row:any, i:number)=>(
+                {hkConvFactors.map((row:any, i:number)=>{
+                  const ifbN = xrefs.find((x:any)=>x.nHK===row.nHK)?.ifbNo || "-";
+                  return (
                   <tr key={i} style={{borderTop:`1px solid ${T.border}`}}>
                     <td style={{padding:"5px 10px",color:T.gold,fontFamily:"monospace",fontWeight:"bold"}}>{row.nHK}</td>
+                    <td style={{padding:"5px 10px",color:T.muted,fontFamily:"monospace"}}>{ifbN}</td>
                     <td style={{padding:"5px 10px",color:row.factor===1?T.dim:T.green,fontFamily:"monospace",fontWeight:"bold"}}>
                       ×{Number(row.factor).toLocaleString("it-IT",{maximumFractionDigits:6})}
                     </td>
@@ -5270,9 +5273,10 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {hkConvFactors.length===0 && (
-                  <tr><td colSpan={4} style={{padding:"24px",textAlign:"center",color:T.dim}}>Nessun fattore di conversione.</td></tr>
+                  <tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:T.dim}}>Nessun fattore di conversione.</td></tr>
                 )}
               </tbody>
             </table>
@@ -5309,20 +5313,23 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
             <table style={{width:"100%",borderCollapse:"collapse",fontSize:"11px"}}>
               <thead>
                 <tr style={{background:T.surface}}>
-                  {["N COMIT","Fattore","Descrizione","·"].map(h=>(
+                  {["N COMIT","IFB N","Fattore","Descrizione","·"].map(h=>(
                     <th key={h} style={{padding:"6px 10px",textAlign:"left",fontSize:"9px",letterSpacing:"1px",
                       color:T.muted,textTransform:"uppercase",fontWeight:"normal",borderBottom:`1px solid ${T.border}`}}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {canConvFactors.map((row:any, i:number)=>(
+                {canConvFactors.map((row:any, i:number)=>{
+                  const ifbN = xrefs.find((x:any)=>x.nHK===row.nComit)?.ifbNo || "-";
+                  return (
                   <tr key={i} style={{borderTop:`1px solid ${T.border}`}}>
                     <td style={{padding:"5px 10px",color:T.gold,fontFamily:"monospace",fontWeight:"bold"}}>{row.nComit}</td>
+                    <td style={{padding:"5px 10px",color:T.muted,fontFamily:"monospace"}}>{ifbN}</td>
                     <td style={{padding:"5px 10px",color:row.factor===1?T.dim:T.green,fontFamily:"monospace",fontWeight:"bold"}}>
                       ×{Number(row.factor).toLocaleString("it-IT",{maximumFractionDigits:6})}
                     </td>
-                    <td style={{padding:"5px 10px",color:T.text,maxWidth:"280px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.description||"-"}</td>
+                    <td style={{padding:"5px 10px",color:T.text,maxWidth:"240px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{row.description||"-"}</td>
                     <td style={{padding:"5px 10px",textAlign:"center"}}>
                       <button
                         onClick={()=>setCanConvFactors((prev:any)=>prev.filter((_:any,j:number)=>j!==i))}
@@ -5332,9 +5339,10 @@ function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExce
                       </button>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {canConvFactors.length===0 && (
-                  <tr><td colSpan={4} style={{padding:"24px",textAlign:"center",color:T.dim}}>Nessun fattore di conversione.</td></tr>
+                  <tr><td colSpan={5} style={{padding:"24px",textAlign:"center",color:T.dim}}>Nessun fattore di conversione.</td></tr>
                 )}
               </tbody>
             </table>
