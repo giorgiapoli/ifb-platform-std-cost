@@ -946,7 +946,8 @@ export default function App() {
         const qpb   = Number(prod?.qtyPerBox)      || 1;
         const kgplt = Number(prod?.kgxplt)         || 0;
         const bplt  = Number(prod?.boxPerPallet)   || 0;
-        const kgBox = (kgplt > 0 && bplt > 0) ? kgplt / bplt : (kpb > 0 ? kpb : 0);
+        // Preferisce Net Weight (kpb) che è peso NETTO per box; kgxplt/bplt può essere lordo
+        const kgBox = kpb > 0 ? kpb : ((kgplt > 0 && bplt > 0) ? kgplt / bplt : 0);
         const kgPcs = kgBox > 0 && qpb > 0 ? kgBox / qpb : 0;
         if (puom === "KG"  && buom === "PCS") return kgPcs > 0 ? kgPcs : 1;
         if (puom === "KG"  && buom === "BOX") return kgBox > 0 ? kgBox : 1;
