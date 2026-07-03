@@ -399,7 +399,7 @@ def build_iss_prices(token, target_codes):
     return result
 
 
-def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None):
+def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, fatt_conv_map=None):
     """
     Logica identica a PowerBI MILLE SAPORI (HK) — applicata a tutti i branch:
       FCA cost  = directunitcost_purch (convertito in base UoM) * MARKUP (1/0.98)
@@ -463,12 +463,14 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
         carriage  = round(dap_price - fca_price, 6)
         if mts_price == 0:
             mts_price = fca_price  # MARR: MTS = FCA se non esplicitamente definito
-    # Se DAP=0 e FCA>0 (e non MARR): usa carriagecost da ISS (formula PBI: FCA + carriagecost)
+    # Se DAP=0 e FCA>0 (e non MARR): usa carriagecost da ISS (formula PBI: FCA + carriagecost × Fatt_Conv)
+    # Fatt_Conv = uom_conv[code][hk_uom]: converte carriagecost da IFB base UoM a HK UoM di vendita
     # Se carriagecost=0 → DAP rimane 0 (allineato a PBI: "if FCA=0 OR carriagecost=0 → 0")
     elif dap_price == 0 and fca_price > 0:
         iss_cr = float((iss_carriage or {}).get(code, 0))
         if iss_cr > 0:
-            carriage  = round(iss_cr, 6)
+            fc = float((fatt_conv_map or {}).get(code, 1) or 1)
+            carriage  = round(iss_cr * fc, 6)
             dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
@@ -535,10 +537,23 @@ if __name__ == "__main__":
 
     # Fetch ISS per TUTTI gli articoli: carriagecost per-articolo da BC + articoli HK non nel listino
     iss_carriage = {}
+    fatt_conv_map = {}
     try:
         hk_data_path = Path(__file__).parent.parent / "docs" / "data" / "hk_anagrafica.json"
         hk_items = json.loads(hk_data_path.read_text(encoding="utf-8"))
         hk_codes = {str(item.get("code") or "").strip() for item in hk_items if item.get("code")}
+        # Fatt_Conv: per ogni articolo HK, la qty per HK-UoM nella tabella IFB UoM
+        # Serve per: DAP fallback = FCA + carriagecost_ISS × Fatt_Conv (formula PBI)
+        if uom_conv:
+            for it in hk_items:
+                ifb_code = str(it.get("code") or "").strip()
+                hk_uom   = str(it.get("uom") or "PCS").upper()
+                if not ifb_code or not hk_uom:
+                    continue
+                qty = uom_conv.get(ifb_code, {}).get(hk_uom, 0)
+                if qty and qty != 1:
+                    fatt_conv_map[ifb_code] = qty
+            print(f"  Fatt_Conv: {len(fatt_conv_map)} articoli HK con conversione UoM ≠ 1: {fatt_conv_map}")
         all_target = all_purchase_codes | hk_codes
         print(f"  Fetch ISS per {len(all_target)} articoli (carriagecost per-articolo + HK mancanti)...")
         iss_prices = build_iss_prices(token, all_target)
@@ -581,7 +596,7 @@ if __name__ == "__main__":
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
-            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage)
+            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, fatt_conv_map)
             all_rows.append(row)
 
     print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
