@@ -146,13 +146,15 @@ def build_item_card_data(token):
         vn1 = str(r.get("AltIFBVendor_Name")   or "").strip()
         vn2 = str(r.get("AltIFBVendor_Name_2") or "").strip()
         is_marr = bool(r.get("AltIFBArticolo_MARR") or False)
+        sec_raw = str(r.get("AltIFBSection_Description") or "").strip().upper()
         result[key] = {
-            "vendorName":   vn1,
-            "vendorName2":  vn2,
-            "isMarr":       is_marr,
-            "temperature":  TEMP_NORM.get(temp_raw, temp_raw.upper()),
-            "qtyPerBox":    float(r.get("AltIFBQuantity_x_Packaging") or 0),
-            "boxPerPallet": float(r.get("AltIFBPackaging_x_Pallet") or 0),
+            "vendorName":        vn1,
+            "vendorName2":       vn2,
+            "isMarr":            is_marr,
+            "temperature":       TEMP_NORM.get(temp_raw, temp_raw.upper()),
+            "sectionDescription": sec_raw,
+            "qtyPerBox":         float(r.get("AltIFBQuantity_x_Packaging") or 0),
+            "boxPerPallet":      float(r.get("AltIFBPackaging_x_Pallet") or 0),
         }
     # Debug: verifica DLZ08 e 006007
     for test_key in ("DLZ08", "006007"):
@@ -478,6 +480,23 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
             if pallet1 > 0 and pcs_per_pallet > 0:
                 carriage  = round(pallet1 / pcs_per_pallet, 6)
                 dap_price = round(fca_price + carriage, 6)
+        # Fallback finale: tabella vendor2/categoria (modello Excel HK)
+        if dap_price == 0 and item_card:
+            ic = item_card.get(code, {})
+            vendor2 = ic.get("vendorName2", "").strip().upper()
+            section = ic.get("sectionDescription", "").strip().upper()
+            qty_per_box    = ic.get("qtyPerBox",    0)
+            box_per_pallet = ic.get("boxPerPallet", 0)
+            pcs_per_pallet = qty_per_box * box_per_pallet
+            if pcs_per_pallet > 0:
+                if section in ("WINE", "SPIRITS"):
+                    pallet_cr = HK_WINE_SPIRITS_CARRIAGE
+                else:
+                    # lookup case-insensitive: le chiavi della tabella sono già UPPER
+                    pallet_cr = HK_VENDOR_CARRIAGE.get(vendor2, 0)
+                if pallet_cr > 0:
+                    carriage  = round(pallet_cr / pcs_per_pallet, 6)
+                    dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
     mts_discounted = apply(mts_price, mts_disc)
@@ -511,6 +530,27 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
         "cr": round(carriage, 6),
     }
 
+
+# Carriage HK per pallet, basato su Vendor Name 2 o categoria (fallback finale)
+# Fonte: modello Excel HK (colonne D=Vendor2, E=Section). Valore 0 = non applicare.
+HK_VENDOR_CARRIAGE: dict[str, float] = {
+    "ALICO SRL":                          70.0,
+    "ANTICO PASTIFICIO MORELLI SRL":      80.0,
+    "AZ. AGRICOLA MANCINI SRL AGRICOLA":  70.0,
+    "BONOMI SPA":                         30.0,
+    "CAPURSO AZIENDA CASEARIA S.R.L.":    90.0,
+    "CECCHINI DARIO SRL":                 20.0,
+    "CONSERVAS ANGELACHU S.L.":          200.0,
+    "DELIZIA 2000 SRL":                   75.0,
+    "GRA-COM S.R.L.":                     90.0,
+    "GREENS FOOD SPA":                    30.0,
+    "INALCA S.P.A. A SOCIO UNICO":        40.0,
+    "ITALPIZZA S.R.L.":                   30.0,
+    "OILALA' SRL":                       100.0,
+    "QUANTOBASTA S.R.L.":               140.0,
+    "VALLE FINE FOODS ITALIA S.R.L.S":  150.0,
+}
+HK_WINE_SPIRITS_CARRIAGE = 60.0  # per WINE e SPIRITS (Vendor2 ignorato)
 
 if __name__ == "__main__":
     if not CLIENT_SECRET:
