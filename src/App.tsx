@@ -676,7 +676,9 @@ export default function App() {
             all.forEach((row: any) => {
               const code = String(row["n"] || row["No_"] || "").trim();
               if(!code) return;
-              const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
+              const baseCode = code.includes("-") ? code.substring(0, code.lastIndexOf("-")) : "";
+              const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null)
+                        || (baseCode ? byCode[baseCode] : null); // CAN: LVC11-ES → LVC11
               const purchUom = String(row["pu"] || "").trim().toUpperCase();
               const scriptCf = Number(row["cf"] || 1);
               // Converti prezzo IFB (purchUom) → HK BASE UoM (prod.uom)
