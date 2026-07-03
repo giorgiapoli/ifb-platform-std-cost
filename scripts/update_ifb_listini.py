@@ -399,7 +399,7 @@ def build_iss_prices(token, target_codes):
     return result
 
 
-def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, fatt_conv_map=None, vendor_carriage_map=None):
+def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, vendor_carriage_map=None):
     """
     Logica identica a PowerBI MILLE SAPORI (HK) — applicata a tutti i branch:
       FCA cost  = directunitcost_purch (convertito in base UoM) * MARKUP (1/0.98)
@@ -464,20 +464,17 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
         if mts_price == 0:
             mts_price = fca_price  # MARR: MTS = FCA se non esplicitamente definito
     # Se DAP=0 e FCA>0 (e non MARR): calcola DAP con carriage
-    # Priorità: 1) vendor HK con plt cost (Work_Tab), 2) ISS carriagecost × Fatt_Conv (formula PBI)
+    # Tutti i valori carriage sono in IFB base UoM (PCS/KG): l'app moltiplica per convFactor per display.
+    # Priorità: 1) vendor HK con plt cost (Work_Tab), 2) ISS carriagecost (formula PBI)
     elif dap_price == 0 and fca_price > 0:
         vc = float((vendor_carriage_map or {}).get(code, 0))
         if vc > 0:
-            # Fornitore HK con costo pallet definito: DAP = FCA + carriage_unitario (già in HK UoM)
             carriage  = round(vc, 6)
             dap_price = round(fca_price + carriage, 6)
         else:
-            # Fallback ISS: FCA + carriagecost_ISS × Fatt_Conv (formula PBI)
-            # Fatt_Conv converte carriagecost da IFB base UoM a HK UoM di vendita
             iss_cr = float((iss_carriage or {}).get(code, 0))
             if iss_cr > 0:
-                fc = float((fatt_conv_map or {}).get(code, 1) or 1)
-                carriage  = round(iss_cr * fc, 6)
+                carriage  = round(iss_cr, 6)
                 dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
@@ -556,7 +553,6 @@ if __name__ == "__main__":
 
     # Fetch ISS per TUTTI gli articoli: carriagecost per-articolo da BC + articoli HK non nel listino
     iss_carriage = {}
-    fatt_conv_map = {}
     try:
         hk_data_path = Path(__file__).parent.parent / "docs" / "data" / "hk_anagrafica.json"
         hk_items = json.loads(hk_data_path.read_text(encoding="utf-8"))
@@ -569,37 +565,22 @@ if __name__ == "__main__":
                 ifb_code = str(it.get("code") or "").strip()
                 if not ifb_code:
                     continue
-                # Cerca plt_cost per vendorName (primario) o vendorName2 (secondario)
-                vn1 = str(it.get("vendorName")  or "").strip()
+                # Match su vendorName2 (produttore reale) — vendorName è sempre IFB (vendor commerciale)
                 vn2 = str(it.get("vendorName2") or "").strip()
-                plt_cost = hk_plt_vendor.get(vn1) or hk_plt_vendor.get(vn2) or 0
+                plt_cost = hk_plt_vendor.get(vn2, 0)
                 if not plt_cost:
                     continue
-                uom  = str(it.get("uom") or "PCS").upper()
                 qpb  = float(it.get("qtyPerBox") or 0)
                 bpp  = float(it.get("boxPerPallet") or 0)
                 kplt = float(it.get("kgxplt") or 0)
-                if uom == "BOX":
-                    units_per_plt = bpp
-                elif uom == "KG":
-                    units_per_plt = kplt
-                else:  # PCS
-                    units_per_plt = qpb * bpp
-                if units_per_plt > 0:
-                    vendor_carriage_map[ifb_code] = round(plt_cost / units_per_plt, 8)
-            print(f"  Vendor carriage HK: {len(vendor_carriage_map)} articoli coperti da fornitore con plt cost")
-        # Fatt_Conv: per ogni articolo HK, la qty per HK-UoM nella tabella IFB UoM
-        # Serve per: DAP fallback = FCA + carriagecost_ISS × Fatt_Conv (formula PBI)
-        if uom_conv:
-            for it in hk_items:
-                ifb_code = str(it.get("code") or "").strip()
-                hk_uom   = str(it.get("uom") or "PCS").upper()
-                if not ifb_code or not hk_uom:
-                    continue
-                qty = uom_conv.get(ifb_code, {}).get(hk_uom, 0)
-                if qty and qty != 1:
-                    fatt_conv_map[ifb_code] = qty
-            print(f"  Fatt_Conv: {len(fatt_conv_map)} articoli HK con conversione UoM ≠ 1: {fatt_conv_map}")
+                uom  = str(it.get("uom") or "PCS").upper()
+                # carriage in IFB base UoM (PCS o KG): l'app moltiplica per convFactor per display HK
+                # Per PCS/BOX: base UoM = PCS → total_base = qtyPerBox × boxPerPallet
+                # Per KG: base UoM = KG → total_base = kgxplt
+                total_base = kplt if uom == "KG" else qpb * bpp
+                if total_base > 0:
+                    vendor_carriage_map[ifb_code] = round(plt_cost / total_base, 8)
+            print(f"  Vendor carriage HK: {len(vendor_carriage_map)} articoli coperti (match su vendorName2)")
         all_target = all_purchase_codes | hk_codes
         print(f"  Fetch ISS per {len(all_target)} articoli (carriagecost per-articolo + HK mancanti)...")
         iss_prices = build_iss_prices(token, all_target)
@@ -642,7 +623,7 @@ if __name__ == "__main__":
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
-            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, fatt_conv_map, vendor_carriage_map)
+            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, vendor_carriage_map)
             all_rows.append(row)
 
     print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
