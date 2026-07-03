@@ -4646,7 +4646,6 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(filterDeltaPct!=="all"){
     if(filterDeltaPct==="pos3") displayed=displayed.filter(r=>r.pct!=null&&r.pct>=3);
     else displayed=displayed.filter(r=>r.pct!=null&&r.pct<=-3);
-    displayed=[...displayed].sort((a,b)=>Math.abs(b.pct??0)-Math.abs(a.pct??0));
   }
 
   // ── STEPS IMPORT ──────────────────────────────────────────────────────────
