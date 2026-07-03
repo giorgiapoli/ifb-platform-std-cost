@@ -166,11 +166,10 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   // Pallet (BO): COSTS(LOG)!I1 / Y6 = 15 / unitsPerPlt
   const plt = COSTS_CAN.PLT / unitsPerPlt;
 
-  // AIEM: se bevData fornisce TOTALE BOTTIGLIA (importo fisso/unit per alcolici), usa quello.
-  // Altrimenti usa la % da Anagrafica (prodAiem) o logistic (alcTax).
+  // Tassa Alcolica: importo fisso/unit da Beverage Info (LT × €/LT).
+  // AIEM%: imposta Canarie su importazioni — si applica sempre, anche per gli alcolici (cumulativa).
   const aiemFixed: number = (bevData?.totaleBottiglia ?? 0) > 0 ? Number(bevData.totaleBottiglia) : 0;
-  const aiemPct = aiemFixed > 0 ? 0
-    : (Number(prodAiem)||0) > 0 ? Number(prodAiem) / 100
+  const aiemPct = (Number(prodAiem)||0) > 0 ? Number(prodAiem) / 100
     : (hasAlcTax ? (Number(alcTax)||0) / 100 : 0);
 
   // Costi MARE per isola (AM/AO/AQ/AS + AU/AW/AY/BA)
@@ -191,9 +190,9 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   const transpPerIsland = (isl: string): number =>
     freightPerIsland(isl) + inlandPerIsland(isl) + veronaBarcUnit + barcPerIsland(isl) + assicUnit;
 
-  // AIEM per isola: fisso (alcolici) o % su (prezzo + trasporto)
-  const aiemGCTF   = aiemFixed > 0 ? aiemFixed : (priceEur + transpPerIsland("GC"))  * aiemPct;
-  const aiemLANFUE = aiemFixed > 0 ? aiemFixed : (priceEur + transpPerIsland("LAN")) * aiemPct;
+  // AIEM per isola: % su (prezzo + trasporto) — si cumula con Tassa Alcolica per gli alcolici
+  const aiemGCTF   = (priceEur + transpPerIsland("GC"))  * aiemPct;
+  const aiemLANFUE = (priceEur + transpPerIsland("LAN")) * aiemPct;
   const aiemForIsl = (isl: string) => (isl==="LAN"||isl==="FUE") ? aiemLANFUE : aiemGCTF;
 
   // Step1 per isola: BV=AL+AM+AU+BC+BE+BM+BO+BR (MARE o GOMMA, appropriato)
@@ -209,7 +208,7 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   }
 
   for (const isl of CAN_ISLANDS) {
-    step1[isl] = priceEur + transpPerIsland(isl) + plt + aiemForIsl(isl);
+    step1[isl] = priceEur + transpPerIsland(isl) + plt + aiemForIsl(isl) + aiemFixed;
     step2[isl] = step1[isl] + wh;
   }
 
@@ -4266,9 +4265,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                   </>}
                                   {sep("Pallet & AIEM / Tassa Alcolica")}
                                   {row("Pallet",f4(c.plt),f4(c.plt),"15 € ÷ u/plt (COSTS LOG!I1)",T.blue)}
-                                  {c.tassaAlcolica>0
-                                    ? row("Tassa Alcolica",f4(c.tassaAlcolica),f4(c.tassaAlcolica),"LT × €/LT (Beverage Info — fisso/unit)",T.orange)
-                                    : c.aiemGCTF>0&&row("AIEM",f4(c.aiemGCTF),f4(c.aiemLANFUE||0),"(Prezzo + Trasporto isola) × AIEM%",T.orange)}
+                                  {c.aiemGCTF>0&&row("AIEM",f4(c.aiemGCTF),f4(c.aiemLANFUE||0),"(Prezzo + Trasporto isola) × AIEM%",T.orange)}
+                                  {c.tassaAlcolica>0&&row("Tassa Alcolica",f4(c.tassaAlcolica),f4(c.tassaAlcolica),"LT × €/LT (Beverage Info — fisso/unit)",T.orange)}
                                   {sep("Magazzino")}
                                   {row("WH / unit",c.wh>0?f4(c.wh):"—",c.wh>0?f4(c.wh):"—",
                                     r.ubicazione==="MTO"?"MTO[temp] ÷ u/plt":r.ubicazione==="MTS"?"MTS-D + MTS-I ÷ u/plt + MTS-P ÷ collo":"—",T.purple)}
