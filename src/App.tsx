@@ -4414,6 +4414,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   const setShowNoAna=(v:any)=>{ const nv=typeof v==="function"?v(showNoAna):v; setShowNoAnaRaw(nv); lsSet("showNoAna",nv); };
   const setSearch=(v:string)=>{ setSearchRaw(v); lsSet("search",v); };
   const [sortDir,setSortDir]   = useState<"desc"|"asc">("desc");
+  const [sortBy,setSortBy]     = useState<"date"|"delta">("date");
 
   useEffect(()=>{ if(rows?.length&&step==="upload") setStep("view"); },[rows]);
 
@@ -4647,6 +4648,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     if(filterDeltaPct==="pos3") displayed=displayed.filter(r=>r.pct!=null&&r.pct>=3);
     else displayed=displayed.filter(r=>r.pct!=null&&r.pct<=-3);
   }
+  if(sortBy==="delta"){
+    displayed=[...displayed].sort((a,b)=>sortDir==="desc"?(b.pct??0)-(a.pct??0):(a.pct??0)-(b.pct??0));
+  }
 
   // ── STEPS IMPORT ──────────────────────────────────────────────────────────
   if(step==="map") return(
@@ -4816,9 +4820,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
           🔄 Ricarica
         </button>
-        <button onClick={()=>setSortDir(d=>d==="desc"?"asc":"desc")}
-          style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
-          Data {sortDir==="desc"?"↓":"↑"}
+        <button onClick={()=>{ if(sortBy==="date") setSortDir(d=>d==="desc"?"asc":"desc"); else{ setSortBy("date"); setSortDir("desc"); } }}
+          style={{padding:"6px 14px",background:sortBy==="date"?`${T.blue}22`:T.surface,color:sortBy==="date"?T.blue:T.muted,border:`1px solid ${sortBy==="date"?T.blue:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
+          Data {sortBy==="date"?(sortDir==="desc"?"↓":"↑"):""}
+        </button>
+        <button onClick={()=>{ if(sortBy==="delta") setSortDir(d=>d==="desc"?"asc":"desc"); else{ setSortBy("delta"); setSortDir("desc"); } }}
+          style={{padding:"6px 14px",background:sortBy==="delta"?`${T.gold}22`:T.surface,color:sortBy==="delta"?T.gold:T.muted,border:`1px solid ${sortBy==="delta"?T.gold:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
+          Δ% {sortBy==="delta"?(sortDir==="desc"?"↓":"↑"):""}
         </button>
         <button onClick={()=>{if(window.confirm(`Eliminare i dati (${activeRows.length} righe)?`)){saveRows([]);setStep("upload");}}}
           style={{padding:"6px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
