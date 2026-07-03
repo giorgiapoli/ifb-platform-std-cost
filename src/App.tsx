@@ -6590,7 +6590,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
 
   // Campi per branch: solo quelli rilevanti
   const FIELDS_HK  = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","active","vendorName","vendorName2"];
-  const FIELDS_CAN = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","netWeightPcs","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
+  const FIELDS_CAN = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","netWeightPcs","fattConv","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
   const FIELDS_MAC = ["nHK","code","description","isHoff","uom","hkUom","standardCostHkd","temperature","kgPerBox","qtyPerBox","active","vendorName"];
   const FIELDS = branch==="CAN" ? FIELDS_CAN : branch==="MAC" ? FIELDS_MAC : FIELDS_HK;
 
@@ -6603,6 +6603,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     qtyPerBox: "Qty/Cartone (per conversione UOM)",
     boxPerPallet: "Cartoni/Pallet",
     netWeightPcs: "Peso Netto PCS (kg/pz) — per conversione €/KG→€/PCS",
+    fattConv:    "PCS x Kg netto (= Fatt_Conv PowerBI) — alternativa a Peso Netto PCS",
     kgPerBox: "Kg per Cartone (per costi logistica)",
     kgxplt: "Kg x PLT",
     temperature: "Product Type (DRY/FRESH/FROZEN)",
@@ -6623,7 +6624,8 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     uom:         ["salesunitofmeasure","sales unit of measure","macaosalesunitofmeasure","macao salesunitofmeasure","macaouom","macao uom"],
     qtyPerBox:   ["quantityxpackaging","quantity x packaging"],
     boxPerPallet:["packagingxpallet","packaging x pallet"],
-    netWeightPcs:["pesonettopcs","peso netto pcs","netweightpcs","net weight pcs","pesonettopz","peso netto pz","pcsnetweight","pcs net weight","netweightpcs","pcsnettweight"],
+    netWeightPcs:["pesonettopcs","peso netto pcs","netweightpcs","net weight pcs","pesonettopz","peso netto pz","pcsnetweight","pcs net weight","pcsnettweight"],
+    fattConv:    ["pcsxkg","pcs x kg","fattconv","fatt conv","fattconv_","pcsperkgnetto","pcs per kg","conversionefactor","fatt_conv"],
     kgPerBox:    ["netweightbox","net weight box","pesonetto","peso netto","pesonetto box","peso netto box","netweight","net weight"],
     kgxplt:      ["kgxplt","kg x pallet","kg per pallet","kgperpallet","kgplt","kgxplt netto","kg x plt netto","kg plt netto"],
     temperature: ["producttype","product type","product type rettificato"],
@@ -6780,7 +6782,12 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
       uom: mapBCVal("uom", r.uom),
       qtyPerBox: parseFloat(String(r.qtyPerBox||"").replace(",",".")) || 0,
       boxPerPallet: parseFloat(r.boxPerPallet) || 0,
-      netWeightPcs: parseFloat(String(r.netWeightPcs||"").replace(",",".")) || 0,
+      netWeightPcs: (() => {
+        const nw = parseFloat(String(r.netWeightPcs||"").replace(",",".")) || 0;
+        if (nw > 0) return nw;
+        const fc = parseFloat(String(r.fattConv||"").replace(",",".")) || 0;
+        return fc > 0 ? Math.round(1/fc * 1e6)/1e6 : 0; // 1/fattConv (es. 1/8=0.125)
+      })(),
       kgPerBox: parseFloat(String(r.kgPerBox||"").replace(",",".")) || 0,
       temperature: mapBCVal("temperature", r.temperature) || "DRY",
       kgxplt: parseFloat(r.kgxplt) > 0 ? parseFloat(r.kgxplt) : roundN((parseFloat(r.kgPerBox) || 0) * (parseFloat(r.qtyPerBox) || 1) * (parseFloat(r.boxPerPallet) || 0)),
