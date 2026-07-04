@@ -4620,6 +4620,26 @@
     "aiem": 0
   },
   {
+    "id": "FPN02",
+    "code": "FPN02",
+    "nHK": "FPN02",
+    "description": "PECORINO ROMANO CHEESE PDO 1/8 PORTIONED",
+    "category": "SHEEP CHEESE",
+    "uom": "KG",
+    "qtyPerBox": 8.0,
+    "boxPerPallet": 40.0,
+    "kgPerBox": 0.0,
+    "kgxplt": 0.0,
+    "temperature": "FRESH",
+    "bcTransportation": "CH SEA",
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "vendorName": "INALCA FOOD & BEVERAGE SRL",
+    "vendorName2": "PINNA",
+    "aiem": 0
+  },
+  {
     "id": "FRACUS-23",
     "code": "FRACUS-23",
     "nHK": "FRACUS-23",
