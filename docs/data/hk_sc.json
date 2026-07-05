@@ -273,7 +273,7 @@
     "code": "BA1005",
     "description": "5L Balsamic Vinegar CASA EMILIA (2)",
     "lastSC": 76.74,
-    "fifoUnit": 71.27074,
+    "fifoUnit": 71.27128,
     "salesLast3m": -356.0,
     "lastPurchaseDate": "2026-06-26",
     "stockQty": 391.0
@@ -8257,9 +8257,9 @@
     "description": "EVO Oil \"Cutrera Selection\" Tin 5L (2)",
     "lastSC": 519.70606,
     "fifoUnit": 278.0,
-    "salesLast3m": -11.0,
+    "salesLast3m": -10.0,
     "lastPurchaseDate": "2026-04-30",
-    "stockQty": 101.0
+    "stockQty": 102.0
   },
   {
     "code": "OL0812",
