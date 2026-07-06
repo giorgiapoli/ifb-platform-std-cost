@@ -695,11 +695,14 @@ export default function App() {
                 if (purchUom !== "PCS" && purchUom === hkUom) {
                   // Script ha diviso inutilmente (pu non-PCS già in hkUom): re-moltiplica
                   convFactor = 1 / scriptCf;
+                  displayUom = hkUom;
+                } else {
+                  // Script ha diviso correttamente: prezzo per base UoM (= purchUom se PCS, altrimenti hkUom)
+                  displayUom = purchUom || hkUom;
                 }
-                displayUom = hkUom; // prezzo già nella base UoM
               } else {
-                // cf=1: nessuna conversione. Se pu='PCS', BC intende "per unità HK" → usa hkUom come label
-                displayUom = (purchUom === "PCS" || !purchUom) ? hkUom : purchUom;
+                // cf=1: prezzo per purchUom (PBI usa Base Unit of Measure dell'item)
+                displayUom = purchUom || hkUom;
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
               newEntries.push({
