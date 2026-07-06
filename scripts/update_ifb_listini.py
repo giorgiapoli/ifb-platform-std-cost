@@ -56,25 +56,18 @@ def bc_fetch_all(token, entity, filt=None):
     if filt:
         base_params["$filter"] = filt
     results = []
-    next_url = None
-    skip = 0
-    while True:
-        if next_url:
-            r = requests.get(next_url, headers=headers)
-        else:
-            r = requests.get(base_url, headers=headers, params={**base_params, "$skip": skip})
+    url = base_url
+    params = base_params
+    while url:
+        r = requests.get(url, headers=headers, params=params)
         r.raise_for_status()
         data = r.json()
         batch = data.get("value", [])
         results.extend(batch)
-        next_url = data.get("@odata.nextLink")
-        if next_url:
-            skip = 0
-        elif len(batch) == 5000:
-            # BC non ha restituito nextLink ma potrebbe esserci un batch successivo
-            skip += 5000
-        else:
-            break
+        # BC restituisce @odata.nextLink quando ci sono altre pagine — usiamo solo quello.
+        # Non usiamo $skip: BC non lo supporta oltre 50000 righe.
+        url = data.get("@odata.nextLink")
+        params = {}  # nextLink include già tutti i parametri
     return results
 
 
