@@ -253,7 +253,7 @@ function exportXLSX(rows: any[], sheetName: string, fileName: string) {
  */
 function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMultiplier=1 }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature } = product;
-  const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor } = logistic || {};
+  const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor, carriage } = logistic || {};
   const pm = Number(priceMultiplier||1) || 1;
 
   // ── Units per pallet ── (formula modello Excel) / conv factor item
@@ -303,8 +303,11 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   // ── Tassa alcolica ──
   const alc = hasAlcTax ? (Number(alcTax)||0) : 0;
 
+  // ── Carriage (€/PLT da logistica → €/unit) ──
+  const carriageUnit = unitsPerPlt > 0 ? (Number(carriage)||0) / unitsPerPlt : 0;
+
   // ── Step 1 ──
-  const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc;
+  const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc + carriageUnit;
 
   // ── Warehouse ──
   let wh = 0;
@@ -319,7 +322,7 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   const step2Eur = step1Eur + wh;
 
   return {
-    priceEur, fob, lic, vgm, hc, plt, alc,
+    priceEur, fob, lic, vgm, hc, plt, alc, carriageUnit,
     step1Eur,
     step1Hkd: step1Eur * eurToHkd,
     wh,
@@ -4349,6 +4352,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                 {row("VGM / unit",f4(c.vgm),"Verified Gross Mass — da tabella COSTS",T.blue)}
                                 {c.hc>0&&row("Certificati / unit",f4(c.hc),"Health / import certificate — da tabella COSTS",T.blue)}
                                 {row("Pallet / unit",f4(c.plt),`Costo pallet ÷ ${(c.unitsPerPlt||0).toFixed(2)} u/plt`,T.blue)}
+                                {c.carriageUnit>0&&row("Carriage / unit",f4(c.carriageUnit),`€/PLT logistica ÷ ${(c.unitsPerPlt||0).toFixed(2)} u/plt`,T.blue)}
                                 {c.alc>0&&row("Alc. Tax / unit",f4(c.alc),"Tassa alcol — da anagrafica articolo",T.orange)}
                                 {sep("Magazzino")}
                                 {row("WH / unit",c.wh>0?f4(c.wh):"—",
