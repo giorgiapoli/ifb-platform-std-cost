@@ -434,6 +434,17 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     purch_fca = pur.get("FCA", {}).get("price") or 0.0
     purch_dap = pur.get("DAP", {}).get("price") or 0.0
     purch_mts = pur.get("MTS", {}).get("price") or 0.0
+    cf_val    = pur.get("FCA", {}).get("conv_qty", 1) or 1
+    is_iss    = bool(pur.get("FCA", {}).get("_iss", False))
+
+    # CAN (MILLE SAPORI PBI): FCA = directunitcost / fatt_conv_line × Fatt_Conv_item / 0.98
+    # Per articoli BC (non ISS): Fatt_Conv_item = fatt_conv_line → netto = directunitcost/0.98
+    # Lo script ha diviso per cf (=fatt_conv_line): moltiplica di nuovo × cf per ottenere il netto.
+    # Per articoli ISS (missing_hk): già convertiti in unità corretta, NON moltiplicare.
+    if branch == "CAN" and not is_iss and cf_val > 1:
+        purch_fca = purch_fca * cf_val
+        purch_dap = purch_dap * cf_val if purch_dap else 0.0
+        purch_mts = purch_mts * cf_val if purch_mts else 0.0
 
     def to_sell(p):
         return round(p * MARKUP, 6) if p else 0.0
@@ -486,14 +497,15 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     # Tutti i valori carriage sono in IFB base UoM (PCS/KG): l'app moltiplica per convFactor per display.
     # Priorità: 1) vendor HK con plt cost (Work_Tab), 2) ISS carriagecost (formula PBI)
     elif dap_price == 0 and fca_price > 0:
+        can_cf_scale = cf_val if (branch == "CAN" and not is_iss and cf_val > 1) else 1
         vc = float((vendor_carriage_map or {}).get(code, 0))
         if vc > 0:
-            carriage  = round(vc, 6)
+            carriage  = round(vc * can_cf_scale, 6)
             dap_price = round(fca_price + carriage, 6)
         else:
             iss_cr = float((iss_carriage or {}).get(code, 0))
             if iss_cr > 0:
-                carriage  = round(iss_cr, 6)
+                carriage  = round(iss_cr * can_cf_scale, 6)
                 dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
@@ -639,7 +651,7 @@ if __name__ == "__main__":
                     dap = dap_raw
                 entry = {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": "", "puom": "PCS"}
                 if fca > 0:
-                    entry["FCA"] = {"price": fca, "_open": True, "_expired": False, "conv_qty": conv_qty}
+                    entry["FCA"] = {"price": fca, "_open": True, "_expired": False, "conv_qty": conv_qty, "_iss": True}
                 if dap > 0:
                     entry["DAP"] = {"price": dap, "_open": True, "_expired": False}
                 purch[code] = entry
