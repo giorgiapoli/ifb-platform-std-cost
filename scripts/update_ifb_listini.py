@@ -306,7 +306,8 @@ def build_purchase_prices(token, uom_conv=None):
         disc_purch = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
         conv_qty = 1  # fattore conversione applicato (!=1 = prezzo già in base UoM)
-        if price and puom and puom not in ("PCS", "", " "):
+        # PBI divide sempre per qtyperunitofmeasure (fatt_conv), anche quando puom='PCS'
+        if price and puom:
             # 1) Priorità: qtyperunitofmeasure direttamente sulla price line (come fa PBI)
             qty_line = float(r.get("qtyperunitofmeasure") or 0)
             qty = qty_line if qty_line > 0 else None

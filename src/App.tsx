@@ -692,8 +692,8 @@ export default function App() {
               const hkUom: string = prod?.uom || "PCS";
               let displayUom: string;
               if (scriptCf > 1 && purchUom && prod) {
-                if (purchUom === hkUom) {
-                  // Script ha diviso inutilmente (pu già in hkUom): re-moltiplica
+                if (purchUom !== "PCS" && purchUom === hkUom) {
+                  // Script ha diviso inutilmente (pu non-PCS già in hkUom): re-moltiplica
                   convFactor = 1 / scriptCf;
                 }
                 displayUom = hkUom; // prezzo già nella base UoM
