@@ -509,14 +509,6 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
             or dap_sale.get("enddate") or "")
 
     puom = pur.get("puom", "") if pur else ""
-    # Se puom="PCS" ma l'item card dice che l'UoM base è diversa (es. BOX),
-    # BC usa "PCS" per indicare "per unità commerciale" (es. per set regalo = per BOX).
-    # In quel caso allineiamo puom all'UoM base dell'articolo così l'app non applica conversioni errate.
-    if puom == "PCS" and item_card:
-        ic = item_card.get(code, {})
-        ic_uom = str(ic.get("uom") or "").strip().upper()
-        if ic_uom and ic_uom != "PCS":
-            puom = ic_uom
     # cf = conversion factor già applicato dallo script (>1 = prezzo in base UoM, app NON deve riconvertire)
     cf = pur.get("FCA", {}).get("conv_qty", 1) if pur else 1
     return {

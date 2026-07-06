@@ -682,70 +682,23 @@ export default function App() {
               const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
               const purchUom = String(row["pu"] || "").trim().toUpperCase();
               const scriptCf = Number(row["cf"] || 1);
-              // Converti prezzo IFB (purchUom) → HK BASE UoM (prod.uom)
-              // div(p) = p / convFactor  →  convFactor < 1 moltiplica, convFactor > 1 divide
+              // Regola generale (uguale a PBI con fatt_conv):
+              //   cf > 1 → script ha già diviso il prezzo per cf (conv_qty da qtyperunitofmeasure).
+              //            Se pu == hkUom la divisione era inutile: re-moltiplica.
+              //            Se pu != hkUom il prezzo è già nella base UoM: nessuna azione.
+              //   cf == 1 → script non ha applicato conversioni (fatt_conv=1 in PBI).
+              //             Il prezzo è già corretto nell'unità pu: nessuna conversione aggiuntiva.
               let convFactor = 1;
-              let displayUom = purchUom;
+              let displayUom = purchUom || (prod?.uom ?? "PCS");
               if (scriptCf > 1 && purchUom && prod) {
-                // Script ha diviso il prezzo per cf (conv_qty). Se pu == hkUom, la divisione
-                // era inutile (es. BOX→PCS per articolo che HK vende in BOX): rimoltiplicare.
-                // Se pu != hkUom (es. LCI02: pu=BOX, hkUom=PCS), la conversione era corretta
-                // e il prezzo è già nella giusta unità hkUom.
                 const hkUom: string = prod.uom || "PCS";
                 if (purchUom === hkUom) {
-                  convFactor = 1 / scriptCf;  // div(fp) = fp / (1/cf) = fp * cf → prezzo per pu
-                  displayUom = purchUom;
-                }
-                // pu != hkUom: nessuna conversione aggiuntiva, prezzo già in hkUom
-              } else if (scriptCf === 1 && purchUom && prod) {
-                const qpb = Number(prod.qtyPerBox) || 1;
-                const kpb = Number(prod.kgPerBox)  || 0;
-                const mtc = Number(prod.macToHkConv);
-                const hkUom: string = prod.uom || "PCS";
-                // kg per BOX reale: preferisce kgxplt/boxPerPallet (più affidabile di kgPerBox BC)
-                const kgplt = Number(prod.kgxplt) || 0;
-                const bplt  = Number(prod.boxPerPallet) || 0;
-                const kgActualPerBox = (kgplt > 0 && bplt > 0) ? kgplt / bplt : (kpb > 0 ? kpb : 0);
-                // kg per PCS (per conversioni KG↔PCS)
-                const kgPerPCS = kgActualPerBox > 0 && qpb > 0 ? kgActualPerBox / qpb : (kpb > 0 ? kpb / Math.max(qpb,1) : 0);
-                if (branch === "HK") {
-                  if (mtc > 1) {
-                    convFactor = mtc; displayUom = "PCS";     // MAC BOX → HK PCS
-                  } else if (purchUom === hkUom) {
-                    displayUom = hkUom;                        // stessa UoM → nessuna conversione
-                  } else if (purchUom === "KG" && hkUom === "BOX") {
-                    // KG → BOX: ×kgActualPerBox (div usa 1/kgActualPerBox)
-                    if (kgActualPerBox > 0 && Math.abs(kgActualPerBox - 1) > 0.001) { convFactor = 1/kgActualPerBox; }
-                    displayUom = "BOX";
-                  } else if (purchUom === "KG" && hkUom === "PCS") {
-                    // KG → PCS: ×kgPerPCS
-                    if (kgPerPCS > 0) { convFactor = 1/kgPerPCS; } displayUom = "PCS";
-                  } else if (purchUom === "BOX" && hkUom === "PCS") {
-                    // BOX → PCS: ÷qpb
-                    convFactor = qpb; displayUom = "PCS";
-                  } else if (purchUom === "PCS" && hkUom === "BOX") {
-                    // PCS → BOX: ×qpb (prezzo per PCS → per BOX)
-                    convFactor = 1/qpb; displayUom = "BOX";
-                  }
+                  // Script ha diviso inutilmente (pu già in hkUom): re-moltiplica
+                  convFactor = 1 / scriptCf;
+                  displayUom = hkUom;
                 } else {
-                  // CAN: stessa logica HK (senza macToHkConv)
-                  if (purchUom === hkUom) {
-                    displayUom = hkUom;
-                  } else if (purchUom === "KG" && hkUom === "BOX") {
-                    if (kgActualPerBox > 0 && Math.abs(kgActualPerBox - 1) > 0.001) { convFactor = 1/kgActualPerBox; }
-                    displayUom = "BOX";
-                  } else if (purchUom === "KG" && hkUom === "PCS") {
-                    // CAN: priorità NET weight — netWeightPcs > kgPerBox/qpb > kgxplt/bplt/qpb (lordo, fallback)
-                    const nwPcs = Number(prod.netWeightPcs) || 0;
-                    const kgPcs = nwPcs > 0 ? nwPcs
-                      : (kpb > 0 && qpb > 0 ? kpb / qpb
-                      : (kgActualPerBox > 0 && qpb > 0 ? kgActualPerBox / qpb : 0));
-                    if (kgPcs > 0) { convFactor = 1/kgPcs; } displayUom = "PCS";
-                  } else if (purchUom === "BOX" && hkUom === "PCS") {
-                    if (qpb > 1) { convFactor = qpb; } displayUom = "PCS";
-                  } else if (purchUom === "PCS" && hkUom === "BOX") {
-                    if (qpb > 1) { convFactor = 1/qpb; } displayUom = "BOX";
-                  }
+                  // prezzo già nella base UoM (hkUom) — mostra come hkUom
+                  displayUom = hkUom;
                 }
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
@@ -966,29 +919,9 @@ export default function App() {
           skipReason: cost2 ? undefined : "CALC=0", _fromMeatList:true };
       }
 
-      // Converti prezzo da Purchase UoM a Base UoM del prodotto (uguale a come fa la pagina Listini)
-      const uomConvFactor = (() => {
-        if (!isCAN_b) return 1; // HK/MAC: conversion già avviene in loadListini
-        const puom = (pr?.pu || "").toUpperCase();
-        const buom = (prod?.uom || "").toUpperCase();
-        if (!puom || !buom || puom === buom) return 1;
-        const nwPcs = Number(prod?.netWeightPcs)   || 0; // Peso Netto PCS (kg/pz) — priorità massima
-        const kpb   = Number(prod?.kgPerBox)      || 0;
-        const qpb   = Number(prod?.qtyPerBox)      || 1;
-        const kgplt = Number(prod?.kgxplt)         || 0;
-        const bplt  = Number(prod?.boxPerPallet)   || 0;
-        // Priorità: Peso Netto PCS > Peso Netto BOX/qpb > Kg x PLT/box/qpb (lordo, fallback)
-        const kgPcs = nwPcs > 0 ? nwPcs
-          : kpb > 0 && qpb > 0 ? kpb / qpb
-          : (kgplt > 0 && bplt > 0 ? kgplt / bplt / qpb : 0);
-        const kgBox = kpb > 0 ? kpb : ((kgplt > 0 && bplt > 0) ? kgplt / bplt : 0);
-        if (puom === "KG"  && buom === "PCS") return kgPcs > 0 ? kgPcs : 1;
-        if (puom === "KG"  && buom === "BOX") return kgBox > 0 ? kgBox : 1;
-        if (puom === "BOX" && buom === "PCS") return qpb > 0 ? 1 / qpb : 1;
-        if (puom === "PCS" && buom === "BOX") return qpb > 0 ? qpb : 1;
-        if (puom === "PCS" && buom === "KG")  return kgPcs > 0 ? 1 / kgPcs : 1;
-        return 1;
-      })();
+      // La conversione UoM è già gestita dallo script (cf > 1) — stessa logica di PBI (fatt_conv).
+      // Nessuna conversione aggiuntiva nell'app: il prezzo in bcListiniEnriched è già nella base UoM.
+      const uomConvFactor = 1;
       // Per HK MTO: se dapFinal=0 ma fcaDiscounted>0, aggiungi carriage da work tab
       const enrichPriceWithCarriage = (p: any) => {
         if(!p || isCAN_b) return selectPrice(p, ub);
