@@ -294,18 +294,24 @@ def build_purchase_prices(token, uom_conv=None):
         all_codes.add(code)
         sd_r     = str(r.get("startingdate") or "")
         ed       = str(r.get("endingdate") or "")
-        # PowerBI usa directunitcost (dir_unit_cost_conv = directunitcost / fatt_conv)
+        # PowerBI usa directunitcost / fatt_conv (= qtyperunitofmeasure sulla riga)
         price    = float(r.get("directunitcost") or 0)
         # Anche sconto acquisto (spurc in PowerBI = totlinediscountperc da Purchase)
         disc_purch = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
         conv_qty = 1  # fattore conversione applicato (!=1 = prezzo già in base UoM)
         if price and puom and puom not in ("PCS", "", " "):
-            qty = (uom_conv.get(code) or {}).get(puom) if uom_conv else None
-            # Fallback: codice senza suffisso lingua (es. LVC11-ES → LVC11) per articoli CAN
-            base_code = code.rsplit("-", 1)[0] if "-" in code else code
-            if qty is None and base_code != code and uom_conv:
-                qty = (uom_conv.get(base_code) or {}).get(puom)
+            # 1) Priorità: qtyperunitofmeasure direttamente sulla price line (come fa PBI)
+            qty_line = float(r.get("qtyperunitofmeasure") or 0)
+            qty = qty_line if qty_line > 0 else None
+            # 2) Fallback: tabella IFB_Item_Unit_of_Measure
+            if qty is None:
+                qty = (uom_conv.get(code) or {}).get(puom) if uom_conv else None
+            # 3) Fallback: codice senza suffisso lingua (es. LVC11-ES → LVC11)
+            if qty is None:
+                base_code = code.rsplit("-", 1)[0] if "-" in code else code
+                if base_code != code and uom_conv:
+                    qty = (uom_conv.get(base_code) or {}).get(puom)
             # Converti anche qty<1: es. KG→BOX quando base=BOX (qty[KG]=0.1 → price/0.1=×10)
             if qty and round(qty, 8) != 1.0:
                 price = price / qty
