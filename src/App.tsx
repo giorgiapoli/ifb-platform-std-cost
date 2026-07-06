@@ -684,7 +684,18 @@ export default function App() {
               // div(p) = p / convFactor  →  convFactor < 1 moltiplica, convFactor > 1 divide
               let convFactor = 1;
               let displayUom = purchUom;
-              if (scriptCf === 1 && purchUom && prod) {
+              if (scriptCf > 1 && purchUom && prod) {
+                // Script ha diviso il prezzo per cf (conv_qty). Se pu == hkUom, la divisione
+                // era inutile (es. BOX→PCS per articolo che HK vende in BOX): rimoltiplicare.
+                // Se pu != hkUom (es. LCI02: pu=BOX, hkUom=PCS), la conversione era corretta
+                // e il prezzo è già nella giusta unità hkUom.
+                const hkUom: string = prod.uom || "PCS";
+                if (purchUom === hkUom) {
+                  convFactor = 1 / scriptCf;  // div(fp) = fp / (1/cf) = fp * cf → prezzo per pu
+                  displayUom = purchUom;
+                }
+                // pu != hkUom: nessuna conversione aggiuntiva, prezzo già in hkUom
+              } else if (scriptCf === 1 && purchUom && prod) {
                 const qpb = Number(prod.qtyPerBox) || 1;
                 const kpb = Number(prod.kgPerBox)  || 0;
                 const mtc = Number(prod.macToHkConv);
