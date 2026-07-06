@@ -310,6 +310,8 @@ def build_purchase_prices(token, uom_conv=None):
         if price and puom:
             # 1) Priorità: qtyperunitofmeasure direttamente sulla price line (come fa PBI)
             qty_line = float(r.get("qtyperunitofmeasure") or 0)
+            if code in ("LVC10", "LVC15", "LVC01", "LVC02"):
+                print(f"    DEBUG {code}: price={price}, puom={puom}, qty_line={qty_line}, all_keys={list(r.keys())[:20]}")
             qty = qty_line if qty_line > 0 else None
             # 2) Fallback: tabella IFB_Item_Unit_of_Measure
             if qty is None:
