@@ -293,6 +293,7 @@ def build_purchase_prices(token, uom_conv=None):
     print(f"    {len(rows)} righe totali acquisto")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
+    DEBUG_CODES = {"LVC10", "LVC15", "LVC01"}
     for r in rows:
         code = str(r.get("assetno") or "").strip()
         if not code:
@@ -300,6 +301,8 @@ def build_purchase_prices(token, uom_conv=None):
         all_codes.add(code)
         sd_r     = str(r.get("startingdate") or "")
         ed       = str(r.get("endingdate") or "")
+        if code in DEBUG_CODES:
+            print(f"    DEBUG {code}: unitofmeasurecode={r.get('unitofmeasurecode')}, directunitcost={r.get('directunitcost')}, qtyperunitofmeasure={r.get('qtyperunitofmeasure')}, shipmentmethodcode={r.get('shipmentmethodcode')}, startingdate={sd_r}, endingdate={ed}")
         # PowerBI usa directunitcost / fatt_conv (= qtyperunitofmeasure sulla riga)
         price    = float(r.get("directunitcost") or 0)
         # Anche sconto acquisto (spurc in PowerBI = totlinediscountperc da Purchase)
