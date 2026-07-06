@@ -269,12 +269,6 @@ def build_uom_conversions(token):
     return conv
 
 
-# Override manuale per articoli non presenti in IFB_Item_Unit_of_Measure BC
-# Chiave: codice base (senza suffisso lingua), valore: {UOM_acquisto: qty_per_base}
-UOM_CONV_OVERRIDES = {
-    "LVC11": {"KG": 8},   # Burrata 125g: 8 PCS per KG netto (Fatt_Conv=8 da PowerBI)
-}
-
 def build_purchase_prices(token, uom_conv=None):
     """
     Listini acquisto fornitore (pricetype=Purchase, Active).
@@ -312,11 +306,6 @@ def build_purchase_prices(token, uom_conv=None):
             base_code = code.rsplit("-", 1)[0] if "-" in code else code
             if qty is None and base_code != code and uom_conv:
                 qty = (uom_conv.get(base_code) or {}).get(puom)
-            # Override manuale per articoli non in IFB_Item_Unit_of_Measure
-            if qty is None:
-                qty = (UOM_CONV_OVERRIDES.get(code) or UOM_CONV_OVERRIDES.get(base_code) or {}).get(puom)
-                if qty:
-                    print(f"    UOM override applicato: {code} ({puom} /÷{qty})")
             # Converti anche qty<1: es. KG→BOX quando base=BOX (qty[KG]=0.1 → price/0.1=×10)
             if qty and round(qty, 8) != 1.0:
                 price = price / qty
