@@ -128,6 +128,9 @@ def build_item_card_data(token):
     """Fetch dati articolo: fornitore, temperatura, pz/box, box/pallet."""
     print("  Fetch Item Card data (fornitore, temp, uom)...")
     rows = bc_fetch_all(token, "Item_Card_Excel")
+    if rows:
+        uom_keys = [k for k in rows[0].keys() if "unit" in k.lower() or "uom" in k.lower() or "measure" in k.lower()]
+        print(f"    Campi UoM disponibili in Item_Card_Excel: {uom_keys}")
     result = {}
     for r in rows:
         ifb_code = str(r.get("AltIFBIFB_Item") or "").strip()
@@ -148,9 +151,10 @@ def build_item_card_data(token):
             "sectionDescription": sec_raw,
             "qtyPerBox":         float(r.get("AltIFBQuantity_x_Packaging") or 0),
             "boxPerPallet":      float(r.get("AltIFBPackaging_x_Pallet") or 0),
+            "uom":               str(r.get("Base_Unit_of_Measure") or r.get("base_unit_of_measure") or "").strip().upper(),
         }
-    # Debug: verifica DLZ08 e 006007
-    for test_key in ("DLZ08", "006007"):
+    # Debug: verifica DLZ08, 006007, TQB24 (per controllo uom campo)
+    for test_key in ("DLZ08", "006007", "TQB24", "GCTQ-1034"):
         if test_key in result:
             print(f"    Item card ({test_key}): {result[test_key]}")
     print(f"    {len(result)} articoli con dati card")
@@ -505,6 +509,14 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
             or dap_sale.get("enddate") or "")
 
     puom = pur.get("puom", "") if pur else ""
+    # Se puom="PCS" ma l'item card dice che l'UoM base è diversa (es. BOX),
+    # BC usa "PCS" per indicare "per unità commerciale" (es. per set regalo = per BOX).
+    # In quel caso allineiamo puom all'UoM base dell'articolo così l'app non applica conversioni errate.
+    if puom == "PCS" and item_card:
+        ic = item_card.get(code, {})
+        ic_uom = str(ic.get("uom") or "").strip().upper()
+        if ic_uom and ic_uom != "PCS":
+            puom = ic_uom
     # cf = conversion factor già applicato dallo script (>1 = prezzo in base UoM, app NON deve riconvertire)
     cf = pur.get("FCA", {}).get("conv_qty", 1) if pur else 1
     return {
