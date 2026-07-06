@@ -275,6 +275,12 @@ UOM_CONV_OVERRIDES = {
     "LVC11": {"KG": 8},   # Burrata 125g: 8 PCS per KG netto (Fatt_Conv=8 da PowerBI)
 }
 
+# Override manuale carriage (€/base UoM) per articoli il cui DAP BC non viene letto correttamente
+# Chiave: IFB code, valore: carriage in base UoM (stesso UoM del prezzo FCA nel listino)
+CARRIAGE_OVERRIDES = {
+    "DON03": 0.070,  # Arborio Rice 1Kg BOX: carriage = (16.82-16.12)/10 KG/BOX = 0.07 EUR/KG
+}
+
 
 def build_purchase_prices(token, uom_conv=None):
     """
@@ -481,10 +487,15 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
             mts_price = fca_price  # MARR: MTS = FCA se non esplicitamente definito
     # Se DAP=0 e FCA>0 (e non MARR): calcola DAP con carriage
     # Tutti i valori carriage sono in IFB base UoM (PCS/KG): l'app moltiplica per convFactor per display.
-    # Priorità: 1) vendor HK con plt cost (Work_Tab), 2) ISS carriagecost (formula PBI)
+    # Priorità: 0) override manuale, 1) vendor HK con plt cost (Work_Tab), 2) ISS carriagecost (formula PBI)
     elif dap_price == 0 and fca_price > 0:
+        co = CARRIAGE_OVERRIDES.get(code, 0)
+        if co > 0:
+            carriage  = round(co, 6)
+            dap_price = round(fca_price + carriage, 6)
+            print(f"    Carriage override applicato: {code} (carriage={carriage})")
         vc = float((vendor_carriage_map or {}).get(code, 0))
-        if vc > 0:
+        if vc > 0 and not co:
             carriage  = round(vc, 6)
             dap_price = round(fca_price + carriage, 6)
         else:
