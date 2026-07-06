@@ -658,8 +658,9 @@ export default function App() {
       }
       // 2) Fetch JSON aggiornato da GitHub
       try {
-        let resp = await fetch(`${base}data/ifb_listini_${branch}.json?t=${Date.now()}`);
-        if(!resp.ok) resp = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`);
+        const nc = {cache:"no-store"} as RequestInit;
+        let resp = await fetch(`${base}data/ifb_listini_${branch}.json?t=${Date.now()}`, nc);
+        if(!resp.ok) resp = await fetch(`${base}data/ifb_listini.json?t=${Date.now()}`, nc);
         if(resp.ok) {
           const raw = await resp.json();
           const all = Array.isArray(raw) ? raw.filter((r:any) => (r.b || r.Branch) === branch) : [];
