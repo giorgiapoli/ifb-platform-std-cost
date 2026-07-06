@@ -614,14 +614,29 @@ if __name__ == "__main__":
                 iss = iss_prices[code]
                 fca_raw = iss.get("fca") or 0
                 dap_raw = iss.get("dap") or 0
-                # ISS standardcostbranch è per purchase UoM (BOX): dividi per qtyPerBox
-                # (identico a come il listino acquisto BC divide per qtyperunitofmeasure)
-                hk_it   = hk_items_by_code.get(code, {})
-                it_uom  = str(hk_it.get("uom") or "PCS").upper()
-                qpb     = float(hk_it.get("qtyPerBox") or 0)
-                conv_qty = qpb if qpb > 1 and it_uom != "KG" else 1
-                fca = round(fca_raw / conv_qty, 6) if conv_qty > 1 else fca_raw
-                dap = round(dap_raw / conv_qty, 6) if conv_qty > 1 and dap_raw > 0 else dap_raw
+                # ISS standardcostbranch è per BC base UoM: converti in prezzo per HK display UoM
+                # Identico alla logica PBI: directunitcost / fatt_conv (tabella UoM)
+                hk_it  = hk_items_by_code.get(code, {})
+                it_uom = str(hk_it.get("uom") or "PCS").upper()
+                qpb    = float(hk_it.get("qtyPerBox") or 0)
+                kgpb   = float(hk_it.get("kgPerBox")  or 0)
+                bc_uom = str((item_card.get(code) or {}).get("uom") or "").upper()
+                # Caso 1: base BC = KG (articoli leggeri <1kg/pz, es. mozzarelle 125g)
+                #   ISS in EUR/KG; kgPerBox per questi item = kg per pezzo
+                #   Conversione: EUR/KG × kg/pz = EUR/pz
+                if (bc_uom == "KG" or (bc_uom == "" and 0 < kgpb < 1)) and 0 < kgpb < 1:
+                    conv_qty = round(1 / kgpb)
+                    fca = round(fca_raw * kgpb, 6)
+                    dap = round(dap_raw * kgpb, 6) if dap_raw > 0 else dap_raw
+                # Caso 2: ISS per BOX/confezione (N pezzi) → divide per qtyPerBox
+                elif qpb > 1:
+                    conv_qty = qpb
+                    fca = round(fca_raw / qpb, 6)
+                    dap = round(dap_raw / qpb, 6) if dap_raw > 0 else dap_raw
+                else:
+                    conv_qty = 1
+                    fca = fca_raw
+                    dap = dap_raw
                 entry = {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": "", "puom": "PCS"}
                 if fca > 0:
                     entry["FCA"] = {"price": fca, "_open": True, "_expired": False, "conv_qty": conv_qty}
