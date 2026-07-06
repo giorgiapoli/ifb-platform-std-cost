@@ -650,9 +650,11 @@ export default function App() {
     if(!branch || !["HK","CAN","MAC"].includes(branch)) return;
     const IDB_KEY = `ifb_listini_entries_${branch}`;
     const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+    // Pulisce subito i dati del branch precedente per evitare di mostrare dati sbagliati
+    setBcListini([]);
     (async()=>{
-      // 1) Carica subito da IDB (cache locale)
-      const cached: any[] = await IDB.get(IDB_KEY, []);
+      // 1) Carica subito da IDB (cache locale) — solo se i dati appartengono al branch corrente
+      const cached: any[] = (await IDB.get(IDB_KEY, []) as any[]).filter((e:any) => !e.branch || e.branch === branch);
       if(cached.length > 0) {
         startTransition(() => { setBcListini(cached); setDataSource(`listini_${branch}`, "bc"); });
       }
@@ -771,10 +773,10 @@ export default function App() {
                 mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
               });
             });
-            // Dedup per productId: se stesso prodotto appare con N COMIT e IFB code, tieni quello con sconto migliore
+            // Dedup per productId+branch: se stesso prodotto appare con N COMIT e IFB code, tieni quello con sconto migliore
             const dedupMap = new Map<string, any>();
             newEntries.forEach(e => {
-              const key = String(e.productId);
+              const key = `${e.branch || branch}_${e.productId}`;
               const prev = dedupMap.get(key);
               if (!prev) { dedupMap.set(key, e); return; }
               const eDisc  = (e.fcaDiscounted||0) < (e.fcaPrice||0) ? e : null;
