@@ -247,9 +247,12 @@ def build_uom_conversions(token):
         print(f"    Esempio prima riga: {sample}")
     conv = {}
     for r in rows:
-        # Prova tutti i possibili nomi campo per item code
-        item = str(r.get("itemno") or r.get("Item_No") or r.get("item_no") or
-                   r.get("No_") or r.get("assetno") or "").strip()
+        # Chiave primaria: BC item number (itemno / Item_No / No_)
+        item_bc = str(r.get("itemno") or r.get("Item_No") or r.get("item_no") or
+                      r.get("No_") or r.get("assetno") or "").strip()
+        # Chiave alternativa: IFB alias (AltIFBIFB_Item o campi analoghi) — usato da PBI
+        item_ifb = str(r.get("AltIFBIFB_Item") or r.get("altifbifb_item") or
+                       r.get("IFB_Item") or r.get("ifbitem") or "").strip()
         # Prova tutti i possibili nomi campo per uom code
         code = str(r.get("code") or r.get("Code") or r.get("uomcode") or
                    r.get("UoM") or "").strip().upper()
@@ -257,10 +260,16 @@ def build_uom_conversions(token):
         qty_raw = (r.get("qtyperunitofmeasure") or r.get("QtyPerUnitOfMeasure") or
                    r.get("qty_per_unit_of_measure") or r.get("Qty") or 1)
         qty = float(qty_raw)
-        if item and code:
-            conv.setdefault(item, {})[code] = qty
-    # Debug: verifica conversioni per articoli chiave
-    for test_code in ["HA7021-IB", "Z3774", "BD0501", "CF0051-IFA", "PLP32", "TMSO-2001", "LVC11-ES", "LVC11"]:
+        if code:
+            if item_bc:
+                conv.setdefault(item_bc, {})[code] = qty
+            if item_ifb and item_ifb != item_bc:
+                # Indice aggiuntivo per IFB alias: PBI usa questo per fare il join direttamente
+                conv.setdefault(item_ifb, {})[code] = qty
+    # Debug: verifica conversioni per articoli chiave (+ problematici LVC/AGG)
+    for test_code in ["HA7021-IB", "Z3774", "LVC11-ES", "LVC11",
+                      "LVC09", "LVC24", "LVC29", "LVC33", "LVC37", "CCF06",
+                      "AGG27", "AGG33", "AGG34"]:
         if test_code in conv:
             print(f"    {test_code}: {conv[test_code]}")
         else:
