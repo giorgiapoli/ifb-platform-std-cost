@@ -689,17 +689,17 @@ export default function App() {
               //   cf == 1 → script non ha applicato conversioni (fatt_conv=1 in PBI).
               //             Il prezzo è già corretto nell'unità pu: nessuna conversione aggiuntiva.
               let convFactor = 1;
-              let displayUom = purchUom || (prod?.uom ?? "PCS");
+              const hkUom: string = prod?.uom || "PCS";
+              let displayUom: string;
               if (scriptCf > 1 && purchUom && prod) {
-                const hkUom: string = prod.uom || "PCS";
                 if (purchUom === hkUom) {
                   // Script ha diviso inutilmente (pu già in hkUom): re-moltiplica
                   convFactor = 1 / scriptCf;
-                  displayUom = hkUom;
-                } else {
-                  // prezzo già nella base UoM (hkUom) — mostra come hkUom
-                  displayUom = hkUom;
                 }
+                displayUom = hkUom; // prezzo già nella base UoM
+              } else {
+                // cf=1: nessuna conversione. Se pu='PCS', BC intende "per unità HK" → usa hkUom come label
+                displayUom = (purchUom === "PCS" || !purchUom) ? hkUom : purchUom;
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
               newEntries.push({
