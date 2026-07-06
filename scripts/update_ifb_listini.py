@@ -275,13 +275,6 @@ UOM_CONV_OVERRIDES = {
     "LVC11": {"KG": 8},   # Burrata 125g: 8 PCS per KG netto (Fatt_Conv=8 da PowerBI)
 }
 
-# Override manuale carriage (€/base UoM) per articoli il cui DAP BC non viene letto correttamente
-# Chiave: IFB code, valore: carriage in base UoM (stesso UoM del prezzo FCA nel listino)
-CARRIAGE_OVERRIDES = {
-    "DON03": 0.070,  # Arborio Rice 1Kg BOX: carriage = (16.82-16.12)/10 KG/BOX = 0.07 EUR/KG
-}
-
-
 def build_purchase_prices(token, uom_conv=None):
     """
     Listini acquisto fornitore (pricetype=Purchase, Active).
@@ -290,9 +283,11 @@ def build_purchase_prices(token, uom_conv=None):
         prezzo: preferisce record aperti (no end date, start<=oggi), poi non-scaduti, poi il più recente
       - all_codes: TUTTI i codici nel listino acquisto (anche solo con record scaduti)
     """
-    # Filtro: status=Active + DAP/FCA/MTS/EXW (tutti i tipi di spedizione)
-    print("  Fetch listini acquisto (status=Active, DAP/FCA/MTS, pricetype=Purchase)...")
-    rows = fetch_price_lines(token, "status eq 'Active' and (shipmentmethodcode eq 'DAP' or shipmentmethodcode eq 'FCA' or shipmentmethodcode eq 'MTS' or shipmentmethodcode eq 'EXW')")
+    # Filtro: solo status=Active + pricetype=Purchase.
+    # Il shipmentmethodcode NON viene filtrato qui: classify_ship() mappa tutti i codici
+    # non standard (DRY SEA, +18°C SEA, CH AIR, FR SEA, ecc.) a "FCA" automaticamente.
+    print("  Fetch listini acquisto (status=Active, tutti i metodi spedizione, pricetype=Purchase)...")
+    rows = fetch_price_lines(token, "status eq 'Active'")
     rows = [r for r in rows if str(r.get("pricetype") or "").strip().lower() == "purchase"]
     print(f"    {len(rows)} righe purchase dopo filtro pricetype")
     print(f"    {len(rows)} righe totali acquisto")
@@ -487,15 +482,10 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
             mts_price = fca_price  # MARR: MTS = FCA se non esplicitamente definito
     # Se DAP=0 e FCA>0 (e non MARR): calcola DAP con carriage
     # Tutti i valori carriage sono in IFB base UoM (PCS/KG): l'app moltiplica per convFactor per display.
-    # Priorità: 0) override manuale, 1) vendor HK con plt cost (Work_Tab), 2) ISS carriagecost (formula PBI)
+    # Priorità: 1) vendor HK con plt cost (Work_Tab), 2) ISS carriagecost (formula PBI)
     elif dap_price == 0 and fca_price > 0:
-        co = CARRIAGE_OVERRIDES.get(code, 0)
-        if co > 0:
-            carriage  = round(co, 6)
-            dap_price = round(fca_price + carriage, 6)
-            print(f"    Carriage override applicato: {code} (carriage={carriage})")
         vc = float((vendor_carriage_map or {}).get(code, 0))
-        if vc > 0 and not co:
+        if vc > 0:
             carriage  = round(vc, 6)
             dap_price = round(fca_price + carriage, 6)
         else:
