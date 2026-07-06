@@ -5962,7 +5962,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         description: cr?.description || inv.description || "",
         oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
         skipReason: cr?.skipReason || "",
-        lastDate: scEntry?.lastPurchaseDate || "",
+        lastDate: scEntry?.lastPurchaseDate || inv.date || inv.postingDate || "",
         stockQty: scEntry?.stockQty ?? "",
         isKeepOld,
         isNuovo,
@@ -5976,7 +5976,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const alert1 = analysisRows.filter(r=>r.isNuovo);          // NUOVI ARTICOLI: newSC calcolato, oldSC assente
   const alert2 = analysisRows.filter(r=>r.isDelta);          // TO UPDATE Δ%
   const alert3 = analysisRows.filter(r=>r.isKeepOldOrdered && !r.isNuovo);
-  const alert4 = analysisRows.filter(r=>r.noCalc);           // DA INSERIRE: sia newSC che oldSC mancanti
+  const alert4 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld); // DA INSERIRE: mancanti ma NON keep old
 
   function exportExcel() {
     const branchCode = isCAN?"COMIT":"HK";
@@ -6090,7 +6090,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
 
         {/* ALERT 4 — DA INSERIRE (entrambi mancanti) */}
         <Section title={`❌ 2. DA INSERIRE — SC mancante e non calcolabile (${alert4.length})`} accent={T.red}>
-          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Né New SC né SC BC/NAV presenti — mancano listino o logistica per poter calcolare.</div>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Né New SC né SC BC/NAV presenti — mancano listino o logistica. Esclusi articoli KEEP OLD (ultimo ordine &gt;6 mesi fa).</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
               <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Skip Reason"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
