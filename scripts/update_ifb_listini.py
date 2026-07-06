@@ -310,8 +310,6 @@ def build_purchase_prices(token, uom_conv=None):
         if price and puom:
             # 1) Priorità: qtyperunitofmeasure direttamente sulla price line (come fa PBI)
             qty_line = float(r.get("qtyperunitofmeasure") or 0)
-            if code in ("LVC10", "LVC15", "LVC01", "LVC02"):
-                print(f"    DEBUG {code}: price={price}, puom={puom}, qty_line={qty_line}, all_keys={list(r.keys())[:20]}")
             qty = qty_line if qty_line > 0 else None
             # 2) Fallback: tabella IFB_Item_Unit_of_Measure
             if qty is None:
@@ -578,6 +576,7 @@ if __name__ == "__main__":
         hk_data_path = Path(__file__).parent.parent / "docs" / "data" / "hk_anagrafica.json"
         hk_items = json.loads(hk_data_path.read_text(encoding="utf-8"))
         hk_codes = {str(item.get("code") or "").strip() for item in hk_items if item.get("code")}
+        hk_items_by_code = {str(it.get("code") or "").strip(): it for it in hk_items if it.get("code")}
         # Vendor carriage: per ogni articolo HK il cui fornitore è nel Work_Tab (vendorName o vendorName2)
         # carriage_unit = plt_cost_fornitore / units_per_plt (calcolato da hk_anagrafica UoM)
         # Si applica a TUTTI gli articoli del fornitore, anche futuri non presenti nel Work_Tab
@@ -613,11 +612,19 @@ if __name__ == "__main__":
         for code in missing_hk:
             if code in iss_prices:
                 iss = iss_prices[code]
-                fca = iss.get("fca") or 0
-                dap = iss.get("dap") or 0
+                fca_raw = iss.get("fca") or 0
+                dap_raw = iss.get("dap") or 0
+                # ISS standardcostbranch è per purchase UoM (BOX): dividi per qtyPerBox
+                # (identico a come il listino acquisto BC divide per qtyperunitofmeasure)
+                hk_it   = hk_items_by_code.get(code, {})
+                it_uom  = str(hk_it.get("uom") or "PCS").upper()
+                qpb     = float(hk_it.get("qtyPerBox") or 0)
+                conv_qty = qpb if qpb > 1 and it_uom != "KG" else 1
+                fca = round(fca_raw / conv_qty, 6) if conv_qty > 1 else fca_raw
+                dap = round(dap_raw / conv_qty, 6) if conv_qty > 1 and dap_raw > 0 else dap_raw
                 entry = {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": "", "puom": "PCS"}
                 if fca > 0:
-                    entry["FCA"] = {"price": fca, "_open": True, "_expired": False}
+                    entry["FCA"] = {"price": fca, "_open": True, "_expired": False, "conv_qty": conv_qty}
                 if dap > 0:
                     entry["DAP"] = {"price": dap, "_open": True, "_expired": False}
                 purch[code] = entry
