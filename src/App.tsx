@@ -3096,10 +3096,24 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
       const xl = xlByProductId[pid];
       const bc = bcByProductId[pid];
       const prod = products.find((p: any) => String(p.id) === pid);
+
+      // Converti prezzi BC da Purchase UoM a Base UoM (stessa logica della pagina Listini)
+      const puom    = bc?.pu || "";
+      const baseUom = prod?.uom || "";
+      const qpb = Number(prod?.qtyPerBox) || 1;
+      const kpb = Number(prod?.kgPerBox)  || 0;
+      let bcConv = 1;
+      if (puom && baseUom && puom !== baseUom) {
+        if      (puom === "BOX" && baseUom === "PCS") bcConv = 1 / qpb;
+        else if (puom === "BOX" && baseUom === "KG")  bcConv = 1 / (kpb || 1);
+        else if (puom === "KG"  && baseUom === "PCS") bcConv = kpb > 0 ? kpb : 1;
+        else if (puom === "PCS" && baseUom === "KG")  bcConv = kpb > 0 ? kpb : 1;
+      }
+
       const diffs: { field: string; label: string; bc: number; xl: number; delta: number; reason: string }[] = [];
 
       FIELDS.forEach(f => {
-        const bcVal = Number(bc?.[f.bc] || 0);
+        const bcVal = Number(bc?.[f.bc] || 0) * bcConv;
         const xlVal = Number(xl?.[f.xl] || 0);
         const delta = xlVal - bcVal;
         if (bcVal === 0 && xlVal === 0) return;
