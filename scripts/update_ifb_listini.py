@@ -293,7 +293,6 @@ def build_purchase_prices(token, uom_conv=None):
     print(f"    {len(rows)} righe totali acquisto")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
-    DEBUG_CODES = {"LVC10", "LVC15", "LVC01"}
     for r in rows:
         code = str(r.get("assetno") or "").strip()
         if not code:
@@ -301,8 +300,6 @@ def build_purchase_prices(token, uom_conv=None):
         all_codes.add(code)
         sd_r     = str(r.get("startingdate") or "")
         ed       = str(r.get("endingdate") or "")
-        if code in DEBUG_CODES:
-            print(f"    DEBUG {code}: unitofmeasurecode={r.get('unitofmeasurecode')}, directunitcost={r.get('directunitcost')}, qtyperunitofmeasure={r.get('qtyperunitofmeasure')}, shipmentmethodcode={r.get('shipmentmethodcode')}, startingdate={sd_r}, endingdate={ed}")
         # PowerBI usa directunitcost / fatt_conv (= qtyperunitofmeasure sulla riga)
         price    = float(r.get("directunitcost") or 0)
         # Anche sconto acquisto (spurc in PowerBI = totlinediscountperc da Purchase)
@@ -632,14 +629,11 @@ if __name__ == "__main__":
                 # ISS standardcostbranch è per BC base UoM: converti in prezzo per HK display UoM
                 # Identico alla logica PBI: directunitcost / fatt_conv (tabella UoM)
                 hk_it  = hk_items_by_code.get(code, {})
-                it_uom = str(hk_it.get("uom") or "PCS").upper()
                 qpb    = float(hk_it.get("qtyPerBox") or 0)
                 kgpb   = float(hk_it.get("kgPerBox")  or 0)
-                bc_uom = str((item_card.get(code) or {}).get("uom") or "").upper()
-                # Caso 1: base BC = KG (articoli leggeri <1kg/pz, es. mozzarelle 125g)
-                #   ISS in EUR/KG; kgPerBox per questi item = kg per pezzo
-                #   Conversione: EUR/KG × kg/pz = EUR/pz
-                if (bc_uom == "KG" or (bc_uom == "" and 0 < kgpb < 1)) and 0 < kgpb < 1:
+                # Caso 1: articolo leggero (<1 kg per pezzo, es. mozzarelle 125g)
+                #   ISS standardcostbranch in EUR/KG → converti in EUR/PCS × kgPerBox
+                if 0 < kgpb < 1:
                     conv_qty = round(1 / kgpb)
                     fca = round(fca_raw * kgpb, 6)
                     dap = round(dap_raw * kgpb, 6) if dap_raw > 0 else dap_raw
