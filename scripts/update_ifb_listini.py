@@ -343,9 +343,9 @@ def build_purchase_prices(token, uom_conv=None):
     print(f"    {len(all_raw)} righe purchase Active totali")
     rows = [r for r in all_raw
             if str(r.get("amounttype") or "").strip() in {"Price", "Price & Discount"}
-            and str(r.get("shipmentmethodcode") or "").strip().upper() in {"FCA", "DAP", ""}
+            and str(r.get("shipmentmethodcode") or "").strip().upper() in {"FCA", "DAP", "MTS", "EXW", ""}
             and float(r.get("minimumquantity") or 0) <= 1]
-    print(f"    {len(rows)} righe purchase Active, FCA/DAP/blank, minqty<=1")
+    print(f"    {len(rows)} righe purchase Active, FCA/DAP/MTS/EXW/blank, minqty<=1")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
     for r in rows:
