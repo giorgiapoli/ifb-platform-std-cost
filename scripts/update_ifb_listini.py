@@ -305,20 +305,25 @@ def build_purchase_prices(token, uom_conv=None):
         prezzo: preferisce record aperti (no end date, start<=oggi), poi non-scaduti, poi il più recente
       - all_codes: TUTTI i codici nel listino acquisto (anche solo con record scaduti)
     """
-    # Filtro: pricetype=Purchase, tutti gli status (come PBI che non filtra per status).
-    # PBI DAX non ha filtro su status: include Draft, In Development, Active ecc.
-    # amounttype deve essere "Price" o "Price & Discount" (esclude righe solo-sconto).
-    # Il shipmentmethodcode NON viene filtrato qui: classify_ship() mappa tutti i codici.
-    print("  Fetch listini acquisto (tutti gli status, pricetype=Purchase)...")
-    rows = fetch_price_lines(token, None)  # nessun filtro status, come PBI
+    # Filtri identici a Power Query PBI:
+    #   status = "Active"  (PBI filtra esplicitamente in Power Query)
+    #   shipmentmethodcode in {"DAP", "FCA"}  (PBI esclude MTS e altri)
+    #   minimumquantity <= 1  (PBI esclude righe con qt minima > 1)
+    #   pricetype = "Purchase"
+    #   amounttype in {"Price", "Price & Discount"} (filtro DAX in PBI)
+    print("  Fetch listini acquisto (status=Active, FCA/DAP, minqty<=1)...")
+    rows = fetch_price_lines(token, "status eq 'Active'")
     rows = [r for r in rows
             if str(r.get("pricetype") or "").strip().lower() == "purchase"
-            and str(r.get("amounttype") or "").strip() in {"Price", "Price & Discount"}]
-    print(f"    {len(rows)} righe purchase con amounttype Price/Price&Discount")
+            and str(r.get("amounttype") or "").strip() in {"Price", "Price & Discount"}
+            and str(r.get("shipmentmethodcode") or "").strip().upper() in {"FCA", "DAP"}
+            and float(r.get("minimumquantity") or 0) <= 1]
+    print(f"    {len(rows)} righe purchase Active, FCA/DAP, minqty<=1")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
     for r in rows:
-        code = str(r.get("assetno") or "").strip()
+        # PBI usa productno come Item No_ (codice IFB): preferisci productno, fallback assetno
+        code = str(r.get("productno") or r.get("assetno") or "").strip()
         if not code:
             continue
         all_codes.add(code)
@@ -330,14 +335,15 @@ def build_purchase_prices(token, uom_conv=None):
         disc_purch = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
         conv_qty = 1  # fattore conversione applicato (!=1 = prezzo già in base UoM)
-        # PBI divide sempre per qtyperunitofmeasure (fatt_conv), anche quando puom='PCS'
+        # PBI usa IFB_Item_Unit_of_Measure (via chiave join) per ottenere fatt_conv.
+        # Non usa qtyperunitofmeasure dalla riga listino (campo non selezionato in Power Query).
         if price and puom:
-            # 1) Priorità: qtyperunitofmeasure direttamente sulla price line (come fa PBI)
-            qty_line = float(r.get("qtyperunitofmeasure") or 0)
-            qty = qty_line if qty_line > 0 else None
-            # 2) Fallback: tabella IFB_Item_Unit_of_Measure
+            # 1) Tabella IFB_Item_Unit_of_Measure (come PBI via chiave = productno & unitofmeasurecode)
+            qty = (uom_conv.get(code) or {}).get(puom) if uom_conv else None
+            # 2) Fallback: qtyperunitofmeasure dalla riga (se disponibile)
             if qty is None:
-                qty = (uom_conv.get(code) or {}).get(puom) if uom_conv else None
+                qty_line = float(r.get("qtyperunitofmeasure") or 0)
+                qty = qty_line if qty_line > 0 else None
             # 3) Fallback: codice senza suffisso lingua (es. LVC11-ES → LVC11)
             if qty is None:
                 base_code = code.rsplit("-", 1)[0] if "-" in code else code
