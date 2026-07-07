@@ -314,24 +314,30 @@ def build_purchase_prices(token, uom_conv=None):
     # NOTA: in BC alcune righe hanno shipmentmethodcode vuoto ma sono effettivamente FCA;
     # PBI le vede come "FCA" perché BC le normalizza prima dell'export OData.
     # Includiamo il blank per sicurezza; classify_ship("") → "FCA" comunque.
-    print("  Fetch listini acquisto (status=Active, FCA/DAP/blank, minqty<=1)...")
-    rows = fetch_price_lines(token, "status eq 'Active'")
-    rows = [r for r in rows
+    print("  Fetch listini acquisto (status=Active)...")
+    all_raw = fetch_price_lines(token, "status eq 'Active'")
+    print(f"    {len(all_raw)} righe totali status=Active")
+    if all_raw:
+        s = all_raw[0]
+        print(f"    Campi: {[k for k in s.keys() if not k.startswith('@')]}")
+    # Debug PRE-filtro: cerca articoli chiave in tutte le righe
+    debug_tgt = {"MOR05", "VIITNERAVO-24", "FGM28", "LVC10", "DIL15"}
+    for r in all_raw:
+        c = str(r.get("productno") or r.get("assetno") or "").strip()
+        if c in debug_tgt:
+            pt = str(r.get("pricetype") or "")
+            at = str(r.get("amounttype") or "")
+            sm = str(r.get("shipmentmethodcode") or "")
+            mq = r.get("minimumquantity")
+            dc = r.get("directunitcost")
+            sd = str(r.get("startingdate") or "")[:10]
+            ed = str(r.get("endingdate") or "")[:10]
+            print(f"    RAW [{c}] pt={pt!r} at={at!r} ship={sm!r} minqty={mq} dc={dc} {sd}→{ed}")
+    rows = [r for r in all_raw
             if str(r.get("pricetype") or "").strip().lower() == "purchase"
             and str(r.get("amounttype") or "").strip() in {"Price", "Price & Discount"}
             and str(r.get("shipmentmethodcode") or "").strip().upper() in {"FCA", "DAP", ""}
             and float(r.get("minimumquantity") or 0) <= 1]
-    # Debug: mostra campi disponibili e cerca MOR05/VIITNERAVO-24 ovunque nelle righe
-    if rows:
-        sample = rows[0]
-        print(f"    Campi disponibili price line: {[k for k in sample.keys() if not k.startswith('@')]}")
-        print(f"    Esempio: productno={sample.get('productno')!r} assetno={sample.get('assetno')!r} dc={sample.get('directunitcost')}")
-    search_values = {"MOR05", "VIITNERAVO-24", "FGM28", "LVC10", "DIL15", "PT0121"}
-    for r in rows:
-        for val in r.values():
-            if str(val).strip() in search_values:
-                print(f"    TROVATO {str(val).strip()!r}: productno={r.get('productno')!r} assetno={r.get('assetno')!r} ship={r.get('shipmentmethodcode')!r} dc={r.get('directunitcost')}")
-                break
     print(f"    {len(rows)} righe purchase Active, FCA/DAP/blank, minqty<=1")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
