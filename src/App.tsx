@@ -3648,11 +3648,8 @@ return (
     </TD>
     <TD mono><span style={{ color: puom ? T.muted : T.dim, fontSize: "10px" }}>{puom || "—"}</span></TD>
     {COLS.map(f => {
-      // MTS price: mostra "—" se non è un vero MTS (≤ FCA = stesso prezzo senza trasporto = spurio)
       const raw = p[f] || 0;
-      const isMtsField = f === "mtsPrice";
-      const isMtsSpurious = isMtsField && raw > 0 && raw <= (p.fcaPrice || 0) * 1.005;
-      const val = isMtsSpurious ? 0 : raw * convFactor;
+      const val = raw * convFactor;
       return (
       <TD key={f} mono>
         <span style={{ color: val > 0 ? T.text : T.dim }}>
