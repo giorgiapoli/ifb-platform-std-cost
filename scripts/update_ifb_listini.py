@@ -303,7 +303,9 @@ def build_purchase_prices(token, uom_conv=None):
         sd_r     = str(r.get("startingdate") or "")
         ed       = str(r.get("endingdate") or "")
         # PowerBI usa directunitcost / fatt_conv (= qtyperunitofmeasure sulla riga)
-        price    = float(r.get("directunitcost") or 0)
+        price      = float(r.get("directunitcost") or 0)
+        # Carriage direttamente dalla riga BC (campo carriagecost)
+        carriage_bc = float(r.get("carriagecost") or 0)
         # Anche sconto acquisto (spurc in PowerBI = totlinediscountperc da Purchase)
         disc_purch = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
@@ -343,6 +345,7 @@ def build_purchase_prices(token, uom_conv=None):
             return False
         if better():
             slot.update({"price": price, "disc_purch": disc_purch,
+                         "carriagecost": carriage_bc,
                          "_sd": sd_r, "_open": is_open, "_expired": expired,
                          "conv_qty": conv_qty})
         elif disc_purch > 0 and not slot.get("disc_purch"):
@@ -498,19 +501,23 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
         if mts_price == 0:
             mts_price = fca_price  # MARR: MTS = FCA se non esplicitamente definito
     # Se DAP=0 e FCA>0 (e non MARR): calcola DAP con carriage
-    # Tutti i valori carriage sono in IFB base UoM (PCS/KG): l'app moltiplica per convFactor per display.
-    # Priorità: 1) vendor HK con plt cost (Work_Tab), 2) ISS carriagecost (formula PBI)
+    # Priorità: 1) carriagecost dalla riga BC FCA, 2) vendor HK plt cost (Work_Tab), 3) ISS carriagecost
     elif dap_price == 0 and fca_price > 0:
         can_cf_scale = cf_val if (branch == "CAN" and not is_iss and cf_val > 1) else 1
-        vc = float((vendor_carriage_map or {}).get(code, 0))
-        if vc > 0:
-            carriage  = round(vc * can_cf_scale, 6)
+        bc_cr = float((pur.get("FCA") or {}).get("carriagecost") or 0)
+        if bc_cr > 0:
+            carriage  = round(bc_cr * can_cf_scale, 6)
             dap_price = round(fca_price + carriage, 6)
         else:
-            iss_cr = float((iss_carriage or {}).get(code, 0))
-            if iss_cr > 0:
-                carriage  = round(iss_cr * can_cf_scale, 6)
+            vc = float((vendor_carriage_map or {}).get(code, 0))
+            if vc > 0:
+                carriage  = round(vc * can_cf_scale, 6)
                 dap_price = round(fca_price + carriage, 6)
+            else:
+                iss_cr = float((iss_carriage or {}).get(code, 0))
+                if iss_cr > 0:
+                    carriage  = round(iss_cr * can_cf_scale, 6)
+                    dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
     mts_discounted = apply(mts_price, mts_disc)
