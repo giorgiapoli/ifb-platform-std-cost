@@ -396,8 +396,10 @@ def build_purchase_prices(token, uom_conv=None):
                 base_code = code.rsplit("-", 1)[0] if "-" in code else code
                 if base_code != code and uom_conv:
                     qty = (uom_conv.get(base_code) or {}).get(puom)
-            # Converti anche qty<1: es. KG→BOX quando base=BOX (qty[KG]=0.1 → price/0.1=×10)
-            if qty and round(qty, 8) != 1.0:
+            # Converti solo quando qty > 1 (UoM rappresenta più unità base, es. BOX=12PCS).
+            # Se qty < 1 (es. PCS=0.04167 di un BOX) il prezzo è già nell'unità corretta
+            # per il confronto HK e non va toccato (divisione per <1 = moltiplicazione errata).
+            if qty and qty > 1.0 and round(qty, 8) != 1.0:
                 price = price / qty
                 conv_qty = qty
         ship     = classify_ship(r.get("shipmentmethodcode"))
