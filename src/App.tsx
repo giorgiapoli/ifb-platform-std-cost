@@ -3067,9 +3067,6 @@ const [preview, setPreview] = useState<any[]>([]);
 const [fileName, setFileName] = useState("");
 const [importMonth, setImportMonth] = useState(month);
 const [doneInfo, setDoneInfo] = useState<any>(null);
-const [listiniMode, setListiniMode] = useState<"bc"|"excel">("bc");
-const [lastExcelData, setLastExcelData] = useState<{rawRows:any[];headers:string[];mapping:any;month:string;fileName:string}|null>(null);
-const excelInputRef = useRef<HTMLInputElement>(null);
 
 // Storico import listini
 const priceSnaps = snapshots.filter((s: any) => s.type === "prices" && s.branch === branch);
@@ -3165,20 +3162,15 @@ showToast("Errore: " + err.message, T.red);
 reader.readAsBinaryString(file);
 }
 
-function buildPreview(ovr?: {rawRows?:any[];headers?:string[];mapping?:any;month?:string}) {
-const _rows    = ovr?.rawRows   ?? rawRows;
-const _headers = ovr?.headers   ?? headers;
-const _mapping = ovr?.mapping   ?? mapping;
-const _month   = ovr?.month     ?? importMonth;
+function buildPreview() {
 const get = (row: any, field: string) => {
-const col = _mapping[field];
+const col = mapping[field];
 if (!col) return null;
-const i = _headers.indexOf(col);
+const i = headers.indexOf(col);
 return i >= 0 ? row[i] : null;
 };
 
-if (_month !== importMonth) setImportMonth(_month);
-const mapped = _rows.map((row, idx) => {
+const mapped = rawRows.map((row, idx) => {
 const rawCode = String(get(row, "code") || "").trim();
 const rawDescription = String(get(row, "description") || get(row, "code") || "").trim();
 
@@ -3206,7 +3198,7 @@ dapFinal = dapDiscounted || 0;
 dapNote = dapDiscounted ? "da DAP Disc." : "";
 }
 
-const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === _month) : null;
+const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === importMonth) : null;
 
 return {
 _idx: idx,
@@ -3309,8 +3301,6 @@ LS.set("ifb_snapshots", newSnaps);
 setDoneInfo({ count, newCount, changed, unchanged: count - newCount - changed });
 bumpImportTs();
 setImportStep("done");
-setListiniMode("excel");
-setLastExcelData({ rawRows, headers, mapping, month: importMonth, fileName });
 }
 
 function loadFromSnapshot(snap: any) {
@@ -3357,15 +3347,16 @@ const prodById = useMemo(() => {
   return m;
 }, [products]);
 
+// Usa bcListini (dati BC in memoria) se disponibili, altrimenti prices importati manualmente
 const filtered = useMemo(() => {
-  const baseList = listiniMode === "excel"
-    ? prices.filter((p: any) => p.branch === branch && p.month === month)
-    : bcListini.filter((p: any) => p.branch === branch && (p.fcaPrice > 0 || p.dapPrice > 0 || p.fcaDiscounted > 0 || p.dapDiscounted > 0));
+  const baseList = bcListini.length > 0
+    ? bcListini.filter((p: any) => p.branch === branch && (p.fcaPrice > 0 || p.dapPrice > 0 || p.fcaDiscounted > 0 || p.dapDiscounted > 0))
+    : prices.filter((p: any) => p.branch === branch && p.month === month);
   return baseList.filter((p: any) => {
     if (invoiceOnly && !invoiceProductIds.has(p.productId)) return false;
     return true;
   });
-}, [listiniMode, bcListini, prices, branch, month, invoiceOnly, invoiceProductIds]);
+}, [bcListini, prices, branch, month, invoiceOnly, invoiceProductIds]);
 
 const displayed = useMemo(() => {
   if (!search) return filtered;
@@ -3409,14 +3400,10 @@ return (
 <div style={{ padding: "32px", textAlign: "center", color: T.muted, fontSize: "13px" }}>
 Nessun prezzo per {branch} · {month}.
 </div>
-<div style={{ marginTop: "16px", display:"flex", gap:"10px", justifyContent:"center" }}>
-<button onClick={async () => { setListiniMode("bc"); await IDB.del(`ifb_listini_entries_${branch}`); showToast("Caricamento da BC…", T.gold); reloadListini?.(); }}
-  style={{ padding:"10px 20px", background:`${T.gold}22`, border:`1px solid ${T.gold}`, borderRadius:"8px", color:T.gold, cursor:"pointer", fontWeight:"bold", fontSize:"13px" }}>
-  🏢 Carica da BC
-</button>
-<label style={{ padding:"10px 20px", background:`${T.green}22`, border:`1px solid ${T.green}`, borderRadius:"8px", color:T.green, cursor:"pointer", fontWeight:"bold", fontSize:"13px" }}>
-  📂 Carica da Excel
-  <input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f=e.target.files?.[0]; if(f) parseFile(f); e.target.value=""; }} style={{ display:"none" }} />
+<div style={{ marginTop: "16px" }}>
+<label style={{ display: "inline-block", padding: "10px 20px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold" }}>
+📂 Carica listini (PBI / CURRENT PRICELIST)
+<input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
 </label>
 </div>
 </div>
@@ -3432,30 +3419,17 @@ return (
 
 {/* Toolbar import */}
 <div style={{ display: "flex", gap: "10px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
-
-{/* Sorgente BC */}
-<div style={{ display:"flex", gap:"2px", background:T.surface, border:`1px solid ${listiniMode==="bc"?T.gold:T.border}`, borderRadius:"8px", padding:"3px", alignItems:"center" }}>
-  <button onClick={() => setListiniMode("bc")}
-    style={{ padding:"5px 12px", background: listiniMode==="bc" ? `${T.gold}22` : "none", border:`1px solid ${listiniMode==="bc"?T.gold:"transparent"}`, borderRadius:"6px", color: listiniMode==="bc"?T.gold:T.muted, cursor:"pointer", fontSize:"12px", fontWeight: listiniMode==="bc"?"bold":"normal", whiteSpace:"nowrap" }}>
-    🏢 BC
-  </button>
-  <button onClick={async () => { setListiniMode("bc"); await IDB.del(`ifb_listini_entries_${branch}`); showToast("Ricaricamento da BC…", T.gold); reloadListini?.(); }}
-    style={{ padding:"5px 8px", background:"none", border:"none", color:T.muted, cursor:"pointer", fontSize:"13px" }} title="Ricarica da BC">
-    🔄
-  </button>
-</div>
-
-{/* Sorgente Excel */}
-<div style={{ display:"flex", gap:"2px", background:T.surface, border:`1px solid ${listiniMode==="excel"?T.green:T.border}`, borderRadius:"8px", padding:"3px", alignItems:"center" }}>
-  <label style={{ padding:"5px 12px", background: listiniMode==="excel" ? `${T.green}22` : "none", border:`1px solid ${listiniMode==="excel"?T.green:"transparent"}`, borderRadius:"6px", color: listiniMode==="excel"?T.green:T.muted, cursor:"pointer", fontSize:"12px", fontWeight: listiniMode==="excel"?"bold":"normal", whiteSpace:"nowrap" }}>
-    📂 Excel{lastExcelData ? ` · ${lastExcelData.fileName.replace(/^.*[\\/]/,"")}` : ""}
-    <input ref={excelInputRef} type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f=e.target.files?.[0]; if(f) parseFile(f); e.target.value=""; }} style={{ display:"none" }} />
-  </label>
-  <button onClick={() => { if(lastExcelData) buildPreview({ rawRows:lastExcelData.rawRows, headers:lastExcelData.headers, mapping:lastExcelData.mapping, month:lastExcelData.month }); else excelInputRef.current?.click(); }}
-    style={{ padding:"5px 8px", background:"none", border:"none", color:lastExcelData?T.muted:T.dim, cursor:lastExcelData?"pointer":"default", fontSize:"13px" }} title="Ricarica da ultimo Excel">
-    🔄
-  </button>
-</div>
+<button onClick={async ()=>{
+  await IDB.del(`ifb_listini_entries_${branch}`);
+  showToast("Cache listini svuotata — ricaricamento…", T.gold);
+  reloadListini?.();
+}} style={{padding:"6px 14px",background:T.surface,border:`1px solid ${T.gold}66`,borderRadius:"6px",color:T.gold,cursor:"pointer",fontSize:"12px"}}>
+  🔄 Ricarica listini
+</button>
+<label style={{ display: "inline-block", padding: "6px 14px", background: T.gold, color: "#000", borderRadius: "6px", cursor: "pointer", fontWeight: "bold", fontSize: "12px" }}>
+📂 Carica listini
+<input type="file" accept=".xlsx,.xls,.csv" onChange={e => { const f = e.target.files?.[0]; if (f) parseFile(f); e.target.value = ""; }} style={{ display: "none" }} />
+</label>
 
 {priceSnaps.length > 0 && (
 <select onChange={e => { if (e.target.value) loadFromSnapshot(JSON.parse(e.target.value)); e.target.value = ""; }} style={{ ...inputStyle(), width: "auto", fontSize: "12px" }} defaultValue="">
