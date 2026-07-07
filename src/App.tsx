@@ -3432,9 +3432,20 @@ Nessun prezzo per {branch} · {month}.
 return (
 <div>
 <PageHeader title={`Listini · ${branch} · ${month}`} sub={`${filtered.length} prezzi caricati`} />
-<BcBanner title="Dati aggiornati automaticamente da BC IFB Italia">
-  Listini prezzi FCA / DAP / MTS caricati ogni giorno alle 07:00 dal listino acquisto e vendita di <b style={{color:T.text}}>Business Central IFB Italia</b>. Il campo <b style={{color:T.text}}>DAP</b> viene calcolato dalla tabella costi trasporto BC quando non è presente un prezzo DAP esplicito (Pallet1 ÷ pz/pallet).
-</BcBanner>
+{listiniMode === "bc" ? (
+  <BcBanner title="Dati aggiornati automaticamente da BC IFB Italia">
+    Listini prezzi FCA / DAP / MTS caricati ogni giorno alle 07:00 dal listino acquisto e vendita di <b style={{color:T.text}}>Business Central IFB Italia</b>. Il campo <b style={{color:T.text}}>DAP</b> viene calcolato dalla tabella costi trasporto BC quando non è presente un prezzo DAP esplicito (Pallet1 ÷ pz/pallet).
+  </BcBanner>
+) : (
+  <div style={{ background: `${T.green}11`, border: `1px solid ${T.green}33`, borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: T.muted, display: "flex", alignItems: "center", gap: "10px" }}>
+    <span style={{ fontSize: "16px" }}>📂</span>
+    <span>
+      <b style={{ color: T.green }}>Dati da Excel</b>
+      {lastExcelData ? <> · <b style={{ color: T.text }}>{lastExcelData.fileName.replace(/^.*[\\/]/,"")}</b> · mese <b style={{ color: T.text }}>{lastExcelData.month}</b></> : null}
+      <span style={{ color: T.dim }}> — per tornare ai prezzi BC clicca 🏢 BC in basso</span>
+    </span>
+  </div>
+)}
 
 {/* Toolbar import */}
 <div style={{ display: "flex", gap: "10px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
@@ -3486,9 +3497,20 @@ return (
 ⬇ Excel
 </button>
 
-{setPricesParent && (
-<button onClick={() => { if (window.confirm(`Eliminare tutti i prezzi ${branch}/${month}?`)) setPricesParent(prices.filter(p => !(p.branch === branch && p.month === month))); }} style={{ padding: "5px 12px", background: "none", border: `1px solid ${T.red}44`, borderRadius: "6px", color: T.red, cursor: "pointer", fontSize: "11px" }}>
-✕ Svuota {branch}/{month}
+{(setPricesParent || (listiniMode === "bc" && setBcListini)) && (
+<button onClick={async () => {
+  if (listiniMode === "bc") {
+    if (!window.confirm(`Svuotare i dati BC per ${branch}?`)) return;
+    await IDB.del(`ifb_listini_entries_${branch}`);
+    setBcListini((prev: any[]) => prev.filter((p: any) => (p.branch || p.b) !== branch));
+    showToast("Dati BC svuotati", T.red);
+  } else {
+    if (!window.confirm(`Eliminare tutti i prezzi Excel ${branch}/${month}?`)) return;
+    setPricesParent(prices.filter((p: any) => !(p.branch === branch && p.month === month)));
+    showToast("Prezzi Excel eliminati", T.red);
+  }
+}} style={{ padding: "5px 12px", background: "none", border: `1px solid ${T.red}44`, borderRadius: "6px", color: T.red, cursor: "pointer", fontSize: "11px" }}>
+✕ Svuota {branch}{listiniMode === "excel" ? `/${month}` : " BC"}
 </button>
 )}
 </div>
