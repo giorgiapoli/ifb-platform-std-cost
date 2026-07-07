@@ -161,6 +161,28 @@ def build_item_card_data(token):
     return result
 
 
+def build_ifb_item_carriage(token):
+    """
+    Fetch IFB_Item da BC Italia -> {no: carriagecost}.
+    PBI usa related(IFB_Item[carriagecost]) per il fallback DAP:
+      DAP cost = FCA cost + IFB_Item[carriagecost] * Fatt_Conv  (senza /0.98 sul carriage)
+    """
+    print("  Fetch IFB_Item (carriagecost per articolo)...")
+    rows = bc_fetch_all(token, "IFB_Item")
+    result = {}
+    for r in rows:
+        no = str(r.get("no") or r.get("No_") or "").strip()
+        cr = float(r.get("carriagecost") or 0)
+        if no:
+            result[no] = cr
+    with_cr = sum(1 for v in result.values() if v > 0)
+    print(f"    {len(result)} articoli IFB_Item, {with_cr} con carriagecost > 0")
+    for chk in ("MOR05", "LVC10", "VIITNERAVO-24"):
+        if chk in result:
+            print(f"    {chk}: carriagecost={result[chk]}")
+    return result
+
+
 def build_transport_costs(token):
     """Fetch Tabella_Costi_di_Trasporto_Excel -> {(vendor_name, temp): pallet1_cost}"""
     print("  Fetch Tabella Costi Trasporto...")
@@ -304,8 +326,6 @@ def build_purchase_prices(token, uom_conv=None):
         ed       = str(r.get("endingdate") or "")
         # PowerBI usa directunitcost / fatt_conv (= qtyperunitofmeasure sulla riga)
         price      = float(r.get("directunitcost") or 0)
-        # Carriage direttamente dalla riga BC (campo carriagecost)
-        carriage_bc = float(r.get("carriagecost") or 0)
         # Anche sconto acquisto (spurc in PowerBI = totlinediscountperc da Purchase)
         disc_purch = float(r.get("totlinediscountperc") or r.get("linediscount") or 0)
         puom = str(r.get("unitofmeasurecode") or "").strip().upper()
@@ -345,7 +365,6 @@ def build_purchase_prices(token, uom_conv=None):
             return False
         if better():
             slot.update({"price": price, "disc_purch": disc_purch,
-                         "carriagecost": carriage_bc,
                          "_sd": sd_r, "_open": is_open, "_expired": expired,
                          "conv_qty": conv_qty})
         elif disc_purch > 0 and not slot.get("disc_purch"):
@@ -425,7 +444,7 @@ def build_iss_prices(token, target_codes):
     return result
 
 
-def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, vendor_carriage_map=None):
+def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, vendor_carriage_map=None, ifb_item_carriage=None):
     """
     Logica identica a PowerBI MILLE SAPORI (HK) — applicata a tutti i branch:
       FCA cost  = directunitcost_purch (convertito in base UoM) * MARKUP (1/0.98)
@@ -500,23 +519,26 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
         carriage  = round(dap_price - fca_price, 6)
         if mts_price == 0:
             mts_price = fca_price  # MARR: MTS = FCA se non esplicitamente definito
-    # Se DAP=0 e FCA>0 (e non MARR): calcola DAP con carriage
-    # Priorità: 1) carriagecost dalla riga BC FCA, 2) vendor HK plt cost (Work_Tab), 3) ISS carriagecost
+    # Se DAP=0 e FCA>0 (e non MARR): fallback DAP identico a PowerBI
     elif dap_price == 0 and fca_price > 0:
-        can_cf_scale = cf_val if (branch == "CAN" and not is_iss and cf_val > 1) else 1
-        bc_cr = float((pur.get("FCA") or {}).get("carriagecost") or 0)
-        if bc_cr > 0:
-            carriage  = round(bc_cr * can_cf_scale, 6)
-            dap_price = round(fca_price + carriage, 6)
+        if is_iss:
+            # Articoli ISS (missing HK): carriage dall'ISS (già calcolato in build_iss_prices)
+            iss_cr = float((iss_carriage or {}).get(code, 0))
+            if iss_cr > 0:
+                carriage  = round(iss_cr, 6)
+                dap_price = round(fca_price + carriage, 6)
         else:
-            vc = float((vendor_carriage_map or {}).get(code, 0))
-            if vc > 0:
-                carriage  = round(vc * can_cf_scale, 6)
+            # Articoli BC: PBI usa IFB_Item[carriagecost] × Fatt_Conv (senza /0.98)
+            # Fatt_Conv = cf_val (conv_qty dal listino acquisto = qtyperunitofmeasure)
+            item_cr = float((ifb_item_carriage or {}).get(code, 0))
+            if item_cr > 0:
+                carriage  = round(item_cr * cf_val, 6)
                 dap_price = round(fca_price + carriage, 6)
             else:
-                iss_cr = float((iss_carriage or {}).get(code, 0))
-                if iss_cr > 0:
-                    carriage  = round(iss_cr * can_cf_scale, 6)
+                # Fallback HK Work_Tab (solo HK, per fornitori con trasporto a parte)
+                vc = float((vendor_carriage_map or {}).get(code, 0))
+                if vc > 0:
+                    carriage  = round(vc, 6)
                     dap_price = round(fca_price + carriage, 6)
 
     fca_discounted = apply(fca_price, fca_disc)
@@ -576,6 +598,12 @@ if __name__ == "__main__":
         transport_costs = build_transport_costs(token)
     except Exception as e:
         print(f"  Warning: Costi trasporto non disponibili ({e})")
+
+    ifb_item_carriage = {}
+    try:
+        ifb_item_carriage = build_ifb_item_carriage(token)
+    except Exception as e:
+        print(f"  Warning: IFB_Item carriagecost non disponibile ({e})")
 
     purch, all_purchase_codes = build_purchase_prices(token, uom_conv)
     print(f"  Articoli con prezzo acquisto valido: {sum(1 for v in purch.values() if v.get('FCA',{}).get('price') or v.get('DAP',{}).get('price'))}")
@@ -686,7 +714,7 @@ if __name__ == "__main__":
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
-            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, vendor_carriage_map)
+            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, vendor_carriage_map, ifb_item_carriage)
             all_rows.append(row)
 
     print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
