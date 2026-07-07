@@ -321,11 +321,17 @@ def build_purchase_prices(token, uom_conv=None):
             and str(r.get("amounttype") or "").strip() in {"Price", "Price & Discount"}
             and str(r.get("shipmentmethodcode") or "").strip().upper() in {"FCA", "DAP", ""}
             and float(r.get("minimumquantity") or 0) <= 1]
-    debug_codes = {"MOR05", "VIITNERAVO-24", "FGM28", "LVC10", "DIL15"}
+    # Debug: mostra campi disponibili e cerca MOR05/VIITNERAVO-24 ovunque nelle righe
+    if rows:
+        sample = rows[0]
+        print(f"    Campi disponibili price line: {[k for k in sample.keys() if not k.startswith('@')]}")
+        print(f"    Esempio: productno={sample.get('productno')!r} assetno={sample.get('assetno')!r} dc={sample.get('directunitcost')}")
+    search_values = {"MOR05", "VIITNERAVO-24", "FGM28", "LVC10", "DIL15", "PT0121"}
     for r in rows:
-        c = str(r.get("productno") or r.get("assetno") or "").strip()
-        if c in debug_codes:
-            print(f"    [{c}] ship={r.get('shipmentmethodcode')} dc={r.get('directunitcost')} uom={r.get('unitofmeasurecode')} start={r.get('startingdate','')[:10]} end={r.get('endingdate','')[:10]} amt={r.get('amounttype')}")
+        for val in r.values():
+            if str(val).strip() in search_values:
+                print(f"    TROVATO {str(val).strip()!r}: productno={r.get('productno')!r} assetno={r.get('assetno')!r} ship={r.get('shipmentmethodcode')!r} dc={r.get('directunitcost')}")
+                break
     print(f"    {len(rows)} righe purchase Active, FCA/DAP/blank, minqty<=1")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
