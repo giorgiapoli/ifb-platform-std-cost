@@ -1380,6 +1380,26 @@
     "aiem": 0
   },
   {
+    "id": "CAA02",
+    "code": "CAA02",
+    "nHK": "CAA02-2KG",
+    "description": "Grana Padano Style 12/14 months portioned 2kg",
+    "category": "COW CHEESE",
+    "uom": "KG",
+    "qtyPerBox": 1.0,
+    "boxPerPallet": 20.0,
+    "kgPerBox": 1.0,
+    "kgxplt": 760.0,
+    "temperature": "FRESH",
+    "bcTransportation": "CH SEA",
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "vendorName": "INALCA FOOD & BEVERAGE SRL",
+    "vendorName2": "CASEIFICIO ALBIERO SRL",
+    "aiem": 0
+  },
+  {
     "id": "CAA03",
     "code": "CAA03",
     "nHK": "CAA03",
