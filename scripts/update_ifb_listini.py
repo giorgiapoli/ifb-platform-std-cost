@@ -306,19 +306,27 @@ def build_purchase_prices(token, uom_conv=None):
       - all_codes: TUTTI i codici nel listino acquisto (anche solo con record scaduti)
     """
     # Filtri identici a Power Query PBI:
-    #   status = "Active"  (PBI filtra esplicitamente in Power Query)
-    #   shipmentmethodcode in {"DAP", "FCA"}  (PBI esclude MTS e altri)
-    #   minimumquantity <= 1  (PBI esclude righe con qt minima > 1)
+    #   status = "Active"
+    #   shipmentmethodcode in {"DAP","FCA"} oppure blank (blank → classify_ship → FCA)
+    #   minimumquantity <= 1
     #   pricetype = "Purchase"
-    #   amounttype in {"Price", "Price & Discount"} (filtro DAX in PBI)
-    print("  Fetch listini acquisto (status=Active, FCA/DAP, minqty<=1)...")
+    #   amounttype in {"Price", "Price & Discount"} (filtro DAX)
+    # NOTA: in BC alcune righe hanno shipmentmethodcode vuoto ma sono effettivamente FCA;
+    # PBI le vede come "FCA" perché BC le normalizza prima dell'export OData.
+    # Includiamo il blank per sicurezza; classify_ship("") → "FCA" comunque.
+    print("  Fetch listini acquisto (status=Active, FCA/DAP/blank, minqty<=1)...")
     rows = fetch_price_lines(token, "status eq 'Active'")
     rows = [r for r in rows
             if str(r.get("pricetype") or "").strip().lower() == "purchase"
             and str(r.get("amounttype") or "").strip() in {"Price", "Price & Discount"}
-            and str(r.get("shipmentmethodcode") or "").strip().upper() in {"FCA", "DAP"}
+            and str(r.get("shipmentmethodcode") or "").strip().upper() in {"FCA", "DAP", ""}
             and float(r.get("minimumquantity") or 0) <= 1]
-    print(f"    {len(rows)} righe purchase Active, FCA/DAP, minqty<=1")
+    debug_codes = {"MOR05", "VIITNERAVO-24", "FGM28", "LVC10", "DIL15"}
+    for r in rows:
+        c = str(r.get("productno") or r.get("assetno") or "").strip()
+        if c in debug_codes:
+            print(f"    [{c}] ship={r.get('shipmentmethodcode')} dc={r.get('directunitcost')} uom={r.get('unitofmeasurecode')} start={r.get('startingdate','')[:10]} end={r.get('endingdate','')[:10]} amt={r.get('amounttype')}")
+    print(f"    {len(rows)} righe purchase Active, FCA/DAP/blank, minqty<=1")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
     for r in rows:
