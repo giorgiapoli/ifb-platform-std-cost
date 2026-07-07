@@ -3129,6 +3129,8 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
       const q = search.toLowerCase();
       r = r.filter(r => r.prod?.code?.toLowerCase().includes(q) || r.prod?.description?.toLowerCase().includes(q) || r.prod?.nHK?.toLowerCase().includes(q));
     }
+    const maxAbsDelta = (row: any) => Math.max(...row.diffs.map((d: any) => Math.abs(d.delta)), 0);
+    r = [...r].sort((a, b) => maxAbsDelta(b) - maxAbsDelta(a));
     return r;
   }, [rows, filter, search]);
 
