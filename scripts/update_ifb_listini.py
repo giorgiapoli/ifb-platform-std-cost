@@ -283,14 +283,16 @@ def build_purchase_prices(token, uom_conv=None):
         prezzo: preferisce record aperti (no end date, start<=oggi), poi non-scaduti, poi il più recente
       - all_codes: TUTTI i codici nel listino acquisto (anche solo con record scaduti)
     """
-    # Filtro: solo status=Active + pricetype=Purchase.
-    # Il shipmentmethodcode NON viene filtrato qui: classify_ship() mappa tutti i codici
-    # non standard (DRY SEA, +18°C SEA, CH AIR, FR SEA, ecc.) a "FCA" automaticamente.
-    print("  Fetch listini acquisto (status=Active, tutti i metodi spedizione, pricetype=Purchase)...")
-    rows = fetch_price_lines(token, "status eq 'Active'")
-    rows = [r for r in rows if str(r.get("pricetype") or "").strip().lower() == "purchase"]
-    print(f"    {len(rows)} righe purchase dopo filtro pricetype")
-    print(f"    {len(rows)} righe totali acquisto")
+    # Filtro: pricetype=Purchase, tutti gli status (come PBI che non filtra per status).
+    # PBI DAX non ha filtro su status: include Draft, In Development, Active ecc.
+    # amounttype deve essere "Price" o "Price & Discount" (esclude righe solo-sconto).
+    # Il shipmentmethodcode NON viene filtrato qui: classify_ship() mappa tutti i codici.
+    print("  Fetch listini acquisto (tutti gli status, pricetype=Purchase)...")
+    rows = fetch_price_lines(token, None)  # nessun filtro status, come PBI
+    rows = [r for r in rows
+            if str(r.get("pricetype") or "").strip().lower() == "purchase"
+            and str(r.get("amounttype") or "").strip() in {"Price", "Price & Discount"}]
+    print(f"    {len(rows)} righe purchase con amounttype Price/Price&Discount")
     result    = defaultdict(lambda: {"FCA": {}, "DAP": {}, "MTS": {}, "uom": "", "desc": ""})
     all_codes = set()
     for r in rows:
@@ -329,14 +331,16 @@ def build_purchase_prices(token, uom_conv=None):
         is_open  = is_active_date(ed) and (not sd_r or sd_r <= TODAY)
         slot_open    = slot.get("_open", False)
         slot_expired = slot.get("_expired", True)
-        # Priorità: open (no end, start<=oggi) > futuro (no end, start>oggi) > non-scaduto-con-end > scaduto
-        # Un record "open" non viene mai sostituito da uno futuro o non-open
+        # Logica PBI: max(startingdate) tra righe valide, poi min(price) tra quelle con quel startingdate.
+        # Priorità categoria: open (start<=oggi, end valido) > non-scaduto > scaduto
         def better(io=is_open, exp=expired, so=slot_open, se=slot_expired, sd=sd_r, sl=slot):
             if io and not so:  return True   # nuovo open, slot non-open -> sostituisci
             if not io and so:  return False  # nuovo non-open, slot open -> tieni
             if not exp and se: return True   # nuovo non-scaduto, slot scaduto -> sostituisci
             if exp and not se: return False  # nuovo scaduto, slot non-scaduto -> tieni
-            return sl.get("_sd", "") <= sd   # stessa categoria: più recente per startdate
+            if sl.get("_sd", "") < sd: return True   # stesso tipo: startdate più recente -> sostituisci
+            if sl.get("_sd", "") == sd: return price < (sl.get("price") or 1e18)  # stesso giorno: min(price)
+            return False
         if better():
             slot.update({"price": price, "disc_purch": disc_purch,
                          "_sd": sd_r, "_open": is_open, "_expired": expired,
