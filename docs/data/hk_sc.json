@@ -3,7 +3,7 @@
     "code": "16657",
     "description": "BONE IN RIB 7/RIB CARIMA UNIQUE",
     "lastSC": 0.0,
-    "fifoUnit": 255.90484,
+    "fifoUnit": 286.38629,
     "salesLast3m": -12.4,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 0.0
@@ -30,7 +30,7 @@
     "code": "26369",
     "description": "BONE-IN SHORT LOIN MAZURA DIVINE VS",
     "lastSC": 308.0,
-    "fifoUnit": 295.93366,
+    "fifoUnit": 304.56582,
     "salesLast3m": -200.39,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 48.39
@@ -48,7 +48,7 @@
     "code": "26537",
     "description": "TENDERLOIN (approx 3 kg/pcs) - from Carima Loin \"RARE\"",
     "lastSC": 227.86,
-    "fifoUnit": 195.98431,
+    "fifoUnit": 226.45934,
     "salesLast3m": -65.94,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 7.01
@@ -75,7 +75,7 @@
     "code": "26674",
     "description": "BON-IN 7 RIBS ENTRECOTE MAZURA DIVINE VS",
     "lastSC": 308.0,
-    "fifoUnit": 296.38511,
+    "fifoUnit": 304.5633,
     "salesLast3m": -156.19,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 35.86
@@ -751,7 +751,7 @@
     "description": "\"Natura\" Mascarpone 500g (6)",
     "lastSC": 153.03,
     "fifoUnit": 149.23529,
-    "salesLast3m": -1866.0,
+    "salesLast3m": -1864.0,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 0.85
   },
@@ -885,7 +885,7 @@
     "code": "CF8026-IF",
     "description": "Fontina DOP  2Kg Aosta",
     "lastSC": 170.4997,
-    "fifoUnit": 156.02043,
+    "fifoUnit": 165.39608,
     "salesLast3m": -125.688,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 28.782
@@ -2370,10 +2370,10 @@
     "code": "FY0086-EUL",
     "description": "FRZ. Egg Yolk Super Yellow 1Lt (6)",
     "lastSC": 75.23,
-    "fifoUnit": 74.39071,
-    "salesLast3m": -6856.0,
+    "fifoUnit": 74.38176,
+    "salesLast3m": -6868.0,
     "lastPurchaseDate": "2026-06-29",
-    "stockQty": 1266.0
+    "stockQty": 1254.0
   },
   {
     "code": "FY0088-EU",
@@ -2964,10 +2964,10 @@
     "code": "GC0068",
     "description": "Durum Wheat Remilled Semolina 1kg  (10)",
     "lastSC": 10.17,
-    "fifoUnit": 9.53668,
-    "salesLast3m": -10361.0,
+    "fifoUnit": 9.5365,
+    "salesLast3m": -10371.0,
     "lastPurchaseDate": "2026-06-25",
-    "stockQty": 6416.0
+    "stockQty": 6406.0
   },
   {
     "code": "GC0070",
@@ -3289,7 +3289,7 @@
     "description": "Grilled Artichoke in Oil 950g  (6)",
     "lastSC": 51.33,
     "fifoUnit": 51.12155,
-    "salesLast3m": -891.0,
+    "salesLast3m": -885.0,
     "lastPurchaseDate": "2026-06-26",
     "stockQty": 1713.0
   },
@@ -4143,10 +4143,10 @@
     "code": "GCRI-1017",
     "description": "Anchovies in Fillets 700g  (6)",
     "lastSC": 100.17,
-    "fifoUnit": 99.84913,
-    "salesLast3m": -1143.0,
+    "fifoUnit": 99.85148,
+    "salesLast3m": -1144.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 1008.0
+    "stockQty": 1007.0
   },
   {
     "code": "GCRI-1018",
@@ -4162,9 +4162,9 @@
     "description": "Tuna in Olive Oil aluminum Bag 1kg (8)",
     "lastSC": 76.14,
     "fifoUnit": 72.26463,
-    "salesLast3m": -453.0,
+    "salesLast3m": -455.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 203.0
+    "stockQty": 201.0
   },
   {
     "code": "GCRI-1019-V2",
@@ -5251,7 +5251,7 @@
     "description": "Guanciale with Pepper +/- 1.5kg (2)",
     "lastSC": 83.3,
     "fifoUnit": 78.56013,
-    "salesLast3m": -3043.491,
+    "salesLast3m": -3038.979,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 826.531
   },
@@ -5295,7 +5295,7 @@
     "code": "HA8020-IB",
     "description": "Speck Half +/- 2.5Kg (4)",
     "lastSC": 73.78,
-    "fifoUnit": 78.14819,
+    "fifoUnit": 83.25725,
     "salesLast3m": -206.674,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 124.559
@@ -5341,7 +5341,7 @@
     "description": "Porchetta Half 4.3Kg (2)",
     "lastSC": 83.66,
     "fifoUnit": 79.24777,
-    "salesLast3m": -305.361,
+    "salesLast3m": -300.384,
     "lastPurchaseDate": "2026-06-24",
     "stockQty": 29.406
   },
@@ -5439,7 +5439,7 @@
     "code": "HA8071-IB",
     "description": "Salame Napoli 2kg (2)",
     "lastSC": 94.36303,
-    "fifoUnit": 93.5461,
+    "fifoUnit": 124.04728,
     "salesLast3m": -7.76,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 4.23
@@ -5457,7 +5457,7 @@
     "code": "HA8072-IB-V1",
     "description": "*Spianata Romana 2Kg (2)",
     "lastSC": 89.77,
-    "fifoUnit": 91.82116,
+    "fifoUnit": 122.29975,
     "salesLast3m": -12.807,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 3.97
@@ -5511,7 +5511,7 @@
     "code": "HA8085-IB",
     "description": "Coppa Parma Legata BN 90 IGT 1.5kg (2)",
     "lastSC": 188.52667,
-    "fifoUnit": 164.71695,
+    "fifoUnit": 179.44689,
     "salesLast3m": -33.48,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 27.734
@@ -5538,7 +5538,7 @@
     "code": "HA8090-IB",
     "description": "Whole Pancetta \"La Rustica\" with Planks",
     "lastSC": 128.67788,
-    "fifoUnit": 90.12027,
+    "fifoUnit": 120.60761,
     "salesLast3m": -32.428,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 9.562
@@ -5547,7 +5547,7 @@
     "code": "HA8092-IB",
     "description": "Mortadella w/Pistacchio Gran Ducato GOURME +/- 4kg (2)",
     "lastSC": 108.84727,
-    "fifoUnit": 77.42125,
+    "fifoUnit": 101.43235,
     "salesLast3m": -27.96,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 18.92
@@ -6168,10 +6168,10 @@
     "code": "LVC11-EN-DEF",
     "description": "BURRATA WITH TOP KNOT LA VERACE TUB 125 G (8)",
     "lastSC": 93.64,
-    "fifoUnit": 87.23317,
-    "salesLast3m": -70.0,
+    "fifoUnit": 87.32361,
+    "salesLast3m": -74.0,
     "lastPurchaseDate": "",
-    "stockQty": 101.0
+    "stockQty": 97.0
   },
   {
     "code": "LVC12-EN",
@@ -7041,7 +7041,7 @@
     "code": "MBCSHO-U",
     "description": "Carima Bone-in Short Loin 8-9kg (From 23-28 Kgs loin) \"UNIQUE\" (M10-M12)",
     "lastSC": 298.15,
-    "fifoUnit": 255.90538,
+    "fifoUnit": 286.39209,
     "salesLast3m": -166.29,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 15.43
@@ -7645,7 +7645,7 @@
     "description": "Chilled Mozzarella Filone MAMMA TINA 1kg (5) [MT325]",
     "lastSC": 67.57,
     "fifoUnit": 69.11,
-    "salesLast3m": -940.0,
+    "salesLast3m": -936.0,
     "lastPurchaseDate": "2026-06-01",
     "stockQty": 19.0
   },
@@ -7788,7 +7788,7 @@
     "code": "MZ6002",
     "description": "Grated Parmigiano Reggiano 1kg (10)",
     "lastSC": 193.16,
-    "fifoUnit": 175.88519,
+    "fifoUnit": 191.83462,
     "salesLast3m": -378.0,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 156.0
@@ -7797,7 +7797,7 @@
     "code": "MZ6003",
     "description": "Parmesan Grated Mix 1KG (10)",
     "lastSC": 97.0,
-    "fifoUnit": 81.22065,
+    "fifoUnit": 95.4449,
     "salesLast3m": -3355.0,
     "lastPurchaseDate": "2026-07-06",
     "stockQty": 866.0
@@ -9417,10 +9417,10 @@
     "code": "SCOT015W",
     "description": "WHOLE (Black \"Stocchinetta\") Carima Bone-in Loin \"RARE\" (M7-M9) 23-28 Kgs/pc",
     "lastSC": 233.9,
-    "fifoUnit": 207.98266,
+    "fifoUnit": 224.37971,
     "salesLast3m": -442.65,
     "lastPurchaseDate": "2026-07-06",
-    "stockQty": 105.55
+    "stockQty": 105.45
   },
   {
     "code": "SCOT016",
@@ -9993,7 +9993,7 @@
     "code": "TF0005-F",
     "description": "ITALY Summer Black Truffle (T. Aestivum) First choice  40-79g",
     "lastSC": 3.01,
-    "fifoUnit": 0.87098,
+    "fifoUnit": 0.90143,
     "salesLast3m": -9825.0,
     "lastPurchaseDate": "2026-07-04",
     "stockQty": 1004.0
@@ -10002,7 +10002,7 @@
     "code": "TF0005-K",
     "description": "ITALY Summer Black Truffle (T. Aestivum) Kitchen Selection 15-39g",
     "lastSC": 1.67,
-    "fifoUnit": 0.72902,
+    "fifoUnit": 0.75959,
     "salesLast3m": -29929.0,
     "lastPurchaseDate": "2026-07-04",
     "stockQty": 1417.0
