@@ -922,8 +922,6 @@ export default function App() {
           skipReason: cost2 ? undefined : "CALC=0", _fromMeatList:true };
       }
 
-      // La conversione UoM è già gestita dallo script (cf > 1) — stessa logica di PBI (fatt_conv).
-      // Nessuna conversione aggiuntiva nell'app: il prezzo in bcListiniEnriched è già nella base UoM.
       const uomConvFactor = 1;
       // Per HK MTO: se dapFinal=0 ma fcaDiscounted>0, aggiungi carriage da work tab
       const enrichPriceWithCarriage = (p: any) => {
@@ -939,8 +937,16 @@ export default function App() {
         const cu = upm > 0 ? (log.carriage||0) / upm : 0;
         return fca + cu;
       };
-      const pi  = (enrichPriceWithCarriage(pr)  || 0) * uomConvFactor;
-      const piP = prPrev ? (enrichPriceWithCarriage(prPrev) || 0) * uomConvFactor : null;
+      const rawPi  = (enrichPriceWithCarriage(pr)  || 0) * uomConvFactor;
+      const rawPiP = prPrev ? (enrichPriceWithCarriage(prPrev) || 0) * uomConvFactor : null;
+      // CAN: il BC listino può avere pu="BOX" con prezzo per-BOX (display divide per qtyPerBox).
+      // calcCAN si aspetta priceInput per-base-UoM (PCS) e moltiplica × itemCf per avere per-BOX.
+      // Senza questa normalizzazione si avrebbe: 18.8/BOX × 100 = 1880 invece di 0.188/PCS × 100 = 18.8.
+      const prPu = (pr as any)?.pu || "";
+      const needsBoxToPCS = isCAN_b && prPu === "BOX" && prod.uom === "PCS" && itemCf > 1;
+      const qpbDiv = needsBoxToPCS ? (Number(prod.qtyPerBox) || 1) : 1;
+      const pi  = rawPi  / qpbDiv;
+      const piP = rawPiP != null ? rawPiP / qpbDiv : null;
 
       // Prezzo zero → fallback listino carne
       if (!pi || pi === 0) {
