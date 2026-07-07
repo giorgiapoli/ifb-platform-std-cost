@@ -3113,8 +3113,8 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
         let bcNorm = bcVal;
         let delta = xlVal - bcVal;
         let bcUom = bcPu || "?";
-        // UoM Excel: prende direttamente dalla colonna hkUom/uom del file Excel caricato
-        const xlUomRaw = String(xl?.hkUom || xl?.uom || "").toUpperCase().trim();
+        // UoM Excel: dall'anagrafica prodotto (hkUom), fallback su xl o prod.uom
+        const xlUomRaw = String(prod?.hkUom || xl?.hkUom || xl?.uom || prod?.uom || "").toUpperCase().trim();
         let xlUom = xlUomRaw || "?";
 
         if (bcVal === 0 && xlVal > 0) {
