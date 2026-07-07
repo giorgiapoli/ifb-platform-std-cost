@@ -3070,7 +3070,6 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     { key: "dapPrice",      label: "DAP Price",   bc: "dapPrice",      xl: "dapPrice" },
     { key: "dapFinal",      label: "DAP Final",   bc: "dapFinal",      xl: "dapFinal" },
     { key: "mtsPrice",      label: "MTS Price",   bc: "mtsPrice",      xl: "mtsPrice" },
-    { key: "carriageCost",  label: "Carriage",    bc: "carriageCost",  xl: "carriageCost" },
   ];
   const [filter, setFilter] = useState<"all"|"diff"|"mts">("diff");
   const [search, setSearch] = useState("");
