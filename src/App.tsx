@@ -3101,8 +3101,6 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
 
       const qpb = Number(prod?.qtyPerBox || prod?.pcsPerBox || 1) || 1;
       const bcPu = String(bc?.pu || bc?.purchaseUom || "").toUpperCase();
-      // Normalize BC to per-BOX: if BC stores price per-PCS, multiply by qpb
-      const bcConv = (bcPu === "PCS" && qpb > 1) ? qpb : 1;
       const diffs: { field: string; label: string; bc: number; xl: number; bcNorm: number; delta: number; reason: string; uomNote?: string }[] = [];
 
       FIELDS.forEach(f => {
@@ -3110,46 +3108,67 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
         const xlVal = Number(xl?.[f.xl] || 0);
         if (bcVal === 0 && xlVal === 0) return;
 
-        // BC normalizzato a per-BOX
-        const bcNorm = bcVal > 0 ? bcVal * bcConv : 0;
-        const delta = xlVal - bcNorm;
-
         let reason = "";
         let uomNote: string | undefined;
+        let bcNorm = bcVal;
+        let delta = xlVal - bcVal;
 
         if (bcVal === 0 && xlVal > 0) {
           reason = "🟡 assente in BC";
         } else if (bcVal > 0 && xlVal === 0) {
           reason = "🔴 assente in Excel";
         } else {
-          const pct = bcNorm > 0 ? delta / bcNorm : 0;
-          if (Math.abs(delta) < 0.01) return; // diff trascurabile
+          const UOM_TOL = 0.04;
 
-          // Dopo normalizzazione BC→BOX, controlla se Excel è per-PCS (ancora ÷qpb off)
-          if (Math.abs(pct) < 0.04) {
-            reason = "≈ diff < 2.5%";
-          } else if (qpb > 1 && bcNorm > 0 && xlVal > 0) {
-            const ratioXlBcNorm = xlVal / bcNorm;
-            const tol = 0.04;
-            if (Math.abs(ratioXlBcNorm - 1/qpb) * qpb < tol) {
-              // BC è per-BOX, Excel è per-PCS → stesso prezzo
-              reason = `📦 UoM: BC per-BOX, Excel per-PCS (×${qpb}=${(xlVal*qpb).toFixed(2)})`;
-              uomNote = `stesso prezzo: Excel×${qpb}=€${(xlVal*qpb).toFixed(2)} ≈ BC €${bcNorm.toFixed(2)}`;
-            } else if (Math.abs(pct) < 0.025) {
-              reason = "≈ diff < 2.5%";
-            } else if (delta > 0) {
-              reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
+          // 1. Confronto diretto (stesso UoM — funziona per vini, burrate, ecc.)
+          const rawPct = Math.abs((xlVal - bcVal) / bcVal);
+          if (rawPct < UOM_TOL) {
+            if (Math.abs(xlVal - bcVal) < 0.01) return;
+            reason = "≈ diff < 4%";
+            bcNorm = bcVal;
+            delta = xlVal - bcVal;
+          } else if (qpb > 1) {
+            // 2. BC per-PCS × qpb ≈ xl (Excel per-BOX)
+            const bcBoxed = bcVal * qpb;
+            const pctBoxed = Math.abs((xlVal - bcBoxed) / bcBoxed);
+            // 3. xl × qpb ≈ BC (BC per-BOX mislabeled, Excel per-PCS)
+            const xlBoxed = xlVal * qpb;
+            const pctUnboxed = Math.abs((xlBoxed - bcVal) / bcVal);
+
+            if (pctBoxed < UOM_TOL) {
+              // stesso prezzo, UoM diversa: BC per-PCS, Excel per-BOX
+              if (pctBoxed < 0.01) return;
+              bcNorm = bcBoxed;
+              delta = xlVal - bcBoxed;
+              reason = "📦 UoM: BC per-PCS, Excel per-BOX";
+              uomNote = `BC €${bcVal.toFixed(2)}×${qpb}=€${bcBoxed.toFixed(2)} ≈ Excel €${xlVal.toFixed(2)}`;
+            } else if (pctUnboxed < UOM_TOL) {
+              // stesso prezzo, UoM diversa: BC per-BOX, Excel per-PCS
+              if (pctUnboxed < 0.01) return;
+              bcNorm = bcVal;
+              delta = xlBoxed - bcVal;
+              reason = "📦 UoM: BC per-BOX, Excel per-PCS";
+              uomNote = `Excel €${xlVal.toFixed(2)}×${qpb}=€${xlBoxed.toFixed(2)} ≈ BC €${bcVal.toFixed(2)}`;
             } else {
-              reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
+              // differenza reale
+              bcNorm = bcVal;
+              delta = xlVal - bcVal;
+              const pct = delta / bcVal;
+              if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
+              else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
+              else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
+              if (bcPu === "KG") uomNote = `⚠️ BC prezzo per KG`;
             }
           } else {
+            // qpb=1, differenza reale
+            bcNorm = bcVal;
+            delta = xlVal - bcVal;
+            const pct = delta / bcVal;
             if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
             else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
             else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
+            if (bcPu === "KG") uomNote = `⚠️ BC prezzo per KG`;
           }
-        }
-        if (bcConv > 1 && bcVal > 0) {
-          uomNote = (uomNote ? uomNote + " · " : "") + `BC per-PCS, normalizzato ×${bcConv} → €${bcNorm.toFixed(2)}/BOX`;
         }
         diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, bcNorm, delta, reason, uomNote });
       });
@@ -3279,7 +3298,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Descrizione</th>
                 <th style={{ padding: "8px 10px", textAlign: "center", color: T.muted, fontWeight: "normal" }}>qpb</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Campo</th>
-                <th style={{ padding: "8px 10px", textAlign: "right", color: T.blue, fontWeight: "normal" }}>BC (norm./BOX)</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: T.blue, fontWeight: "normal" }}>BC</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.green, fontWeight: "normal" }}>Excel</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.muted, fontWeight: "normal" }}>Δ</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Motivo</th>

@@ -286,9 +286,10 @@ def build_uom_conversions(token):
         print(f"    Esempio prima riga: {sample}")
     conv = {}
     for r in rows:
-        # Chiave primaria: BC item number (itemno / Item_No / No_)
+        # Chiave primaria: tenta tutti i possibili nomi campo per item number
         item_bc = str(r.get("itemno") or r.get("Item_No") or r.get("item_no") or
-                      r.get("No_") or r.get("assetno") or "").strip()
+                      r.get("No_") or r.get("no") or r.get("productno") or
+                      r.get("assetno") or "").strip()
         # Chiave alternativa: IFB alias (AltIFBIFB_Item o campi analoghi) — usato da PBI
         item_ifb = str(r.get("AltIFBIFB_Item") or r.get("altifbifb_item") or
                        r.get("IFB_Item") or r.get("ifbitem") or "").strip()
@@ -303,12 +304,19 @@ def build_uom_conversions(token):
             if item_bc:
                 conv.setdefault(item_bc, {})[code] = qty
             if item_ifb and item_ifb != item_bc:
-                # Indice aggiuntivo per IFB alias: PBI usa questo per fare il join direttamente
                 conv.setdefault(item_ifb, {})[code] = qty
-    # Debug: verifica conversioni per articoli chiave (+ problematici LVC/AGG)
+    # Conta articoli con chiave vuota (segnale di field name sbagliato)
+    empty_keys = sum(1 for r in rows if not str(r.get("itemno") or r.get("Item_No") or r.get("item_no") or
+                     r.get("No_") or r.get("no") or r.get("productno") or r.get("assetno") or "").strip())
+    if empty_keys:
+        print(f"    ⚠️  {empty_keys}/{len(rows)} righe con chiave articolo VUOTA — campo item number non trovato!")
+        if rows:
+            print(f"    Tutti i campi prima riga: {list(rows[0].keys())}")
+    # Debug: verifica conversioni per articoli chiave (+ problematici)
     for test_code in ["HA7021-IB", "Z3774", "LVC11-ES", "LVC11",
                       "LVC09", "LVC24", "LVC29", "LVC33", "LVC37", "CCF06",
-                      "AGG27", "AGG33", "AGG34"]:
+                      "AGG27", "AGG33", "AGG34",
+                      "FLP02", "FLP03", "TRD06", "LGD01", "TQB38", "Y3298"]:
         if test_code in conv:
             print(f"    {test_code}: {conv[test_code]}")
         else:
