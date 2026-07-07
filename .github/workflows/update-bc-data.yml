@@ -58,12 +58,10 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git fetch origin main
-          git reset --soft origin/main
-          git restore --staged .
           git add docs/data/hk_xref.json docs/data/hk_sc.json docs/data/hk_anagrafica.json docs/data/ifb_fatture.json docs/data/ifb_listini.json docs/data/ifb_listini_HK.json docs/data/ifb_listini_CAN.json docs/data/ifb_listini_MAC.json
           if ! git diff --cached --quiet; then
             git commit -m "Auto-update BC data $(date +'%Y-%m-%d')"
+            git pull --rebase origin main
             git push origin main
           else
             echo "Nessuna modifica"
