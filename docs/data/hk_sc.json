@@ -615,19 +615,19 @@
     "code": "CAA02",
     "description": "WHEEL Grana Padano Style 12/14 months",
     "lastSC": 79.52,
-    "fifoUnit": 86.01188,
+    "fifoUnit": 86.20056,
     "salesLast3m": 0.0,
     "lastPurchaseDate": "2026-01-28",
-    "stockQty": 450.24
+    "stockQty": 411.4
   },
   {
     "code": "CAA02-2KG",
     "description": "Grana Padano Style 12/14 months portioned 2kg",
     "lastSC": 0.0,
-    "fifoUnit": 0.0,
+    "fifoUnit": 87.74079,
     "salesLast3m": 0.0,
     "lastPurchaseDate": "",
-    "stockQty": 0.0
+    "stockQty": 37.19
   },
   {
     "code": "CAA03",
@@ -822,10 +822,10 @@
     "code": "CF7201",
     "description": "*Bavarian Emmental \"Cepparo\" 3kg (4)",
     "lastSC": 54.42,
-    "fifoUnit": 60.28878,
-    "salesLast3m": -325.923,
+    "fifoUnit": 60.33094,
+    "salesLast3m": -328.635,
     "lastPurchaseDate": "2026-05-20",
-    "stockQty": 386.493
+    "stockQty": 383.781
   },
   {
     "code": "CF7202",
@@ -7879,7 +7879,7 @@
     "description": "FRZ. Cooked Octopus Tentacles \"L\" approx. 280G (110-170g x 2pcs)",
     "lastSC": 293.87,
     "fifoUnit": 303.5047,
-    "salesLast3m": -1260.666,
+    "salesLast3m": -1256.876,
     "lastPurchaseDate": "2026-05-07",
     "stockQty": 903.385
   },
@@ -10263,10 +10263,10 @@
     "code": "TM0202",
     "description": "Semi-Dried Tomatoes in Oil 950g (6)",
     "lastSC": 41.45,
-    "fifoUnit": 39.83432,
-    "salesLast3m": -778.0,
+    "fifoUnit": 39.83218,
+    "salesLast3m": -779.0,
     "lastPurchaseDate": "2026-06-26",
-    "stockQty": 680.0
+    "stockQty": 679.0
   },
   {
     "code": "TM0202-V1",
