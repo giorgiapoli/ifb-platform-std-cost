@@ -985,6 +985,7 @@ export default function App() {
     {id:"xref",       icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
     ...(!isMAC ? [{id:"logistics", icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"}] : []),
     ...(!isMAC ? [{id:"prices",    icon:"◉", label:"Listini", badge:"💶"}] : []),
+    ...(!isMAC ? [{id:"pricecompare", icon:"⚖", label:"🔬 Confronto Listini"}] : []),
     ...(!isMAC ? [{id:"meatlist",  icon:"🥩", label:"Listino Carne"}] : []),
     ...(isCAN ? [{id:"bevinfo", icon:"🍷", label:"Beverage Info (AIEM)"}] : []),
     ...(!isCAN&&!isMAC ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
@@ -1151,6 +1152,7 @@ export default function App() {
     
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    pricecompare: <PriceComparePage bcListini={bcListiniEnriched} prices={prices} products={products} xrefs={xrefs} branch={branch} month={month}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} xrefs={xrefs} showToast={showToast}/>,
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors} hkConvFactors={hkConvFactors} setHkConvFactors={setHkConvFactors}/>,
@@ -3054,6 +3056,154 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
               })}
             </tbody>
           </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── PRICE COMPARE (debug temporaneo BC vs Excel) ────────────────────────────
+function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }: any) {
+  const FIELDS = [
+    { key: "fcaPrice",      label: "FCA Price",   bc: "fcaPrice",      xl: "fcaPrice" },
+    { key: "fcaDiscounted", label: "FCA Disc.",    bc: "fcaDiscounted", xl: "fcaDiscounted" },
+    { key: "dapPrice",      label: "DAP Price",   bc: "dapPrice",      xl: "dapPrice" },
+    { key: "dapFinal",      label: "DAP Final",   bc: "dapFinal",      xl: "dapFinal" },
+    { key: "mtsPrice",      label: "MTS Price",   bc: "mtsPrice",      xl: "mtsPrice" },
+    { key: "carriageCost",  label: "Carriage",    bc: "carriageCost",  xl: "carriageCost" },
+  ];
+  const [filter, setFilter] = useState<"all"|"diff"|"mts">("diff");
+  const [search, setSearch] = useState("");
+
+  const xlByProductId = useMemo(() => {
+    const m: Record<string, any> = {};
+    prices.filter((p: any) => p.branch === branch && p.month === month).forEach((p: any) => { m[String(p.productId)] = p; });
+    return m;
+  }, [prices, branch, month]);
+
+  const bcByProductId = useMemo(() => {
+    const m: Record<string, any> = {};
+    bcListini.filter((p: any) => (p.branch || p.b) === branch).forEach((p: any) => { m[String(p.productId)] = p; });
+    return m;
+  }, [bcListini, branch]);
+
+  const allProductIds = useMemo(() => {
+    const s = new Set([...Object.keys(xlByProductId), ...Object.keys(bcByProductId)]);
+    return [...s];
+  }, [xlByProductId, bcByProductId]);
+
+  const rows = useMemo(() => {
+    return allProductIds.map(pid => {
+      const xl = xlByProductId[pid];
+      const bc = bcByProductId[pid];
+      const prod = products.find((p: any) => String(p.id) === pid);
+      const diffs: { field: string; label: string; bc: number; xl: number; delta: number; reason: string }[] = [];
+
+      FIELDS.forEach(f => {
+        const bcVal = Number(bc?.[f.bc] || 0);
+        const xlVal = Number(xl?.[f.xl] || 0);
+        const delta = xlVal - bcVal;
+        if (Math.abs(delta) < 0.001 && !(bcVal === 0 && xlVal === 0)) return;
+        if (bcVal === 0 && xlVal === 0) return;
+        let reason = "";
+        if (bcVal === 0 && xlVal > 0) reason = "🟡 assente in BC";
+        else if (bcVal > 0 && xlVal === 0) reason = "🔴 assente in Excel";
+        else if (f.key === "mtsPrice" && bcVal === 0) reason = "🟡 MTS vuoto in BC (workflow non girato)";
+        else if (Math.abs(delta / bcVal) < 0.025) reason = "≈ diff < 2.5%";
+        else if (delta > 0) reason = `📈 Excel +${((delta/bcVal)*100).toFixed(1)}%`;
+        else reason = `📉 Excel ${((delta/bcVal)*100).toFixed(1)}%`;
+        diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, delta, reason });
+      });
+
+      const hasDiff = diffs.length > 0;
+      const hasMtsDiff = diffs.some(d => d.field === "mtsPrice");
+      return { pid, prod, xl, bc, diffs, hasDiff, hasMtsDiff };
+    });
+  }, [allProductIds, xlByProductId, bcByProductId, products]);
+
+  const displayed = useMemo(() => {
+    let r = rows;
+    if (filter === "diff") r = r.filter(r => r.hasDiff);
+    if (filter === "mts")  r = r.filter(r => r.hasMtsDiff);
+    if (search) {
+      const q = search.toLowerCase();
+      r = r.filter(r => r.prod?.code?.toLowerCase().includes(q) || r.prod?.description?.toLowerCase().includes(q) || r.prod?.nHK?.toLowerCase().includes(q));
+    }
+    return r;
+  }, [rows, filter, search]);
+
+  const hasXl = Object.keys(xlByProductId).length > 0;
+  const hasBc = Object.keys(bcByProductId).length > 0;
+
+  return (
+    <div>
+      <PageHeader title={`🔬 Confronto Listini · ${branch}`} sub={`BC: ${Object.keys(bcByProductId).length} articoli · Excel ${month}: ${Object.keys(xlByProductId).length} articoli`} />
+      <div style={{ background: `${T.gold}11`, border: `1px solid ${T.gold}33`, borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: T.muted }}>
+        <b style={{ color: T.gold }}>Sezione temporanea di debug.</b> Confronta i prezzi BC (caricati dal JSON GitHub) con quelli Excel importati ({month}).
+        {!hasXl && <span style={{ color: T.orange }}> — nessun prezzo Excel per {branch}/{month}: vai in Listini e importa il pricelist.</span>}
+        {!hasBc && <span style={{ color: T.orange }}> — nessun dato BC: ricarica i listini BC dalla pagina Listini.</span>}
+      </div>
+
+      <div style={{ display: "flex", gap: "8px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
+        {(["all", "diff", "mts"] as const).map(f => (
+          <button key={f} onClick={() => setFilter(f)}
+            style={{ padding: "5px 12px", background: filter === f ? `${T.gold}22` : T.surface, border: `1px solid ${filter === f ? T.gold : T.border}`, borderRadius: "6px", color: filter === f ? T.gold : T.muted, cursor: "pointer", fontSize: "11px" }}>
+            {f === "all" ? `Tutti (${rows.length})` : f === "diff" ? `Solo differenze (${rows.filter(r => r.hasDiff).length})` : `Solo diff MTS (${rows.filter(r => r.hasMtsDiff).length})`}
+          </button>
+        ))}
+        <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca…" style={{ marginBottom: 0, maxWidth: "220px" }} />
+      </div>
+
+      {displayed.length === 0 ? (
+        <div style={{ padding: "40px", textAlign: "center", color: T.muted, fontSize: "13px" }}>
+          {!hasXl || !hasBc ? "Carica entrambe le sorgenti per confrontarle." : "Nessuna differenza trovata."}
+        </div>
+      ) : (
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "12px" }}>
+            <thead>
+              <tr style={{ background: T.surface, borderBottom: `1px solid ${T.border}` }}>
+                <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Codice</th>
+                <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Descrizione</th>
+                <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Campo</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: T.blue, fontWeight: "normal" }}>BC</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: T.green, fontWeight: "normal" }}>Excel</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: T.muted, fontWeight: "normal" }}>Δ</th>
+                <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Motivo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {displayed.slice(0, 500).map(({ pid, prod, diffs, hasDiff }) => {
+                if (!hasDiff && filter !== "all") return null;
+                if (!hasDiff) {
+                  return (
+                    <tr key={pid} style={{ borderBottom: `1px solid ${T.border}22` }}>
+                      <td style={{ padding: "6px 10px", color: T.gold, fontFamily: "monospace" }}>{prod?.code || prod?.nHK || pid}</td>
+                      <td style={{ padding: "6px 10px", color: T.muted, fontSize: "11px" }} colSpan={6}>{prod?.description || "—"} <span style={{ color: T.dim }}>· nessuna differenza</span></td>
+                    </tr>
+                  );
+                }
+                return diffs.map((d, i) => (
+                  <tr key={`${pid}-${d.field}`} style={{ borderBottom: i === diffs.length - 1 ? `1px solid ${T.border}` : `1px solid ${T.border}11`, background: d.field === "mtsPrice" ? `${T.gold}08` : "transparent" }}>
+                    {i === 0 && (
+                      <>
+                        <td rowSpan={diffs.length} style={{ padding: "6px 10px", color: T.gold, fontFamily: "monospace", verticalAlign: "top" }}>{prod?.code || prod?.nHK || pid}</td>
+                        <td rowSpan={diffs.length} style={{ padding: "6px 10px", color: T.muted, fontSize: "11px", verticalAlign: "top", maxWidth: "200px" }}>{prod?.description || "—"}</td>
+                      </>
+                    )}
+                    <td style={{ padding: "4px 10px", color: T.dim, fontFamily: "monospace" }}>{d.label}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.blue, fontFamily: "monospace" }}>{d.bc > 0 ? `€ ${d.bc.toFixed(4)}` : <span style={{ color: T.dim }}>—</span>}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.green, fontFamily: "monospace" }}>{d.xl > 0 ? `€ ${d.xl.toFixed(4)}` : <span style={{ color: T.dim }}>—</span>}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "right", fontFamily: "monospace", color: d.delta > 0 ? T.orange : d.delta < 0 ? T.red : T.dim }}>
+                      {d.bc > 0 && d.xl > 0 ? `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(4)}` : "—"}
+                    </td>
+                    <td style={{ padding: "4px 10px", color: T.muted, fontSize: "11px" }}>{d.reason}</td>
+                  </tr>
+                ));
+              })}
+            </tbody>
+          </table>
+          {displayed.length > 500 && <div style={{ padding: "10px", textAlign: "center", color: T.dim, fontSize: "11px" }}>Mostrati 500/{displayed.length}</div>}
         </div>
       )}
     </div>
