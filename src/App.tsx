@@ -3137,20 +3137,32 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     });
   }, [allProductIds, xlByProductId, bcByProductId, products]);
 
-  const allReasons = useMemo(() => {
-    const s = new Set<string>();
-    rows.forEach(r => r.diffs.forEach((d: any) => { const k = d.reason.replace(/[📈📉]\s*Excel [+-][\d.]+%/, "📈📉 diff %"); s.add(k); }));
-    return [...s].sort();
+  // Pivot: campo × tipo-motivo → conteggio articoli
+  const REASON_CATS = [
+    { key: "missing_bc",   label: "🟡 assente BC",    match: (r: string) => r.includes("assente in BC") },
+    { key: "missing_xl",   label: "🔴 assente Excel",  match: (r: string) => r.includes("assente in Excel") },
+    { key: "diff_pct",     label: "📈📉 diff >2.5%",   match: (r: string) => r.startsWith("📈") || r.startsWith("📉") },
+    { key: "approx",       label: "≈ diff <2.5%",      match: (r: string) => r.startsWith("≈") },
+  ];
+  const pivot = useMemo(() => {
+    const p: Record<string, Record<string, number>> = {};
+    FIELDS.forEach(f => { p[f.key] = {}; REASON_CATS.forEach(c => { p[f.key][c.key] = 0; }); });
+    rows.forEach(row => row.diffs.forEach((d: any) => {
+      const cat = REASON_CATS.find(c => c.match(d.reason));
+      if (cat && p[d.field]) p[d.field][cat.key]++;
+    }));
+    return p;
   }, [rows]);
 
   const displayed = useMemo(() => {
     let r = rows;
-    if (filter === "diff") r = r.filter(r => r.hasDiff);
-    if (filter === "mts")  r = r.filter(r => r.hasMtsDiff);
-    if (reasonFilter !== "all") r = r.filter(r => r.diffs.some((d: any) => {
-      const k = d.reason.replace(/[📈📉]\s*Excel [+-][\d.]+%/, "📈📉 diff %");
-      return k === reasonFilter;
-    }));
+    if (filter === "diff")    r = r.filter(r => r.hasDiff);
+    if (filter === "mts")     r = r.filter(r => r.hasMtsDiff);
+    if (filter === "real")    r = r.filter(r => r.diffs.some((d: any) => !d.reason.startsWith("≈")));
+    if (reasonFilter !== "all") {
+      const cat = REASON_CATS.find(c => c.key === reasonFilter);
+      if (cat) r = r.filter(r => r.diffs.some((d: any) => cat.match(d.reason)));
+    }
     if (search) {
       const q = search.toLowerCase();
       r = r.filter(r => r.prod?.code?.toLowerCase().includes(q) || r.prod?.description?.toLowerCase().includes(q) || r.prod?.nHK?.toLowerCase().includes(q));
@@ -3167,22 +3179,61 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     <div>
       <PageHeader title={`🔬 Confronto Listini · ${branch}`} sub={`BC: ${Object.keys(bcByProductId).length} articoli · Excel ${month}: ${Object.keys(xlByProductId).length} articoli`} />
       <div style={{ background: `${T.gold}11`, border: `1px solid ${T.gold}33`, borderRadius: "8px", padding: "10px 14px", marginBottom: "14px", fontSize: "12px", color: T.muted }}>
-        <b style={{ color: T.gold }}>Sezione temporanea di debug.</b> Confronta i prezzi BC (caricati dal JSON GitHub) con quelli Excel importati ({month}).
+        <b style={{ color: T.gold }}>Sezione temporanea di debug.</b> Confronta prezzi BC vs Excel {month}. I prezzi BC sono già convertiti alla base UoM.
         {!hasXl && <span style={{ color: T.orange }}> — nessun prezzo Excel per {branch}/{month}: vai in Listini e importa il pricelist.</span>}
         {!hasBc && <span style={{ color: T.orange }}> — nessun dato BC: ricarica i listini BC dalla pagina Listini.</span>}
       </div>
 
+      {/* Pivot riepilogo */}
+      {hasXl && hasBc && (
+      <div style={{ marginBottom: "16px", overflowX: "auto" }}>
+        <table style={{ borderCollapse: "collapse", fontSize: "11px", width: "100%" }}>
+          <thead>
+            <tr style={{ background: T.surface }}>
+              <th style={{ padding: "6px 10px", textAlign: "left", color: T.muted, fontWeight: "normal", borderBottom: `1px solid ${T.border}` }}>Campo</th>
+              {REASON_CATS.map(c => <th key={c.key} style={{ padding: "6px 14px", textAlign: "center", color: T.muted, fontWeight: "normal", borderBottom: `1px solid ${T.border}`, cursor: "pointer", whiteSpace: "nowrap" }} onClick={() => { setFilter("diff"); setReasonFilter(c.key); }}>{c.label}</th>)}
+            </tr>
+          </thead>
+          <tbody>
+            {FIELDS.map(f => (
+              <tr key={f.key} style={{ borderBottom: `1px solid ${T.border}22` }}>
+                <td style={{ padding: "5px 10px", color: T.dim, fontFamily: "monospace" }}>{f.label}</td>
+                {REASON_CATS.map(c => {
+                  const n = pivot[f.key]?.[c.key] || 0;
+                  const isHot = c.key !== "approx" && n > 0;
+                  return (
+                    <td key={c.key} style={{ padding: "5px 14px", textAlign: "center", cursor: n > 0 ? "pointer" : "default" }}
+                      onClick={() => { if (n > 0) { setFilter("diff"); setReasonFilter(c.key); }}}>
+                      <span style={{ color: isHot ? (c.key === "missing_bc" ? T.orange : c.key === "missing_xl" ? T.red : T.gold) : T.dim, fontWeight: isHot ? "bold" : "normal" }}>
+                        {n > 0 ? n : "—"}
+                      </span>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div style={{ fontSize: "10px", color: T.dim, marginTop: "4px" }}>Clicca su un'intestazione o su un numero per filtrare</div>
+      </div>
+      )}
+
       <div style={{ display: "flex", gap: "8px", marginBottom: "14px", alignItems: "center", flexWrap: "wrap" }}>
-        {(["all", "diff", "mts"] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            style={{ padding: "5px 12px", background: filter === f ? `${T.gold}22` : T.surface, border: `1px solid ${filter === f ? T.gold : T.border}`, borderRadius: "6px", color: filter === f ? T.gold : T.muted, cursor: "pointer", fontSize: "11px" }}>
-            {f === "all" ? `Tutti (${rows.length})` : f === "diff" ? `Solo differenze (${rows.filter(r => r.hasDiff).length})` : `Solo diff MTS (${rows.filter(r => r.hasMtsDiff).length})`}
+        {([
+          ["all",  `Tutti (${rows.length})`],
+          ["real", `🔬 Problemi reali (${rows.filter(r => r.diffs.some((d:any) => !d.reason.startsWith("≈"))).length})`],
+          ["mts",  `MTS diff (${rows.filter(r => r.hasMtsDiff).length})`],
+        ] as [string,string][]).map(([f, l]) => (
+          <button key={f} onClick={() => { setFilter(f as any); setReasonFilter("all"); }}
+            style={{ padding: "5px 12px", background: filter === f && reasonFilter === "all" ? `${T.gold}22` : T.surface, border: `1px solid ${filter === f && reasonFilter === "all" ? T.gold : T.border}`, borderRadius: "6px", color: filter === f && reasonFilter === "all" ? T.gold : T.muted, cursor: "pointer", fontSize: "11px" }}>
+            {l}
           </button>
         ))}
-        <select value={reasonFilter} onChange={e => setReasonFilter(e.target.value)} style={{ ...inputStyle(), width: "auto", fontSize: "11px" }}>
-          <option value="all">Tutti i motivi</option>
-          {allReasons.map(r => <option key={r} value={r}>{r}</option>)}
-        </select>
+        {reasonFilter !== "all" && (
+          <button onClick={() => setReasonFilter("all")} style={{ padding: "5px 10px", background: `${T.orange}22`, border: `1px solid ${T.orange}`, borderRadius: "6px", color: T.orange, cursor: "pointer", fontSize: "11px" }}>
+            ✕ {REASON_CATS.find(c => c.key === reasonFilter)?.label}
+          </button>
+        )}
         <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca…" style={{ marginBottom: 0, maxWidth: "220px" }} />
       </div>
 
