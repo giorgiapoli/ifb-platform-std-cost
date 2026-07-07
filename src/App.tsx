@@ -3103,8 +3103,10 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
         const bcVal = Number(bc?.[f.bc] || 0);
         const xlVal = Number(xl?.[f.xl] || 0);
         const delta = xlVal - bcVal;
-        if (Math.abs(delta) < 0.001 && !(bcVal === 0 && xlVal === 0)) return;
         if (bcVal === 0 && xlVal === 0) return;
+        // considera differenza solo se almeno uno è 0, oppure delta >= 0.01 (1 centesimo)
+        const onlyOneMissing = (bcVal === 0) !== (xlVal === 0);
+        if (!onlyOneMissing && Math.abs(delta) < 0.01) return;
         let reason = "";
         if (bcVal === 0 && xlVal > 0) reason = "🟡 assente in BC";
         else if (bcVal > 0 && xlVal === 0) reason = "🔴 assente in Excel";
