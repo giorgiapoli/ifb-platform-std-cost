@@ -3071,9 +3071,10 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     { key: "dapFinal",      label: "DAP Final",   bc: "dapFinal",      xl: "dapFinal" },
     { key: "mtsPrice",      label: "MTS Price",   bc: "mtsPrice",      xl: "mtsPrice" },
   ];
-  const [filter, setFilter] = useState<"all"|"diff"|"mts">("diff");
+  const [filter, setFilter] = useState<"all"|"diff"|"mts"|"real">("real");
   const [search, setSearch] = useState("");
   const [reasonFilter, setReasonFilter] = useState<string>("all");
+  const [hideAbsentXl, setHideAbsentXl] = useState(true);
 
   const xlByProductId = useMemo(() => {
     const m: Record<string, any> = {};
@@ -3145,6 +3146,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
 
   const displayed = useMemo(() => {
     let r = rows;
+    if (hideAbsentXl) r = r.map(row => ({ ...row, diffs: row.diffs.filter((d: any) => !d.reason.includes("assente in Excel")) })).filter(row => row.diffs.length > 0);
     if (filter === "diff")    r = r.filter(r => r.hasDiff);
     if (filter === "mts")     r = r.filter(r => r.hasMtsDiff);
     if (filter === "real")    r = r.filter(r => r.diffs.some((d: any) => !d.reason.startsWith("≈")));
@@ -3218,6 +3220,10 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
             {l}
           </button>
         ))}
+        <button onClick={() => setHideAbsentXl(v => !v)}
+          style={{ padding: "5px 12px", background: hideAbsentXl ? `${T.red}22` : T.surface, border: `1px solid ${hideAbsentXl ? T.red : T.border}`, borderRadius: "6px", color: hideAbsentXl ? T.red : T.muted, cursor: "pointer", fontSize: "11px" }}>
+          {hideAbsentXl ? "✕ Nascondi assenti Excel" : "Mostra assenti Excel"}
+        </button>
         {reasonFilter !== "all" && (
           <button onClick={() => setReasonFilter("all")} style={{ padding: "5px 10px", background: `${T.orange}22`, border: `1px solid ${T.orange}`, borderRadius: "6px", color: T.orange, cursor: "pointer", fontSize: "11px" }}>
             ✕ {REASON_CATS.find(c => c.key === reasonFilter)?.label}
