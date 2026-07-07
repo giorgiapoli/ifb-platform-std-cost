@@ -3192,10 +3192,10 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
                       </>
                     )}
                     <td style={{ padding: "4px 10px", color: T.dim, fontFamily: "monospace" }}>{d.label}</td>
-                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.blue, fontFamily: "monospace" }}>{d.bc > 0 ? `€ ${d.bc.toFixed(4)}` : <span style={{ color: T.dim }}>—</span>}</td>
-                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.green, fontFamily: "monospace" }}>{d.xl > 0 ? `€ ${d.xl.toFixed(4)}` : <span style={{ color: T.dim }}>—</span>}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.blue, fontFamily: "monospace" }}>{d.bc > 0 ? `€ ${d.bc.toFixed(2)}` : <span style={{ color: T.dim }}>—</span>}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.green, fontFamily: "monospace" }}>{d.xl > 0 ? `€ ${d.xl.toFixed(2)}` : <span style={{ color: T.dim }}>—</span>}</td>
                     <td style={{ padding: "4px 10px", textAlign: "right", fontFamily: "monospace", color: d.delta > 0 ? T.orange : d.delta < 0 ? T.red : T.dim }}>
-                      {d.bc > 0 && d.xl > 0 ? `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(4)}` : "—"}
+                      {d.bc > 0 && d.xl > 0 ? `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(2)}` : "—"}
                     </td>
                     <td style={{ padding: "4px 10px", color: T.muted, fontSize: "11px" }}>{d.reason}</td>
                   </tr>
