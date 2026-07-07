@@ -3101,7 +3101,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
 
       const qpb = Number(prod?.qtyPerBox || prod?.pcsPerBox || 1) || 1;
       const bcPu = String(bc?.pu || bc?.purchaseUom || "").toUpperCase();
-      const diffs: { field: string; label: string; bc: number; xl: number; bcNorm: number; delta: number; reason: string; uomNote?: string }[] = [];
+      const diffs: { field: string; label: string; bc: number; xl: number; bcNorm: number; delta: number; reason: string; uomNote?: string; bcUom: string; xlUom: string }[] = [];
 
       FIELDS.forEach(f => {
         const bcVal = Number(bc?.[f.bc] || 0);
@@ -3112,65 +3112,70 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
         let uomNote: string | undefined;
         let bcNorm = bcVal;
         let delta = xlVal - bcVal;
+        let bcUom = bcPu || "?";
+        let xlUom = "?";
 
         if (bcVal === 0 && xlVal > 0) {
           reason = "🟡 assente in BC";
+          xlUom = "—";
         } else if (bcVal > 0 && xlVal === 0) {
           reason = "🔴 assente in Excel";
+          xlUom = "—";
         } else {
           const UOM_TOL = 0.04;
 
-          // 1. Confronto diretto (stesso UoM — funziona per vini, burrate, ecc.)
+          // 1. Confronto diretto (stesso UoM)
           const rawPct = Math.abs((xlVal - bcVal) / bcVal);
           if (rawPct < UOM_TOL) {
             if (Math.abs(xlVal - bcVal) < 0.01) return;
             reason = "≈ diff < 4%";
             bcNorm = bcVal;
             delta = xlVal - bcVal;
+            xlUom = bcUom; // stesso UoM
           } else if (qpb > 1) {
             // 2. BC per-PCS × qpb ≈ xl (Excel per-BOX)
             const bcBoxed = bcVal * qpb;
             const pctBoxed = Math.abs((xlVal - bcBoxed) / bcBoxed);
-            // 3. xl × qpb ≈ BC (BC per-BOX mislabeled, Excel per-PCS)
+            // 3. xl × qpb ≈ BC (BC per-BOX, Excel per-PCS)
             const xlBoxed = xlVal * qpb;
             const pctUnboxed = Math.abs((xlBoxed - bcVal) / bcVal);
 
             if (pctBoxed < UOM_TOL) {
-              // stesso prezzo, UoM diversa: BC per-PCS, Excel per-BOX
               if (pctBoxed < 0.01) return;
               bcNorm = bcBoxed;
               delta = xlVal - bcBoxed;
               reason = "📦 UoM: BC per-PCS, Excel per-BOX";
               uomNote = `BC €${bcVal.toFixed(2)}×${qpb}=€${bcBoxed.toFixed(2)} ≈ Excel €${xlVal.toFixed(2)}`;
+              bcUom = "PCS"; xlUom = "BOX";
             } else if (pctUnboxed < UOM_TOL) {
-              // stesso prezzo, UoM diversa: BC per-BOX, Excel per-PCS
               if (pctUnboxed < 0.01) return;
               bcNorm = bcVal;
               delta = xlBoxed - bcVal;
               reason = "📦 UoM: BC per-BOX, Excel per-PCS";
               uomNote = `Excel €${xlVal.toFixed(2)}×${qpb}=€${xlBoxed.toFixed(2)} ≈ BC €${bcVal.toFixed(2)}`;
+              bcUom = "BOX"; xlUom = "PCS";
             } else {
-              // differenza reale
               bcNorm = bcVal;
               delta = xlVal - bcVal;
               const pct = delta / bcVal;
               if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
               else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
               else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
-              if (bcPu === "KG") uomNote = `⚠️ BC prezzo per KG`;
+              if (bcPu === "KG") { uomNote = `⚠️ BC prezzo per KG`; bcUom = "KG"; xlUom = "BOX?"; }
+              else xlUom = bcUom;
             }
           } else {
-            // qpb=1, differenza reale
             bcNorm = bcVal;
             delta = xlVal - bcVal;
             const pct = delta / bcVal;
             if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
             else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
             else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
-            if (bcPu === "KG") uomNote = `⚠️ BC prezzo per KG`;
+            if (bcPu === "KG") { uomNote = `⚠️ BC prezzo per KG`; bcUom = "KG"; xlUom = "BOX?"; }
+            else xlUom = bcUom;
           }
         }
-        diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, bcNorm, delta, reason, uomNote });
+        diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, bcNorm, delta, reason, uomNote, bcUom, xlUom });
       });
 
       const hasDiff = diffs.length > 0;
@@ -3298,7 +3303,9 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Descrizione</th>
                 <th style={{ padding: "8px 10px", textAlign: "center", color: T.muted, fontWeight: "normal" }}>qpb</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Campo</th>
+                <th style={{ padding: "8px 10px", textAlign: "center", color: T.blue, fontWeight: "normal", fontSize: "11px" }}>UoM BC</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.blue, fontWeight: "normal" }}>BC</th>
+                <th style={{ padding: "8px 10px", textAlign: "center", color: T.green, fontWeight: "normal", fontSize: "11px" }}>UoM Excel</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.green, fontWeight: "normal" }}>Excel</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.muted, fontWeight: "normal" }}>Δ</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Motivo</th>
@@ -3325,6 +3332,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
                       </>
                     )}
                     <td style={{ padding: "4px 10px", color: T.dim, fontFamily: "monospace" }}>{d.label}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "center", color: T.blue, fontFamily: "monospace", fontSize: "10px" }}>{d.bcUom}</td>
                     <td style={{ padding: "4px 10px", textAlign: "right", color: T.blue, fontFamily: "monospace" }}>
                       {d.bc > 0 ? (
                         d.bcNorm !== d.bc
@@ -3332,6 +3340,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
                           : `€ ${d.bc.toFixed(2)}`
                       ) : <span style={{ color: T.dim }}>—</span>}
                     </td>
+                    <td style={{ padding: "4px 10px", textAlign: "center", color: T.green, fontFamily: "monospace", fontSize: "10px" }}>{d.xlUom}</td>
                     <td style={{ padding: "4px 10px", textAlign: "right", color: T.green, fontFamily: "monospace" }}>{d.xl > 0 ? `€ ${d.xl.toFixed(2)}` : <span style={{ color: T.dim }}>—</span>}</td>
                     <td style={{ padding: "4px 10px", textAlign: "right", fontFamily: "monospace", color: d.delta > 0 ? T.orange : d.delta < 0 ? T.red : T.dim }}>
                       {d.bcNorm > 0 && d.xl > 0 ? `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(2)}` : "—"}
