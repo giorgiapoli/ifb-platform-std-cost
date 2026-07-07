@@ -3150,7 +3150,7 @@ break;
 }
 }
 
-const priceFields = ["mtsPrice", "fcaPrice", "fcaDiscount", "fcaDiscounted", "dapPrice", "dapDiscount", "dapDiscounted", "dapFinalDirect"];
+const priceFields = ["mtsPrice", "fcaPrice", "fcaDiscount", "fcaDiscounted", "dapPrice", "dapDiscount", "dapDiscounted", "dapFinalDirect", "carriageCost"];
 priceFields.forEach(field => {
 const aliases = PRICE_FIELD_ALIASES[field] || [];
 for (const h of hdrs) {
@@ -3497,7 +3497,8 @@ return (
 {importStep === "map" && (
 <div style={{ background: T.card, border: `1px solid ${T.gold}`, borderRadius: "8px", padding: "16px", marginBottom: "16px" }}>
 <div style={{ color: T.gold, fontWeight: "bold", marginBottom: "12px" }}>Mappatura colonne · {fileName}</div>
-<div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", marginBottom: "16px" }}>
+{/* Campi base */}
+<div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", marginBottom: "12px" }}>
 <div>
 <label style={{ fontSize: "11px", color: T.gold }}>📌 Codice *</label>
 <select value={mapping["code"] || ""} onChange={e => setMapping((m: any) => ({ ...m, code: e.target.value }))} style={{ ...inputStyle(), fontSize: "12px" }}>
@@ -3516,6 +3517,29 @@ return (
 <label style={{ fontSize: "11px", color: T.muted }}>📅 Mese listino</label>
 <input type="month" value={importMonth} onChange={e => setImportMonth(e.target.value)} style={{ ...inputStyle(), fontSize: "12px" }} />
 </div>
+</div>
+{/* Campi prezzo — auto-rilevati, modificabili manualmente */}
+<div style={{ fontSize: "11px", color: T.muted, marginBottom: "6px", borderTop: `1px solid ${T.border}`, paddingTop: "10px" }}>Prezzi (auto-rilevati — modifica se necessario)</div>
+<div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "10px", marginBottom: "16px" }}>
+{([
+["mtsPrice",       "💲 MTS Price"],
+["fcaPrice",       "💲 FCA Price"],
+["fcaDiscount",    "% FCA Discount"],
+["fcaDiscounted",  "💲 FCA Discounted"],
+["dapPrice",       "💲 DAP Price"],
+["dapDiscount",    "% DAP Discount"],
+["dapDiscounted",  "💲 DAP Discounted"],
+["dapFinalDirect", "💲 DAP Final"],
+["carriageCost",   "💲 Carriage Cost"],
+] as [string,string][]).map(([field, label]) => (
+<div key={field}>
+<label style={{ fontSize: "11px", color: mapping[field] ? T.green : T.dim }}>{label}</label>
+<select value={mapping[field] || ""} onChange={e => setMapping((m: any) => ({ ...m, [field]: e.target.value || undefined }))} style={{ ...inputStyle(), fontSize: "12px", borderColor: mapping[field] ? `${T.green}66` : undefined }}>
+<option value="">— non mappato —</option>
+{headers.map(h => <option key={h} value={h}>{h}</option>)}
+</select>
+</div>
+))}
 </div>
 <div style={{ display: "flex", gap: "10px" }}>
 <ActionBtn label="Annulla" onClick={resetImport} />
