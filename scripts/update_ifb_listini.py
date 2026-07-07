@@ -276,9 +276,21 @@ def build_uom_conversions(token):
     Restituisce: { item_no: { uom_code: qty_per_base_uom } }
     La base UoM ha qty=1. Es: Z3774 -> {BOX: 6, KG: 1, PCS: 1, PLT: 432}
     """
-    print("  Fetch UoM conversioni articoli...")
-    rows = bc_fetch_all(token, "IFB_Item_Unit_of_Measure")
-    print(f"    {len(rows)} righe UoM")
+    print("  Fetch UoM conversioni articoli (paginazione $skip)...")
+    base_url = (f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}"
+                f"/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/IFB_Item_Unit_of_Measure")
+    hdrs = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    rows = []
+    skip = 0
+    while True:
+        r = requests.get(base_url, headers=hdrs, params={"$top": 5000, "$skip": skip})
+        r.raise_for_status()
+        batch = r.json().get("value", [])
+        rows.extend(batch)
+        if len(batch) < 5000:
+            break
+        skip += 5000
+    print(f"    {len(rows)} righe UoM (paginate con $skip)")
     if rows:
         # Debug: mostra campi disponibili della prima riga
         sample = {k: v for k, v in rows[0].items() if not k.startswith("@")}
