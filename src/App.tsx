@@ -3073,6 +3073,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
   ];
   const [filter, setFilter] = useState<"all"|"diff"|"mts">("diff");
   const [search, setSearch] = useState("");
+  const [reasonFilter, setReasonFilter] = useState<string>("all");
 
   const xlByProductId = useMemo(() => {
     const m: Record<string, any> = {};
@@ -3136,10 +3137,20 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     });
   }, [allProductIds, xlByProductId, bcByProductId, products]);
 
+  const allReasons = useMemo(() => {
+    const s = new Set<string>();
+    rows.forEach(r => r.diffs.forEach((d: any) => { const k = d.reason.replace(/[📈📉]\s*Excel [+-][\d.]+%/, "📈📉 diff %"); s.add(k); }));
+    return [...s].sort();
+  }, [rows]);
+
   const displayed = useMemo(() => {
     let r = rows;
     if (filter === "diff") r = r.filter(r => r.hasDiff);
     if (filter === "mts")  r = r.filter(r => r.hasMtsDiff);
+    if (reasonFilter !== "all") r = r.filter(r => r.diffs.some((d: any) => {
+      const k = d.reason.replace(/[📈📉]\s*Excel [+-][\d.]+%/, "📈📉 diff %");
+      return k === reasonFilter;
+    }));
     if (search) {
       const q = search.toLowerCase();
       r = r.filter(r => r.prod?.code?.toLowerCase().includes(q) || r.prod?.description?.toLowerCase().includes(q) || r.prod?.nHK?.toLowerCase().includes(q));
@@ -3147,7 +3158,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     const maxAbsDelta = (row: any) => Math.max(...row.diffs.map((d: any) => Math.abs(d.delta)), 0);
     r = [...r].sort((a, b) => maxAbsDelta(b) - maxAbsDelta(a));
     return r;
-  }, [rows, filter, search]);
+  }, [rows, filter, reasonFilter, search]);
 
   const hasXl = Object.keys(xlByProductId).length > 0;
   const hasBc = Object.keys(bcByProductId).length > 0;
@@ -3168,6 +3179,10 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
             {f === "all" ? `Tutti (${rows.length})` : f === "diff" ? `Solo differenze (${rows.filter(r => r.hasDiff).length})` : `Solo diff MTS (${rows.filter(r => r.hasMtsDiff).length})`}
           </button>
         ))}
+        <select value={reasonFilter} onChange={e => setReasonFilter(e.target.value)} style={{ ...inputStyle(), width: "auto", fontSize: "11px" }}>
+          <option value="all">Tutti i motivi</option>
+          {allReasons.map(r => <option key={r} value={r}>{r}</option>)}
+        </select>
         <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca…" style={{ marginBottom: 0, maxWidth: "220px" }} />
       </div>
 
