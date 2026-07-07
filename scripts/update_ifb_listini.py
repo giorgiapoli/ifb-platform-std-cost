@@ -93,7 +93,28 @@ def bc_fetch_hk(token, entity, filt=None):
 
 
 def fetch_price_lines(token, filt):
-    return bc_fetch_all(token, "IFB_Price_List_Line", filt=filt)
+    """Fetch IFB_Price_List_Line con paginazione esplicita via $skip (fallback se nextLink manca)."""
+    base_url = (f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}"
+                f"/{BC_ENV}/ODataV4/Company('{BC_COMPANY}')/IFB_Price_List_Line")
+    hdrs = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    results = []
+    skip = 0
+    page = 0
+    while True:
+        params = {"$top": 5000, "$skip": skip}
+        if filt:
+            params["$filter"] = filt
+        r = requests.get(base_url, headers=hdrs, params=params)
+        r.raise_for_status()
+        data = r.json()
+        batch = data.get("value", [])
+        results.extend(batch)
+        page += 1
+        print(f"    fetch_price_lines pagina {page}: {len(batch)} righe (skip={skip})")
+        if len(batch) < 5000:
+            break  # ultima pagina
+        skip += 5000
+    return results
 
 
 def classify_ship(code):
