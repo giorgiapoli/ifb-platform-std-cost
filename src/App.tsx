@@ -3099,31 +3099,64 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
       const bc = bcByProductId[pid];
       const prod = products.find((p: any) => String(p.id) === pid);
 
-      // NON convertiamo BC: il pricelist Excel ha prezzi per-cartone (BOX), come BC.
-      // Convertire BC in per-PCS creerebbe un falso ×qtyPerBox su tutti gli articoli.
-      const diffs: { field: string; label: string; bc: number; xl: number; delta: number; reason: string }[] = [];
+      const qpb = Number(prod?.qtyPerBox || prod?.pcsPerBox || 1) || 1;
+      const bcPu = String(bc?.pu || bc?.purchaseUom || "").toUpperCase();
+      // Normalize BC to per-BOX: if BC stores price per-PCS, multiply by qpb
+      const bcConv = (bcPu === "PCS" && qpb > 1) ? qpb : 1;
+      const diffs: { field: string; label: string; bc: number; xl: number; bcNorm: number; delta: number; reason: string; uomNote?: string }[] = [];
 
       FIELDS.forEach(f => {
         const bcVal = Number(bc?.[f.bc] || 0);
         const xlVal = Number(xl?.[f.xl] || 0);
-        const delta = xlVal - bcVal;
         if (bcVal === 0 && xlVal === 0) return;
-        // considera differenza solo se almeno uno è 0, oppure delta >= 0.01 (1 centesimo)
-        const onlyOneMissing = (bcVal === 0) !== (xlVal === 0);
-        if (!onlyOneMissing && Math.abs(delta) < 0.01) return;
+
+        // BC normalizzato a per-BOX
+        const bcNorm = bcVal > 0 ? bcVal * bcConv : 0;
+        const delta = xlVal - bcNorm;
+
         let reason = "";
-        if (bcVal === 0 && xlVal > 0) reason = "🟡 assente in BC";
-        else if (bcVal > 0 && xlVal === 0) reason = "🔴 assente in Excel";
-        else if (f.key === "mtsPrice" && bcVal === 0) reason = "🟡 MTS vuoto in BC (workflow non girato)";
-        else if (Math.abs(delta / bcVal) < 0.025) reason = "≈ diff < 2.5%";
-        else if (delta > 0) reason = `📈 Excel +${((delta/bcVal)*100).toFixed(1)}%`;
-        else reason = `📉 Excel ${((delta/bcVal)*100).toFixed(1)}%`;
-        diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, delta, reason });
+        let uomNote: string | undefined;
+
+        if (bcVal === 0 && xlVal > 0) {
+          reason = "🟡 assente in BC";
+        } else if (bcVal > 0 && xlVal === 0) {
+          reason = "🔴 assente in Excel";
+        } else {
+          const pct = bcNorm > 0 ? delta / bcNorm : 0;
+          if (Math.abs(delta) < 0.01) return; // diff trascurabile
+
+          // Dopo normalizzazione BC→BOX, controlla se Excel è per-PCS (ancora ÷qpb off)
+          if (Math.abs(pct) < 0.04) {
+            reason = "≈ diff < 2.5%";
+          } else if (qpb > 1 && bcNorm > 0 && xlVal > 0) {
+            const ratioXlBcNorm = xlVal / bcNorm;
+            const tol = 0.04;
+            if (Math.abs(ratioXlBcNorm - 1/qpb) * qpb < tol) {
+              // BC è per-BOX, Excel è per-PCS → stesso prezzo
+              reason = `📦 UoM: BC per-BOX, Excel per-PCS (×${qpb}=${(xlVal*qpb).toFixed(2)})`;
+              uomNote = `stesso prezzo: Excel×${qpb}=€${(xlVal*qpb).toFixed(2)} ≈ BC €${bcNorm.toFixed(2)}`;
+            } else if (Math.abs(pct) < 0.025) {
+              reason = "≈ diff < 2.5%";
+            } else if (delta > 0) {
+              reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
+            } else {
+              reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
+            }
+          } else {
+            if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
+            else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
+            else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
+          }
+        }
+        if (bcConv > 1 && bcVal > 0) {
+          uomNote = (uomNote ? uomNote + " · " : "") + `BC per-PCS, normalizzato ×${bcConv} → €${bcNorm.toFixed(2)}/BOX`;
+        }
+        diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, bcNorm, delta, reason, uomNote });
       });
 
       const hasDiff = diffs.length > 0;
       const hasMtsDiff = diffs.some(d => d.field === "mtsPrice");
-      return { pid, prod, xl, bc, diffs, hasDiff, hasMtsDiff };
+      return { pid, prod, xl, bc, diffs, hasDiff, hasMtsDiff, qpb };
     });
   }, [allProductIds, xlByProductId, bcByProductId, products]);
 
@@ -3131,6 +3164,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
   const REASON_CATS = [
     { key: "missing_bc",   label: "🟡 assente BC",    match: (r: string) => r.includes("assente in BC") },
     { key: "missing_xl",   label: "🔴 assente Excel",  match: (r: string) => r.includes("assente in Excel") },
+    { key: "uom",          label: "📦 UoM mismatch",  match: (r: string) => r.startsWith("📦") },
     { key: "diff_pct",     label: "📈📉 diff >2.5%",   match: (r: string) => r.startsWith("📈") || r.startsWith("📉") },
     { key: "approx",       label: "≈ diff <2.5%",      match: (r: string) => r.startsWith("≈") },
   ];
@@ -3147,9 +3181,9 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
   const displayed = useMemo(() => {
     let r = rows;
     if (hideAbsentXl) r = r.map(row => ({ ...row, diffs: row.diffs.filter((d: any) => !d.reason.includes("assente in Excel")) })).filter(row => row.diffs.length > 0);
-    if (filter === "diff")    r = r.filter(r => r.hasDiff);
-    if (filter === "mts")     r = r.filter(r => r.hasMtsDiff);
-    if (filter === "real")    r = r.filter(r => r.diffs.some((d: any) => !d.reason.startsWith("≈")));
+    if (filter === "real") r = r.map(row => ({ ...row, diffs: row.diffs.filter((d: any) => !d.reason.startsWith("≈") && !d.reason.startsWith("📦")) })).filter(row => row.diffs.length > 0);
+    if (filter === "diff") r = r.filter(r => r.hasDiff);
+    if (filter === "mts")  r = r.filter(r => r.hasMtsDiff);
     if (reasonFilter !== "all") {
       const cat = REASON_CATS.find(c => c.key === reasonFilter);
       if (cat) r = r.filter(r => r.diffs.some((d: any) => cat.match(d.reason)));
@@ -3243,39 +3277,50 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
               <tr style={{ background: T.surface, borderBottom: `1px solid ${T.border}` }}>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Codice</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Descrizione</th>
+                <th style={{ padding: "8px 10px", textAlign: "center", color: T.muted, fontWeight: "normal" }}>qpb</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Campo</th>
-                <th style={{ padding: "8px 10px", textAlign: "right", color: T.blue, fontWeight: "normal" }}>BC</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: T.blue, fontWeight: "normal" }}>BC (norm./BOX)</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.green, fontWeight: "normal" }}>Excel</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.muted, fontWeight: "normal" }}>Δ</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Motivo</th>
               </tr>
             </thead>
             <tbody>
-              {displayed.slice(0, 500).map(({ pid, prod, diffs, hasDiff }) => {
+              {displayed.slice(0, 500).map(({ pid, prod, diffs, hasDiff, qpb }) => {
                 if (!hasDiff && filter !== "all") return null;
                 if (!hasDiff) {
                   return (
                     <tr key={pid} style={{ borderBottom: `1px solid ${T.border}22` }}>
                       <td style={{ padding: "6px 10px", color: T.gold, fontFamily: "monospace" }}>{prod?.code || prod?.nHK || pid}</td>
-                      <td style={{ padding: "6px 10px", color: T.muted, fontSize: "11px" }} colSpan={6}>{prod?.description || "—"} <span style={{ color: T.dim }}>· nessuna differenza</span></td>
+                      <td style={{ padding: "6px 10px", color: T.muted, fontSize: "11px" }} colSpan={7}>{prod?.description || "—"} <span style={{ color: T.dim }}>· nessuna differenza</span></td>
                     </tr>
                   );
                 }
-                return diffs.map((d, i) => (
-                  <tr key={`${pid}-${d.field}`} style={{ borderBottom: i === diffs.length - 1 ? `1px solid ${T.border}` : `1px solid ${T.border}11`, background: d.field === "mtsPrice" ? `${T.gold}08` : "transparent" }}>
+                return diffs.map((d: any, i: number) => (
+                  <tr key={`${pid}-${d.field}`} style={{ borderBottom: i === diffs.length - 1 ? `1px solid ${T.border}` : `1px solid ${T.border}11`, background: d.reason.startsWith("📦") ? `${T.blue}06` : d.field === "mtsPrice" ? `${T.gold}08` : "transparent" }}>
                     {i === 0 && (
                       <>
                         <td rowSpan={diffs.length} style={{ padding: "6px 10px", color: T.gold, fontFamily: "monospace", verticalAlign: "top" }}>{prod?.code || prod?.nHK || pid}</td>
                         <td rowSpan={diffs.length} style={{ padding: "6px 10px", color: T.muted, fontSize: "11px", verticalAlign: "top", maxWidth: "200px" }}>{prod?.description || "—"}</td>
+                        <td rowSpan={diffs.length} style={{ padding: "6px 10px", textAlign: "center", color: T.dim, fontFamily: "monospace", fontSize: "11px", verticalAlign: "top" }}>{qpb > 1 ? qpb : "—"}</td>
                       </>
                     )}
                     <td style={{ padding: "4px 10px", color: T.dim, fontFamily: "monospace" }}>{d.label}</td>
-                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.blue, fontFamily: "monospace" }}>{d.bc > 0 ? `€ ${d.bc.toFixed(2)}` : <span style={{ color: T.dim }}>—</span>}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.blue, fontFamily: "monospace" }}>
+                      {d.bc > 0 ? (
+                        d.bcNorm !== d.bc
+                          ? <><span style={{ color: T.dim, fontSize: "10px" }}>€{d.bc.toFixed(2)}×{Math.round(d.bcNorm/d.bc)} </span>€{d.bcNorm.toFixed(2)}</>
+                          : `€ ${d.bc.toFixed(2)}`
+                      ) : <span style={{ color: T.dim }}>—</span>}
+                    </td>
                     <td style={{ padding: "4px 10px", textAlign: "right", color: T.green, fontFamily: "monospace" }}>{d.xl > 0 ? `€ ${d.xl.toFixed(2)}` : <span style={{ color: T.dim }}>—</span>}</td>
                     <td style={{ padding: "4px 10px", textAlign: "right", fontFamily: "monospace", color: d.delta > 0 ? T.orange : d.delta < 0 ? T.red : T.dim }}>
-                      {d.bc > 0 && d.xl > 0 ? `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(2)}` : "—"}
+                      {d.bcNorm > 0 && d.xl > 0 ? `${d.delta > 0 ? "+" : ""}${d.delta.toFixed(2)}` : "—"}
                     </td>
-                    <td style={{ padding: "4px 10px", color: T.muted, fontSize: "11px" }}>{d.reason}</td>
+                    <td style={{ padding: "4px 10px", color: T.muted, fontSize: "11px" }}>
+                      {d.reason}
+                      {d.uomNote && <div style={{ color: T.dim, fontSize: "10px", marginTop: "2px" }}>{d.uomNote}</div>}
+                    </td>
                   </tr>
                 ));
               })}
