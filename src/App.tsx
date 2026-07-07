@@ -3290,6 +3290,8 @@ count++;
 
 setPrices(updated);
 CLOUD.set(`ifb_prices_${branch}`, updated);
+// Salva snapshot completo in IDB per poter ripristinare in seguito
+IDB.set(`ifb_price_snap_${snId}`, updated.filter((p: any) => p.branch === branch && p.month === importMonth));
 
 const log = {
 id: snId,
@@ -3320,21 +3322,20 @@ setLastExcelData({ rawRows, headers, mapping, month: importMonth, fileName });
 }
 
 function loadFromSnapshot(snap: any) {
-  // Leggi direttamente dallo snapshot (senza andare in localStorage separato)
-  const snapshotProducts = snap.products || [];
-  
-  if (snapshotProducts.length === 0) {
-    showToast(`Nessun prodotto trovato nello snapshot`, T.orange);
-    return;
-  }
-
-  if (window.confirm(`Caricare l'anagrafica del ${new Date(snap.id).toLocaleDateString("it-IT")} (${snapshotProducts.length} articoli)? Sostituirà i dati attuali.`)) {
-    setProducts(snapshotProducts);
-    LS.set(`ifb_products_${branch}`, snapshotProducts);
-    showToast(`Anagrafica ripristinata da snapshot del ${new Date(snap.id).toLocaleDateString("it-IT")}`, T.gold);
-    setSearch("");
-    setOnlyIFB(true);
-  }
+  IDB.get(`ifb_price_snap_${snap.id}`, null).then((data: any) => {
+    if (!data || !Array.isArray(data) || data.length === 0) {
+      showToast("Nessun dato trovato per questo snapshot (importato prima di questa versione)", T.orange);
+      return;
+    }
+    const d = new Date(snap.id).toLocaleDateString("it-IT");
+    if (!window.confirm(`Ripristinare ${data.length} prezzi del ${d} (${snap.month})? Sostituirà i prezzi attuali per ${snap.branch}/${snap.month}.`)) return;
+    const others = prices.filter((p: any) => !(p.branch === snap.branch && p.month === snap.month));
+    const restored = [...others, ...data];
+    setPrices(restored);
+    CLOUD.set(`ifb_prices_${branch}`, restored);
+    setListiniMode("excel");
+    showToast(`${data.length} prezzi ripristinati da ${d}`, T.green);
+  });
 }
 
 const resetImport = () => {
