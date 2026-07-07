@@ -3113,14 +3113,14 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
         let bcNorm = bcVal;
         let delta = xlVal - bcVal;
         let bcUom = bcPu || "?";
-        let xlUom = "?";
+        // UoM Excel: prende direttamente dalla colonna hkUom/uom del file Excel caricato
+        const xlUomRaw = String(xl?.hkUom || xl?.uom || "").toUpperCase().trim();
+        let xlUom = xlUomRaw || "?";
 
         if (bcVal === 0 && xlVal > 0) {
           reason = "🟡 assente in BC";
-          xlUom = "—";
         } else if (bcVal > 0 && xlVal === 0) {
           reason = "🔴 assente in Excel";
-          xlUom = "—";
         } else {
           const UOM_TOL = 0.04;
 
@@ -3131,7 +3131,6 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
             reason = "≈ diff < 4%";
             bcNorm = bcVal;
             delta = xlVal - bcVal;
-            xlUom = bcUom; // stesso UoM
           } else if (qpb > 1) {
             // 2. BC per-PCS × qpb ≈ xl (Excel per-BOX)
             const bcBoxed = bcVal * qpb;
@@ -3146,14 +3145,14 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
               delta = xlVal - bcBoxed;
               reason = "📦 UoM: BC per-PCS, Excel per-BOX";
               uomNote = `BC €${bcVal.toFixed(2)}×${qpb}=€${bcBoxed.toFixed(2)} ≈ Excel €${xlVal.toFixed(2)}`;
-              bcUom = "PCS"; xlUom = "BOX";
+              bcUom = "PCS";
             } else if (pctUnboxed < UOM_TOL) {
               if (pctUnboxed < 0.01) return;
               bcNorm = bcVal;
               delta = xlBoxed - bcVal;
               reason = "📦 UoM: BC per-BOX, Excel per-PCS";
               uomNote = `Excel €${xlVal.toFixed(2)}×${qpb}=€${xlBoxed.toFixed(2)} ≈ BC €${bcVal.toFixed(2)}`;
-              bcUom = "BOX"; xlUom = "PCS";
+              bcUom = "BOX";
             } else {
               bcNorm = bcVal;
               delta = xlVal - bcVal;
@@ -3161,8 +3160,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
               if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
               else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
               else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
-              if (bcPu === "KG") { uomNote = `⚠️ BC prezzo per KG`; bcUom = "KG"; xlUom = "BOX?"; }
-              else xlUom = bcUom;
+              if (bcPu === "KG") uomNote = `⚠️ BC prezzo per KG`;
             }
           } else {
             bcNorm = bcVal;
@@ -3171,8 +3169,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
             if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
             else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
             else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
-            if (bcPu === "KG") { uomNote = `⚠️ BC prezzo per KG`; bcUom = "KG"; xlUom = "BOX?"; }
-            else xlUom = bcUom;
+            if (bcPu === "KG") uomNote = `⚠️ BC prezzo per KG`;
           }
         }
         diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, bcNorm, delta, reason, uomNote, bcUom, xlUom });
