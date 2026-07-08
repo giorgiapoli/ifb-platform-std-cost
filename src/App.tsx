@@ -363,7 +363,7 @@ function selectPrice(pr, ubicazione) {
   const fca = pr.fcaDiscounted || pr.fcaPrice || 0;
   if(ubicazione==="FOR") return fca || dap;
   if(ubicazione==="MTO") return dap || fca;
-  if(ubicazione==="MTS") { const m=pr.mtsPrice||0; return m!==0?m:(dap||fca); }
+  if(ubicazione==="MTS") { const m=pr.mtsPrice||0; return m!==0?m:dap; }
   return dap || fca;
 }
 
