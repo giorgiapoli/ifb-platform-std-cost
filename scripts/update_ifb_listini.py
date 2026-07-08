@@ -328,7 +328,7 @@ def build_uom_conversions(token):
     for test_code in ["HA7021-IB", "Z3774", "LVC11-ES", "LVC11",
                       "LVC09", "LVC24", "LVC29", "LVC33", "LVC37", "CCF06",
                       "AGG27", "AGG33", "AGG34",
-                      "FLP02", "FLP03", "TRD06", "LGD01", "TQB38", "Y3298"]:
+                      "FLP02", "FLP03", "TRD06", "LGD01", "TQB38", "Y3298", "FVB16"]:
         if test_code in conv:
             print(f"    {test_code}: {conv[test_code]}")
         else:
@@ -624,6 +624,9 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     # Converti alla UoM base HK (Base Unit of Measure Mille Sapori Item).
     # Vale per tutti i branch: HK, CAN, MAC usano tutti la stessa UoM base HK come riferimento.
     hk_base_uom = (hk_uom_map or {}).get(code, "").upper().strip()
+    if code == "FVB16":
+        print(f"    [DEBUG FVB16] puom={puom} cf={cf} ifb_base_uom={ifb_base_uom} hk_base_uom={hk_base_uom} uf={uf}")
+        print(f"    [DEBUG FVB16] fca_price={fca_price} dap_price={dap_price} prima conversione")
     if hk_base_uom and ifb_base_uom and hk_base_uom != ifb_base_uom and uf:
         src = uf.get(ifb_base_uom, 0)
         tgt = uf.get(hk_base_uom, 0)
