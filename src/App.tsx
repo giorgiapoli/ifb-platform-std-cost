@@ -300,8 +300,8 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   // ── Pallet = 30 / unitsPerPlt ──
   const plt = COSTS.PLT / unitsPerPlt;
 
-  // ── Tassa alcolica ──
-  const alc = hasAlcTax ? (Number(alcTax)||0) : 0;
+  // ── Tassa alcolica ── HK spirits >30°: 100% del prezzo acquisto (alcTax=0 → usa priceEur)
+  const alc = hasAlcTax ? (Number(alcTax) > 0 ? Number(alcTax) : priceEur) : 0;
 
   // ── Step 1 ──
   const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc;
@@ -869,7 +869,7 @@ export default function App() {
 
       // Branch-agnostic calc helper
       const isCAN_b = branch === "CAN";
-      const bevData = bevInfo.find((b:any) => b.ifbNo === prod.code) || null;
+      const bevData = bevInfo.find((b:any) => b.ifbNo === prod.code || (prod.nHK && b.nHK === prod.nHK)) || null;
       // Fattore di conversione item: CAN → lookup per N COMIT via xrefs; HK → lookup per nHK
       const nComit = isCAN_b ? (xrefs.find((x:any)=>x.productId===prod.id||x.ifbNo===prod.code)?.nHK||"") : "";
       const itemCf = isCAN_b
@@ -878,7 +878,7 @@ export default function App() {
       const calcCost = (pi: number) =>
         isCAN_b
           ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log, bevData, priceMultiplier:itemCf })
-          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log, category:prod.category, hasAlcTax: log.hasAlcTax||(bevData?.totaleBottiglia>0), alcTax: (bevData?.totaleBottiglia||0)||log.alcTax||0}, eurToHkd:fxRate, priceMultiplier:itemCf });
+          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log, category:prod.category, hasAlcTax: log.hasAlcTax||(bevData?.hasAlcTax===true)||(bevData?.totaleBottiglia>0), alcTax: log.alcTax||(bevData?.totaleBottiglia||0)}, eurToHkd:fxRate, priceMultiplier:itemCf });
 
       // Eccezione prezzo: bypassa listino e carne
       // Eccezione prezzo: +2% intercompany markup come listino BC
@@ -1162,7 +1162,7 @@ export default function App() {
     air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     pricecompare: <PriceComparePage bcListini={bcListiniEnriched} prices={prices} products={products} xrefs={xrefs} branch={branch} month={month}/>,
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
-    bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} xrefs={xrefs} showToast={showToast}/>,
+    bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} xrefs={xrefs} showToast={showToast} branch={branch}/>,
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors} hkConvFactors={hkConvFactors} setHkConvFactors={setHkConvFactors}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs} listiniMode={listiniMode} setListiniMode={setListiniMode} reloadListini={()=>{ setBcListini([]); setListiniReloadKey(k=>k+1); }}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali}/>,
@@ -7491,7 +7491,8 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
 }
 
 // ─── BEVERAGE INFO (CAN — AIEM alcolici) ──────────────────────────────────────
-function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast}: any) {
+function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, branch}: any) {
+  const isHK = branch === "HK";
   const [step, setStep] = useState<"main"|"map"|"preview">("main");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<any[]>([]);
@@ -7523,15 +7524,26 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast}: 
     setEditRow({ ifbNo:"", ltPerUnit:"", gradoAlcolico:"", eurPerLt:"", totaleBottiglia:"" });
   }
 
-  const FIELDS = ["ifbNo","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"];
-  const FLABELS: any = {
+  // Campi diversi per HK (flag >30°) vs CAN (AIEM litri/tariffa)
+  const FIELDS = isHK
+    ? ["nHK","ifbNo","hasAlcTax"]
+    : ["ifbNo","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"];
+  const FLABELS: any = isHK ? {
+    nHK:       "N HK (codice filiale)",
+    ifbNo:     "IFB No (codice articolo)",
+    hasAlcTax: "Tassato (>30° / True / Sì)",
+  } : {
     ifbNo: "IFB No * (codice articolo)",
     ltPerUnit: "LT (litri per unità)",
     gradoAlcolico: "Grado Alcolico (°)",
     eurPerLt: "€/LT (tariffa AIEM per litro)",
     totaleBottiglia: "Totale Bottiglia € (se già calcolato)",
   };
-  const ALIASES: any = {
+  const ALIASES: any = isHK ? {
+    nHK:       ["n hk","nhk","hk code","hk no","gc code","n hk","no hk"],
+    ifbNo:     ["ifb n","ifb no","ifbno","codice","code","item no","ifb item"],
+    hasAlcTax: [">30","gradi>30","alcolico","tassato","tax","spirits","alc tax","has alc"],
+  } : {
     ifbNo:          ["ifb n","ifb no","ifbno","bv no","codice","code","item no","ifb item","ifbitem"],
     ltPerUnit:      ["quantità x plt","quantity x plt","lt","litri","liters","volume","lt per unit","lt/unit","litri per unità","litriper"],
     gradoAlcolico:  ["grado alcolico","gradoalcolico","grado","gradi","abv","alcohol degree","degree","alc degree"],
@@ -7560,9 +7572,10 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast}: 
           const cells = row.map((c:any) => norm(c)).filter(Boolean);
           if(cells.length < 2) return false;
           const hasIFB = cells.some(c => c.includes("IFB") || c==="NO_" || c==="ITEM");
+          const hasNHK = cells.some(c => c.includes("N HK") || c==="NHK" || c.includes("HK"));
           const hasLT  = cells.some(c => c==="LT");
-          const hasAlc = cells.some(c => c.includes("ALCOLICO") || c.includes("GRADO") || c.includes("EUR/LT") || c.includes("EUR/L"));
-          return hasIFB || (hasLT && hasAlc);
+          const hasAlc = cells.some(c => c.includes("ALCOLICO") || c.includes("GRADO") || c.includes("EUR/LT") || c.includes("EUR/L") || c.includes(">30") || c.includes("SPIRITS") || c.includes("TAX"));
+          return hasIFB || hasNHK || (hasLT && hasAlc);
         });
         if(hdrIdx < 0) { showToast("Intestazione non trovata — il file deve avere una colonna 'IFB Item' o 'IFB No'", T.red); return; }
         const hdrs = data[hdrIdx].map((h:any) => String(h).trim()).filter((h:string) => h);
@@ -7579,6 +7592,23 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast}: 
   function buildPreview() {
     const idx: any = {};
     FIELDS.forEach(f => { idx[f] = headers.indexOf(map[f]); });
+
+    if(isHK) {
+      const rows = rawRows.map(row => {
+        const nHK = idx.nHK >= 0 ? String(row[idx.nHK]||"").trim() : "";
+        const ifbNoRaw = idx.ifbNo >= 0 ? String(row[idx.ifbNo]||"").trim() : "";
+        const alcRaw = idx.hasAlcTax >= 0 ? String(row[idx.hasAlcTax]||"").trim().toLowerCase() : "";
+        const hasAlcTax = alcRaw === "true" || alcRaw === "sì" || alcRaw === "si" || alcRaw === "yes" || alcRaw === "1" || alcRaw === "x" || alcRaw === "vero";
+        const key = nHK || ifbNoRaw;
+        if(!key) return null;
+        const prod = products.find((p:any) => p.nHK === nHK || p.code === ifbNoRaw || p.code === nHK);
+        const ifbNo = ifbNoRaw || prod?.code || nHK;
+        return { nHK, ifbNo, hasAlcTax, _found:!!prod, _desc:prod?.description||"—" };
+      }).filter(Boolean);
+      setPreview(rows); setStep("preview");
+      return;
+    }
+
     const rows = rawRows.map(row => {
       const ifbNo = String(row[idx.ifbNo]||"").trim();
       if(!ifbNo) return null;
@@ -7596,6 +7626,14 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast}: 
   }
 
   function executeImport() {
+    if(isHK) {
+      const kept = bevInfo.filter((b:any) => !preview.find((p:any) => (p.nHK && b.nHK===p.nHK) || b.ifbNo===p.ifbNo));
+      const next = [...preview.map((r:any) => ({nHK:r.nHK, ifbNo:r.ifbNo, hasAlcTax:r.hasAlcTax, ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0})), ...kept];
+      setBevInfo(next); IDB.set("ifb_bevinfo", next);
+      showToast(`Beverage Info HK: ${preview.length} articoli importati ✓`, T.gold);
+      setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
+      return;
+    }
     const kept = bevInfo.filter((b:any) => !preview.find((p:any) => p.ifbNo===b.ifbNo));
     const next = [...preview.map((r:any) => ({ifbNo:r.ifbNo,ltPerUnit:r.ltPerUnit,gradoAlcolico:r.gradoAlcolico,eurPerLt:r.eurPerLt,totaleBottiglia:r.totaleBottiglia})), ...kept];
     setBevInfo(next); IDB.set("ifb_bevinfo", next);
@@ -7613,7 +7651,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast}: 
 
   return (
     <div>
-      <PageHeader title="🍷 Beverage Info · AIEM Alcolici (CAN)" sub="Importa dati alcolici: LT, Grado, €/LT → Totale AIEM fisso per unità"/>
+      <PageHeader title={isHK ? "🍷 Beverage Info · Tassa Alcolica (HK)" : "🍷 Beverage Info · AIEM Alcolici (CAN)"} sub={isHK ? "Importa lista articoli con Spirits >30° — tassa = 100% del prezzo acquisto" : "Importa dati alcolici: LT, Grado, €/LT → Totale AIEM fisso per unità"}/>
 
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
         <label style={{display:"inline-block",padding:"8px 16px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold",fontSize:"12px"}}>
