@@ -3101,6 +3101,8 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
 
       const qpb = Number(prod?.qtyPerBox || prod?.pcsPerBox || 1) || 1;
       const bcPu = String(bc?.pu || bc?.purchaseUom || "").toUpperCase();
+      const bcCf2 = Number(bc?.cf2 || 1) || 1;
+      const bcRawUom = String(bc?.pur || bcPu).toUpperCase();
       const uf: Record<string, number> = bc?.uf || {};
       const diffs: { field: string; label: string; bc: number; xl: number; bcNorm: number; delta: number; reason: string; uomNote?: string; bcUom: string; xlUom: string }[] = [];
 
@@ -3195,7 +3197,8 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
             else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
           }
         }
-        diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, bcNorm, delta, reason, uomNote, bcUom, xlUom });
+        const bcRaw = bcVal / bcCf2;
+        diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, bcNorm, delta, reason, uomNote, bcUom, xlUom, bcRaw, bcRawUom });
       });
 
       const hasDiff = diffs.length > 0;
@@ -3323,9 +3326,11 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Descrizione</th>
                 <th style={{ padding: "8px 10px", textAlign: "center", color: T.muted, fontWeight: "normal" }}>qpb</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Campo</th>
-                <th style={{ padding: "8px 10px", textAlign: "center", color: T.blue, fontWeight: "normal", fontSize: "11px" }}>UoM BC</th>
-                <th style={{ padding: "8px 10px", textAlign: "right", color: T.blue, fontWeight: "normal" }}>BC</th>
-                <th style={{ padding: "8px 10px", textAlign: "center", color: T.green, fontWeight: "normal", fontSize: "11px" }}>UoM Excel</th>
+                <th style={{ padding: "8px 10px", textAlign: "center", color: T.dim, fontWeight: "normal", fontSize: "10px" }}>UoM IFB</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: T.dim, fontWeight: "normal", fontSize: "11px" }}>Prezzo IFB</th>
+                <th style={{ padding: "8px 10px", textAlign: "center", color: T.blue, fontWeight: "normal", fontSize: "10px" }}>UoM HK</th>
+                <th style={{ padding: "8px 10px", textAlign: "right", color: T.blue, fontWeight: "normal" }}>Prezzo HK</th>
+                <th style={{ padding: "8px 10px", textAlign: "center", color: T.green, fontWeight: "normal", fontSize: "10px" }}>UoM Excel</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.green, fontWeight: "normal" }}>Excel</th>
                 <th style={{ padding: "8px 10px", textAlign: "right", color: T.muted, fontWeight: "normal" }}>Δ</th>
                 <th style={{ padding: "8px 10px", textAlign: "left", color: T.muted, fontWeight: "normal" }}>Motivo</th>
@@ -3338,7 +3343,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
                   return (
                     <tr key={pid} style={{ borderBottom: `1px solid ${T.border}22` }}>
                       <td style={{ padding: "6px 10px", color: T.gold, fontFamily: "monospace" }}>{prod?.code || prod?.nHK || pid}</td>
-                      <td style={{ padding: "6px 10px", color: T.muted, fontSize: "11px" }} colSpan={7}>{prod?.description || "—"} <span style={{ color: T.dim }}>· nessuna differenza</span></td>
+                      <td style={{ padding: "6px 10px", color: T.muted, fontSize: "11px" }} colSpan={9}>{prod?.description || "—"} <span style={{ color: T.dim }}>· nessuna differenza</span></td>
                     </tr>
                   );
                 }
@@ -3352,7 +3357,11 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
                       </>
                     )}
                     <td style={{ padding: "4px 10px", color: T.dim, fontFamily: "monospace" }}>{d.label}</td>
-                    <td style={{ padding: "4px 10px", textAlign: "center", color: T.blue, fontFamily: "monospace", fontSize: "10px" }}>{d.bcUom}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "center", color: T.dim, fontFamily: "monospace", fontSize: "10px" }}>{d.bcRawUom || "?"}</td>
+                    <td style={{ padding: "4px 10px", textAlign: "right", color: T.dim, fontFamily: "monospace", fontSize: "11px" }}>
+                      {d.bcRaw > 0 ? `€ ${d.bcRaw.toFixed(2)}` : <span style={{ color: T.dim }}>—</span>}
+                    </td>
+                    <td style={{ padding: "4px 10px", textAlign: "center", color: T.blue, fontFamily: "monospace", fontSize: "10px" }}>{d.bcUom || "?"}</td>
                     <td style={{ padding: "4px 10px", textAlign: "right", color: T.blue, fontFamily: "monospace" }}>
                       {d.bc > 0 ? (
                         d.bcNorm !== d.bc
