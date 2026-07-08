@@ -7540,7 +7540,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
     totaleBottiglia: "Totale Bottiglia € (se già calcolato)",
   };
   const ALIASES: any = isHK ? {
-    nHK:       ["n hk","nhk","hk code","hk no","gc code","n hk","no hk"],
+    nHK:       ["n hk","nhk","hk code","hk no","gc code","no hk","codice hong kong","hong kong","hk"],
     ifbNo:     ["ifb n","ifb no","ifbno","codice","code","item no","ifb item"],
     hasAlcTax: [">30","gradi>30","alcolico","tassato","tax","spirits","alc tax","has alc"],
   } : {
@@ -7572,7 +7572,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
           const cells = row.map((c:any) => norm(c)).filter(Boolean);
           if(cells.length < 2) return false;
           const hasIFB = cells.some(c => c.includes("IFB") || c==="NO_" || c==="ITEM");
-          const hasNHK = cells.some(c => c.includes("N HK") || c==="NHK" || c.includes("HK"));
+          const hasNHK = cells.some(c => c.includes("N HK") || c==="NHK" || c.includes("HK") || c.includes("HONG KONG"));
           const hasLT  = cells.some(c => c==="LT");
           const hasAlc = cells.some(c => c.includes("ALCOLICO") || c.includes("GRADO") || c.includes("EUR/LT") || c.includes("EUR/L") || c.includes(">30") || c.includes("SPIRITS") || c.includes("TAX"));
           return hasIFB || hasNHK || (hasLT && hasAlc);
