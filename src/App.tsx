@@ -795,15 +795,16 @@ export default function App() {
                 mtsPrice:      div(Number(row["mp"] ?? row["MTS_Price"]      ?? 0)),
               });
             });
-            // Dedup per productId+branch: se stesso prodotto appare con N COMIT e IFB code, tieni quello con sconto migliore
+            // Dedup per productId+branch: tieni quello con sconto se disponibile, altrimenti quello col prezzo più alto
             const dedupMap = new Map<string, any>();
             newEntries.forEach(e => {
               const key = `${e.branch || branch}_${e.productId}`;
               const prev = dedupMap.get(key);
               if (!prev) { dedupMap.set(key, e); return; }
-              const eDisc  = (e.fcaDiscounted||0) < (e.fcaPrice||0) ? e : null;
-              const prevDisc = (prev.fcaDiscounted||0) < (prev.fcaPrice||0) ? prev : null;
-              if (eDisc && !prevDisc) dedupMap.set(key, e);  // nuovo ha sconto, vecchio no → sostituisci
+              const hasDisc = (x:any) => (x.fcaDiscounted||0) > 0 && (x.fcaDiscounted||0) < (x.fcaPrice||0);
+              const eDisc = hasDisc(e), prevDisc = hasDisc(prev);
+              if (eDisc && !prevDisc) { dedupMap.set(key, e); return; } // nuovo ha sconto, vecchio no → sostituisci
+              if (!eDisc && !prevDisc && (e.fcaPrice||0) > (prev.fcaPrice||0)) dedupMap.set(key, e); // nessuno ha sconto → tieni il più alto
             });
             const dedupEntries = [...dedupMap.values()];
             IDB.set(IDB_KEY, dedupEntries);
