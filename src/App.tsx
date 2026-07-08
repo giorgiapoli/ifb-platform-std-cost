@@ -259,32 +259,40 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
     wh = (COSTS_CAN.MTS_D[temp]??0)/unitsPerPlt + (COSTS_CAN.MTS_I[temp]??0)/unitsPerPlt + (COSTS_CAN.MTS_P[temp]??0)/divisoreCollo;
   }
 
+  // Arrotonda ogni componente foglia a 2 decimali
+  const r2 = (x:number) => roundN(x,2);
+  const pE  = r2(priceEur);
+  const pL  = r2(plt);
+  const whE = r2(wh);
+  const taE = r2(aiemFixed);
+  const vbE = r2(veronaBarcUnit);
+  const asE = r2(assicUnit);
+  const fGC = r2(freightPerIsland("GC")),  iGC = r2(inlandPerIsland("GC")),  bGC = r2(barcPerIsland("GC"));
+  const fLAN = r2(freightPerIsland("LAN")), iLAN = r2(inlandPerIsland("LAN")), bLAN = r2(barcPerIsland("LAN"));
+  const transpGC  = fGC  + iGC  + vbE + bGC  + asE;
+  const transpLAN = fLAN + iLAN + vbE + bLAN + asE;
+  const aGC  = r2((pE + transpGC)  * aiemPct);
+  const aLAN = r2((pE + transpLAN) * aiemPct);
+
   for (const isl of CAN_ISLANDS) {
-    step1[isl] = priceEur + transpPerIsland(isl) + plt + aiemForIsl(isl) + aiemFixed;
-    step2[isl] = step1[isl] + wh;
+    const tr  = (isl==="LAN"||isl==="FUE") ? transpLAN : transpGC;
+    const ai  = (isl==="LAN"||isl==="FUE") ? aLAN : aGC;
+    step1[isl] = pE + tr + pL + ai + taE;
+    step2[isl] = step1[isl] + whE;
   }
 
-  // Per display: breakdown per GC
-  const freightGC = freightPerIsland("GC");
-  const inlandGC  = inlandPerIsland("GC");
-  const barcUnitGC = barcPerIsland("GC");
-  const aiemUnit = aiemGCTF; // GC canonical
-  const tassaAlcolica = aiemFixed; // importo fisso da Beverage Info (0 se non alcolico)
-
   return {
-    priceEur, plt, aiemUnit, tassaAlcolica, wh, transport: transport||"GOMMA", unitsPerPlt,
-    veronaBarcUnit, barcUnitGC, assicUnit, freightGC, inlandGC,
-    // per-island breakdown (GC=TF share rates; LAN=FUE share rates)
-    freightLAN: freightPerIsland("LAN"),
-    barcUnitLAN: barcPerIsland("LAN"),
-    aiemGCTF, aiemLANFUE,
+    priceEur: pE, plt: pL, aiemUnit: aGC, tassaAlcolica: taE, wh: whE,
+    transport: transport||"GOMMA", unitsPerPlt,
+    veronaBarcUnit: vbE, barcUnitGC: bGC, assicUnit: asE, freightGC: fGC, inlandGC: iGC,
+    freightLAN: fLAN, barcUnitLAN: bLAN,
+    aiemGCTF: aGC, aiemLANFUE: aLAN,
     isMARE,
     step1GC: step1.GC, step1TF: step1.TF, step1LAN: step1.LAN, step1FUE: step1.FUE,
     step2GC: step2.GC, step2TF: step2.TF, step2LAN: step2.LAN, step2FUE: step2.FUE,
-    // compat con codice esistente (GC come canonico)
     step1Eur: step1.GC, step1Hkd: step1.GC,
     step2Eur: step2.GC, step2Hkd: step2.GC, rate:1,
-    fob:0, lic:0, vgm:0, hc:0, alc: aiemUnit,
+    fob:0, lic:0, vgm:0, hc:0, alc: aGC,
   };
 }
 
@@ -354,9 +362,6 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   // ── Tassa alcolica ── HK spirits >30°: 100% del prezzo acquisto (alcTax=0 → usa priceEur)
   const alc = hasAlcTax ? (Number(alcTax) > 0 ? Number(alcTax) : priceEur) : 0;
 
-  // ── Step 1 ──
-  const step1Eur = priceEur + fob + lic + vgm + hc + plt + alc;
-
   // ── Warehouse ──
   let wh = 0;
   if (ubicazione==="MTO") {
@@ -367,15 +372,19 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
        + (COSTS.MTS_P[temperature] ?? 0) / divisoreCollo;
   }
 
-  const step2Eur = step1Eur + wh;
+  // Arrotonda ogni componente a 2 decimali prima di sommare
+  const pE = roundN(priceEur,2), fE = roundN(fob,2), lE = roundN(lic,2), vE = roundN(vgm,2);
+  const hE = roundN(hc,2), pL = roundN(plt,2), aE = roundN(alc,2), wE = roundN(wh,2);
+  const step1Eur = pE + fE + lE + vE + hE + pL + aE;
+  const step2Eur = step1Eur + wE;
 
   return {
-    priceEur, fob, lic, vgm, hc, plt, alc,
+    priceEur: pE, fob: fE, lic: lE, vgm: vE, hc: hE, plt: pL, alc: aE,
     step1Eur,
-    step1Hkd: step1Eur * eurToHkd,
-    wh,
+    step1Hkd: roundN(step1Eur * eurToHkd,2),
+    wh: wE,
     step2Eur,
-    step2Hkd: step2Eur * eurToHkd,
+    step2Hkd: roundN(step2Eur * eurToHkd,2),
     rate: eurToHkd,
     unitsPerPlt,
   };
