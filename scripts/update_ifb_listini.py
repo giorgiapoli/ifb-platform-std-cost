@@ -646,7 +646,7 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
 
     return {
         "b":  branch,
-        "n":  code,
+        "n":  nhk_code or code,  # usa N HK (es. LCI02-GEN, Z-LY01) se disponibile, altrimenti IFB code
         "d":  desc[:60] if desc else "",
         "pu": puom,  # UoM del prezzo (dopo conversione alla base HK se disponibile)
         "cf": cf,
