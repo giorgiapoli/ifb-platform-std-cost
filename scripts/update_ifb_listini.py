@@ -651,14 +651,14 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
         "pu": puom,  # UoM del prezzo (dopo conversione alla base HK se disponibile)
         "cf": cf,
         "uf": uf,
-        "fp": round(fca_price, 6),
+        "fp": round(fca_price, 2),
         "fd": round(fca_disc, 4),
-        "fc": round(fca_discounted, 6),
-        "mp": round(mts_price, 6),
-        "dp": round(dap_price, 6),
+        "fc": round(fca_discounted, 2),
+        "mp": round(mts_price, 2),
+        "dp": round(dap_price, 2),
         "dd": round(dap_disc, 4),
-        "dc": round(dap_discounted, 6),
-        "cr": round(carriage, 6),
+        "dc": round(dap_discounted, 2),
+        "cr": round(carriage, 2),
     }
 
 
