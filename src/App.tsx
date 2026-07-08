@@ -1647,13 +1647,25 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         // Auto-mapping dei campi (solo quelli necessari)
         const am = {};
         
-        // Mappa il codice (obbligatorio)
-        const codeAliases = ["no_", "no.", "no", "item no.", "codice", "code", "n hk", "ifb item", "ifb no", "ifb n"];
+        // Mappa il codice (obbligatorio) — priorità al codice filiale (nHK/nComit) sull'IFB code
+        const branchCodeAliases = ["n hk", "nhk", "n comit", "ncomit", "comit"];
+        const ifbCodeAliases = ["no_", "no.", "no", "item no.", "codice", "code", "ifb item", "ifb no", "ifb n"];
+        let foundBranchCode = false;
         for(const h of hdrs) {
           const hl = h.toLowerCase().trim();
-          if(codeAliases.some(a => hl === a || hl.includes(a))) {
+          if(branchCodeAliases.some(a => hl === a || hl.includes(a))) {
             am["code"] = h;
+            foundBranchCode = true;
             break;
+          }
+        }
+        if(!foundBranchCode) {
+          for(const h of hdrs) {
+            const hl = h.toLowerCase().trim();
+            if(ifbCodeAliases.some(a => hl === a || hl.includes(a))) {
+              am["code"] = h;
+              break;
+            }
           }
         }
         
@@ -3473,14 +3485,26 @@ const rows = data.slice(1).filter((r: any[]) => r.some(c => c !== ""));
 setHeaders(hdrs);
 setRawRows(rows);
 
-// Auto-mapping dei campi
+// Auto-mapping dei campi — priorità al codice filiale (nHK/nComit) sull'IFB code
 const am: any = {};
-const codeAliases = ["no_", "no.", "no", "item no.", "codice", "code", "n hk", "ifb item", "ifb no", "ifb n"];
+const branchCodeAliases2 = ["n hk", "nhk", "n comit", "ncomit", "comit"];
+const ifbCodeAliases2 = ["no_", "no.", "no", "item no.", "codice", "code", "ifb item", "ifb no", "ifb n"];
+let foundBranchCode2 = false;
 for (const h of hdrs) {
 const hl = h.toLowerCase().trim();
-if (codeAliases.some(a => hl === a || hl.includes(a))) {
+if (branchCodeAliases2.some(a => hl === a || hl.includes(a))) {
+am["code"] = h;
+foundBranchCode2 = true;
+break;
+}
+}
+if (!foundBranchCode2) {
+for (const h of hdrs) {
+const hl = h.toLowerCase().trim();
+if (ifbCodeAliases2.some(a => hl === a || hl.includes(a))) {
 am["code"] = h;
 break;
+}
 }
 }
 
