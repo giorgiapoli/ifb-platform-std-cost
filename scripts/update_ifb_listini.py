@@ -499,7 +499,7 @@ def build_iss_prices(token, target_codes):
     return result
 
 
-def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, vendor_carriage_map=None, ifb_item_carriage=None, uom_factors=None):
+def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, vendor_carriage_map=None, ifb_item_carriage=None, uom_factors=None, hk_uom_map=None):
     """
     Logica identica a PowerBI MILLE SAPORI (HK) — applicata a tutti i branch:
       FCA cost  = directunitcost_purch (convertito in base UoM) * MARKUP (1/0.98)
@@ -610,18 +610,41 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
             or dap_sale.get("enddate") or "")
 
     puom = pur.get("puom", "") if pur else ""
-    # cf = conversion factor già applicato dallo script (>1 = prezzo in base UoM, app NON deve riconvertire)
     cf = pur.get("FCA", {}).get("conv_qty", 1) if pur else 1
-    # uf = fattori UoM per conversione KG/LT: {BOX: qty, KG: 1, PCS: qty, ...}
-    # Usato dall'app per convertire prezzi BC per-KG/LT alla UoM dell'Excel
     uf = {k: v for k, v in (uom_factors or {}).items()} if uom_factors else {}
+
+    # UoM effettiva del prezzo dopo la conversione qty>1 già applicata in build_purchase_prices:
+    # Se cf>1: prezzo è nella UoM base IFB (quella con qty=1 nella tabella uf).
+    # Se cf==1: prezzo è in puom.
+    if cf > 1 and uf:
+        ifb_base_uom = next((k for k, v in uf.items() if abs(v - 1.0) < 0.0001), puom)
+    else:
+        ifb_base_uom = puom
+
+    # Converti alla UoM base HK (Base Unit of Measure Mille Sapori Item).
+    # Vale per tutti i branch: HK, CAN, MAC usano tutti la stessa UoM base HK come riferimento.
+    hk_base_uom = (hk_uom_map or {}).get(code, "").upper().strip()
+    if hk_base_uom and ifb_base_uom and hk_base_uom != ifb_base_uom and uf:
+        src = uf.get(ifb_base_uom, 0)
+        tgt = uf.get(hk_base_uom, 0)
+        if src > 0 and tgt > 0:
+            conv = tgt / src
+            fca_price      = round(fca_price      * conv, 6) if fca_price      else fca_price
+            dap_price      = round(dap_price      * conv, 6) if dap_price      else dap_price
+            mts_price      = round(mts_price      * conv, 6) if mts_price      else mts_price
+            fca_discounted = round(fca_discounted * conv, 6) if fca_discounted else fca_discounted
+            dap_discounted = round(dap_discounted * conv, 6) if dap_discounted else dap_discounted
+            mts_discounted = round(mts_discounted * conv, 6) if mts_discounted else mts_discounted
+            carriage       = round(carriage       * conv, 6) if carriage       else carriage
+            puom = hk_base_uom  # aggiorna UoM nel JSON
+
     return {
         "b":  branch,
         "n":  code,
         "d":  desc[:60] if desc else "",
-        "pu": puom,  # UoM acquisto (BOX/PCS/KG)
-        "cf": cf,    # fattore conversione applicato (1 = non convertito, >1 = già in base UoM)
-        "uf": uf,    # fattori UoM per conversione KG/LT (da IFB_Item_Unit_of_Measure)
+        "pu": puom,  # UoM del prezzo (dopo conversione alla base HK se disponibile)
+        "cf": cf,
+        "uf": uf,
         "fp": round(fca_price, 6),
         "fd": round(fca_disc, 4),
         "fc": round(fca_discounted, 6),
@@ -682,6 +705,7 @@ if __name__ == "__main__":
 
     # Fetch ISS per TUTTI gli articoli: carriagecost per-articolo da BC + articoli HK non nel listino
     iss_carriage = {}
+    hk_items_by_code = {}
     try:
         hk_data_path = Path(__file__).parent.parent / "docs" / "data" / "hk_anagrafica.json"
         hk_items = json.loads(hk_data_path.read_text(encoding="utf-8"))
@@ -756,6 +780,12 @@ if __name__ == "__main__":
         import traceback; traceback.print_exc()
         print(f"  Warning: fetch ISS fallito ({e})")
 
+    # Mappa code → UoM base HK (Base Unit of Measure Mille Sapori Item)
+    # Usata per convertire prezzi IFB alla UoM corretta per il confronto con l'Excel HK/CAN/MAC
+    hk_uom_map = {code: str(it.get("uom") or "").upper().strip()
+                  for code, it in hk_items_by_code.items() if it.get("uom")}
+    print(f"  HK UoM map: {len(hk_uom_map)} articoli con UoM base HK")
+
     all_rows = []
 
     for branch, cust_no in CUSTOMERS.items():
@@ -773,7 +803,7 @@ if __name__ == "__main__":
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
-            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, vendor_carriage_map, ifb_item_carriage, uom_conv.get(code, {}))
+            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, vendor_carriage_map, ifb_item_carriage, uom_conv.get(code, {}), hk_uom_map)
             all_rows.append(row)
 
     print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
