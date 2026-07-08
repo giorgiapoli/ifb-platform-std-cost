@@ -3101,6 +3101,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
 
       const qpb = Number(prod?.qtyPerBox || prod?.pcsPerBox || 1) || 1;
       const bcPu = String(bc?.pu || bc?.purchaseUom || "").toUpperCase();
+      const uf: Record<string, number> = bc?.uf || {};
       const diffs: { field: string; label: string; bc: number; xl: number; bcNorm: number; delta: number; reason: string; uomNote?: string; bcUom: string; xlUom: string }[] = [];
 
       FIELDS.forEach(f => {
@@ -3123,6 +3124,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
           reason = "🔴 assente in Excel";
         } else {
           const UOM_TOL = 0.04;
+          const KG_LIKE = ["KG", "LT", "G"];
 
           // 1. Confronto diretto (stesso UoM)
           const rawPct = Math.abs((xlVal - bcVal) / bcVal);
@@ -3131,11 +3133,45 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
             reason = "≈ diff < 4%";
             bcNorm = bcVal;
             delta = xlVal - bcVal;
+          } else if (KG_LIKE.includes(bcPu)) {
+            // 2. BC per-KG/LT: converti usando tabella UoM (uf) alla UoM dell'Excel
+            const puFactor = uf[bcPu] ?? 1;
+            const xlFactor = uf[xlUom] ?? 0;
+            if (xlFactor > 0) {
+              const factor = xlFactor / puFactor;
+              const bcConverted = bcVal * factor;
+              const pctConverted = Math.abs((xlVal - bcConverted) / bcConverted);
+              if (pctConverted < UOM_TOL) {
+                if (pctConverted < 0.01) return;
+                bcNorm = bcConverted;
+                delta = xlVal - bcConverted;
+                reason = `📦 UoM: BC per-${bcPu}, Excel per-${xlUom}`;
+                uomNote = `BC €${bcVal.toFixed(2)}×${factor.toFixed(4)}=€${bcConverted.toFixed(2)} ≈ Excel €${xlVal.toFixed(2)}`;
+                bcUom = bcPu;
+              } else {
+                bcNorm = bcConverted;
+                delta = xlVal - bcConverted;
+                const pct = delta / bcConverted;
+                if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
+                else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
+                else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
+                uomNote = `BC €${bcVal.toFixed(2)} per ${bcPu} → €${bcConverted.toFixed(2)} per ${xlUom}`;
+              }
+            } else {
+              // UoM Excel non trovata nella tabella uf → diff non convertibile
+              bcNorm = bcVal;
+              delta = xlVal - bcVal;
+              const pct = delta / bcVal;
+              if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
+              else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
+              else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
+              uomNote = `⚠️ BC per ${bcPu}, Excel per ${xlUom} (fattore mancante)`;
+            }
           } else if (qpb > 1) {
-            // 2. BC per-PCS × qpb ≈ xl (Excel per-BOX)
+            // 3. BC per-PCS × qpb ≈ xl (Excel per-BOX)
             const bcBoxed = bcVal * qpb;
             const pctBoxed = Math.abs((xlVal - bcBoxed) / bcBoxed);
-            // 3. xl × qpb ≈ BC (BC per-BOX, Excel per-PCS)
+            // 4. xl × qpb ≈ BC (BC per-BOX, Excel per-PCS)
             const xlBoxed = xlVal * qpb;
             const pctUnboxed = Math.abs((xlBoxed - bcVal) / bcVal);
 
@@ -3160,7 +3196,6 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
               if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
               else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
               else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
-              if (bcPu === "KG") uomNote = `⚠️ BC prezzo per KG`;
             }
           } else {
             bcNorm = bcVal;
@@ -3169,7 +3204,6 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
             if (Math.abs(pct) < 0.025) reason = "≈ diff < 2.5%";
             else if (delta > 0) reason = `📈 Excel +${(pct*100).toFixed(1)}%`;
             else reason = `📉 Excel ${(pct*100).toFixed(1)}%`;
-            if (bcPu === "KG") uomNote = `⚠️ BC prezzo per KG`;
           }
         }
         diffs.push({ field: f.key, label: f.label, bc: bcVal, xl: xlVal, bcNorm, delta, reason, uomNote, bcUom, xlUom });

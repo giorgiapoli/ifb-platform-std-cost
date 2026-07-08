@@ -499,7 +499,7 @@ def build_iss_prices(token, target_codes):
     return result
 
 
-def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, vendor_carriage_map=None, ifb_item_carriage=None):
+def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs=None, iss_carriage=None, vendor_carriage_map=None, ifb_item_carriage=None, uom_factors=None):
     """
     Logica identica a PowerBI MILLE SAPORI (HK) — applicata a tutti i branch:
       FCA cost  = directunitcost_purch (convertito in base UoM) * MARKUP (1/0.98)
@@ -612,12 +612,16 @@ def compute_row(branch, code, sale_slots, purch, item_card=None, transport_costs
     puom = pur.get("puom", "") if pur else ""
     # cf = conversion factor già applicato dallo script (>1 = prezzo in base UoM, app NON deve riconvertire)
     cf = pur.get("FCA", {}).get("conv_qty", 1) if pur else 1
+    # uf = fattori UoM per conversione KG/LT: {BOX: qty, KG: 1, PCS: qty, ...}
+    # Usato dall'app per convertire prezzi BC per-KG/LT alla UoM dell'Excel
+    uf = {k: v for k, v in (uom_factors or {}).items()} if uom_factors else {}
     return {
         "b":  branch,
         "n":  code,
         "d":  desc[:60] if desc else "",
         "pu": puom,  # UoM acquisto (BOX/PCS/KG)
         "cf": cf,    # fattore conversione applicato (1 = non convertito, >1 = già in base UoM)
+        "uf": uf,    # fattori UoM per conversione KG/LT (da IFB_Item_Unit_of_Measure)
         "fp": round(fca_price, 6),
         "fd": round(fca_disc, 4),
         "fc": round(fca_discounted, 6),
@@ -769,7 +773,7 @@ if __name__ == "__main__":
 
         for code in all_codes:
             slots = active_discounts.get(code, {"FCA": {}, "MTS": {}, "DAP": {}})
-            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, vendor_carriage_map, ifb_item_carriage)
+            row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, vendor_carriage_map, ifb_item_carriage, uom_conv.get(code, {}))
             all_rows.append(row)
 
     print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
