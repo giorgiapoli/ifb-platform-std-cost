@@ -7559,13 +7559,22 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
   isHKRef.current = isHK;
 
   function saveEdit(idx: number) {
-    const lt = parseFloat(String(editRow.ltPerUnit||"").replace(",",".")) || 0;
-    const eurLt = parseFloat(String(editRow.eurPerLt||"").replace(",",".")) || 0;
-    const totRaw = parseFloat(String(editRow.totaleBottiglia||"").replace(",",".")) || 0;
-    const totaleBottiglia = totRaw > 0 ? totRaw : (lt > 0 && eurLt > 0 ? roundN(lt * eurLt, 4) : 0);
-    const updated = { ...editRow, ltPerUnit: parseFloat(String(editRow.ltPerUnit||"0").replace(",",".")) || 0,
-      gradoAlcolico: parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0,
-      eurPerLt: eurLt, totaleBottiglia };
+    let updated: any;
+    if(isHK) {
+      const raw = String(editRow.codeInput||editRow.nHK||editRow.ifbNo||"").trim();
+      if(!raw) { showToast("Inserisci N HK o IFB No", T.red); return; }
+      const prod = products.find((p:any) => p.nHK===raw || p.code===raw)
+                || products.find((p:any) => xrefs.some((x:any)=>x.nHK===raw && x.ifbNo===p.code));
+      const resolvedNHK = prod?.nHK || (products.find((p:any)=>p.code===raw)?.nHK) || (xrefs.find((x:any)=>x.ifbNo===raw)?.nHK) || "";
+      const resolvedIfb = prod?.code || (xrefs.find((x:any)=>x.nHK===raw)?.ifbNo) || raw;
+      updated = { nHK: resolvedNHK||"", ifbNo: resolvedIfb, hasAlcTax: !!editRow.hasAlcTax, ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0 };
+    } else {
+      const lt = parseFloat(String(editRow.ltPerUnit||"").replace(",",".")) || 0;
+      const eurLt = parseFloat(String(editRow.eurPerLt||"").replace(",",".")) || 0;
+      const totRaw = parseFloat(String(editRow.totaleBottiglia||"").replace(",",".")) || 0;
+      const totaleBottiglia = totRaw > 0 ? totRaw : (lt > 0 && eurLt > 0 ? roundN(lt * eurLt, 4) : 0);
+      updated = { ...editRow, ltPerUnit: lt, gradoAlcolico: parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0, eurPerLt: eurLt, totaleBottiglia };
+    }
     const next = idx === -1
       ? [...bevInfo, updated]
       : bevInfo.map((b:any, i:number) => i===idx ? updated : b);
@@ -7576,7 +7585,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
 
   function startAdd() {
     setEditingIdx(-1);
-    setEditRow({ ifbNo:"", ltPerUnit:"", gradoAlcolico:"", eurPerLt:"", totaleBottiglia:"" });
+    setEditRow(isHK ? { codeInput:"", hasAlcTax:true } : { ifbNo:"", ltPerUnit:"", gradoAlcolico:"", eurPerLt:"", totaleBottiglia:"" });
   }
 
   // Campi diversi per HK (flag >30°) vs CAN (AIEM litri/tariffa)
@@ -7824,17 +7833,34 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
                 {/* Nuova riga in cima se si sta aggiungendo */}
                 {editingIdx===-1&&(
                   <tr style={{background:`${T.gold}08`,borderBottom:`1px solid ${T.border}`}}>
-                    <td style={{padding:"2px 4px"}}><span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>—</span></td>
-                    {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
-                      <td key={ci} style={{padding:"2px 4px"}}>
-                        {f===""
-                          ? <span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>—</span>
-                          : <input value={editRow[f]||""} onChange={e=>setEditRow((r:any)=>({...r,[f]:e.target.value}))}
-                              placeholder={f==="ifbNo"?"IFB No*":f} autoFocus={f==="ifbNo"}
-                              style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"80px",fontFamily:"monospace"}}/>
-                        }
+                    {isHK ? <>
+                      <td colSpan={2} style={{padding:"4px 6px"}}>
+                        <input value={editRow.codeInput||""} onChange={e=>setEditRow((r:any)=>({...r,codeInput:e.target.value}))}
+                          placeholder="N HK o IFB No" autoFocus
+                          style={{...inputStyle(),fontSize:"10px",padding:"3px 6px",width:"130px",fontFamily:"monospace"}}/>
                       </td>
-                    ))}
+                      <td style={{padding:"4px 6px",fontSize:"10px",color:T.muted}}>
+                        {(()=>{const raw=String(editRow.codeInput||"").trim();const p=products.find((p:any)=>p.nHK===raw||p.code===raw);return p?.description||"—";})()}
+                      </td>
+                      <td style={{padding:"4px 6px",textAlign:"center"}}>
+                        <label style={{cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",justifyContent:"center"}}>
+                          <input type="checkbox" checked={!!editRow.hasAlcTax} onChange={e=>setEditRow((r:any)=>({...r,hasAlcTax:e.target.checked}))}/>
+                          <span style={{fontSize:"10px",color:editRow.hasAlcTax?T.orange:T.muted}}>{editRow.hasAlcTax?"SÌ":"NO"}</span>
+                        </label>
+                      </td>
+                    </> : <>
+                      <td style={{padding:"2px 4px"}}><span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>—</span></td>
+                      {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
+                        <td key={ci} style={{padding:"2px 4px"}}>
+                          {f===""
+                            ? <span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>—</span>
+                            : <input value={editRow[f]||""} onChange={e=>setEditRow((r:any)=>({...r,[f]:e.target.value}))}
+                                placeholder={f==="ifbNo"?"IFB No*":f} autoFocus={f==="ifbNo"}
+                                style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"80px",fontFamily:"monospace"}}/>
+                          }
+                        </td>
+                      ))}
+                    </>}
                     <td style={{padding:"2px 4px",display:"flex",gap:"4px"}}>
                       <MiniBtn label="✓" onClick={()=>saveEdit(-1)} color={T.green}/>
                       <MiniBtn label="✕" onClick={()=>{setEditingIdx(null);setEditRow({});}} color={T.red}/>
@@ -7850,16 +7876,28 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
                     <tr key={b.ifbNo} style={{borderBottom:`1px solid ${T.border}`,background:isEditing?`${T.gold}08`:i%2===0?T.bg:T.surface}}>
                       {isEditing ? (
                         <>
-                          <td style={{padding:"2px 4px"}}><span style={{fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>{nComit||"—"}</span></td>
-                          {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
-                            <td key={ci} style={{padding:"2px 4px"}}>
-                              {f===""
-                                ? <span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>{prod?.description||"—"}</span>
-                                : <input value={editRow[f]||""} onChange={e=>setEditRow((r:any)=>({...r,[f]:e.target.value}))}
-                                    style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"80px",fontFamily:"monospace"}}/>
-                              }
+                          {isHK ? <>
+                            <td style={{padding:"2px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.nHK||"—"}</td>
+                            <td style={{padding:"2px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
+                            <td style={{padding:"2px 6px",fontSize:"10px",color:T.muted}}>{prod?.description||"—"}</td>
+                            <td style={{padding:"2px 6px",textAlign:"center"}}>
+                              <label style={{cursor:"pointer",display:"flex",alignItems:"center",gap:"6px",justifyContent:"center"}}>
+                                <input type="checkbox" checked={!!editRow.hasAlcTax} onChange={e=>setEditRow((r:any)=>({...r,hasAlcTax:e.target.checked}))}/>
+                                <span style={{fontSize:"10px",color:editRow.hasAlcTax?T.orange:T.muted}}>{editRow.hasAlcTax?"SÌ":"NO"}</span>
+                              </label>
                             </td>
-                          ))}
+                          </> : <>
+                            <td style={{padding:"2px 4px"}}><span style={{fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>{nComit||"—"}</span></td>
+                            {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
+                              <td key={ci} style={{padding:"2px 4px"}}>
+                                {f===""
+                                  ? <span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>{prod?.description||"—"}</span>
+                                  : <input value={editRow[f]||""} onChange={e=>setEditRow((r:any)=>({...r,[f]:e.target.value}))}
+                                      style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"80px",fontFamily:"monospace"}}/>
+                                }
+                              </td>
+                            ))}
+                          </>}
                           <td style={{padding:"2px 4px",display:"flex",gap:"4px"}}>
                             <MiniBtn label="✓" onClick={()=>saveEdit(realIdx)} color={T.green}/>
                             <MiniBtn label="✕" onClick={()=>{setEditingIdx(null);setEditRow({});}} color={T.muted}/>
