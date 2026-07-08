@@ -417,7 +417,7 @@ function calcDAPFinal({ dapDiscounted, fcaPrice, fcaDiscounted, vendorName, sect
   const dd=dapDiscounted||0, fp=fcaPrice||0, fd=fcaDiscounted||0;
   if(dd!==0) return { dapFinal:dd, carriageUnit:cu, note:"DAP Disc." };
   if(!isX)   return { dapFinal:0,  carriageUnit:0,  note:"non-X" };
-  if(isWine) return { dapFinal:(fd||fp)!==0?(fd||fp)+cu:0, carriageUnit:cu, note:"Wine FCA Disc+C" };
+  if(isWine) return { dapFinal:fd!==0?fd+cu:0, carriageUnit:cu, note:"Wine FCA Disc+C" };
   return { dapFinal:fd!==0?fd+cu:0, carriageUnit:cu, note:"FCA Disc+C" };
 }
 
@@ -878,8 +878,9 @@ export default function App() {
           : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate, priceMultiplier:itemCf });
 
       // Eccezione prezzo: bypassa listino e carne
+      // Eccezione prezzo: +2% intercompany markup come listino BC
       if(exc && exc.price > 0) {
-        const costE = calcCost(exc.price);
+        const costE = calcCost(exc.price * (100 / 98));
         const deltaE = costE ? null : null; // no prev for exceptions
         return { ...prod, cost:costE, prevCost:null, delta:null, priceInput:exc.price,
           flagged:false, ubicazione:ub, pltUsed:plt, area:log.area||"NORD", pltPerContainer:plt,
@@ -3093,16 +3094,23 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     return m;
   }, [bcListini, branch]);
 
+  const bcByItemCode = useMemo(() => {
+    const m: Record<string, any> = {};
+    bcListini.filter((p: any) => (p.branch || p.b) === branch).forEach((p: any) => { if(p.itemCode) m[String(p.itemCode)] = p; });
+    return m;
+  }, [bcListini, branch]);
+
   const allProductIds = useMemo(() => {
-    const s = new Set([...Object.keys(xlByProductId), ...Object.keys(bcByProductId)]);
+    const s = new Set<string>([...Object.keys(xlByProductId)]);
+    Object.keys(bcByProductId).forEach(k => { if(!k.startsWith("BC_")) s.add(k); });
     return [...s];
   }, [xlByProductId, bcByProductId]);
 
   const rows = useMemo(() => {
     return allProductIds.map(pid => {
       const xl = xlByProductId[pid];
-      const bc = bcByProductId[pid];
       const prod = products.find((p: any) => String(p.nHK) === pid) || products.find((p: any) => String(p.id) === pid);
+      const bc = bcByProductId[pid] || (prod?.code ? bcByItemCode[prod.code] : null) || bcByItemCode[pid];
 
       const qpb = Number(prod?.qtyPerBox || prod?.pcsPerBox || 1) || 1;
       const bcPu = String(bc?.pu || bc?.purchaseUom || "").toUpperCase();
