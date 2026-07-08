@@ -7502,6 +7502,8 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
   const [search, setSearch] = useState("");
   const [editingIdx, setEditingIdx] = useState<number|null>(null);
   const [editRow, setEditRow] = useState<any>({});
+  const isHKRef = useRef(isHK);
+  isHKRef.current = isHK;
 
   function saveEdit(idx: number) {
     const lt = parseFloat(String(editRow.ltPerUnit||"").replace(",",".")) || 0;
@@ -7585,7 +7587,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
         FIELDS.forEach(f => { autoMap[f] = fi(ALIASES[f], hdrs); });
         setMap(autoMap);
         // HK: salta mapping, vai diretto alla preview con auto-detect
-        if(isHK) {
+        if(isHKRef.current) {
           // buildPreview inline con autoMap
           const idx2: any = {};
           FIELDS.forEach(f => { idx2[f] = hdrs.indexOf(autoMap[f]); });
