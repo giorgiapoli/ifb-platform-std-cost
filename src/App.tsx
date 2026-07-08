@@ -858,6 +858,7 @@ export default function App() {
       const log = { ...logRaw, pltPerContainer: plt };
 
       const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month)
+                  || (prod.nHK ? bcListiniEnriched.find((p:any)=>(p.nHK===prod.nHK||p.productId===prod.nHK)&&(p.branch||p.b)===branch) : null)
                   || bcListiniEnriched.find((p:any)=>(p.productId===prod.id||(p.itemCode||p.n)===prod.code)&&(p.branch||p.b)===branch);
       const prPrev = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
 
