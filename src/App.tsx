@@ -277,8 +277,8 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   for (const isl of CAN_ISLANDS) {
     const tr  = (isl==="LAN"||isl==="FUE") ? transpLAN : transpGC;
     const ai  = (isl==="LAN"||isl==="FUE") ? aLAN : aGC;
-    step1[isl] = pE + tr + pL + ai + taE;
-    step2[isl] = step1[isl] + whE;
+    step1[isl] = r2(pE + tr + pL + ai + taE);
+    step2[isl] = r2(step1[isl] + whE);
   }
 
   return {
@@ -375,8 +375,8 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   // Arrotonda ogni componente a 2 decimali prima di sommare
   const pE = roundN(priceEur,2), fE = roundN(fob,2), lE = roundN(lic,2), vE = roundN(vgm,2);
   const hE = roundN(hc,2), pL = roundN(plt,2), aE = roundN(alc,2), wE = roundN(wh,2);
-  const step1Eur = pE + fE + lE + vE + hE + pL + aE;
-  const step2Eur = step1Eur + wE;
+  const step1Eur = roundN(pE + fE + lE + vE + hE + pL + aE, 2);
+  const step2Eur = roundN(step1Eur + wE, 2);
 
   return {
     priceEur: pE, fob: fE, lic: lE, vgm: vE, hc: hE, plt: pL, alc: aE,
@@ -400,12 +400,12 @@ function calcMAC({ hkCost, isHoff, macToHkConv = 1, temperature = "DRY", kgPerMa
   if (!hkCost?.step2Hkd) return null;
   const markup = isHoff ? MAC_MARKUP.hoff : MAC_MARKUP.nonHoff;
   const conv = Number(macToHkConv) > 0 ? Number(macToHkConv) : 1;
-  const hkNewSC = hkCost.step2Hkd;
-  const baseInMop = hkNewSC * conv * (1 + markup) * HKD_TO_MOP;
+  const hkNewSC = roundN(hkCost.step2Hkd,2);
+  const baseInMop = roundN(hkNewSC * conv * (1 + markup) * HKD_TO_MOP, 2);
   // Costo logistico ALL-IN per MAC UOM (MOP/kg × kg per MAC UOM)
   const logPerKg = MAC_LOG_PER_KG[String(temperature||"DRY").toUpperCase()] ?? 3;
-  const logPerUom = kgPerMacUom > 0 ? logPerKg * kgPerMacUom : logPerKg; // se UOM=KG → kgPerMacUom=1
-  const macNewSC = baseInMop + logPerUom;
+  const logPerUom = roundN(kgPerMacUom > 0 ? logPerKg * kgPerMacUom : logPerKg, 2);
+  const macNewSC = roundN(baseInMop + logPerUom, 2);
   return {
     hkNewSC, markup: markup * 100, isHoff, macNewSC, macToHkConv: conv,
     baseInMop, logPerKg, logPerUom, temperature,
