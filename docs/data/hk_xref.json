@@ -2964,10 +2964,6 @@
     "ifbNo": "40827"
   },
   {
-    "nHK": "MBMARA-22",
-    "ifbNo": "MBMARA-22"
-  },
-  {
     "nHK": "MBPEIR-23",
     "ifbNo": "MBPEIR-23"
   },
@@ -6110,6 +6106,10 @@
   {
     "nHK": "WMDB07-21",
     "ifbNo": "MBMARA-21"
+  },
+  {
+    "nHK": "WMDB07-22",
+    "ifbNo": "MBMARA-22"
   },
   {
     "nHK": "WMDB08-NV",

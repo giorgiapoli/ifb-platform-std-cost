@@ -60236,28 +60236,6 @@
     "Branch": "HK"
   },
   {
-    "No_": "Z0192",
-    "Description": "POLPA DI POMODORO DUE FAGIANI 5/1 LATTA",
-    "Vendor Name": "",
-    "Last Posting Date": "2025-07-07",
-    "Quantity": 3168.0,
-    "Price": 3.7270012626262625,
-    "Location Code": "FOR",
-    "Section Description": "",
-    "Branch": "CAN"
-  },
-  {
-    "No_": "Y1416",
-    "Description": "POLPA DA POMODORO LUNGO LA DOLCISSIMA 5KG BAG IN BOX",
-    "Vendor Name": "",
-    "Last Posting Date": "2025-07-07",
-    "Quantity": 1280.0,
-    "Price": 4.925,
-    "Location Code": "FOR",
-    "Section Description": "",
-    "Branch": "CAN"
-  },
-  {
     "No_": "PLP12",
     "Description": "POLPA FINE DI POMODORO DUE FAGIANI 5/1 LATTA",
     "Vendor Name": "",
@@ -151664,6 +151642,17 @@
     "Quantity": 1.0,
     "Price": 2632.0,
     "Location Code": "",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "FML25",
+    "Description": "FIORDILATTE TAGLIO NAPOLI LATTERIA SORRENTINA 2KG BUSTA CONGELATO",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-08",
+    "Quantity": 768.0,
+    "Price": 5.989999999999999,
+    "Location Code": "UNIFR-TR",
     "Section Description": "",
     "Branch": "CAN"
   },
