@@ -921,7 +921,9 @@ export default function App() {
       const log = { ...logRaw, pltPerContainer: plt };
 
       const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month)
-                  // Priorità: IFB code + UoM (distingue varianti come LCI02 BOX vs PCS)
+                  // Priorità 1: N HK (codice filiale) — evita ambiguità tra varianti con stesso IFB code
+                  || (prod.nHK && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.nHK&&(p.branch||p.b)===branch))
+                  // Priorità 2: IFB code + UoM
                   || bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.code&&(p.pu||"").toUpperCase()===(prod.uom||"").toUpperCase()&&(p.branch||p.b)===branch)
                   // Fallback: productId o IFB code senza UoM
                   || bcListiniEnriched.find((p:any)=>(p.productId===prod.id||(p.itemCode||p.n)===prod.code)&&(p.branch||p.b)===branch);
