@@ -7583,7 +7583,27 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
         setHeaders(hdrs); setRawRows(rows);
         const autoMap: any = {};
         FIELDS.forEach(f => { autoMap[f] = fi(ALIASES[f], hdrs); });
-        setMap(autoMap); setStep("map");
+        setMap(autoMap);
+        // HK: salta mapping, vai diretto alla preview con auto-detect
+        if(isHK) {
+          // buildPreview inline con autoMap
+          const idx2: any = {};
+          FIELDS.forEach(f => { idx2[f] = hdrs.indexOf(autoMap[f]); });
+          const rows2 = rows.map((row:any) => {
+            const nHK = idx2.nHK >= 0 ? String(row[idx2.nHK]||"").trim() : "";
+            const ifbNoRaw = idx2.ifbNo >= 0 ? String(row[idx2.ifbNo]||"").trim() : "";
+            const alcRaw = idx2.hasAlcTax >= 0 ? String(row[idx2.hasAlcTax]||"").trim().toLowerCase() : "";
+            const hasAlcTax = ["true","sì","si","yes","1","x","vero"].includes(alcRaw);
+            const key = nHK || ifbNoRaw;
+            if(!key) return null;
+            const prod = products.find((p:any) => p.nHK === nHK || p.code === ifbNoRaw || p.code === nHK);
+            const ifbNo = ifbNoRaw || prod?.code || nHK;
+            return { nHK, ifbNo, hasAlcTax, _found:!!prod, _desc:prod?.description||"—" };
+          }).filter(Boolean);
+          setPreview(rows2); setStep("preview");
+          return;
+        }
+        setStep("map");
       } catch(err:any) { showToast("Errore: "+err.message, T.red); }
     };
     reader.readAsBinaryString(file);
@@ -7693,25 +7713,34 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
           <div style={{maxHeight:"200px",overflow:"auto",marginBottom:"12px",fontSize:"11px"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                {["IFB No","Descrizione","LT","Grado","€/LT","Totale €/unit"].map(h=>
-                  <th key={h} style={{padding:"4px 8px",textAlign:"left",color:T.muted,borderBottom:`1px solid ${T.border}`}}>{h}</th>)}
+                {(isHK
+                  ? ["N HK","IFB No","Descrizione","Tassa Alcol (>30°)"]
+                  : ["IFB No","Descrizione","LT","Grado","€/LT","Totale €/unit"]
+                ).map(h=><th key={h} style={{padding:"4px 8px",textAlign:"left",color:T.muted,borderBottom:`1px solid ${T.border}`}}>{h}</th>)}
               </tr></thead>
               <tbody>
                 {preview.map((r:any,i:number)=>(
                   <tr key={i} style={{borderBottom:`1px solid ${T.border}`,background:r._found?undefined:`${T.orange}10`}}>
-                    <td style={{padding:"3px 8px",color:T.gold,fontFamily:"monospace"}}>{r.ifbNo}</td>
-                    <td style={{padding:"3px 8px",color:r._found?T.text:T.orange,fontSize:"11px"}}>{r._desc}</td>
-                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.ltPerUnit||"—"}</td>
-                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.gradoAlcolico||"—"}°</td>
-                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.eurPerLt>0?r.eurPerLt.toFixed(2):"—"}</td>
-                    <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{r.totaleBottiglia>0?r.totaleBottiglia.toFixed(4):"—"}</td>
+                    {isHK ? <>
+                      <td style={{padding:"3px 8px",color:T.gold,fontFamily:"monospace"}}>{r.nHK||"—"}</td>
+                      <td style={{padding:"3px 8px",color:T.gold,fontFamily:"monospace"}}>{r.ifbNo}</td>
+                      <td style={{padding:"3px 8px",color:r._found?T.text:T.orange,fontSize:"11px"}}>{r._desc}</td>
+                      <td style={{padding:"3px 8px",textAlign:"center",fontWeight:"bold",color:r.hasAlcTax?T.orange:T.muted}}>{r.hasAlcTax?"✓ SÌ":"—"}</td>
+                    </> : <>
+                      <td style={{padding:"3px 8px",color:T.gold,fontFamily:"monospace"}}>{r.ifbNo}</td>
+                      <td style={{padding:"3px 8px",color:r._found?T.text:T.orange,fontSize:"11px"}}>{r._desc}</td>
+                      <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.ltPerUnit||"—"}</td>
+                      <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.gradoAlcolico||"—"}°</td>
+                      <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right"}}>{r.eurPerLt>0?r.eurPerLt.toFixed(2):"—"}</td>
+                      <td style={{padding:"3px 8px",fontFamily:"monospace",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{r.totaleBottiglia>0?r.totaleBottiglia.toFixed(4):"—"}</td>
+                    </>}
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
           <div style={{display:"flex",gap:"10px"}}>
-            <ActionBtn label="← Indietro" onClick={()=>setStep("map")}/>
+            {!isHK && <ActionBtn label="← Indietro" onClick={()=>setStep("map")}/>}
             <ActionBtn label={`✓ Importa ${preview.length} articoli`} onClick={executeImport} primary/>
           </div>
         </Section>
@@ -7723,12 +7752,14 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       </div>
 
       {(displayed.length>0 || editingIdx===-1) ? (
-        <Section title={`${displayed.length} articoli con AIEM alcolico`}>
+        <Section title={isHK ? `${displayed.length} articoli con tassa alcolica (>30°) — HK` : `${displayed.length} articoli con AIEM alcolico`}>
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
-                {["N COMIT","IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit",""].map(h=>
-                  <th key={h} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}>{h}</th>)}
+                {(isHK
+                  ? ["N HK","IFB No","Descrizione","Tassa Alcol",""]
+                  : ["N COMIT","IFB No","Descrizione","LT/unit","Grado","€/LT","Tassa Alcolica €/unit",""]
+                ).map(h=><th key={h} style={{padding:"3px 6px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"10px"}}>{h}</th>)}
               </tr></thead>
               <tbody>
                 {/* Nuova riga in cima se si sta aggiungendo */}
@@ -7777,13 +7808,20 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
                         </>
                       ) : (
                         <>
-                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.muted}}>{nComit||"—"}</td>
-                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
-                          <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
-                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
-                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
-                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
-                          <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
+                          {isHK ? <>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.nHK||"—"}</td>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
+                            <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
+                            <td style={{padding:"3px 6px",fontSize:"10px",textAlign:"center",fontWeight:"bold",color:b.hasAlcTax?T.orange:T.muted}}>{b.hasAlcTax?"✓ SÌ":"—"}</td>
+                          </> : <>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.muted}}>{nComit||"—"}</td>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",color:T.gold}}>{b.ifbNo}</td>
+                            <td style={{padding:"3px 6px",fontSize:"10px",maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{prod?.description||<span style={{color:T.orange}}>⚠ non in anagrafica</span>}</td>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
+                          </>}
                           <td style={{padding:"3px 6px",display:"flex",gap:"4px"}}>
                             <MiniBtn label="✎" onClick={()=>{setEditingIdx(realIdx);setEditRow({...b});}} color={T.blue}/>
                             <MiniBtn label="✕" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==realIdx);setBevInfo(n);IDB.set("ifb_bevinfo",n);}} color={T.red}/>
