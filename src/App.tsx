@@ -80,6 +80,57 @@ const HK_CONV_DEFAULTS: {nHK:string; factor:number; description:string}[] = [
   { nHK:"GCRI-1028", factor:0.5, description:"RST26" },
 ];
 
+// ─── HK SPIRITS ALCOHOL TAX (>30°) ──────────────────────────────────────────
+const HK_ALC_TAX_DEFAULTS: {ifbNo:string; hasAlcTax:boolean; nHK:string; ltPerUnit:number; gradoAlcolico:number; eurPerLt:number; totaleBottiglia:number}[] = [
+  {ifbNo:"VZR08",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR03",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR01",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR02",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR04",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR05",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR06",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR07",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR09",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"VZR10",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"LFT02",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"MGI01",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"MGI02",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT01",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT02",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT03",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT04",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT05",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT06",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT07",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT08",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"ELT09",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"LEVGINTUS", hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"LEVGINMED", hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"Y1077",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"LIQ63",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"Z0430",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"LIQ55",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"FDG01",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"DRMFIRE",   hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"WMAT02-NV", hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"DRM01",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"MBGRAP-NV", hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"NAR01",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"NAR03",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"NAR07",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"NAR08",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"NAR09",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"NAR10",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"NAR11",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"PPR02",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"PPR03",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"PPR04",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"PPR05",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"PPR06",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"PPR07",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+  {ifbNo:"FDG02",     hasAlcTax:true, nHK:"", ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0},
+];
+
 // ─── CANARIE CONV FACTORS (eccezioni per item) ───────────────────────────────
 const CAN_CONV_DEFAULTS: {nComit:string; factor:number; description:string}[] = [
   { nComit:"17021", factor:2,           description:"LA DOLCISSIMA POLPA DI POMODORO BAG IN BOX 2*5 KG" },
@@ -544,6 +595,8 @@ export default function App() {
 
   // Reload price exceptions when branch changes
   useEffect(()=>{ if(branch) setPriceExceptions(LS.get(`ifb_exceptions_${branch}`,[])); },[branch]);
+  // HK: pre-popola bevInfo con default spirits >30° se ancora vuoto
+  useEffect(()=>{ if(branch==="HK" && bevInfo.length===0) setBevInfo(HK_ALC_TAX_DEFAULTS); },[branch]);
   // Save effects — only fire after load is complete
   useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
   useEffect(()=>{ LS.set("ifb_can_conv_factors", canConvFactors); },[canConvFactors]);
@@ -7680,6 +7733,10 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
           📂 Carica file Beverage Info
           <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
         </label>
+        {isHK&&<button onClick={()=>{setBevInfo(HK_ALC_TAX_DEFAULTS);IDB.set("ifb_bevinfo",HK_ALC_TAX_DEFAULTS);showToast("Default HK ripristinati ✓",T.gold);}}
+          style={{padding:"5px 12px",background:"none",border:`1px solid ${T.gold}44`,borderRadius:"6px",color:T.gold,cursor:"pointer",fontSize:"11px"}}>
+          ↺ Ripristina Default
+        </button>}
         {bevInfo.length>0&&<button onClick={()=>{if(window.confirm(`Eliminare tutti i ${bevInfo.length} dati beverage?`)){setBevInfo([]);IDB.set("ifb_bevinfo",[]);}}}
           style={{padding:"5px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
           🗑 Svuota ({bevInfo.length})
