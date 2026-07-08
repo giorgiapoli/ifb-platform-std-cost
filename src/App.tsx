@@ -679,7 +679,8 @@ export default function App() {
             all.forEach((row: any) => {
               const code = String(row["n"] || row["No_"] || "").trim();
               if(!code) return;
-              const prod = byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
+              const nhkField = String(row["nhk"] || "").trim();
+              const prod = (nhkField ? byNHK[nhkField] : null) || byCode[code] || byNHK[code] || (xrByIfb[code] ? byNHK[xrByIfb[code]] : null);
               const purchUom = String(row["pu"] || "").trim().toUpperCase();
               const scriptCf = Number(row["cf"] || 1);
               // Regola generale (uguale a PBI con fatt_conv):
@@ -706,9 +707,9 @@ export default function App() {
               }
               const div = (p: number) => convFactor !== 1 ? p / convFactor : p;
               newEntries.push({
-                productId:     prod?.id ?? `BC_${code}`,
+                productId:     nhkField || prod?.nHK || prod?.id || `BC_${code}`,
                 itemCode:      code,
-                nHK:           prod?.nHK || "",
+                nHK:           nhkField || prod?.nHK || "",
                 bcDesc:        String(row["d"] || row["Description"] || "").trim(),
                 pu:            displayUom,
                 branch, month: nowMonth,
@@ -3097,7 +3098,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     return allProductIds.map(pid => {
       const xl = xlByProductId[pid];
       const bc = bcByProductId[pid];
-      const prod = products.find((p: any) => String(p.id) === pid);
+      const prod = products.find((p: any) => String(p.nHK) === pid) || products.find((p: any) => String(p.id) === pid);
 
       const qpb = Number(prod?.qtyPerBox || prod?.pcsPerBox || 1) || 1;
       const bcPu = String(bc?.pu || bc?.purchaseUom || "").toUpperCase();
