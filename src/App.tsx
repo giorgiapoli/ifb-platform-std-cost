@@ -462,6 +462,7 @@ export default function App() {
   const[prices,setPrices]       = useState<any[]>([]);
   const[bcListini,setBcListini] = useState<any[]>([]); // prezzi BC listini — separati da prices per evitare re-render globali
   const[listiniReloadKey,setListiniReloadKey] = useState(0); // incrementa per forzare re-fetch listini
+  const[listiniMode,setListiniMode] = useState<"bc"|"excel">(() => LS.get("ifb_listini_mode","bc"));
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
   const[xrefs,setXrefs]         = useState<any[]>([]);
   const[airList,setAirList]     = useState<any[]>([]);
@@ -558,6 +559,7 @@ export default function App() {
   useEffect(()=>{ if(branch==="MAC") IDB.get("ifb_hk_costrows_for_mac",[]).then((d:any[])=>setMacHkCostRows(d)); },[branch]);
   useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_prices_${branchRef.current}`, prices); },[prices]);
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
+  useEffect(()=>{ LS.set("ifb_listini_mode",listiniMode); },[listiniMode]);
   useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_meatprices", meatPrices); }, [meatPrices]);
   useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_bevinfo", bevInfo); }, [bevInfo]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
@@ -1147,6 +1149,7 @@ export default function App() {
   showToast={showToast}
   bumpImportTs={bumpImportTs}
   reloadListini={()=>{ setBcListini([]); setListiniReloadKey(k=>k+1); }}
+  listiniMode={listiniMode} setListiniMode={setListiniMode}
 />,
 
 
@@ -1157,7 +1160,7 @@ export default function App() {
     meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} xrefs={xrefs} showToast={showToast}/>,
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors} hkConvFactors={hkConvFactors} setHkConvFactors={setHkConvFactors}/>,
-    costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs}/>,
+    costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs} listiniMode={listiniMode} setListiniMode={setListiniMode} reloadListini={()=>{ setBcListini([]); setListiniReloadKey(k=>k+1); }}/>,
     invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali}/>,
     scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast} xrefs={xrefs}/>,
     storico: <Storico
@@ -1808,6 +1811,7 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
     
     setPrices(updated);
     CLOUD.set(`ifb_prices_${branch}`, updated);
+    setListiniMode("excel");
     
     const log = {
       id: snId,
@@ -3393,7 +3397,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
 
 // ─── PRICES (con import integrato e storico) ─────────────────────────────────
 function Prices({ prices, setPrices, bcListini = [], setBcListini, products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [],
-  importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs, reloadListini }) {
+  importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs, reloadListini, listiniMode = "bc", setListiniMode = (_:any)=>{} }) {
 const [search, setSearch] = useState("");
 const [invoiceOnly, setInvoiceOnly] = useState(false);
 const [importStep, setImportStep] = useState<"idle"|"map"|"preview"|"done">("idle");
@@ -3404,7 +3408,7 @@ const [preview, setPreview] = useState<any[]>([]);
 const [fileName, setFileName] = useState("");
 const [importMonth, setImportMonth] = useState(month);
 const [doneInfo, setDoneInfo] = useState<any>(null);
-const [listiniMode, setListiniMode] = useState<"bc"|"excel">("bc");
+// listiniMode e setListiniMode dal parent (App.tsx)
 const [lastExcelData, setLastExcelData] = useState<{rawRows:any[];headers:string[];mapping:any;month:string;fileName:string}|null>(null);
 const excelInputRef = useRef<HTMLInputElement>(null);
 
@@ -4046,7 +4050,7 @@ function FxRates({fx,setFx,branch,month}) {
 // ─── COST TABLE ───────────────────────────────────────────────────────────────
 
 function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,
-  setCostHistory,initFilter,salesRows=[],products=[],xrefs=[]}: any) {
+  setCostHistory,initFilter,salesRows=[],products=[],xrefs=[],listiniMode="bc",setListiniMode=(_:any)=>{},reloadListini=()=>{}}: any) {
 
     const[search,setSearch]     = useState("");
     const[showDetail,setShowDetail] = useState<string|null>(null);
@@ -4216,6 +4220,13 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             color:needsRecalc?"#000":T.muted,border:"none",borderRadius:"6px",
             fontWeight:"bold",cursor:needsRecalc?"pointer":"not-allowed",fontSize:"12px",marginTop:"-8px"}}>
           {needsRecalc?"⟳ Ricalcola & Salva":"✓ Aggiornato"}
+        </button>
+        <button onClick={()=>{ setListiniMode("bc"); reloadListini(); }}
+          title="Ricarica listini prezzi da BC IFB e aggiorna tutti i calcoli"
+          style={{padding:"7px 14px",background:listiniMode==="excel"?`${T.blue}22`:`${T.surface}`,
+            border:`1px solid ${listiniMode==="excel"?T.blue:T.border}`,borderRadius:"6px",
+            color:listiniMode==="excel"?T.blue:T.muted,cursor:"pointer",fontSize:"12px",marginTop:"-8px",whiteSpace:"nowrap"}}>
+          {listiniMode==="excel" ? "📊 Excel attivo — 🔄 Aggiorna da BC" : "🔄 Aggiorna Listini da BC"}
         </button>
         <button onClick={()=>exportXLSX(
           filtered.filter((r:any)=>r.cost).map((r:any)=>({
