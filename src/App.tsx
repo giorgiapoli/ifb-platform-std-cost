@@ -869,7 +869,7 @@ export default function App() {
 
       // Branch-agnostic calc helper
       const isCAN_b = branch === "CAN";
-      const bevData = isCAN_b ? bevInfo.find((b:any) => b.ifbNo === prod.code) : null;
+      const bevData = bevInfo.find((b:any) => b.ifbNo === prod.code) || null;
       // Fattore di conversione item: CAN → lookup per N COMIT via xrefs; HK → lookup per nHK
       const nComit = isCAN_b ? (xrefs.find((x:any)=>x.productId===prod.id||x.ifbNo===prod.code)?.nHK||"") : "";
       const itemCf = isCAN_b
@@ -878,7 +878,7 @@ export default function App() {
       const calcCost = (pi: number) =>
         isCAN_b
           ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log, bevData, priceMultiplier:itemCf })
-          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log,category:prod.category}, eurToHkd:fxRate, priceMultiplier:itemCf });
+          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log, category:prod.category, hasAlcTax: log.hasAlcTax||(bevData?.totaleBottiglia>0), alcTax: (bevData?.totaleBottiglia||0)||log.alcTax||0}, eurToHkd:fxRate, priceMultiplier:itemCf });
 
       // Eccezione prezzo: bypassa listino e carne
       // Eccezione prezzo: +2% intercompany markup come listino BC
@@ -994,7 +994,7 @@ export default function App() {
     ...(!isMAC ? [{id:"prices",    icon:"◉", label:"Listini", badge:"💶"}] : []),
     ...(!isMAC ? [{id:"pricecompare", icon:"⚖", label:"🔬 Confronto Listini"}] : []),
     ...(!isMAC ? [{id:"meatlist",  icon:"🥩", label:"Listino Carne"}] : []),
-    ...(isCAN ? [{id:"bevinfo", icon:"🍷", label:"Beverage Info (AIEM)"}] : []),
+    ...(!isMAC ? [{id:"bevinfo", icon:"🍷", label: isCAN ? "Beverage Info (AIEM)" : "Beverage Info (Alcol Tax)"}] : []),
     ...(!isCAN&&!isMAC ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
     ...(!isCAN&&!isMAC ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
     ...(!isMAC ? [{id:"exceptions", icon:"⚡", label:"Eccezioni Prezzi"}] : []),
