@@ -1,4 +1,4 @@
-﻿// v2026-07-09n
+﻿// v2026-07-09o
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -489,7 +489,7 @@ function calcDAPFinal({ dapDiscounted, fcaPrice, fcaDiscounted, vendorName, sect
     else                unitsPerPlt=qtyPerBox*boxPerPallet;
   }
   const sec = (section||"").toUpperCase();
-  const isWine = sec==="WINE"||sec==="SPIRITS";
+  const isWine = sec.includes("WINE")||sec.includes("SPIRIT");
   const isX = isWine || FOR_VENDORS.has(vendorName||"");
   const pltCost = isWine ? 60 : (COSTS.VENDOR_CARRIAGE[vendorName]||0);
   const cu = unitsPerPlt>0 ? pltCost/unitsPerPlt : 0;
@@ -1077,7 +1077,22 @@ export default function App() {
       const uomConvFactor = 1;
       // Per HK MTO: se dapFinal=0 ma fcaDiscounted>0, aggiungi carriage da work tab
       const enrichPriceWithCarriage = (p: any) => {
-        if(!p || isCAN_b) return selectPrice(p, ub);
+        if(!p) return 0;
+        if(isCAN_b) {
+          const dap = p.dapFinal || 0;
+          const fca = p.fcaDiscounted || p.fcaPrice || 0;
+          if(dap === 0 && fca > 0) {
+            const sec2 = (prod.category || "").toUpperCase();
+            if(sec2.includes("WINE") || sec2.includes("SPIRIT")) {
+              const uom2 = prod.uom || "PCS";
+              const div2 = uom2 === "BOX" ? (Number(prod.boxPerPallet)||1)
+                         : uom2 === "KG"  ? (Number(prod.kgxplt)||300)
+                         : (Number(prod.qtyPerBox)||1) * (Number(prod.boxPerPallet)||1);
+              return fca + (div2 > 0 ? 60 / div2 : 0);
+            }
+          }
+          return selectPrice(p, ub);
+        }
         const sel = selectPrice(p, ub);
         if(sel > 0) return sel;
         // fallback: fca + carriage da logistica / unitsPerPlt
@@ -3763,7 +3778,7 @@ if (dapFinalDirect !== 0) {
   // (su NAV il report non riesce a calcolare il DAP perché manca il carriage, lo ricostruiamo internamente)
   if (branch === "CAN" && dapFinal === 0 && fcaDiscounted > 0) {
     const sec = (String(get(row, "section") || prod.category || "")).toUpperCase();
-    if (sec === "WINE" || sec === "SPIRITS") {
+    if (sec.includes("WINE") || sec.includes("SPIRIT")) {
       const uom = prod.uom || "PCS";
       const qpb = Number(prod.qtyPerBox) || 1;
       const bpp = Number(prod.boxPerPallet) || 1;
