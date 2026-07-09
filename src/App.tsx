@@ -1,4 +1,4 @@
-﻿// v2026-07-01
+﻿// v2026-07-09
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
