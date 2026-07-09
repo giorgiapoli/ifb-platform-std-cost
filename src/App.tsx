@@ -1,4 +1,4 @@
-﻿// v2026-07-09u
+﻿// v2026-07-09v
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -7775,6 +7775,9 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
   const isHKRef = useRef(isHK);
   isHKRef.current = isHK;
 
+  // Tassa alcolica CAN: 750,36 €/HL di alcol puro → 7,5036 €/L
+  const CAN_ALC_EUR_PER_LT = 7.5036;
+
   function saveEdit(idx: number) {
     let updated: any;
     if(isHK) {
@@ -7787,10 +7790,11 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       updated = { nHK: resolvedNHK||"", ifbNo: resolvedIfb, hasAlcTax: !!editRow.hasAlcTax, ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0 };
     } else {
       const lt = parseFloat(String(editRow.ltPerUnit||"").replace(",",".")) || 0;
-      const eurLt = parseFloat(String(editRow.eurPerLt||"").replace(",",".")) || 0;
+      const grado = parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0;
       const totRaw = parseFloat(String(editRow.totaleBottiglia||"").replace(",",".")) || 0;
-      const totaleBottiglia = totRaw > 0 ? totRaw : (lt > 0 && eurLt > 0 ? roundN(lt * eurLt, 4) : 0);
-      updated = { ...editRow, ltPerUnit: lt, gradoAlcolico: parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0, eurPerLt: eurLt, totaleBottiglia };
+      // Formula: Totale = LT × (Grado/100) × 7,5036 €/L di alcol puro
+      const totaleBottiglia = totRaw > 0 ? totRaw : (lt > 0 && grado > 0 ? roundN(lt * (grado / 100) * CAN_ALC_EUR_PER_LT, 4) : 0);
+      updated = { ...editRow, ltPerUnit: lt, gradoAlcolico: grado, eurPerLt: roundN((grado / 100) * CAN_ALC_EUR_PER_LT, 4), totaleBottiglia };
     }
     const next = idx === -1
       ? [...bevInfo, updated]
@@ -7802,23 +7806,22 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
 
   function startAdd() {
     setEditingIdx(-1);
-    setEditRow(isHK ? { codeInput:"", hasAlcTax:true } : { ifbNo:"", ltPerUnit:"", gradoAlcolico:"", eurPerLt:"", totaleBottiglia:"" });
+    setEditRow(isHK ? { codeInput:"", hasAlcTax:true } : { ifbNo:"", ltPerUnit:"", gradoAlcolico:"", totaleBottiglia:"" });
   }
 
-  // Campi diversi per HK (flag >30°) vs CAN (tassa alcolica: litri/grado/tariffa)
+  // Campi diversi per HK (flag >30°) vs CAN (tassa alcolica: litri/grado → calcolato)
   const FIELDS = isHK
     ? ["nHK","ifbNo","hasAlcTax"]
-    : ["ifbNo","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"];
+    : ["ifbNo","ltPerUnit","gradoAlcolico","totaleBottiglia"];
   const FLABELS: any = isHK ? {
     nHK:       "N HK (codice filiale)",
     ifbNo:     "IFB No (codice articolo)",
     hasAlcTax: "Tassato (>30° / True / Sì)",
   } : {
-    ifbNo: "IFB No * (codice articolo)",
-    ltPerUnit: "LT (litri per unità)",
-    gradoAlcolico: "Grado Alcolico (°)",
-    eurPerLt: "€/LT (tariffa tassa alcolica per litro)",
-    totaleBottiglia: "Totale Bottiglia € (se già calcolato)",
+    ifbNo:          "IFB No * (codice articolo)",
+    ltPerUnit:      "LT (litri per unità/bottiglia)",
+    gradoAlcolico:  "Grado Alcolico (°)",
+    totaleBottiglia:"Totale Bottiglia € (se già calcolato — altrimenti calcolato da LT × Grado%  × 7,5036)",
   };
   const ALIASES: any = isHK ? {
     nHK:       ["n hk","nhk","hk code","hk no","gc code","no hk","codice hong kong","hong kong","hk"],
@@ -7915,13 +7918,13 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       if(!ifbNo) return null;
       const lt = parseFloat(String(row[idx.ltPerUnit]||"").replace(",",".")) || 0;
       const grado = parseFloat(String(row[idx.gradoAlcolico]||"").replace(",",".")) || 0;
-      const eurLt = parseFloat(String(row[idx.eurPerLt]||"").replace(",",".")) || 0;
-      const totRaw = idx.totaleBottiglia>=0 ? parseFloat(String(row[idx.totaleBottiglia]||"").replace(",",".")) : 0;
-      const totCalc = lt > 0 && eurLt > 0 ? roundN(lt * eurLt, 4) : 0;
+      const totRaw = idx.totaleBottiglia >= 0 ? parseFloat(String(row[idx.totaleBottiglia]||"").replace(",",".")) : 0;
+      // Formula: Totale = LT × (Grado/100) × 7,5036 €/L alcol puro (750,36 €/HL ÷ 100)
+      const totCalc = lt > 0 && grado > 0 ? roundN(lt * (grado / 100) * CAN_ALC_EUR_PER_LT, 4) : 0;
       const totaleBottiglia = totRaw > 0 ? totRaw : totCalc;
       if(totaleBottiglia <= 0 && lt <= 0) return null;
       const prod = products.find((p:any) => p.code === ifbNo);
-      return { ifbNo, ltPerUnit:lt, gradoAlcolico:grado, eurPerLt:eurLt, totaleBottiglia, _found:!!prod, _desc:prod?.description||"—" };
+      return { ifbNo, ltPerUnit:lt, gradoAlcolico:grado, eurPerLt: roundN((grado/100)*CAN_ALC_EUR_PER_LT,4), totaleBottiglia, _found:!!prod, _desc:prod?.description||"—" };
     }).filter(Boolean);
     setPreview(rows); setStep("preview");
   }
