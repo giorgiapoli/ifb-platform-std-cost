@@ -1,4 +1,4 @@
-﻿// v2026-07-09q
+﻿// v2026-07-09r
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -690,10 +690,17 @@ export default function App() {
             const wt: any[] = await rwt.json();
             const prevLog: any[] = await CLOUD.get("ifb_logistics", []);
             const otherBranchLog = prevLog.filter((l:any) => l.branch !== "CAN");
+            // Indice delle righe CAN modificate manualmente: non vanno sovrascritte dal worktab
+            const manualOverrides: Record<string, any> = {};
+            prevLog.filter((l:any) => l.branch === "CAN" && l._manualOverride).forEach((l:any) => {
+              manualOverrides[l.productId] = l;
+            });
             const canLog = wt.flatMap((row: any) => {
               const prod = canProds.find((p:any) => p.nHK === row.nComit || p.code === row.ifbNo)
                         || canProds.find((p:any) => canXrefs.find((x:any) => x.nHK === row.nComit && x.ifbNo === p.code));
               if(!prod) return [];
+              // Preserva modifiche manuali dell'utente
+              if(manualOverrides[prod.id]) return [manualOverrides[prod.id]];
               const transport = (row.transport||"").toUpperCase().includes("MARE") ? "MARE" : "GOMMA";
               const ubicazione = row.mtsUb === "MTS" ? "MTS" : row.mtsUb === "FOR" ? "FOR" : "MTO";
               return [{
@@ -2850,8 +2857,8 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
                 ["hasCert","hasAlcTax"].includes(field) ? (rawVal === "true") :
                 (parseFloat(rawVal) || 0);
     const next = existing
-      ? logistics.map(l => l.productId===productId&&l.branch===branch ? {...l, [field]:val} : l)
-      : [...logistics, {...getOrDefault(productId), [field]: val}];
+      ? logistics.map(l => l.productId===productId&&l.branch===branch ? {...l, [field]:val, _manualOverride:true} : l)
+      : [...logistics, {...getOrDefault(productId), [field]: val, _manualOverride:true}];
     setLogistics(next);
     CLOUD.set("ifb_logistics", next);
   }
