@@ -1,4 +1,4 @@
-﻿// v2026-07-09r
+﻿// v2026-07-09s
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -1085,6 +1085,7 @@ export default function App() {
         if(isCAN_b) {
           const dap = p.dapFinal || 0;
           const fca = p.fcaDiscounted || p.fcaPrice || 0;
+          if(ub === "FOR") return fca || dap;
           if(dap === 0 && fca > 0) {
             const sec2 = (prod.category || "").toUpperCase();
             if(sec2.includes("WINE") || sec2.includes("SPIRIT")) {
@@ -3780,7 +3781,8 @@ if (dapFinalDirect !== 0) {
 
   // CAN Wine/Spirits: se DAP = 0 ma FCA NET > 0, calcola carriage = 60€/plt ÷ unità per plt
   // (su NAV il report non riesce a calcolare il DAP perché manca il carriage, lo ricostruiamo internamente)
-  if (branch === "CAN" && dapFinal === 0 && fcaDiscounted > 0) {
+  const _ub = String(get(row, "ubicazione") || "").toUpperCase();
+  if (branch === "CAN" && dapFinal === 0 && fcaDiscounted > 0 && _ub !== "FOR") {
     const sec = (String(get(row, "section") || prod.category || "")).toUpperCase();
     if (sec.includes("WINE") || sec.includes("SPIRIT")) {
       const uom = prod.uom || "PCS";
