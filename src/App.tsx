@@ -1,4 +1,4 @@
-﻿// v2026-07-09g
+﻿// v2026-07-09h
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -6480,16 +6480,19 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     return m;
   },[logistics]);
 
+  const [rollingDays, setRollingDays] = useState(30);
   const monthRows = useMemo(()=>{
-    if(!selectedMonth) return [];
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - rollingDays);
+    const cutoffStr = cutoff.toISOString().slice(0,10);
     return (salesRows||[]).filter((r:any)=>{
-      const d = (r.date||r.postingDate) ? String(r.date||r.postingDate).slice(0,7) : "";
-      return d===selectedMonth;
+      const d = String(r.date||r.postingDate||"").slice(0,10);
+      return d >= cutoffStr;
     });
-  },[salesRows, selectedMonth]);
+  },[salesRows, rollingDays]);
 
   const analysisRows = useMemo(()=>{
-    if(!selectedMonth||!monthRows.length) return [];
+    if(!monthRows.length) return [];
     const seen = new Set<string>();
     const rows: any[] = [];
     for (const inv of monthRows) {
@@ -6554,7 +6557,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       });
     }
     return rows;
-  },[monthRows, xrefByNFiliale, scMap, costMap, products, logMap, isCAN, threshold, selectedMonth]);
+  },[monthRows, xrefByNFiliale, scMap, costMap, products, logMap, isCAN, threshold]);
 
   const alert1 = analysisRows.filter(r=>r.isNuovo);          // NUOVI ARTICOLI: newSC calcolato, oldSC assente
   const alert2 = analysisRows.filter(r=>r.isDelta);          // TO UPDATE Δ%
@@ -6563,7 +6566,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
 
   function exportExcel() {
     const branchCode = isCAN?"COMIT":"HK";
-    const monthFmt = selectedMonth.replace("-","_").slice(0,7);
+    const today = new Date(); const monthFmt = `${today.getFullYear()}_${String(today.getMonth()+1).padStart(2,"0")}`;
     const all = [
       ...alert1.map((r:any)=>({...r,tipo:"NUOVI ARTICOLI"})),
       ...alert4.map((r:any)=>({...r,tipo:"DA INSERIRE"})),
@@ -6608,15 +6611,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     <div>
       <PageHeader title={`📅 Check Mensile · ${branch}`} sub="TODO list aggiornamento Standard Cost"/>
 
-      <Section title="Mese di riferimento">
+      <Section title="Periodo di riferimento">
         <div style={{display:"flex",gap:"16px",alignItems:"flex-end",flexWrap:"wrap"}}>
           <div>
-            <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Mese fatture</label>
-            {availableMonths.length===0
-              ? <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>⚠ Nessuna fattura caricata</div>
-              : <select value={selectedMonth} onChange={e=>setSelectedMonth(e.target.value)} style={{...inputStyle(),minWidth:"160px",cursor:"pointer"}}>
-                  {availableMonths.map(m=><option key={m} value={m}>{m}</option>)}
-                </select>}
+            <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Ultimi giorni</label>
+            <select value={rollingDays} onChange={e=>setRollingDays(Number(e.target.value))} style={{...inputStyle(),minWidth:"140px",cursor:"pointer"}}>
+              {[15,30,45,60,90].map(d=><option key={d} value={d}>Ultimi {d} giorni</option>)}
+            </select>
           </div>
           <div>
             <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Soglia Δ%</label>
@@ -6630,6 +6631,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           )}
           {analysisRows.length>0&&<div style={{display:"flex",gap:"10px",alignItems:"center"}}>
             <span style={{fontSize:"11px",color:T.muted}}>{monthRows.length} righe · {analysisRows.length} articoli univoci</span>
+            <span style={{fontSize:"10px",color:T.dim}}>(ultimi {rollingDays}gg)</span>
             <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={alert1.length+alert2.length+alert3.length+alert4.length===0}/>
           </div>}
         </div>
@@ -6735,11 +6737,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         </Section>
       </>}
 
-      {!analysisRows.length&&selectedMonth&&(
+      {!analysisRows.length&&(
         <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
           {scAttuali.length===0
-            ? "⚠️ Carica prima il report SC Attuali (pagina SC Attuali)."
-            : `Nessun articolo nelle fatture di ${selectedMonth}.`}
+            ? "Carica prima il report SC Attuali (pagina SC Attuali)."
+            : salesRows.length===0
+            ? "Nessuna fattura caricata."
+            : `Nessun articolo negli ultimi ${rollingDays} giorni.`}
         </div>
       )}
     </div>
