@@ -1,4 +1,4 @@
-﻿// v2026-07-09m
+﻿// v2026-07-09n
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -3690,7 +3690,7 @@ break;
 }
 }
 
-const priceFields = ["mtsPrice", "fcaPrice", "fcaDiscount", "fcaDiscounted", "dapPrice", "dapDiscount", "dapDiscounted", "dapFinalDirect", "carriageCost"];
+const priceFields = ["mtsPrice", "fcaPrice", "fcaDiscount", "fcaDiscounted", "dapPrice", "dapDiscount", "dapDiscounted", "dapFinalDirect", "carriageCost", "section", "vendorName"];
 priceFields.forEach(field => {
 const aliases = PRICE_FIELD_ALIASES[field] || [];
 for (const h of hdrs) {
@@ -3753,11 +3753,27 @@ const dapFinalDirect = parseFloat(get(row, "dapFinalDirect")) || 0;
 let dapFinal = 0;
 let dapNote = "";
 if (dapFinalDirect !== 0) {
-dapFinal = dapFinalDirect;
-dapNote = "da file";
+  dapFinal = dapFinalDirect;
+  dapNote = "da file";
 } else if (prod) {
-dapFinal = dapDiscounted || 0;
-dapNote = dapDiscounted ? (fcaDiscount > 0 || dapDiscount > 0 ? `DAP scontato (-${dapDiscount}%)` : "DAP") : "";
+  dapFinal = dapDiscounted || 0;
+  dapNote = dapDiscounted ? (fcaDiscount > 0 || dapDiscount > 0 ? `DAP scontato (-${dapDiscount}%)` : "DAP") : "";
+
+  // CAN Wine/Spirits: se DAP = 0 ma FCA NET > 0, calcola carriage = 60€/plt ÷ unità per plt
+  // (su NAV il report non riesce a calcolare il DAP perché manca il carriage, lo ricostruiamo internamente)
+  if (branch === "CAN" && dapFinal === 0 && fcaDiscounted > 0) {
+    const sec = (String(get(row, "section") || prod.category || "")).toUpperCase();
+    if (sec === "WINE" || sec === "SPIRITS") {
+      const uom = prod.uom || "PCS";
+      const qpb = Number(prod.qtyPerBox) || 1;
+      const bpp = Number(prod.boxPerPallet) || 1;
+      const kgp = Number(prod.kgxplt) || 300;
+      const divisoreUom = uom === "BOX" ? bpp : uom === "KG" ? kgp : qpb * bpp;
+      const carriageUnit = divisoreUom > 0 ? 60 / divisoreUom : 0;
+      dapFinal = roundN(fcaDiscounted + carriageUnit, 6);
+      dapNote = `Wine/Spirits: FCA NET + PLT(60/${divisoreUom})`;
+    }
+  }
 }
 
 const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === _month) : null;
