@@ -1715,23 +1715,33 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         
         // Auto-mapping dei campi (solo quelli necessari)
         const am = {};
-        
-        // Mappa il codice (obbligatorio) — priorità al codice filiale (nHK/nComit) sull'IFB code
-        const branchCodeAliases = ["n hk", "nhk", "n comit", "ncomit", "comit"];
-        const ifbCodeAliases = ["no_", "no.", "no", "item no.", "codice", "code", "ifb item", "ifb no", "ifb n"];
-        let foundBranchCode = false;
+
+        // Mappa il codice filiale (N HK / N COMIT) → "code"
+        const branchCodeAliases = ["n hk", "nhk", "n comit", "ncomit", "comit", "n canarie", "ncanarie", "n. comit"];
+        // Mappa il codice IFB → "ifbCode" (secondo campo opzionale per fallback lookup)
+        const ifbCodeAliases = ["ifb item", "ifb no", "ifb n", "no_", "item no.", "codice ifb", "ifb code"];
+
         for(const h of hdrs) {
           const hl = h.toLowerCase().trim();
           if(branchCodeAliases.some(a => hl === a || hl.includes(a))) {
             am["code"] = h;
-            foundBranchCode = true;
             break;
           }
         }
-        if(!foundBranchCode) {
+        // Sempre cercare anche il codice IFB come campo separato
+        for(const h of hdrs) {
+          const hl = h.toLowerCase().trim();
+          if(ifbCodeAliases.some(a => hl === a || hl.includes(a))) {
+            am["ifbCode"] = h;
+            break;
+          }
+        }
+        // Fallback: se non trovato né N filiale né IFB separato, usa IFB come "code"
+        if(!am["code"] && !am["ifbCode"]) {
+          const genericAliases = ["no.", "no", "code", "codice"];
           for(const h of hdrs) {
             const hl = h.toLowerCase().trim();
-            if(ifbCodeAliases.some(a => hl === a || hl.includes(a))) {
+            if(genericAliases.some(a => hl === a || hl.includes(a))) {
               am["code"] = h;
               break;
             }
@@ -1783,12 +1793,16 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
     
     const mapped = rawRows.map((row, idx) => {
       const rawCode = String(get(row, "code") || "").trim();
+      const rawIfbCode = String(get(row, "ifbCode") || "").trim();
       const rawDescription = String(get(row, "description") || get(row, "code") || "").trim();
-      
-      if(!rawCode) { skipped++; return null; }
-      if(!isValidCode(rawCode)) { skipped++; return null; }
-      
-      const prod = findProduct(rawCode, products, xrefs);
+
+      // Almeno uno dei due codici deve essere presente e valido
+      if(!rawCode && !rawIfbCode) { skipped++; return null; }
+      if(rawCode && !isValidCode(rawCode) && rawIfbCode && !isValidCode(rawIfbCode)) { skipped++; return null; }
+
+      const prod = (rawCode && isValidCode(rawCode) && findProduct(rawCode, products, xrefs))
+                || (rawIfbCode && isValidCode(rawIfbCode) && findProduct(rawIfbCode, products, xrefs))
+                || null;
       
       const mtsPrice = parseFloat(get(row, "mtsPrice")) || 0;
       const fcaPrice = parseFloat(get(row, "fcaPrice")) || 0;
@@ -1815,10 +1829,11 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
       
       const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === importMonth) : null;
       
+      const displayCode = rawCode || rawIfbCode;
       return {
         _idx: idx,
-        rawCode,
-        ifbNo_from_file: rawCode,
+        rawCode: displayCode,
+        ifbNo_from_file: displayCode,
         description_from_file: rawDescription,
         productId: prod?.id || null,
         nHK_from_anag: prod?.nHK || "",
@@ -1970,22 +1985,34 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         <Section title={`Mappatura — ${fileName} · ${rawRows.length} righe`}>
           <div style={{display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"12px", marginBottom:"18px"}}>
             <div>
-              <label style={{display:"block", fontSize:"11px", color:T.gold, marginBottom:"5px"}}>📌 Codice * ({branchN(branch)} o IFB N)</label>
-              <select 
-                value={mapping["code"] || ""} 
-                onChange={e => setMapping(m => ({...m, code: e.target.value || null}))} 
-                style={{...inputStyle(), cursor:"pointer", borderColor:!mapping["code"] ? T.red+"88" : T.border}}
+              <label style={{display:"block", fontSize:"11px", color:T.gold, marginBottom:"5px"}}>📌 N {branchN(branch)} (N COMIT / N HK)</label>
+              <select
+                value={mapping["code"] || ""}
+                onChange={e => setMapping(m => ({...m, code: e.target.value || null}))}
+                style={{...inputStyle(), cursor:"pointer", borderColor:(!mapping["code"] && !mapping["ifbCode"]) ? T.red+"88" : T.border}}
               >
-                <option value="">— seleziona colonna —</option>
+                <option value="">— non mappato —</option>
                 {headers.map(h => <option key={h} value={h}>{h}</option>)}
               </select>
             </div>
-            
+
+            <div>
+              <label style={{display:"block", fontSize:"11px", color:T.gold, marginBottom:"5px"}}>📌 IFB Item (codice IFB)</label>
+              <select
+                value={mapping["ifbCode"] || ""}
+                onChange={e => setMapping(m => ({...m, ifbCode: e.target.value || null}))}
+                style={{...inputStyle(), cursor:"pointer", borderColor:(!mapping["code"] && !mapping["ifbCode"]) ? T.red+"88" : T.border}}
+              >
+                <option value="">— non mappato —</option>
+                {headers.map(h => <option key={h} value={h}>{h}</option>)}
+              </select>
+            </div>
+
             <div>
               <label style={{display:"block", fontSize:"11px", color:T.muted, marginBottom:"5px"}}>📝 Descrizione</label>
-              <select 
-                value={mapping["description"] || ""} 
-                onChange={e => setMapping(m => ({...m, description: e.target.value || null}))} 
+              <select
+                value={mapping["description"] || ""}
+                onChange={e => setMapping(m => ({...m, description: e.target.value || null}))}
                 style={{...inputStyle(), cursor:"pointer"}}
               >
                 <option value="">— non mappato —</option>
@@ -1993,14 +2020,14 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
               </select>
             </div>
           </div>
-          
+
           <div style={{marginTop:"8px", padding:"8px", background:`${T.gold}08`, borderRadius:"6px", fontSize:"11px", color:T.muted}}>
-            ⚡ I campi prezzi (MTS Price, FCA Price, DAP Price, etc.) vengono rilevati automaticamente.
+            ⚡ Mappa almeno uno tra N {branchN(branch)} e IFB Item. Se entrambi mappati, il lookup usa prima N {branchN(branch)}, poi IFB Item come fallback. I campi prezzi vengono rilevati automaticamente.
           </div>
-          
+
           <div style={{display:"flex", gap:"10px", marginTop:"16px"}}>
             <ActionBtn label="← Ricarica" onClick={reset}/>
-            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"]}/>
+            <ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"] && !mapping["ifbCode"]}/>
           </div>
         </Section>
       )}
