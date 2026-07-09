@@ -1,4 +1,4 @@
-﻿// v2026-07-09b
+﻿// v2026-07-09c
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -3584,7 +3584,7 @@ setRawRows(rows);
 // Auto-mapping dei campi — priorità al codice filiale (nHK/nComit) sull'IFB code
 const am: any = {};
 const branchCodeAliases2 = ["n hk", "nhk", "n comit", "ncomit", "comit"];
-const ifbCodeAliases2 = ["no_", "no.", "no", "item no.", "codice", "code", "ifb item", "ifb no", "ifb n"];
+const ifbCodeAliases2 = ["ifb item", "ifb no", "ifb n", "no_", "item no.", "codice", "code"];
 let foundBranchCode2 = false;
 for (const h of hdrs) {
 const hl = h.toLowerCase().trim();
@@ -3594,13 +3594,11 @@ foundBranchCode2 = true;
 break;
 }
 }
-if (!foundBranchCode2) {
 for (const h of hdrs) {
 const hl = h.toLowerCase().trim();
 if (ifbCodeAliases2.some(a => hl === a || hl.includes(a))) {
-am["code"] = h;
+if (foundBranchCode2) { am["ifbCode"] = h; } else { am["code"] = h; }
 break;
-}
 }
 }
 
@@ -3648,13 +3646,14 @@ return i >= 0 ? row[i] : null;
 
 if (_month !== importMonth) setImportMonth(_month);
 const mapped = _rows.map((row, idx) => {
-const rawCode = String(get(row, "code") || "").trim();
+const rawCode    = String(get(row, "code")    || "").trim();
+const rawIfbCode = String(get(row, "ifbCode") || "").trim();
 const rawDescription = String(get(row, "description") || get(row, "code") || "").trim();
 
-if (!rawCode) return null;
-if (!isValidCode(rawCode)) return null;
+if (!rawCode && !rawIfbCode) return null;
+if (rawCode && !isValidCode(rawCode) && !rawIfbCode) return null;
 
-const prod = findProduct(rawCode, products, xrefs);
+const prod = findProduct(rawCode, products, xrefs) || findProduct(rawIfbCode, products, xrefs);
 
 const mtsPrice = parseFloat(get(row, "mtsPrice")) || 0;
 const fcaPrice = parseFloat(get(row, "fcaPrice")) || 0;
@@ -3986,9 +3985,16 @@ return (
 {/* Campi base */}
 <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "12px", marginBottom: "12px" }}>
 <div>
-<label style={{ fontSize: "11px", color: T.gold }}>📌 Codice *</label>
-<select value={mapping["code"] || ""} onChange={e => setMapping((m: any) => ({ ...m, code: e.target.value }))} style={{ ...inputStyle(), fontSize: "12px" }}>
-<option value="">— seleziona —</option>
+<label style={{ fontSize: "11px", color: T.gold }}>📌 {branchN(branch)} (N COMIT / N HK)</label>
+<select value={mapping["code"] || ""} onChange={e => setMapping((m: any) => ({ ...m, code: e.target.value || undefined }))} style={{ ...inputStyle(), fontSize: "12px", borderColor: (!mapping["code"] && !mapping["ifbCode"]) ? T.red+"88" : T.border }}>
+<option value="">— non mappato —</option>
+{headers.map(h => <option key={h} value={h}>{h}</option>)}
+</select>
+</div>
+<div>
+<label style={{ fontSize: "11px", color: T.gold }}>📌 IFB Item (codice IFB)</label>
+<select value={mapping["ifbCode"] || ""} onChange={e => setMapping((m: any) => ({ ...m, ifbCode: e.target.value || undefined }))} style={{ ...inputStyle(), fontSize: "12px", borderColor: (!mapping["code"] && !mapping["ifbCode"]) ? T.red+"88" : T.border }}>
+<option value="">— non mappato —</option>
 {headers.map(h => <option key={h} value={h}>{h}</option>)}
 </select>
 </div>
@@ -3999,9 +4005,11 @@ return (
 {headers.map(h => <option key={h} value={h}>{h}</option>)}
 </select>
 </div>
+</div>
+<div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "12px", marginBottom: "12px" }}>
 <div>
 <label style={{ fontSize: "11px", color: T.muted }}>📅 Mese listino</label>
-<input type="month" value={importMonth} onChange={e => setImportMonth(e.target.value)} style={{ ...inputStyle(), fontSize: "12px" }} />
+<input type="month" value={importMonth} onChange={e => setImportMonth(e.target.value)} style={{ ...inputStyle(), fontSize: "12px", width: "160px" }} />
 </div>
 </div>
 {/* Campi prezzo — auto-rilevati, modificabili manualmente */}
@@ -4029,7 +4037,7 @@ return (
 </div>
 <div style={{ display: "flex", gap: "10px" }}>
 <ActionBtn label="Annulla" onClick={resetImport} />
-<ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"]} />
+<ActionBtn label="Preview →" onClick={buildPreview} primary disabled={!mapping["code"] && !mapping["ifbCode"]} />
 </div>
 </div>
 )}
