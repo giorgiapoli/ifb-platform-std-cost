@@ -1,4 +1,4 @@
-﻿// v2026-07-09h
+﻿// v2026-07-09i
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -598,7 +598,6 @@ export default function App() {
     (async()=>{
       setLogistics(await CLOUD.get("ifb_logistics", SEED_LOGISTIC));
       setMeatPrices(await CLOUD.get("ifb_meatprices", []));
-      setBevInfo(await CLOUD.get("ifb_bevinfo", []));
       globalLoadedRef.current = true;
     })();
   },[]);
@@ -606,7 +605,7 @@ export default function App() {
   // Reload price exceptions when branch changes
   useEffect(()=>{ if(branch) setPriceExceptions(LS.get(`ifb_exceptions_${branch}`,[])); },[branch]);
   // HK: pre-popola bevInfo con default spirits >30° se ancora vuoto
-  useEffect(()=>{ if(branch==="HK" && bevInfo.length===0) setBevInfo(HK_ALC_TAX_DEFAULTS); },[branch]);
+  useEffect(()=>{ if(branch==="HK" && bevInfo.length===0) setBevInfo(HK_ALC_TAX_DEFAULTS); },[branch, bevInfo.length]);
   // Save effects — only fire after load is complete
   useEffect(()=>{ if(branchRef.current) LS.set(`ifb_exceptions_${branchRef.current}`, priceExceptions); },[priceExceptions]);
   useEffect(()=>{ LS.set("ifb_can_conv_factors", canConvFactors); },[canConvFactors]);
@@ -624,7 +623,7 @@ export default function App() {
   useEffect(()=>{ if(branch) LS.set("ifb_branch",branch); },[branch]);
   useEffect(()=>{ LS.set("ifb_listini_mode",listiniMode); },[listiniMode]);
   useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_meatprices", meatPrices); }, [meatPrices]);
-  useEffect(()=>{ if(globalLoadedRef.current) CLOUD.set("ifb_bevinfo", bevInfo); }, [bevInfo]);
+  useEffect(()=>{ if(branchRef.current&&branchLoadedRef.current===branchRef.current) CLOUD.set(`ifb_bevinfo_${branchRef.current}`, bevInfo); }, [bevInfo]);
   // Ricarica dati branch-specifici ad ogni cambio filiale
   useEffect(()=>{
     if(!branch) return;
@@ -637,6 +636,7 @@ export default function App() {
       setScAttuali(await CLOUD.get(`ifb_scattuali_${branch}`,[]));
       setScHistory(await IDB.get(`ifb_schistory_${branch}`,[]));
       setPrices(await CLOUD.get(`ifb_prices_${branch}`,[]));
+      setBevInfo(await CLOUD.get(`ifb_bevinfo_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
 
       // Auto-fetch dati aggiornati da GitHub
@@ -7709,7 +7709,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
     const next = idx === -1
       ? [...bevInfo, updated]
       : bevInfo.map((b:any, i:number) => i===idx ? updated : b);
-    setBevInfo(next); IDB.set("ifb_bevinfo", next);
+    setBevInfo(next); IDB.set(`ifb_bevinfo_${branch}`, next);
     setEditingIdx(null); setEditRow({});
     showToast("Salvato ✓", T.gold);
   }
@@ -7844,14 +7844,14 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
     if(isHK) {
       const kept = bevInfo.filter((b:any) => !preview.find((p:any) => (p.nHK && b.nHK===p.nHK) || b.ifbNo===p.ifbNo));
       const next = [...preview.map((r:any) => ({nHK:r.nHK, ifbNo:r.ifbNo, hasAlcTax:r.hasAlcTax, ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0})), ...kept];
-      setBevInfo(next); IDB.set("ifb_bevinfo", next);
+      setBevInfo(next); IDB.set(`ifb_bevinfo_${branch}`, next);
       showToast(`Beverage Info HK: ${preview.length} articoli importati ✓`, T.gold);
       setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
       return;
     }
     const kept = bevInfo.filter((b:any) => !preview.find((p:any) => p.ifbNo===b.ifbNo));
     const next = [...preview.map((r:any) => ({ifbNo:r.ifbNo,ltPerUnit:r.ltPerUnit,gradoAlcolico:r.gradoAlcolico,eurPerLt:r.eurPerLt,totaleBottiglia:r.totaleBottiglia})), ...kept];
-    setBevInfo(next); IDB.set("ifb_bevinfo", next);
+    setBevInfo(next); IDB.set(`ifb_bevinfo_${branch}`, next);
     showToast(`Beverage Info: ${preview.length} articoli importati ✓`, T.gold);
     setStep("main"); setPreview([]); setRawRows([]); setHeaders([]);
   }
@@ -7873,11 +7873,11 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
           📂 Carica file Beverage Info
           <input type="file" accept=".xlsx,.xls,.csv" onChange={e=>{const f=e.target.files?.[0];if(f)parseFile(f);e.target.value="";}} style={{display:"none"}}/>
         </label>
-        {isHK&&<button onClick={()=>{setBevInfo(HK_ALC_TAX_DEFAULTS);IDB.set("ifb_bevinfo",HK_ALC_TAX_DEFAULTS);showToast("Default HK ripristinati ✓",T.gold);}}
+        {isHK&&<button onClick={()=>{setBevInfo(HK_ALC_TAX_DEFAULTS);IDB.set(`ifb_bevinfo_${branch}`,HK_ALC_TAX_DEFAULTS);showToast("Default HK ripristinati ✓",T.gold);}}
           style={{padding:"5px 12px",background:"none",border:`1px solid ${T.gold}44`,borderRadius:"6px",color:T.gold,cursor:"pointer",fontSize:"11px"}}>
           ↺ Ripristina Default
         </button>}
-        {bevInfo.length>0&&<button onClick={()=>{if(window.confirm(`Eliminare tutti i ${bevInfo.length} dati beverage?`)){setBevInfo([]);IDB.set("ifb_bevinfo",[]);}}}
+        {bevInfo.length>0&&<button onClick={()=>{if(window.confirm(`Eliminare tutti i ${bevInfo.length} dati beverage?`)){setBevInfo([]);IDB.set(`ifb_bevinfo_${branch}`,[]);}}}
           style={{padding:"5px 12px",background:"none",border:`1px solid ${T.red}44`,borderRadius:"6px",color:T.red,cursor:"pointer",fontSize:"11px"}}>
           🗑 Svuota ({bevInfo.length})
         </button>}
@@ -8052,7 +8052,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
                           </>}
                           <td style={{padding:"3px 6px",display:"flex",gap:"4px"}}>
                             <MiniBtn label="✎" onClick={()=>{setEditingIdx(realIdx);setEditRow({...b});}} color={T.blue}/>
-                            <MiniBtn label="✕" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==realIdx);setBevInfo(n);IDB.set("ifb_bevinfo",n);}} color={T.red}/>
+                            <MiniBtn label="✕" onClick={()=>{const n=bevInfo.filter((_:any,j:number)=>j!==realIdx);setBevInfo(n);IDB.set(`ifb_bevinfo_${branch}`,n);}} color={T.red}/>
                           </td>
                         </>
                       )}
