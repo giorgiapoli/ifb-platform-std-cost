@@ -1,4 +1,4 @@
-﻿// v2026-07-09i
+﻿// v2026-07-09j
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -539,7 +539,7 @@ export default function App() {
   const[toast,setToast]   = useState(null);
   const[pageFilter, setPageFilter] = useState(null);
   const [meatPrices, setMeatPrices] = useState<any[]>([]);
-  const [bevInfo, setBevInfo] = useState<any[]>([]); // CAN: dati alcolici per AIEM fisso
+  const [bevInfo, setBevInfo] = useState<any[]>([]); // per branch: HK = spirits >30°; CAN = tassa alcolica propria
   const [priceExceptions, setPriceExceptions] = useState<any[]>(() => LS.get(`ifb_exceptions_${LS.get("ifb_branch","")}`, []));
   const [canConvFactors, setCanConvFactors] = useState<any[]>(() => LS.get("ifb_can_conv_factors", CAN_CONV_DEFAULTS));
   const [hkConvFactors,  setHkConvFactors]  = useState<any[]>(() => LS.get("ifb_hk_conv_factors",  HK_CONV_DEFAULTS));
@@ -1121,7 +1121,7 @@ export default function App() {
     ...(!isMAC ? [{id:"prices",    icon:"◉", label:"Listini", badge:"💶"}] : []),
     ...(!isMAC ? [{id:"pricecompare", icon:"⚖", label:"🔬 Confronto Listini"}] : []),
     ...(!isMAC ? [{id:"meatlist",  icon:"🥩", label:"Listino Carne"}] : []),
-    ...(!isMAC ? [{id:"bevinfo", icon:"🍷", label: isCAN ? "Beverage Info (AIEM)" : "Beverage Info (Alcol Tax)"}] : []),
+    ...(!isMAC ? [{id:"bevinfo", icon:"🍷", label: isCAN ? "Beverage Info (Alcol Tax CAN)" : "Beverage Info (Alcol Tax)"}] : []),
     ...(!isCAN&&!isMAC ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
     ...(!isCAN&&!isMAC ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
     ...(!isMAC ? [{id:"exceptions", icon:"⚡", label:"Eccezioni Prezzi"}] : []),
@@ -7674,7 +7674,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
   );
 }
 
-// ─── BEVERAGE INFO (CAN — AIEM alcolici) ──────────────────────────────────────
+// ─── BEVERAGE INFO (per branch: HK = spirits >30°; CAN = tassa alcolica propria) ──
 function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, branch}: any) {
   const isHK = branch === "HK";
   const [step, setStep] = useState<"main"|"map"|"preview">("main");
@@ -7719,7 +7719,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
     setEditRow(isHK ? { codeInput:"", hasAlcTax:true } : { ifbNo:"", ltPerUnit:"", gradoAlcolico:"", eurPerLt:"", totaleBottiglia:"" });
   }
 
-  // Campi diversi per HK (flag >30°) vs CAN (AIEM litri/tariffa)
+  // Campi diversi per HK (flag >30°) vs CAN (tassa alcolica: litri/grado/tariffa)
   const FIELDS = isHK
     ? ["nHK","ifbNo","hasAlcTax"]
     : ["ifbNo","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"];
@@ -7731,7 +7731,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
     ifbNo: "IFB No * (codice articolo)",
     ltPerUnit: "LT (litri per unità)",
     gradoAlcolico: "Grado Alcolico (°)",
-    eurPerLt: "€/LT (tariffa AIEM per litro)",
+    eurPerLt: "€/LT (tariffa tassa alcolica per litro)",
     totaleBottiglia: "Totale Bottiglia € (se già calcolato)",
   };
   const ALIASES: any = isHK ? {
@@ -7866,7 +7866,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
 
   return (
     <div>
-      <PageHeader title={isHK ? "🍷 Beverage Info · Tassa Alcolica (HK)" : "🍷 Beverage Info · AIEM Alcolici (CAN)"} sub={isHK ? "Importa lista articoli con Spirits >30° — tassa = 100% del prezzo acquisto" : "Importa dati alcolici: LT, Grado, €/LT → Totale AIEM fisso per unità"}/>
+      <PageHeader title={isHK ? "🍷 Beverage Info · Tassa Alcolica (HK)" : "🍷 Beverage Info · Tassa Alcolica (CAN)"} sub={isHK ? "Importa lista articoli con Spirits >30° — tassa = 100% del prezzo acquisto" : "Importa dati alcolici: LT, Grado Alcolico, €/LT → Totale tassa per unità"}/>
 
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
         <label style={{display:"inline-block",padding:"8px 16px",background:T.gold,color:"#000",borderRadius:"6px",cursor:"pointer",fontWeight:"bold",fontSize:"12px"}}>
@@ -7951,7 +7951,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       </div>
 
       {(displayed.length>0 || editingIdx===-1) ? (
-        <Section title={isHK ? `${displayed.length} articoli con tassa alcolica (>30°) — HK` : `${displayed.length} articoli con AIEM alcolico`}>
+        <Section title={isHK ? `${displayed.length} articoli con tassa alcolica (>30°) — HK` : `${displayed.length} articoli con tassa alcolica — CAN`}>
           <div style={{overflowX:"auto"}}>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr>
