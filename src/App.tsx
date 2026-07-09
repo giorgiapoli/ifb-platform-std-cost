@@ -1,4 +1,4 @@
-﻿// v2026-07-09f
+﻿// v2026-07-09g
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -939,7 +939,10 @@ export default function App() {
     const fxRate = fx.find(f=>f.branch===branch&&f.month===month)?.rate || BRANCH_CFG[branch]?.defaultRate || 9.1437;
     const [yr,mo] = month.split("-").map(Number);
     const prevM = mo===1 ? `${yr-1}-12` : `${yr}-${String(mo-1).padStart(2,"0")}`;
-    const eligible = products.filter(p => isIFBVendor(p.vendorName));
+    // CAN: l'anagrafica è già filtrata (solo prodotti filiale), non filtrare per vendor
+    const eligible = branch === "CAN"
+      ? products.filter((p:any) => p.active !== false)
+      : products.filter(p => isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
       // Eccezione prezzo manuale: ha priorità assoluta su listino e carne
@@ -987,7 +990,7 @@ export default function App() {
       const isCAN_b = branch === "CAN";
       const bevData = bevInfo.find((b:any) => b.ifbNo === prod.code || (prod.nHK && b.nHK === prod.nHK)) || null;
       // Fattore di conversione item: CAN → lookup per N COMIT via xrefs; HK → lookup per nHK
-      const nComit = isCAN_b ? (xrefs.find((x:any)=>x.productId===prod.id||x.ifbNo===prod.code)?.nHK||"") : "";
+      const nComit = isCAN_b ? (prod.nHK || xrefs.find((x:any)=>x.ifbNo===prod.code)?.nHK || "") : "";
       const itemCf = isCAN_b
         ? (nComit ? (canConvFactors.find((c:any)=>c.nComit===nComit)?.factor||1) : 1)
         : (hkConvFactors.find((c:any)=>c.nHK===prod.nHK)?.factor||1);
@@ -1023,12 +1026,20 @@ export default function App() {
         if(!mf) {
           if(prPrev) {
             // Listino chiuso: usa SC da scAttuali come KEEP OLD
-            const scEntry = scAttuali.find((s:any) => s.code === prod.code || s.code === String(prod.id));
-            if(scEntry && scEntry.lastSC > 0) {
+            const scEntry = scAttuali.find((s:any) =>
+              s.code === prod.code ||
+              s.code === String(prod.id) ||
+              (branch === "CAN" && s.code === prod.nHK)
+            );
+            // CAN: usa scGranCanaria come riferimento keep old (lastSC=0 nel report NAV)
+            const keepOldVal = branch === "CAN"
+              ? (scEntry?.scGranCanaria || scEntry?.scLanzarote || scEntry?.lastSC || 0)
+              : (scEntry?.lastSC || 0);
+            if(scEntry && keepOldVal > 0) {
               const isCAN_b2 = branch === "CAN";
               const keepCost = isCAN_b2
-                ? { step2Eur: scEntry.lastSC, step2Hkd: scEntry.lastSC * fxRate, _keepOld: true }
-                : { step2Hkd: scEntry.lastSC, step2Eur: scEntry.lastSC / fxRate, _keepOld: true };
+                ? { step2Eur: keepOldVal, step2Hkd: keepOldVal * fxRate, _keepOld: true }
+                : { step2Hkd: keepOldVal, step2Eur: keepOldVal / fxRate, _keepOld: true };
               return { ...prod, cost:keepCost, prevCost:null, delta:null, priceInput:null,
                 ubicazione:ub, skipReason:"KEEP OLD", _keepOld:true };
             }
