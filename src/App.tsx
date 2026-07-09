@@ -1,4 +1,4 @@
-﻿// v2026-07-09t
+﻿// v2026-07-09u
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -1084,9 +1084,13 @@ export default function App() {
       // Es: 15307 (nHK) → prezzo trovato come KDC01 → applica ×40.
       //     KDC01 (nHK) → prezzo trovato come KDC01 → fattore = 1 (match diretto).
       const prCode = isCAN_b ? String((pr as any)?.itemCode || (pr as any)?.n || "") : "";
-      const itemCf = isCAN_b
-        ? (prCode && prod.nHK && prCode !== prod.nHK ? configuredCf : 1)
-        : configuredCf;
+      const foundViaXref = isCAN_b && !!prCode && !!prod.nHK && prCode !== prod.nHK;
+      const itemCf = foundViaXref ? configuredCf : (isCAN_b ? 1 : configuredCf);
+      // Se il prezzo è trovato via xref e il prodotto xref ha UoM diversa, dividi per la sua qtyPerBox
+      // Es: 15307(PCS) trova KDC01(BOX, qpb=40) → rawPi/40 prima di applicare itemCf=40
+      const xrefProd = foundViaXref ? products.find((p:any) => p.nHK === prCode || p.code === prCode) : null;
+      const xrefQpbDiv = (xrefProd && xrefProd.uom === "BOX" && prod.uom === "PCS")
+        ? (Number(xrefProd.qtyPerBox) || 1) : 1;
       // Per HK MTO: se dapFinal=0 ma fcaDiscounted>0, aggiungi carriage da work tab
       const enrichPriceWithCarriage = (p: any) => {
         if(!p) return 0;
@@ -1124,7 +1128,7 @@ export default function App() {
       // Senza questa normalizzazione si avrebbe: 18.8/BOX × 100 = 1880 invece di 0.188/PCS × 100 = 18.8.
       const prPu = (pr as any)?.pu || "";
       const needsBoxToPCS = isCAN_b && prPu === "BOX" && prod.uom === "PCS" && configuredCf > 1;
-      const qpbDiv = needsBoxToPCS ? (Number(prod.qtyPerBox) || 1) : 1;
+      const qpbDiv = needsBoxToPCS ? (Number(prod.qtyPerBox) || 1) : xrefQpbDiv;
       const pi  = rawPi  / qpbDiv;
       const piP = rawPiP != null ? rawPiP / qpbDiv : null;
 
