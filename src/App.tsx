@@ -1,4 +1,4 @@
-﻿// v2026-07-09c
+﻿// v2026-07-09d
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -639,7 +639,7 @@ export default function App() {
       setPrices(await CLOUD.get(`ifb_prices_${branch}`,[]));
       branchLoadedRef.current = branch; // unblock saves
 
-      // Auto-fetch dati BC aggiornati da GitHub (solo HK — CAN è su NAV, solo caricamento manuale)
+      // Auto-fetch dati aggiornati da GitHub
       if(branch === "HK") {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         const t = Date.now();
@@ -653,6 +653,15 @@ export default function App() {
           if(rsc.ok)  { const d=await rsc.json();  if(Array.isArray(d)&&d.length>0){setScAttuali(d);CLOUD.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
           if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
+      }
+      // CAN: anagrafica da file NAV/COMIT committato in docs/data/
+      if(branch === "CAN") {
+        const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+        const t = Date.now();
+        try {
+          const rana = await fetch(`${base}data/can_anagrafica.json?t=${t}`);
+          if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
+        } catch(_) { /* offline — usa dati IDB */ }
       }
 
       // Auto-fetch fatture IFB da GitHub (HK + CAN + MAC, filtrate per branch/customer)
