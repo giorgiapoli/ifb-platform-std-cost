@@ -1,4 +1,4 @@
-﻿// v2026-07-09l
+﻿// v2026-07-09m
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -297,8 +297,26 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   };
 }
 
-function exportXLSX(rows: any[], sheetName: string, fileName: string) {
+function exportXLSX(rows: any[], sheetName: string, fileName: string, textCols?: string[]) {
   const ws = XLSX.utils.json_to_sheet(rows);
+  // Forza tipo testo su colonne codice/chiave per evitare che CERCA.VERT dia #N/D
+  // (SheetJS converte stringhe numeriche come "15090" in celle numero)
+  if (textCols && textCols.length > 0 && rows.length > 0) {
+    const headers = Object.keys(rows[0]);
+    textCols.forEach(col => {
+      const colIdx = headers.indexOf(col);
+      if (colIdx < 0) return;
+      const colLetter = XLSX.utils.encode_col(colIdx);
+      for (let r = 0; r < rows.length; r++) {
+        const addr = colLetter + (r + 2); // +2: riga 1 = header
+        const cell = ws[addr];
+        if (!cell) continue;
+        cell.t = 's';
+        cell.v = String(cell.v ?? "");
+        cell.z = '@';
+      }
+    });
+  }
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
   XLSX.writeFile(wb, fileName);
@@ -4473,7 +4491,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             "Step2 EUR":roundN(r.cost?.step2Eur,4),"Step2 HKD":roundN(r.cost?.step2Hkd),
             "Δ%":r.delta!=null?roundN(r.delta,1):"",
           })),
-          "Standard Cost",`SC_${branch}_${month}.xlsx`
+          "Standard Cost",`SC_${branch}_${month}.xlsx`,
+          branch==="CAN" ? ["N COMIT","IFB No"] : ["N HK","IFB No"]
         )}
           style={{padding:"7px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,
             borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"12px",marginTop:"-8px"}}>
@@ -5409,7 +5428,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                  "Δ SC":r.deltaSC!=null?roundN(r.deltaSC):""}),
             "Δ%":r.pct!=null?roundN(r.pct,1):"","Motivo":r.skipReason||"",
           })),
-          "Fatture & Costi",`Fatture_${branch}.xlsx`
+          "Fatture & Costi",`Fatture_${branch}.xlsx`,
+          branch==="CAN" ? ["N COMIT","IFB No"] : [branchN(branch),"IFB No"]
         )} style={{padding:"6px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
           ⬇ Export Excel
         </button>
@@ -6601,7 +6621,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       "Last Date":   r.lastDate,
       "Stock Qty":   r.stockQty,
     }));
-    exportXLSX(data, "SC_Analisi", `STDC_Analisi_${branchCode}_${monthFmt}.xlsx`);
+    exportXLSX(data, "SC_Analisi", `STDC_Analisi_${branchCode}_${monthFmt}.xlsx`, ["N Filiale","IFB"]);
   }
 
   const TH = ({h}:{h:string}) => <th style={{padding:"3px 8px",fontSize:"9px",color:T.gold,borderBottom:`1px solid ${T.border}`,whiteSpace:"nowrap",textAlign:"left",letterSpacing:"0.5px",textTransform:"uppercase"}}>{h}</th>;
