@@ -4357,8 +4357,11 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
           {listiniMode==="excel" ? "📊 Excel attivo — 🔄 Aggiorna da BC" : "🔄 Aggiorna Listini da BC"}
         </button>
         <button onClick={()=>exportXLSX(
-          filtered.filter((r:any)=>r.cost).map((r:any)=> branch==="CAN" ? ({
-            "N COMIT":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
+          filtered.filter((r:any)=>r.cost).map((r:any)=> branch==="CAN" ? (()=>{
+            const nComitVal = (xrefs||[]).find((x:any)=>x.ifbNo===r.code||x.ifbNo===r.nHK)?.nHK || r.nHK || "";
+            const ifbVal = r.code || r.nHK || "";
+            return {
+            "N COMIT":nComitVal,"IFB No":ifbVal,"Descrizione":r.description||"",
             "UOM":r.uom||"","Ubicazione":r.ubicazione||"","Trasporto":r.cost?.transport||"",
             "Temp.":r.temperature||"","Temp. Rettif.":r.temperatureOverride||"",
             "Prezzo EUR":roundN(r.cost?.priceEur),
@@ -4372,7 +4375,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             "Step2 GC":roundN(r.cost?.step2GC),"Step2 TF":roundN(r.cost?.step2TF),
             "Step2 LAN":roundN(r.cost?.step2LAN),"Step2 FUE":roundN(r.cost?.step2FUE),
             "Δ%":r.delta!=null?roundN(r.delta,1):"",
-          }) : ({
+          }})() : ({
             "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
             "UOM":r.uom||"","Ubicazione":r.ubicazione||"",
             "Temp.":r.temperature||"","Temp. Rettif.":r.temperatureOverride||"",
