@@ -1,4 +1,4 @@
-﻿// v2026-07-09e
+﻿// v2026-07-09f
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -659,14 +659,49 @@ export default function App() {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         const t = Date.now();
         try {
-          const [rana, rxref, rsc] = await Promise.all([
+          const [rana, rxref, rsc, rwt] = await Promise.all([
             fetch(`${base}data/can_anagrafica.json?t=${t}`),
             fetch(`${base}data/can_xref.json?t=${t}`),
             fetch(`${base}data/can_sc.json?t=${t}`),
+            fetch(`${base}data/can_worktab.json?t=${t}`),
           ]);
-          if(rana.ok)  { const d=await rana.json();  if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
-          if(rxref.ok) { const d=await rxref.json(); if(Array.isArray(d)&&d.length>0){setXrefs(d);CLOUD.set(`ifb_xrefs_${branch}`,d);setDataSource(`xref_${branch}`,"bc");} }
-          if(rsc.ok)   { const d=await rsc.json();   if(Array.isArray(d)&&d.length>0){setScAttuali(d);CLOUD.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
+          let canProds: any[] = [];
+          let canXrefs: any[] = [];
+          if(rana.ok)  { canProds=await rana.json();  if(canProds.length>0){setProducts(canProds);CLOUD.set(`ifb_products_${branch}`,canProds);setDataSource(`anagrafica_${branch}`,"bc");} }
+          if(rxref.ok) { canXrefs=await rxref.json(); if(canXrefs.length>0){setXrefs(canXrefs);CLOUD.set(`ifb_xrefs_${branch}`,canXrefs);setDataSource(`xref_${branch}`,"bc");} }
+          if(rsc.ok)   { const d=await rsc.json();    if(d.length>0){setScAttuali(d);CLOUD.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
+          // Auto-build logistica CAN da worktab: converte nComit/ifbNo → productId
+          if(rwt.ok && canProds.length > 0) {
+            const wt: any[] = await rwt.json();
+            const prevLog: any[] = await CLOUD.get("ifb_logistics", []);
+            const otherBranchLog = prevLog.filter((l:any) => l.branch !== "CAN");
+            const canLog = wt.flatMap((row: any) => {
+              const prod = canProds.find((p:any) => p.nHK === row.nComit || p.code === row.ifbNo)
+                        || canProds.find((p:any) => canXrefs.find((x:any) => x.nHK === row.nComit && x.ifbNo === p.code));
+              if(!prod) return [];
+              const transport = (row.transport||"").toUpperCase().includes("MARE") ? "MARE" : "GOMMA";
+              const ubicazione = row.mtsUb === "MTS" ? "MTS" : row.mtsUb === "FOR" ? "FOR" : "MTO";
+              return [{
+                productId: prod.id,
+                nHK: prod.nHK,
+                branch: "CAN",
+                area: row.area || "NORD",
+                ubicazione,
+                transport,
+                pltPerContainer: 0,
+                hasCert: false,
+                hasAlcTax: false,
+                alcTax: 0,
+                convFactor: 1,
+                carriage: row.carriage || 0,
+                temperatureOverride: null,
+                fromImport: true,
+              }];
+            });
+            const merged = [...otherBranchLog, ...canLog];
+            setLogistics(merged);
+            CLOUD.set("ifb_logistics", merged);
+          }
         } catch(_) { /* offline — usa dati IDB */ }
       }
 
@@ -3025,7 +3060,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}?`)) {
           const newLogistics = logistics.filter((l:any) => l.branch !== branch);
           setLogistics(newLogistics);
-          IDB.set("ifb_logistics", newLogistics);
+          CLOUD.set("ifb_logistics", newLogistics);
           bumpImportTs();
           showToast(`Dati logistici per ${branch} cancellati ✓`, T.red);
         }
