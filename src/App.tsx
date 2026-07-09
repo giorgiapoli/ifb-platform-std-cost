@@ -1,4 +1,4 @@
-﻿// v2026-07-09d
+﻿// v2026-07-09e
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -654,13 +654,19 @@ export default function App() {
           if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
-      // CAN: anagrafica da file NAV/COMIT committato in docs/data/
+      // CAN: dati da file NAV/COMIT committati in docs/data/ (rigenerati da sync_json_data.py)
       if(branch === "CAN") {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         const t = Date.now();
         try {
-          const rana = await fetch(`${base}data/can_anagrafica.json?t=${t}`);
-          if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
+          const [rana, rxref, rsc] = await Promise.all([
+            fetch(`${base}data/can_anagrafica.json?t=${t}`),
+            fetch(`${base}data/can_xref.json?t=${t}`),
+            fetch(`${base}data/can_sc.json?t=${t}`),
+          ]);
+          if(rana.ok)  { const d=await rana.json();  if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
+          if(rxref.ok) { const d=await rxref.json(); if(Array.isArray(d)&&d.length>0){setXrefs(d);CLOUD.set(`ifb_xrefs_${branch}`,d);setDataSource(`xref_${branch}`,"bc");} }
+          if(rsc.ok)   { const d=await rsc.json();   if(Array.isArray(d)&&d.length>0){setScAttuali(d);CLOUD.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
         } catch(_) { /* offline — usa dati IDB */ }
       }
 
