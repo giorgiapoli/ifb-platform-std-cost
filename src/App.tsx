@@ -1,4 +1,4 @@
-﻿// v2026-07-09w
+﻿// v2026-07-09x
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -3168,11 +3168,6 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         </span>
       </div>
 
-      {missingCount > 0 && !showOnlyMissing && (
-        <div style={{background:`${T.orange}15`, border:`1px solid ${T.orange}44`, borderRadius:"6px", padding:"10px 14px", marginBottom:"14px", fontSize:"12px", color:T.orange}}>
-          ⚠ {missingCount} prodotti IFB senza parametri logistici per {branch} → Standard Cost non calcolabile.
-        </div>
-      )}
 
       {displayed.length === 0 && showOnlyMissing && (
         <div style={{padding:"32px", textAlign:"center", background:`${T.green}11`, borderRadius:"8px", color:T.green, fontSize:"13px"}}>
