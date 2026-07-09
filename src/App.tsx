@@ -1,4 +1,4 @@
-﻿// v2026-07-09p
+﻿// v2026-07-09q
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -298,25 +298,22 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
 }
 
 function exportXLSX(rows: any[], sheetName: string, fileName: string, textCols?: string[]) {
-  const ws = XLSX.utils.json_to_sheet(rows);
-  // Forza tipo testo su colonne codice/chiave per evitare che CERCA.VERT dia #N/D
-  // (SheetJS converte stringhe numeriche come "15090" in celle numero)
-  if (textCols && textCols.length > 0 && rows.length > 0) {
-    const headers = Object.keys(rows[0]);
-    textCols.forEach(col => {
-      const colIdx = headers.indexOf(col);
-      if (colIdx < 0) return;
-      const colLetter = XLSX.utils.encode_col(colIdx);
-      for (let r = 0; r < rows.length; r++) {
-        const addr = colLetter + (r + 2); // +2: riga 1 = header
-        const cell = ws[addr];
-        if (!cell) continue;
-        cell.t = 's';
-        cell.v = String(cell.v ?? "");
-        cell.z = '@';
+  const textColSet = new Set(textCols || []);
+  // Pre-processa le righe: le colonne testo vengono wrappate come oggetti cella SheetJS
+  // prima di json_to_sheet, così SheetJS non può convertirle in numero
+  const processed = rows.map(row => {
+    if (!textColSet.size) return row;
+    const out: any = {};
+    for (const k of Object.keys(row)) {
+      if (textColSet.has(k)) {
+        out[k] = { t: 's', v: String(row[k] ?? "") };
+      } else {
+        out[k] = row[k];
       }
-    });
-  }
+    }
+    return out;
+  });
+  const ws = XLSX.utils.json_to_sheet(processed);
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, sheetName);
   XLSX.writeFile(wb, fileName);
