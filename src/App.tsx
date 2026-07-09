@@ -1,4 +1,4 @@
-﻿// v2026-07-09k
+﻿// v2026-07-09l
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -1018,7 +1018,7 @@ export default function App() {
           prod.uom==="KG" ? 1 :
           prod.uom==="BOX" ? (Number(prod.kgPerBox)||0) :
           (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1,1);
-        return { pi: meat.pricePerKg * kgPerUnit * 1.01 }; // +1% intercompany
+        return { pi: meat.pricePerKg * kgPerUnit * (100 / 98) }; // +2% intercompany
       };
 
       if(!pr) {
