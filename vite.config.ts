@@ -6,6 +6,7 @@ export default defineConfig({
   base: '/ifb-platform-std-cost/',
   build: {
     outDir: 'docs',
-    emptyOutDir: false,
+    emptyOutDir: true,
+    copyPublicDir: true,
   }
 })
