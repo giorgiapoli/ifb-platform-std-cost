@@ -1,4 +1,4 @@
-﻿// v2026-07-09s
+﻿// v2026-07-09t
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -1013,13 +1013,13 @@ export default function App() {
       const bevData = bevInfo.find((b:any) => b.ifbNo === prod.code || (prod.nHK && b.nHK === prod.nHK)) || null;
       // Fattore di conversione item: CAN → lookup per N COMIT via xrefs; HK → lookup per nHK
       const nComit = isCAN_b ? (prod.nHK || xrefs.find((x:any)=>x.ifbNo===prod.code)?.nHK || "") : "";
-      const itemCf = isCAN_b
+      const configuredCf = isCAN_b
         ? (nComit ? (canConvFactors.find((c:any)=>c.nComit===nComit)?.factor||1) : 1)
         : (hkConvFactors.find((c:any)=>c.nHK===prod.nHK)?.factor||1);
-      const calcCost = (pi: number) =>
+      const calcCost = (pi: number, cf = configuredCf) =>
         isCAN_b
-          ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log, bevData, priceMultiplier:itemCf })
-          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log, category:prod.category, hasAlcTax: log.hasAlcTax||(bevData?.hasAlcTax===true)||(bevData?.totaleBottiglia>0), alcTax: log.alcTax||(bevData?.totaleBottiglia||0)}, eurToHkd:fxRate, priceMultiplier:itemCf });
+          ? calcCAN({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:log, bevData, priceMultiplier:cf })
+          : calcHK({ priceInput:pi, ubicazione:ub, product:effectiveProd, logistic:{...log, category:prod.category, hasAlcTax: log.hasAlcTax||(bevData?.hasAlcTax===true)||(bevData?.totaleBottiglia>0), alcTax: log.alcTax||(bevData?.totaleBottiglia||0)}, eurToHkd:fxRate, priceMultiplier:cf });
 
       // Eccezione prezzo: bypassa listino e carne
       // Eccezione prezzo: +2% intercompany markup come listino BC
@@ -1079,6 +1079,14 @@ export default function App() {
       }
 
       const uomConvFactor = 1;
+      // Il fattore di conversione si applica SOLO se il prezzo è stato trovato
+      // tramite cross-reference (codice del listino ≠ nHK del prodotto).
+      // Es: 15307 (nHK) → prezzo trovato come KDC01 → applica ×40.
+      //     KDC01 (nHK) → prezzo trovato come KDC01 → fattore = 1 (match diretto).
+      const prCode = isCAN_b ? String((pr as any)?.itemCode || (pr as any)?.n || "") : "";
+      const itemCf = isCAN_b
+        ? (prCode && prod.nHK && prCode !== prod.nHK ? configuredCf : 1)
+        : configuredCf;
       // Per HK MTO: se dapFinal=0 ma fcaDiscounted>0, aggiungi carriage da work tab
       const enrichPriceWithCarriage = (p: any) => {
         if(!p) return 0;
@@ -1115,7 +1123,7 @@ export default function App() {
       // calcCAN si aspetta priceInput per-base-UoM (PCS) e moltiplica × itemCf per avere per-BOX.
       // Senza questa normalizzazione si avrebbe: 18.8/BOX × 100 = 1880 invece di 0.188/PCS × 100 = 18.8.
       const prPu = (pr as any)?.pu || "";
-      const needsBoxToPCS = isCAN_b && prPu === "BOX" && prod.uom === "PCS" && itemCf > 1;
+      const needsBoxToPCS = isCAN_b && prPu === "BOX" && prod.uom === "PCS" && configuredCf > 1;
       const qpbDiv = needsBoxToPCS ? (Number(prod.qtyPerBox) || 1) : 1;
       const pi  = rawPi  / qpbDiv;
       const piP = rawPiP != null ? rawPiP / qpbDiv : null;
