@@ -7785,10 +7785,10 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       updated = { nHK: resolvedNHK||"", ifbNo: resolvedIfb, hasAlcTax: !!editRow.hasAlcTax, ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0 };
     } else {
       const lt = parseFloat(String(editRow.ltPerUnit||"").replace(",",".")) || 0;
-      const grado = parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0;
-      const totRaw = parseFloat(String(editRow.totaleBottiglia||"").replace(",",".")) || 0;
+      const gradoRaw2 = parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0;
+      const grado = gradoRaw2 > 0 && gradoRaw2 < 1 ? gradoRaw2 * 100 : gradoRaw2;
       // Formula: Totale = LT × (Grado/100) × 7,5036 €/L di alcol puro
-      const totaleBottiglia = totRaw > 0 ? totRaw : (lt > 0 && grado > 0 ? roundN(lt * (grado / 100) * CAN_ALC_EUR_PER_LT, 4) : 0);
+      const totaleBottiglia = lt > 0 && grado > 0 ? roundN(lt * (grado / 100) * CAN_ALC_EUR_PER_LT, 4) : 0;
       updated = { ...editRow, ltPerUnit: lt, gradoAlcolico: grado, eurPerLt: roundN((grado / 100) * CAN_ALC_EUR_PER_LT, 4), totaleBottiglia };
     }
     const next = idx === -1
@@ -7912,11 +7912,11 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       const ifbNo = String(row[idx.ifbNo]||"").trim();
       if(!ifbNo) return null;
       const lt = parseFloat(String(row[idx.ltPerUnit]||"").replace(",",".")) || 0;
-      const grado = parseFloat(String(row[idx.gradoAlcolico]||"").replace(",",".")) || 0;
-      const totRaw = idx.totaleBottiglia >= 0 ? parseFloat(String(row[idx.totaleBottiglia]||"").replace(",",".")) : 0;
-      // Formula: Totale = LT × (Grado/100) × 7,5036 €/L alcol puro (750,36 €/HL ÷ 100)
-      const totCalc = lt > 0 && grado > 0 ? roundN(lt * (grado / 100) * CAN_ALC_EUR_PER_LT, 4) : 0;
-      const totaleBottiglia = totRaw > 0 ? totRaw : totCalc;
+      const gradoRaw = parseFloat(String(row[idx.gradoAlcolico]||"").replace(",",".")) || 0;
+      // Normalize: Excel % cells store as decimal (0.20 = 20°), convert to degrees
+      const grado = gradoRaw > 0 && gradoRaw < 1 ? gradoRaw * 100 : gradoRaw;
+      // Always calculate from formula: LT × (Grado/100) × 7.5036 — do not trust file's TOTALE column
+      const totaleBottiglia = lt > 0 && grado > 0 ? roundN(lt * (grado / 100) * CAN_ALC_EUR_PER_LT, 4) : 0;
       if(totaleBottiglia <= 0 && lt <= 0) return null;
       const prod = products.find((p:any) => p.code === ifbNo);
       return { ifbNo, ltPerUnit:lt, gradoAlcolico:grado, eurPerLt: roundN((grado/100)*CAN_ALC_EUR_PER_LT,4), totaleBottiglia, _found:!!prod, _desc:prod?.description||"—" };
