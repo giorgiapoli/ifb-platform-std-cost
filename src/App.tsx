@@ -4330,8 +4330,23 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
           {listiniMode==="excel" ? "📊 Excel attivo — 🔄 Aggiorna da BC" : "🔄 Aggiorna Listini da BC"}
         </button>
         <button onClick={()=>exportXLSX(
-          filtered.filter((r:any)=>r.cost).map((r:any)=>({
-            [branchN(branch)]:r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
+          filtered.filter((r:any)=>r.cost).map((r:any)=> branch==="CAN" ? ({
+            "N COMIT":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
+            "UOM":r.uom||"","Ubicazione":r.ubicazione||"","Trasporto":r.cost?.transport||"",
+            "Temp.":r.temperature||"","Temp. Rettif.":r.temperatureOverride||"",
+            "Prezzo EUR":roundN(r.cost?.priceEur),
+            "Verona-Barc":roundN(r.cost?.veronaBarcUnit),"Barc-GC":roundN(r.cost?.barcUnitGC),
+            "Freight GC":roundN(r.cost?.freightGC),"Inland GC":roundN(r.cost?.inlandGC),
+            "Assic.":roundN(r.cost?.assicUnit),"Pallet":roundN(r.cost?.plt),
+            "AIEM GC/TF":roundN(r.cost?.aiemGCTF),"AIEM LAN/FUE":roundN(r.cost?.aiemLANFUE),
+            "Tassa Alcolica":roundN(r.cost?.tassaAlcolica),"WH EUR":roundN(r.cost?.wh),
+            "Step1 GC":roundN(r.cost?.step1GC),"Step1 TF":roundN(r.cost?.step1TF),
+            "Step1 LAN":roundN(r.cost?.step1LAN),"Step1 FUE":roundN(r.cost?.step1FUE),
+            "Step2 GC":roundN(r.cost?.step2GC),"Step2 TF":roundN(r.cost?.step2TF),
+            "Step2 LAN":roundN(r.cost?.step2LAN),"Step2 FUE":roundN(r.cost?.step2FUE),
+            "Δ%":r.delta!=null?roundN(r.delta,1):"",
+          }) : ({
+            "N HK":r.nHK||"","IFB No":r.code||"","Descrizione":r.description||"",
             "UOM":r.uom||"","Ubicazione":r.ubicazione||"",
             "Temp.":r.temperature||"","Temp. Rettif.":r.temperatureOverride||"",
             "Prezzo EUR":roundN(r.cost?.priceEur),"FOB":roundN(r.cost?.fob),
