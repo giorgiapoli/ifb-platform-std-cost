@@ -1,4 +1,4 @@
-﻿// v2026-07-09v
+﻿// v2026-07-09w
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -187,7 +187,7 @@ const COSTS_CAN = {
 const CAN_ISLANDS = ["GC","TF","LAN","FUE"] as const;
 
 function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMultiplier=1 }: any) {
-  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature, aiem: prodAiem, vendorName } = product;
+  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature, aiem: prodAiem, vendorName, vendorName2 } = product;
   const { pltPerContainer, area, hasAlcTax, alcTax, convFactor, transport } = logistic || {};
 
   const cf = Number(convFactor||1) || 1;
@@ -274,7 +274,7 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   const aGC  = r2((pE + transpGC)  * aiemPct);
   const aLAN = r2((pE + transpLAN) * aiemPct);
 
-  const isTakochef = String(vendorName||"").toUpperCase().includes("TAKOCHEF");
+  const isTakochef = String(vendorName2||"").toUpperCase().includes("TAKOCHEF");
   for (const isl of CAN_ISLANDS) {
     const tr  = (isl==="LAN"||isl==="FUE") ? transpLAN : transpGC;
     const ai  = (isl==="LAN"||isl==="FUE") ? aLAN : aGC;
