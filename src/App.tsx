@@ -20,6 +20,9 @@ const IFB_VENDOR = "INALCA FOOD & BEVERAGE";
 
 const NOW = () => new Date().toISOString().slice(0,7);
 const roundN = (n, d=2) => Math.round((n||0)*Math.pow(10,d))/Math.pow(10,d);
+// Persistent page-state helpers (search / filter survive navigation)
+const psGet = (k: string, def: any) => { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : def; } catch { return def; } };
+const psSet = (k: string, v: any) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
 const EXCLUDED_INVOICE_DESC = [
   "freight","health certificate","handling costs","freight cost",
   "interest on intercompany","pallet","vendita prodotti finiti",
@@ -1089,8 +1092,12 @@ export default function App() {
       // Se il prezzo è trovato via xref e il prodotto xref ha UoM diversa, dividi per la sua qtyPerBox
       // Es: 15307(PCS) trova KDC01(BOX, qpb=40) → rawPi/40 prima di applicare itemCf=40
       const xrefProd = foundViaXref ? products.find((p:any) => p.nHK === prCode || p.code === prCode) : null;
-      const xrefQpbDiv = (xrefProd && xrefProd.uom === "BOX" && prod.uom === "PCS")
-        ? (Number(xrefProd.qtyPerBox) || 1) : 1;
+      // Divide per qtyPerBox del prodotto xref (BOX→PCS), o per il conv factor se xrefProd non trovato
+      // (quando il listino BC ha il prezzo per-BOX ma il target è PCS)
+      const xrefQpbDiv = !foundViaXref ? 1
+        : xrefProd && xrefProd.uom === "BOX" && prod.uom === "PCS"
+          ? (Number(xrefProd.qtyPerBox) || 1)
+          : (prod.uom === "PCS" && configuredCf > 1 ? configuredCf : 1);
       // Per HK MTO: se dapFinal=0 ma fcaDiscounted>0, aggiungi carriage da work tab
       const enrichPriceWithCarriage = (p: any) => {
         if(!p) return 0;
@@ -1509,7 +1516,8 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
   const[colNHK,setColNHK]=useState("");
   const[colIFB,setColIFB]=useState("");
   const[preview,setPreview]=useState([]);
-  const[search,setSearch]=useState("");
+  const[search,setSearchRaw]=useState(()=>psGet(`pg_${branch}_xref_search`,""));
+  const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_xref_search`,v);};
 
   function parseFile(file) {
     setFileName(file.name);
@@ -2427,7 +2435,8 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
   const[colCode,setColCode]=useState("");
   const[preview,setPreview]=useState([]);
   const[fileName,setFileName]=useState("");
-  const[search,setSearch]=useState("");
+  const[search,setSearchRaw]=useState(()=>psGet(`pg_${branch}_airlist_search`,""));
+  const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_airlist_search`,v);};
 
   function parseFile(file) {
     setFileName(file.name);
@@ -2832,7 +2841,8 @@ function Dashboard({costRows, branch, month, navigate}) {
 // ─── LOGISTICS ────────────────────────────────────────────────────────────────
 
 function Logistics({ logistics, setLogistics, products, branch, showToast, bumpImportTs, initFilter, importLogs, setImportLogs, xrefs = [] }) {
-  const[search,setSearch]=useState("");
+  const[search,setSearchRaw]=useState(()=>psGet(`pg_${branch}_logistics_search`,""));
+  const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_logistics_search`,v);};
   const[showOnlyMissing,setShowOnlyMissing]=useState(initFilter==="missing");
   const[mapStep,setMapStep]=useState("idle");
   const[logHeaders,setLogHeaders]=useState([]);
@@ -3291,9 +3301,12 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
     { key: "dapFinal",      label: "DAP Final",   bc: "dapFinal",      xl: "dapFinal" },
     { key: "mtsPrice",      label: "MTS Price",   bc: "mtsPrice",      xl: "mtsPrice" },
   ];
-  const [filter, setFilter] = useState<"all"|"diff"|"mts"|"real">("real");
-  const [search, setSearch] = useState("");
-  const [reasonFilter, setReasonFilter] = useState<string>("all");
+  const [filter, setFilterRaw] = useState<"all"|"diff"|"mts"|"real">(()=>psGet(`pg_${branch}_pricecmp_filter`,"real"));
+  const setFilter=(v:"all"|"diff"|"mts"|"real")=>{setFilterRaw(v);psSet(`pg_${branch}_pricecmp_filter`,v);};
+  const [search, setSearchRaw] = useState(()=>psGet(`pg_${branch}_pricecmp_search`,""));
+  const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_pricecmp_search`,v);};
+  const [reasonFilter, setReasonFilterRaw] = useState<string>(()=>psGet(`pg_${branch}_pricecmp_reason`,"all"));
+  const setReasonFilter=(v:string)=>{setReasonFilterRaw(v);psSet(`pg_${branch}_pricecmp_reason`,v);};
   const [hideAbsentXl, setHideAbsentXl] = useState(true);
 
   const xlByProductId = useMemo(() => {
@@ -3620,7 +3633,8 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
 // ─── PRICES (con import integrato e storico) ─────────────────────────────────
 function Prices({ prices, setPrices, bcListini = [], setBcListini, products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [],
   importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs, reloadListini, listiniMode = "bc", setListiniMode = (_:any)=>{} }) {
-const [search, setSearch] = useState("");
+const [search, setSearchRaw] = useState(()=>psGet(`pg_${branch}_prices_search`,""));
+const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_prices_search`,v);};
 const [invoiceOnly, setInvoiceOnly] = useState(false);
 const [importStep, setImportStep] = useState<"idle"|"map"|"preview"|"done">("idle");
 const [headers, setHeaders] = useState<string[]>([]);
@@ -5737,7 +5751,8 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
 // ─── PRICE EXCEPTIONS ─────────────────────────────────────────────────────────
 function PriceExceptions({branch, products, xrefs, priceExceptions, setPriceExceptions, canConvFactors=[], setCanConvFactors=(_:any)=>{}, hkConvFactors=[], setHkConvFactors=(_:any)=>{}}) {
-  const [search, setSearch] = useState("");
+  const [search, setSearchRaw] = useState(()=>psGet(`pg_${branch}_excepts_search`,""));
+  const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_excepts_search`,v);};
   const [selectedProd, setSelectedProd] = useState<any>(null);
   const [inputPrice, setInputPrice] = useState("");
   const [inputNote, setInputNote] = useState("");
@@ -6184,7 +6199,8 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
   const [rawRows, setRawRows] = useState<any[][]>([]);
   const [colMap, setColMap] = useState<Record<string,string>>({});
   const [preview, setPreview] = useState<any[]>([]);
-  const [search, setSearch] = useState("");
+  const [search, setSearchRaw] = useState(()=>psGet(`pg_${branch}_scatt_search`,""));
+  const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_scatt_search`,v);};
   const [importMonth, setImportMonth] = useState(()=>{
     const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   });
@@ -7764,7 +7780,8 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
   const [map, setMap] = useState<any>({});
   const [preview, setPreview] = useState<any[]>([]);
   const [fileName, setFileName] = useState("");
-  const [search, setSearch] = useState("");
+  const [search, setSearchRaw] = useState(()=>psGet(`pg_${branch}_bevinfo_search`,""));
+  const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_bevinfo_search`,v);};
   const [editingIdx, setEditingIdx] = useState<number|null>(null);
   const [editRow, setEditRow] = useState<any>({});
   const isHKRef = useRef(isHK);
@@ -8164,7 +8181,8 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
   const [mapping, setMapping] = useState<any>({});
   const [preview, setPreview] = useState<any[]>([]);
   const [fileName, setFileName] = useState("");
-  const [search, setSearch] = useState("");
+  const [search, setSearchRaw] = useState(()=>psGet("pg_meatprice_search",""));
+  const setSearch=(v:string)=>{setSearchRaw(v);psSet("pg_meatprice_search",v);};
 
   const meatSnaps = (importLogs||[]).filter((l:any) => l.type === "meatlist");
 
