@@ -1,4 +1,4 @@
-﻿// v2026-07-09j
+﻿// v2026-07-09k
 import React, { useState, useMemo, useEffect, useRef, startTransition } from "react";
 import * as XLSX from "xlsx";
 import { supabase, IDB, CLOUD, getSession, getUserRole, listUsers, inviteUser, removeUser, signInWithOtp, signOut } from "./supabase";
@@ -3719,10 +3719,17 @@ const prod = findProduct(rawCode, products, xrefs) || findProduct(rawIfbCode, pr
 const mtsPrice = parseFloat(get(row, "mtsPrice")) || 0;
 const fcaPrice = parseFloat(get(row, "fcaPrice")) || 0;
 const fcaDiscount = parseFloat(get(row, "fcaDiscount")) || 0;
-const fcaDiscounted = parseFloat(get(row, "fcaDiscounted")) || (fcaPrice - (fcaDiscount * fcaPrice / 100)) || 0;
+// FCA Discounted: calcolato da FCA Price × (1 - FCA Discount% / 100)
+// Per CAN: il file ha FCA Price + FCA Discount (%), non la colonna FCA Discounted precalcolata
+const fcaDiscounted = branch === "CAN"
+  ? (fcaPrice > 0 ? roundN(fcaPrice * (1 - fcaDiscount / 100), 6) : 0)
+  : (parseFloat(get(row, "fcaDiscounted")) || (fcaPrice > 0 ? fcaPrice * (1 - fcaDiscount / 100) : 0));
 const dapPrice = parseFloat(get(row, "dapPrice")) || 0;
 const dapDiscount = parseFloat(get(row, "dapDiscount")) || 0;
-const dapDiscounted = parseFloat(get(row, "dapDiscounted")) || (dapPrice - (dapDiscount * dapPrice / 100)) || 0;
+// DAP Discounted: calcolato da DAP Price × (1 - DAP Discount% / 100)
+const dapDiscounted = branch === "CAN"
+  ? (dapPrice > 0 ? roundN(dapPrice * (1 - dapDiscount / 100), 6) : 0)
+  : (parseFloat(get(row, "dapDiscounted")) || (dapPrice > 0 ? dapPrice * (1 - dapDiscount / 100) : 0));
 const dapFinalDirect = parseFloat(get(row, "dapFinalDirect")) || 0;
 
 let dapFinal = 0;
@@ -3732,7 +3739,7 @@ dapFinal = dapFinalDirect;
 dapNote = "da file";
 } else if (prod) {
 dapFinal = dapDiscounted || 0;
-dapNote = dapDiscounted ? "da DAP Disc." : "";
+dapNote = dapDiscounted ? (fcaDiscount > 0 || dapDiscount > 0 ? `DAP scontato (-${dapDiscount}%)` : "DAP") : "";
 }
 
 const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === _month) : null;
@@ -3751,6 +3758,9 @@ mtsPrice: roundN(mtsPrice),
 fcaDiscounted: roundN(fcaDiscounted),
 dapPrice: roundN(dapPrice),
 fcaPrice: roundN(fcaPrice),
+dapDiscounted: roundN(dapDiscounted),
+fcaDiscount: roundN(fcaDiscount),
+dapDiscount: roundN(dapDiscount),
 dapNote,
 _hasProduct: !!prod,
 _existing: !!existing
@@ -3778,13 +3788,16 @@ month: importMonth,
 dapFinal: r.dapFinal,
 mtsPrice: r.mtsPrice,
 fcaDiscounted: r.fcaDiscounted,
+dapDiscounted: r.dapDiscounted || r.dapFinal || 0,
 dapPrice: r.dapPrice,
-fcaPrice: r.fcaPrice
+fcaPrice: r.fcaPrice,
+fcaDiscount: r.fcaDiscount || 0,
+dapDiscount: r.dapDiscount || 0,
 };
 const prev = idx >= 0 ? updated[idx] : null;
 const diffFields = [];
 
-["dapFinal", "mtsPrice", "fcaDiscounted", "dapPrice", "fcaPrice"].forEach(f => {
+["dapFinal", "mtsPrice", "fcaDiscounted", "dapDiscounted", "dapPrice", "fcaPrice"].forEach(f => {
 const oldR = roundN(prev?.[f] || 0);
 const newR = roundN(entry[f] || 0);
 if (Math.abs(oldR - newR) >= 0.005) {
@@ -4122,13 +4135,17 @@ return (
 </div>
 <div style={{ maxHeight: "200px", overflow: "auto", marginBottom: "12px", fontSize: "11px" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<thead><tr><th>Codice</th><th>Descrizione</th><th>Match</th><th>DAP Final</th><th>Stato</th></tr></thead>
+<thead><tr><th>Codice</th><th>Descrizione</th><th>Match</th>{branch==="CAN"?<><th>FCA Disc.</th><th>DAP Disc.</th><th>MTS Price</th></>:<th>DAP Final</th>}<th>Stato</th></tr></thead>
 <tbody>{preview.slice(0, 20).map(r => (
 <tr key={r._idx} style={{ borderBottom: `1px solid ${T.border}` }}>
   <td style={{ fontFamily: "monospace", color: T.gold }}>{r.ifbNo_from_file}</td>
   <td>{r.description_from_file}</td>
   <td>{r._hasProduct ? <span style={{ color: T.green }}>✓ {r.ifbNo_from_anag}</span> : <span style={{ color: T.red }}>✗</span>}</td>
-  <td style={{ fontFamily: "monospace" }}>{r.dapFinal > 0 ? `€ ${r.dapFinal.toFixed(2)}` : "—"}</td>
+  {branch==="CAN"?<>
+    <td style={{ fontFamily: "monospace", color: T.muted }}>{r.fcaDiscounted > 0 ? `€ ${r.fcaDiscounted.toFixed(4)}${r.fcaDiscount > 0 ? ` (-${r.fcaDiscount}%)` : ""}` : "—"}</td>
+    <td style={{ fontFamily: "monospace", color: T.orange }}>{r.dapDiscounted > 0 ? `€ ${r.dapDiscounted.toFixed(4)}${r.dapDiscount > 0 ? ` (-${r.dapDiscount}%)` : ""}` : "—"}</td>
+    <td style={{ fontFamily: "monospace" }}>{r.mtsPrice > 0 ? `€ ${r.mtsPrice.toFixed(4)}` : "—"}</td>
+  </>:<td style={{ fontFamily: "monospace" }}>{r.dapFinal > 0 ? `€ ${r.dapFinal.toFixed(2)}` : "—"}</td>}
   <td>{r._hasProduct ? (r._existing ? <span style={{ color: T.orange }}>aggiornamento</span> : <span style={{ color: T.green }}>nuovo</span>) : <span style={{ color: T.red }}>ignorato</span>}</td>
 </tr>
 ))}</tbody>
