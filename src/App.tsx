@@ -7853,7 +7853,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
                   ...(branch==="CAN"?[["Peso Netto PCS","right","blue"]]:[] as any),
                   ["Kg/Box","right","muted"],
                   ...(branch==="CAN"?[["Div. UOM","right","blue"]]:[] as any),
-                  ["Kg/Plt","right","muted"],["Temp","left","muted"],
+                  ["Qty x PLT","right","muted"],["Temp","left","muted"],
                   ...(branch==="CAN"?[["AIEM%","right","orange"]]:[]),
                   ["Attivo","left","muted"],
                 ] as [string,string,string][]).map(([label,align,col])=>(
