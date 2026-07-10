@@ -2923,6 +2923,10 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           iAirSea: fi(["air/sea","airsea"]),
           iTransport: fi(["trasporto","transport","air/sea","airsea","air","sea"]),
           iAlcTax: fi(["tassa alcolica","tassaalcolica","alcolica","alctax","alc tax","aiem"]),
+          iGC:  fi(["gc","gran canaria","grancanaria"]),
+          iTF:  fi(["tf","tenerife","fuerteventura tf"]),
+          iFUE: fi(["fue","fuerteventura","fuerte"]),
+          iLAN: fi(["lan","lanzarote"]),
         };
         setColIdx(idx);
         setLogHeaders(hdrs);
@@ -2938,7 +2942,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   }
 
   function applyLogFile() {
-    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iTransport, iAlcTax } = colIdx;
+    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iTransport, iAlcTax, iGC, iTF, iFUE, iLAN } = colIdx;
     let next = [...logistics];
     let countLog = 0, countAir = 0;
     const currentBranch = branch;
@@ -3012,6 +3016,17 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         hasAlcTax = alcTax > 0;
       }
   
+      // Isole destinazione CAN (GC / TF / FUE / LAN) — colonna con "1" o "x" = true
+      const parseIsland = (idx:number) => {
+        if(idx < 0) return undefined;
+        const v = String(row[idx]||"").trim().toLowerCase();
+        return v==="1"||v==="x"||v==="si"||v==="sì"||v==="yes"||v==="true";
+      };
+      const isGC_v  = parseIsland(iGC);
+      const isTF_v  = parseIsland(iTF);
+      const isFUE_v = parseIsland(iFUE);
+      const isLAN_v = parseIsland(iLAN);
+
       // Se Area è valorizzata (NORD/SUD/CENTRO) → MARE; se vuota e transport non specificato → GOMMA
       const effectiveTransport = transport || (area !== "NORD" || areaRaw ? (areaRaw ? "MARE" : "GOMMA") : "");
       const finalTransport = areaRaw ? "MARE" : transport || "";
@@ -3030,6 +3045,10 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         temperatureOverride,
         fromImport: true,
         ...(finalTransport ? { transport: finalTransport } : {}),
+        ...(isGC_v  !== undefined ? { isGC:  isGC_v  } : {}),
+        ...(isTF_v  !== undefined ? { isTF:  isTF_v  } : {}),
+        ...(isFUE_v !== undefined ? { isFUE: isFUE_v } : {}),
+        ...(isLAN_v !== undefined ? { isLAN: isLAN_v } : {}),
       };
   
       const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
@@ -3165,7 +3184,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
   <div style={{background:T.card, border:`1px solid ${T.green}`, borderRadius:"8px", padding:"16px", marginBottom:"16px"}}>
     <div style={{color:T.green, fontWeight:"bold", fontSize:"13px", marginBottom:"8px"}}>✓ File rilevato · {logRawRows.length} righe</div>
     <div style={{fontSize:"12px", color:T.muted, marginBottom:"12px", lineHeight:"1.8"}}>
-      Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica
+      Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica{branch==="CAN" ? ", Isole (GC/TF/FUE/LAN)" : ""}
     </div>
     <div style={{display:"flex", gap:"10px"}}>
       <ActionBtn label="← Annulla" onClick={() => setMapStep("idle")}/>
