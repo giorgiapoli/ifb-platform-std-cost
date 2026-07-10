@@ -999,13 +999,15 @@ export default function App() {
       const plt = pltFromFile > 0 ? pltFromFile : canDefaultPlt;
       const log = { ...logRaw, pltPerContainer: plt };
 
+      // Regola fondamentale: il BC listino usa N COMIT come codice articolo.
+      // Fare match di p.itemCode contro prod.code (IFB) è un errore di namespace:
+      // un altro articolo BC può avere lo stesso N COMIT di un IFB code → prezzo sbagliato.
+      // Quindi: cerca SOLO per prod.nHK (N COMIT). Fallback su prod.code SOLO se nHK assente.
       const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month)
-                  // Priorità 1: N HK (codice filiale) — evita ambiguità tra varianti con stesso IFB code
+                  // N COMIT match (namespace corretto)
                   || (prod.nHK && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.nHK&&(p.branch||p.b)===branch))
-                  // Priorità 2: IFB code + UoM
-                  || bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.code&&(p.pu||"").toUpperCase()===(prod.uom||"").toUpperCase()&&(p.branch||p.b)===branch)
-                  // Fallback: productId o IFB code senza UoM
-                  || bcListiniEnriched.find((p:any)=>(p.productId===prod.id||(p.itemCode||p.n)===prod.code)&&(p.branch||p.b)===branch);
+                  // Fallback IFB SOLO se l'articolo non ha N COMIT (codice unico, nessuna ambiguità)
+                  || (!prod.nHK && prod.code && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.code&&(p.branch||p.b)===branch));
       const prPrev = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
 
       const ub = log.ubicazione;
