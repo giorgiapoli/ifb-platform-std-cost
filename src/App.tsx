@@ -6258,8 +6258,8 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
           executionDate:    ["executiondate","execution date","execdate","data"],
           lastSC:           ["standardcost","standard cost","laststandard","last standard"],
           fifoUnit:         ["unitcost","unit cost","fifoda item","fifo da item"],
-          scGC:             ["scgrancanaria","gran canaria","scgc","grancanaria"],
-          scLan:            ["sclanzarote","lanzarote","sclan","scfue","fue","sclan"],
+          scGC:             ["scgrancanaria","scgrancan","grancanaria","gran canaria","grancan","scgc","gctf","gc"],
+          scLan:            ["sclanzarote","sclanza","lanzarote","lanza","sclan","scfue","fue","lantf"],
           salesLast3m:      ["saleslast","sales last","vendite"],
           lastPurchaseDate: ["lastpurchase","last purchase"],
           stockQty:         ["stockqty","stock quantity","stock","giacenza"],
@@ -6390,7 +6390,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
       <div style={{overflowX:"auto"}}>
         <table style={{borderCollapse:"collapse",width:"100%"}}>
           <THead cols={isCAN
-            ? ["N COMIT","IFB N","Descrizione","SC Standard €","FIFO unit €","SC GC €","SC LAN €","Last Purchase","Stock Qty"]
+            ? ["N COMIT","IFB N","Descrizione","SC Standard €","FIFO unit €","SC GC/TF €","SC LAN/FUE €","Since"]
             : ["Codice","Descrizione","SC Attuale HK$","FIFO unit HK$","Vendite 3m","Last Purchase","Stock Qty"]}
           />
           <tbody>
@@ -6401,11 +6401,12 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,maxWidth:"200px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{r.description}</td>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.gold,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.lastSC>0?`${isCAN?"€":"HK$"} ${r.lastSC.toFixed(2)}`:"—"}</td>
                 <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.fifoUnit>0?`${isCAN?"€":"HK$"} ${r.fifoUnit.toFixed(4)}`:"—"}</td>
-                {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
-                {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
+                {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.blue,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.scGC>0?`€ ${r.scGC.toFixed(2)}`:"—"}</td>}
+                {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.blue,textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap"}}>{r.scLan>0?`€ ${r.scLan.toFixed(2)}`:"—"}</td>}
+                {isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.dim,textAlign:"right",whiteSpace:"nowrap"}}>{r.executionDate||"—"}</td>}
                 {!isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.salesLast3m?r.salesLast3m.toFixed(0):"—"}</td>}
-                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>
-                <td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.stockQty!=null?r.stockQty:"—"}</td>
+                {!isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.lastPurchaseDate||"—"}</td>}
+                {!isCAN&&<td style={{padding:"3px 6px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.stockQty!=null?r.stockQty:"—"}</td>}
               </tr>
             ))}
           </tbody>
