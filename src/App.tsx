@@ -722,6 +722,10 @@ export default function App() {
                 carriage: row.carriage || 0,
                 temperatureOverride: null,
                 fromImport: true,
+                isGC: !!row.isGC,
+                isTF: !!row.isTF,
+                isFUE: !!row.isFUE,
+                isLAN: !!row.isLAN,
               }];
             });
             const merged = [...otherBranchLog, ...canLog];
@@ -5248,8 +5252,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           ? skipReasonRaw.replace("NO PREZZO","LISTINO CHIUSO E NON RIAPERTO")
           : skipReasonRaw;
         const logTransport=logEntry?.transport||"";
-        const scGC  = cr?.cost?.step2GC  ?? null;
-        const scFUE = cr?.cost?.step2FUE ?? null;
+        // Usa island flags dalla logistica: default true se entry mancante
+        const destGCTF   = !logEntry || logEntry.isGC || logEntry.isTF;
+        const destLANFUE = !logEntry || logEntry.isLAN || logEntry.isFUE;
+        const scGC  = destGCTF   ? (cr?.cost?.step2GC  ?? null) : null;
+        const scFUE = destLANFUE ? (cr?.cost?.step2FUE ?? null) : null;
         // CAN: scAttuali keyed by N COMIT (e alias IFB via xref aggiunto nella mappa)
         //   1. r.itemCode (N COMIT o IFB — mappa copre entrambi)
         //   2. N COMIT ricavato dall'xref se r.itemCode è IFB
@@ -5279,7 +5286,14 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const deltaGC  = branch==="CAN" && scGC!=null && scBcGcTf!=null && scBcGcTf>0 ? scGC - scBcGcTf : null;
         const deltaFUE = branch==="CAN" && scFUE!=null && scBcFueLan!=null && scBcFueLan>0 ? scFUE - scBcFueLan : null;
         // Δ% CAN: usa GC come riferimento; HK: usa prevCost se disponibile, altrimenti bcStdCost
-        const canPct  = branch==="CAN" && scBcGcTf!=null && scBcGcTf>0 && scGC!=null ? (scGC-scBcGcTf)/scBcGcTf*100 : null;
+        // canPct: usa GC/TF come riferimento se prodotto va lì, altrimenti LAN/FUE
+        const canPct  = branch==="CAN"
+          ? (destGCTF && scBcGcTf!=null && scBcGcTf>0 && scGC!=null
+              ? (scGC-scBcGcTf)/scBcGcTf*100
+              : destLANFUE && scBcFueLan!=null && scBcFueLan>0 && scFUE!=null
+                ? (scFUE-scBcFueLan)/scBcFueLan*100
+                : null)
+          : null;
         const refHkd  = oldHkd ?? bcStdCost;
         const hkPct   = branch!=="CAN" && newHkd!=null && refHkd!=null && refHkd>0 ? (newHkd-refHkd)/refHkd*100 : null;
         const finalPct= branch==="CAN" ? canPct : (pct ?? hkPct);
@@ -6681,11 +6695,18 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const lastOrderRaw2 = logEntry?.lastOrderDate || inv.date || inv.postingDate;
       const lastOrderD = lastOrderRaw2 ? new Date(toIsoDate(lastOrderRaw2)) : null;
       const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
+      // Usa island flags dalla logistica: default GC/TF se entry mancante (isola principale)
+      const destGCTF_cm   = !logEntry || logEntry.isGC || logEntry.isTF;
+      const destLANFUE_cm = !logEntry || logEntry.isLAN || logEntry.isFUE;
       const oldSC    = isCAN
-        ? (scEntry?.scGC || scEntry?.lastSC || 0)
+        ? (destGCTF_cm
+            ? (scEntry?.scGC || scEntry?.lastSC || 0)
+            : (scEntry?.scLan || scEntry?.lastSC || 0))
         : (scEntry?.lastSC || 0);
       const newSC    = isCAN
-        ? (cr?.cost?.step2GC || cr?.cost?.step2Eur || 0)
+        ? (destGCTF_cm
+            ? (cr?.cost?.step2GC || cr?.cost?.step2Eur || 0)
+            : (cr?.cost?.step2LAN || cr?.cost?.step2Eur || 0))
         : (cr?.cost?.step2Hkd || 0);
       const deltaAbs = oldSC>0 ? newSC-oldSC : 0;
       const deltaPct = oldSC>0 ? deltaAbs/oldSC*100 : 0;
