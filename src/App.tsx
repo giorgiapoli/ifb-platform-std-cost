@@ -6713,8 +6713,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     ];
     const data = all.map((r:any)=>({
       "Tipo":        r.tipo,
-      "N Filiale":   r.nFiliale,
-      "IFB":         r.ifbNo,
+      "N COMIT":     isCAN ? (r.sameCode ? r.nFiliale : r.ifbNo) : r.nFiliale,
+      "IFB No":      isCAN ? (r.sameCode ? "" : r.nFiliale) : r.ifbNo,
       "Descrizione": r.description,
       "Old SC":      r.oldSC>0 ? Number(r.oldSC.toFixed(2)) : "",
       "New SC":      r.newSC>0 ? Number(r.newSC.toFixed(2)) : "",
@@ -6733,15 +6733,16 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const tdDp = (pct:number,old:number) => <td style={{padding:"3px 8px",fontSize:"10px",textAlign:"right",fontWeight:"bold",whiteSpace:"nowrap",color:pct>0?T.orange:T.red}}>{old>0?(pct>0?"+":"")+pct.toFixed(2)+"%":"—"}</td>;
   const fCode = isCAN ? "IFB No" : "N HK";
   const hasDualCode = analysisRows.some((r:any)=>!r.sameCode);
-  // CAN: nFiliale=IFB code (da BC Italia), ifbNo=N COMIT (da xref) → ordine invertito rispetto a HK
+  // CAN: nFiliale=IFB code (da BC Italia), ifbNo=N COMIT (da xref)
+  // Ordine colonne: N COMIT prima, IFB No dopo (coerente con Righe Fatture)
   const tdCodes = (r:any) => hasDualCode
     ? isCAN
-      ? <>{tdC(r.nFiliale)}{tdC(r.sameCode?"":r.ifbNo)}</>
+      ? <>{tdC(r.sameCode ? r.nFiliale : r.ifbNo)}{tdC(r.sameCode ? "" : r.nFiliale)}</>
       : <>{tdC(r.nFiliale)}{tdC(r.sameCode?"":r.ifbNo)}</>
     : tdC(r.nFiliale);
   const thCodes = hasDualCode
     ? isCAN
-      ? <><TH h="IFB No"/><TH h="N COMIT"/></>
+      ? <><TH h="N COMIT"/><TH h="IFB No"/></>
       : <><TH h="N HK"/><TH h="IFB No"/></>
     : <TH h={fCode}/>;
 
