@@ -7868,9 +7868,10 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
                   ? roundN(p.netWeightPcs * p.qtyPerBox, 2)
                   : parseFloat(p.kgPerBox) || 0;
                 const kgxplt = p.kgxplt || roundN(kgPerBoxCalc * (parseFloat(p.boxPerPallet) || 0));
-                // divisoreCollo: BOX→1, KG→kgPerBox, PCS→qtyPerBox
+                // divisoreCollo per pallet: BOX→boxPerPallet, KG→kgxplt, PCS→qtyPerBox×boxPerPallet
                 const uomUp = (p.uom||"").toUpperCase();
-                const divisoreCollo = uomUp==="BOX" ? 1 : uomUp==="KG" ? kgPerBoxCalc : (parseFloat(p.qtyPerBox)||0);
+                const bpp = parseFloat(p.boxPerPallet) || 0;
+                const divisoreCollo = uomUp==="BOX" ? bpp : uomUp==="KG" ? kgxplt : roundN((parseFloat(p.qtyPerBox)||0) * bpp, 2);
                 const tdS: React.CSSProperties = {padding:"3px 6px",fontSize:"10px",whiteSpace:"nowrap"};
                 const tdM: React.CSSProperties = {...tdS,fontFamily:"monospace"};
                 return (
@@ -7887,7 +7888,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
                     <td style={{...tdM,textAlign:"right"}}>{p.boxPerPallet || "—"}</td>
                     {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.netWeightPcs>0?T.blue:T.red}}>{p.netWeightPcs>0?p.netWeightPcs:"⚠ mancante"}</td>}
                     <td style={{...tdM,textAlign:"right"}}>{kgPerBoxCalc || "—"}</td>
-                    {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:T.blue}} title={`UOM=${p.uom}: BOX→1, KG→Kg/Box, PCS→Qty/Box`}>{divisoreCollo || "—"}</td>}
+                    {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:T.blue}} title={`UOM=${p.uom}: BOX→Box/PLT, KG→Kg/PLT, PCS→Qty/Box×Box/PLT`}>{divisoreCollo || "—"}</td>}
                     <td style={{...tdM,textAlign:"right"}}><span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span></td>
                     <td style={tdS}><Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></td>
                     {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.aiem>0?T.orange:T.dim}}>{p.aiem>0?`${p.aiem}%`:"—"}</td>}
