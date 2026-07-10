@@ -271,7 +271,11 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   const vbE = r2(veronaBarcUnit);
   const asE = r2(assicUnit);
   const fGC = r2(freightPerIsland("GC")),  iGC = r2(inlandPerIsland("GC")),  bGC = r2(barcPerIsland("GC"));
-  const fLAN = r2(freightPerIsland("LAN")), iLAN = r2(inlandPerIsland("LAN")), bLAN = r2(barcPerIsland("LAN"));
+  const fLAN_raw = r2(freightPerIsland("LAN")), iLAN_raw = r2(inlandPerIsland("LAN")), bLAN_raw = r2(barcPerIsland("LAN"));
+  // Se isLAN=false → usa tariffe GC per tutto il calcolo LAN (AIEM incluso), come da modello Excel
+  const fLAN = isLAN===false ? fGC : fLAN_raw;
+  const iLAN = isLAN===false ? iGC : iLAN_raw;
+  const bLAN = isLAN===false ? bGC : bLAN_raw;
   const transpGC  = fGC  + iGC  + vbE + bGC  + asE;
   const transpLAN = fLAN + iLAN + vbE + bLAN + asE;
   // Base AIEM: AL + IF(MARE, AM+AU, BC+BE) — senza assicurazione
