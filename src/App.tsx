@@ -679,17 +679,16 @@ export default function App() {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         const t = Date.now();
         try {
-          const [rana, rxref, rsc, rwt] = await Promise.all([
+          const [rana, rxref, rwt] = await Promise.all([
             fetch(`${base}data/can_anagrafica.json?t=${t}`),
             fetch(`${base}data/can_xref.json?t=${t}`),
-            fetch(`${base}data/can_sc.json?t=${t}`),
             fetch(`${base}data/can_worktab.json?t=${t}`),
           ]);
           let canProds: any[] = [];
           let canXrefs: any[] = [];
           if(rana.ok)  { canProds=await rana.json();  if(canProds.length>0){setProducts(canProds);CLOUD.set(`ifb_products_${branch}`,canProds);setDataSource(`anagrafica_${branch}`,"bc");} }
           if(rxref.ok) { canXrefs=await rxref.json(); if(canXrefs.length>0){setXrefs(canXrefs);CLOUD.set(`ifb_xrefs_${branch}`,canXrefs);setDataSource(`xref_${branch}`,"bc");} }
-          if(rsc.ok)   { const d=await rsc.json();    if(d.length>0){setScAttuali(d);CLOUD.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
+          // SC Attuali CAN: NON auto-caricata da JSON — gestita manualmente dalla pagina SC Attuali
           // Auto-build logistica CAN da worktab: converte nComit/ifbNo → productId
           if(rwt.ok && canProds.length > 0) {
             const wt: any[] = await rwt.json();
