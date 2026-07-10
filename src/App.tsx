@@ -8243,7 +8243,9 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
                         <input value={editRow.gradoAlcolico||""} onChange={e=>setEditRow((r:any)=>({...r,gradoAlcolico:e.target.value}))}
                           placeholder="°" style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"60px",fontFamily:"monospace"}}/>
                       </td>
-                      <td style={{padding:"2px 4px",textAlign:"right",fontSize:"10px",color:T.dim}}>{CAN_ALC_EUR_PER_LT}</td>
+                      <td style={{padding:"2px 4px",textAlign:"right",fontSize:"10px",color:T.dim}}>
+                        {(()=>{const g=parseFloat(String(editRow.gradoAlcolico||"0").replace(",","."));const gp=g>0&&g<1?g*100:g;return gp>0?roundN((gp/100)*CAN_ALC_EUR_PER_LT,4).toFixed(4):"—";})()}
+                      </td>
                       <td style={{padding:"2px 4px",textAlign:"right",fontSize:"10px",color:T.orange,fontWeight:"bold"}}>
                         {(()=>{const lt=parseFloat(String(editRow.ltPerUnit||"0").replace(",","."));const g=parseFloat(String(editRow.gradoAlcolico||"0").replace(",","."));const gp=g>0&&g<1?g*100:g;const t=lt>0&&gp>0?roundN((gp/100)*CAN_ALC_EUR_PER_LT*lt,2):0;return t>0?t.toFixed(4):"—";})()}
                       </td>
