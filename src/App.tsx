@@ -6704,7 +6704,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         stockQty: scEntry?.stockQty ?? "",
         isKeepOld,
         isNuovo,
-        isDelta:  oldSC>0 && newSC>0 && Math.abs(deltaPct)>threshold,
+        isDelta:  oldSC>0 && newSC>0 && Math.abs(deltaPct)>threshold && !isKeepOld,
         isKeepOldOrdered: isKeepOld,
       });
     }
@@ -6852,7 +6852,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC in macchina vs SC calcolato: variazione oltre la soglia.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Stock"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Ult. Fattura"/></tr></thead>
               <tbody>
                 {alert2.length===0
                   ? <tr><td colSpan={6+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
@@ -6860,7 +6860,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:r.deltaPct>0?`${T.orange}07`:`${T.red}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
                       <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
-                      {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}{tdM(r.stockQty)}
+                      {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}{tdM(r.lastDate)}
                     </tr>
                   ))}
               </tbody>
