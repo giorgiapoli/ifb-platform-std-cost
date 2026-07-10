@@ -189,6 +189,20 @@ const COSTS_CAN = {
 
 const CAN_ISLANDS = ["GC","TF","LAN","FUE"] as const;
 
+// Vendor con origine SUD Italia → area "SUD" per calcolo freight MARE
+const CAN_SUD_VENDORS = [
+  "FOOD SERVICE SRL UNIPERSONALE",
+  "M.A.D. S.R.L.",
+  "ANTIMO CAPUTO S.R.L.",
+  "ENRICO PERANO E FIGLI SPA",
+  "REGA FOOD S.R.L",
+  "SICA S.R.L.",
+];
+const canAreaByVendor = (vendorName: string): "NORD"|"SUD" => {
+  const v = (vendorName||"").trim().toUpperCase();
+  return CAN_SUD_VENDORS.some(s => v === s.toUpperCase()) ? "SUD" : "NORD";
+};
+
 function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMultiplier=1 }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature, aiem: prodAiem, vendorName, vendorName2 } = product;
   const { pltPerContainer, area, hasAlcTax, alcTax, convFactor, transport, isLAN, isFUE } = logistic || {};
@@ -719,7 +733,7 @@ export default function App() {
                 productId: prod.id,
                 nHK: prod.nHK,
                 branch: "CAN",
-                area: row.area || "NORD",
+                area: row.area || canAreaByVendor(prod.vendorName),
                 ubicazione,
                 transport,
                 pltPerContainer: 0,
@@ -2886,7 +2900,10 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   }
 
   function getOrDefault(productId) {
-    return getLog(productId) || {productId, branch, area:"NORD", ubicazione:"MTO", pltPerContainer:20, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0};
+    if(getLog(productId)) return getLog(productId);
+    const prod = allIFBProducts.find((p:any)=>p.id===productId);
+    const area = branch==="CAN" ? canAreaByVendor(prod?.vendorName||"") : "NORD";
+    return {productId, branch, area, ubicazione:"MTO", pltPerContainer:0, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0};
   }
   
   function update(productId, field, rawVal) {
