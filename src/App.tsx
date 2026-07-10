@@ -6555,6 +6555,14 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[]}) {
   const isCAN = branch === "CAN";
   const cur = isCAN ? "€" : "HK$";
+  // Converte seriale Excel o stringa data → "YYYY-MM-DD"
+  const toIsoDate = (v:any): string => {
+    if(!v && v!==0) return "";
+    if(typeof v==="number") return new Date((v-25569)*86400000).toISOString().slice(0,10);
+    const s = String(v).trim();
+    if(/^\d{5,6}$/.test(s)) return new Date((parseInt(s)-25569)*86400000).toISOString().slice(0,10);
+    return s.slice(0,10);
+  };
   const xrefByIfbNoPreferNumeric = (ifbNo:string) => {
     const matches=(xrefs||[]).filter((x:any)=>String(x.ifbNo)===ifbNo);
     return matches.find((x:any)=>/^\d+$/.test(String(x.nHK)))||matches[0]||null;
@@ -6563,7 +6571,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const availableMonths = useMemo(()=>{
     const s = new Set<string>();
     (salesRows||[]).forEach((r:any)=>{
-      const d = (r.date||r.postingDate) ? String(r.date||r.postingDate).slice(0,7) : "";
+      const d = toIsoDate(r.date||r.postingDate||"").slice(0,7);
       if(d&&d.length===7) s.add(d);
     });
     return [...s].sort().reverse();
@@ -6624,7 +6632,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     cutoff.setDate(cutoff.getDate() - rollingDays);
     const cutoffStr = cutoff.toISOString().slice(0,10);
     return (salesRows||[]).filter((r:any)=>{
-      const d = String(r.date||r.postingDate||"").slice(0,10);
+      const d = toIsoDate(r.date||r.postingDate||"");
       return d >= cutoffStr;
     });
   },[salesRows, rollingDays]);
@@ -6672,7 +6680,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       if(isCAN && /^HO\.RE\.CA\./i.test(String(prod?.category||""))) continue;
       const logEntry = prod ? logMap[String(prod.id)] : null;
       const lastOrderRaw2 = logEntry?.lastOrderDate || inv.date || inv.postingDate;
-      const lastOrderD = lastOrderRaw2 ? new Date(String(lastOrderRaw2).slice(0,10)) : null;
+      const lastOrderD = lastOrderRaw2 ? new Date(toIsoDate(lastOrderRaw2)) : null;
       const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
       const oldSC    = isCAN
         ? (scEntry?.scGC || scEntry?.lastSC || 0)
@@ -6692,7 +6700,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         description: cr?.description || inv.description || "",
         oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
         skipReason: cr?.skipReason || "",
-        lastDate: scEntry?.lastPurchaseDate || inv.date || inv.postingDate || "",
+        lastDate: toIsoDate(scEntry?.lastPurchaseDate || inv.date || inv.postingDate || ""),
         stockQty: scEntry?.stockQty ?? "",
         isKeepOld,
         isNuovo,
