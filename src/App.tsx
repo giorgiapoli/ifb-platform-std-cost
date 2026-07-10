@@ -2053,11 +2053,17 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         });
       }
       
-      // Doppia codifica: non sovrascrivere un prezzo reale con una riga a prezzo zero
-      const newHasPrice = (entry.dapFinal||entry.dapPrice||entry.fcaDiscounted||entry.fcaPrice||0) > 0;
-      const prevHasPrice = prev && (prev.dapFinal||prev.dapPrice||prev.fcaDiscounted||prev.fcaPrice||0) > 0;
-      if(idx >= 0 && (!newHasPrice && prevHasPrice)) { /* skip: la riga a prezzo 0 non sovrascrive */ }
-      else if(idx >= 0) updated[idx] = entry;
+      // Doppia codifica: merge per campo — per ogni prezzo mantiene il valore > 0
+      // (es. riga 4114 ha FCA=7.69, riga IT20363 ha FCA=0 → risultato finale FCA=7.69)
+      if(idx >= 0) {
+        const merged = { ...entry };
+        if(prev) {
+          for(const f of ["dapFinal","dapPrice","fcaDiscounted","fcaPrice","carriageCost","mtsPrice"]) {
+            if(!(merged[f]>0) && (prev[f]||0)>0) merged[f] = prev[f];
+          }
+        }
+        updated[idx] = merged;
+      }
       else updated.push(entry);
       count++;
     });
