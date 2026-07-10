@@ -6214,8 +6214,10 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 
   // Campi da mappare
   const MAP_FIELDS: {key:string; label:string; required?:boolean; canOnly?:boolean; hkOnly?:boolean}[] = [
-    {key:"code",            label:"Codice articolo",         required:true},
+    {key:"code",            label:"N COMIT (codice articolo)",required:true},
+    {key:"ifbCode",         label:"IFB N",                   canOnly:true},
     {key:"description",     label:"Descrizione"},
+    {key:"executionDate",   label:"Execution Date",          canOnly:true},
     {key:"lastSC",          label:isCAN?"Standard Cost corrente":"Last Standard Cost"},
     {key:"fifoUnit",        label:"FIFO Unit Cost"},
     {key:"scGC",            label:"SC GC / TF",              canOnly:true},
@@ -6248,12 +6250,14 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
         const norm = (s:string) => s.toLowerCase().replace(/[\s_%()/]/g,"");
         const suggest: Record<string,string> = {};
         const HINTS: Record<string,string[]> = {
-          code:             ["itemno","item no","no_","codice","code"],
+          code:             ["ncomit","n comit","no_","itemno","item no","codice","code"],
+          ifbCode:          ["ifbn","ifb n","ifbno","ifb no","ifbitem","ifb item"],
           description:      ["description","descrizione","desc"],
+          executionDate:    ["executiondate","execution date","execdate","data"],
           lastSC:           ["standardcost","standard cost","laststandard","last standard"],
           fifoUnit:         ["unitcost","unit cost","fifoda item","fifo da item"],
           scGC:             ["scgrancanaria","gran canaria","scgc","grancanaria"],
-          scLan:            ["sclanzarote","lanzarote","sclan"],
+          scLan:            ["sclanzarote","lanzarote","sclan","scfue","fue","sclan"],
           salesLast3m:      ["saleslast","sales last","vendite"],
           lastPurchaseDate: ["lastpurchase","last purchase"],
           stockQty:         ["stockqty","stock quantity","stock","giacenza"],
@@ -6275,12 +6279,25 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
     const str = (v:any) => String(v||"").trim();
     const idx = (field:string) => rawHeaders.indexOf(colMap[field]||"");
     const get = (row:any[], field:string) => { const i=idx(field); return i>=0?row[i]:""; };
+    // Converte execution date in valore comparabile (Excel serial number o stringa)
+    const parseDate = (v:any): number => {
+      if(!v) return 0;
+      if(typeof v==="number") return v; // Excel serial date
+      const s = String(v).trim();
+      // Prova formato DD/MM/YYYY o DD-MM-YYYY
+      const m = s.match(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+      if(m) return parseInt(m[3])*10000 + parseInt(m[2])*100 + parseInt(m[1]);
+      const d = new Date(s); return isNaN(d.getTime()) ? 0 : d.getTime();
+    };
     const parsed = rawRows.map((row:any[])=>{
       const code = str(get(row,"code"));
       if(!code) return null;
       return {
         code,
+        ifbCode:          str(get(row,"ifbCode")),
         description:      str(get(row,"description")),
+        executionDate:    str(get(row,"executionDate")),
+        _execDateVal:     parseDate(get(row,"executionDate")),
         lastSC:           num(get(row,"lastSC")),
         fifoUnit:         num(get(row,"fifoUnit")),
         scGC:             num(get(row,"scGC")),
@@ -6291,27 +6308,38 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
       };
     }).filter(Boolean);
     if(!parsed.length) { showToast("Nessuna riga valida", T.red); return; }
-    setPreview(parsed);
+    // CAN: dedup per codice — tieni solo la riga con execution date più recente
+    let deduped = parsed;
+    if(isCAN && idx("executionDate") >= 0) {
+      const byCode: Record<string,any> = {};
+      parsed.forEach((r:any) => {
+        const existing = byCode[r.code];
+        if(!existing || r._execDateVal > existing._execDateVal) byCode[r.code] = r;
+      });
+      deduped = Object.values(byCode);
+    }
+    setPreview(deduped);
     setStep("preview");
   }
 
   function executeImport() {
+    const cleanRows = preview.map(({_execDateVal:_, ...r}:any)=>r);
     const entry = {
       id: Date.now(),
       month: importMonth,
       fileName,
       date: new Date().toISOString(),
       branch,
-      count: preview.length,
-      rows: preview,
+      count: cleanRows.length,
+      rows: cleanRows,
     };
-    setScAttuali(preview);
+    setScAttuali(cleanRows);
     setDataSource(`scattuali_${branch}`,"manual");
     const newHist = [entry, ...scHistory].slice(0, 24);
     setScHistory(newHist);
     IDB.set(`ifb_schistory_${branch}`, newHist);
     setSelEntry(entry);
-    showToast(`SC Attuali ${importMonth}: ${preview.length} articoli importati ✓`, T.gold);
+    showToast(`SC Attuali ${importMonth}: ${cleanRows.length} articoli importati ✓`, T.gold);
     setStep("main");
     setPreview([]);
   }
