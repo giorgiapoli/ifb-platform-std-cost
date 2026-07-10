@@ -3773,7 +3773,14 @@ const rawDescription = String(get(row, "description") || get(row, "code") || "")
 if (!rawCode && !rawIfbCode) return null;
 if (rawCode && !isValidCode(rawCode) && !rawIfbCode) return null;
 
-const prod = findProduct(rawCode, products, xrefs) || findProduct(rawIfbCode, products, xrefs);
+// rawCode = N COMIT (colonna "No_"): cerca per nHK prima, poi fallback generico
+// rawIfbCode = colonna IFB No: cerca per code/xref
+const prodByNComit = rawCode
+  ? (products.find((pr:any) => pr.nHK && pr.nHK === rawCode) || null)
+  : null;
+const prod = prodByNComit
+  || findProduct(rawIfbCode, products, xrefs)
+  || findProduct(rawCode, products, xrefs);
 
 const mtsPrice = parseFloat(get(row, "mtsPrice")) || 0;
 const fcaPrice = parseFloat(get(row, "fcaPrice")) || 0;
