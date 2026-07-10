@@ -7919,12 +7919,15 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       const resolvedIfb = prod?.code || (xrefs.find((x:any)=>x.nHK===raw)?.ifbNo) || raw;
       updated = { nHK: resolvedNHK||"", ifbNo: resolvedIfb, hasAlcTax: !!editRow.hasAlcTax, ltPerUnit:0, gradoAlcolico:0, eurPerLt:0, totaleBottiglia:0 };
     } else {
+      const rawCode = String(editRow.codeInput || editRow.ifbNo || "").trim();
+      if(!rawCode) { showToast("Inserisci codice articolo", T.red); return; }
+      const prod2 = findProduct(rawCode, products, xrefs) || products.find((p:any)=>p.code===rawCode);
+      const resolvedIfb = prod2?.code || rawCode;
       const lt = parseFloat(String(editRow.ltPerUnit||"").replace(",",".")) || 0;
       const gradoRaw2 = parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0;
       const grado = gradoRaw2 > 0 && gradoRaw2 < 1 ? gradoRaw2 * 100 : gradoRaw2;
-      // Formula: Totale = LT × (Grado/100) × 7,5036 €/L di alcol puro
       const totaleBottiglia = lt > 0 && grado > 0 ? roundN((grado / 100) * CAN_ALC_EUR_PER_LT * lt, 2) : 0;
-      updated = { ...editRow, ltPerUnit: lt, gradoAlcolico: grado, eurPerLt: roundN((grado / 100) * CAN_ALC_EUR_PER_LT, 4), totaleBottiglia };
+      updated = { ifbNo: resolvedIfb, ltPerUnit: lt, gradoAlcolico: grado, eurPerLt: roundN((grado / 100) * CAN_ALC_EUR_PER_LT, 4), totaleBottiglia };
     }
     const next = idx === -1
       ? [...bevInfo, updated]
@@ -7936,7 +7939,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
 
   function startAdd() {
     setEditingIdx(-1);
-    setEditRow(isHK ? { codeInput:"", hasAlcTax:true } : { ifbNo:"", ltPerUnit:"", gradoAlcolico:"", totaleBottiglia:"" });
+    setEditRow(isHK ? { codeInput:"", hasAlcTax:true } : { codeInput:"", ltPerUnit:"", gradoAlcolico:"" });
   }
 
   // Campi diversi per HK (flag >30°) vs CAN (tassa alcolica: litri/grado → calcolato)
@@ -8220,17 +8223,30 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
                         </label>
                       </td>
                     </> : <>
-                      <td style={{padding:"2px 4px"}}><span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>—</span></td>
-                      {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
-                        <td key={ci} style={{padding:"2px 4px"}}>
-                          {f===""
-                            ? <span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>—</span>
-                            : <input value={editRow[f]||""} onChange={e=>setEditRow((r:any)=>({...r,[f]:e.target.value}))}
-                                placeholder={f==="ifbNo"?"IFB No*":f} autoFocus={f==="ifbNo"}
-                                style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"80px",fontFamily:"monospace"}}/>
-                          }
-                        </td>
-                      ))}
+                      {/* CAN add: code → anagrafica; LT + Grado; €/LT e Totale auto */}
+                      <td style={{padding:"2px 4px",fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>
+                        {(()=>{const c=String(editRow.codeInput||"").trim();return getNComit(c)||"—";})()}
+                      </td>
+                      <td style={{padding:"2px 4px"}}>
+                        <input value={editRow.codeInput||""} onChange={e=>setEditRow((r:any)=>({...r,codeInput:e.target.value}))}
+                          placeholder="IFB No o N COMIT" autoFocus
+                          style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"110px",fontFamily:"monospace"}}/>
+                      </td>
+                      <td style={{padding:"2px 4px",fontSize:"10px",color:T.muted,maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                        {(()=>{const c=String(editRow.codeInput||"").trim();const p=findProduct(c,products,xrefs);return p?.description||"—";})()}
+                      </td>
+                      <td style={{padding:"2px 4px"}}>
+                        <input value={editRow.ltPerUnit||""} onChange={e=>setEditRow((r:any)=>({...r,ltPerUnit:e.target.value}))}
+                          placeholder="LT" style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"60px",fontFamily:"monospace"}}/>
+                      </td>
+                      <td style={{padding:"2px 4px"}}>
+                        <input value={editRow.gradoAlcolico||""} onChange={e=>setEditRow((r:any)=>({...r,gradoAlcolico:e.target.value}))}
+                          placeholder="°" style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"60px",fontFamily:"monospace"}}/>
+                      </td>
+                      <td style={{padding:"2px 4px",textAlign:"right",fontSize:"10px",color:T.dim}}>{CAN_ALC_EUR_PER_LT}</td>
+                      <td style={{padding:"2px 4px",textAlign:"right",fontSize:"10px",color:T.orange,fontWeight:"bold"}}>
+                        {(()=>{const lt=parseFloat(String(editRow.ltPerUnit||"0").replace(",","."));const g=parseFloat(String(editRow.gradoAlcolico||"0").replace(",","."));const gp=g>0&&g<1?g*100:g;const t=lt>0&&gp>0?roundN((gp/100)*CAN_ALC_EUR_PER_LT*lt,2):0;return t>0?t.toFixed(4):"—";})()}
+                      </td>
                     </>}
                     <td style={{padding:"2px 4px",display:"flex",gap:"4px"}}>
                       <MiniBtn label="✓" onClick={()=>saveEdit(-1)} color={T.green}/>
@@ -8258,16 +8274,27 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
                               </label>
                             </td>
                           </> : <>
-                            <td style={{padding:"2px 4px"}}><span style={{fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>{nComit||"—"}</span></td>
-                            {(["ifbNo","","ltPerUnit","gradoAlcolico","eurPerLt","totaleBottiglia"] as string[]).map((f,ci)=>(
-                              <td key={ci} style={{padding:"2px 4px"}}>
-                                {f===""
-                                  ? <span style={{fontSize:"10px",color:T.muted,padding:"0 4px"}}>{prod?.description||"—"}</span>
-                                  : <input value={editRow[f]||""} onChange={e=>setEditRow((r:any)=>({...r,[f]:e.target.value}))}
-                                      style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"80px",fontFamily:"monospace"}}/>
-                                }
-                              </td>
-                            ))}
+                            {/* CAN edit: N COMIT auto; codice editabile; descrizione auto; LT+Grado input; €/LT+Totale auto */}
+                            <td style={{padding:"2px 4px",fontSize:"10px",color:T.muted,fontFamily:"monospace"}}>{nComit||"—"}</td>
+                            <td style={{padding:"2px 4px"}}>
+                              <input value={editRow.codeInput||editRow.ifbNo||""} onChange={e=>setEditRow((r:any)=>({...r,codeInput:e.target.value}))}
+                                style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"100px",fontFamily:"monospace"}}/>
+                            </td>
+                            <td style={{padding:"2px 4px",fontSize:"10px",color:T.muted,maxWidth:"150px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                              {(()=>{const c=String(editRow.codeInput||editRow.ifbNo||"").trim();const p=findProduct(c,products,xrefs)||products.find((pp:any)=>pp.code===c);return p?.description||prod?.description||"—";})()}
+                            </td>
+                            <td style={{padding:"2px 4px"}}>
+                              <input value={editRow.ltPerUnit||""} onChange={e=>setEditRow((r:any)=>({...r,ltPerUnit:e.target.value}))}
+                                style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"60px",fontFamily:"monospace"}}/>
+                            </td>
+                            <td style={{padding:"2px 4px"}}>
+                              <input value={editRow.gradoAlcolico||""} onChange={e=>setEditRow((r:any)=>({...r,gradoAlcolico:e.target.value}))}
+                                style={{...inputStyle(),fontSize:"10px",padding:"2px 4px",width:"60px",fontFamily:"monospace"}}/>
+                            </td>
+                            <td style={{padding:"2px 4px",textAlign:"right",fontSize:"10px",color:T.dim}}>{CAN_ALC_EUR_PER_LT}</td>
+                            <td style={{padding:"2px 4px",textAlign:"right",fontSize:"10px",color:T.orange,fontWeight:"bold"}}>
+                              {(()=>{const lt=parseFloat(String(editRow.ltPerUnit||"0").replace(",","."));const g=parseFloat(String(editRow.gradoAlcolico||"0").replace(",","."));const gp=g>0&&g<1?g*100:g;const t=lt>0&&gp>0?roundN((gp/100)*CAN_ALC_EUR_PER_LT*lt,2):0;return t>0?t.toFixed(4):"—";})()}
+                            </td>
                           </>}
                           <td style={{padding:"2px 4px",display:"flex",gap:"4px"}}>
                             <MiniBtn label="✓" onClick={()=>saveEdit(realIdx)} color={T.green}/>
