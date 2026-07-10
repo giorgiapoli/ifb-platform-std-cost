@@ -6754,10 +6754,21 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         || (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale||p.code===resolvedIFB);
       // Salta righe non-articolo (FREIGHT, servizi, ecc.) — non in anagrafica e senza cost row
       if(!prod && !costMap[ifbNo] && !costMap[nFiliale] && !costMap[resolvedIFB]) continue;
+      // CAN: se il prodotto è trovato in anagrafica con entrambi i codici, usali direttamente
+      // (più affidabile della sola xref lookup che può fallire per formato/spazi)
+      const finalNFiliale = isCAN && prod?.code && prod?.nHK && String(prod.code)!==String(prod.nHK)
+        ? String(prod.code)
+        : (isCAN && resolvedIFB && resolvedIFB!==nFiliale) ? resolvedIFB : nFiliale;
+      const finalIfbNo = isCAN && prod?.code && prod?.nHK && String(prod.code)!==String(prod.nHK)
+        ? String(prod.nHK)
+        : ifbNo;
+      const finalSameCode = isCAN && prod?.code && prod?.nHK && String(prod.code)!==String(prod.nHK)
+        ? false
+        : sameCode;
       const scEntry = isCAN
-        ? (scMap[sCode] || scMap[nComitFromIfb2] || scMap[ifbFromNComit2] || scMap[prod?.code||""] || scMap[ifbNo])
-        : (scMap[prod?.nHK||""] || scMap[sCode] || scMap[prod?.code||""] || scMap[ifbNo]);
-      const cr = costMap[ifbNo] || costMap[nFiliale] || (isCAN ? (costMap[resolvedIFB] || costMap[prod?.code||""]) : null);
+        ? (scMap[sCode] || scMap[nComitFromIfb2] || scMap[ifbFromNComit2] || scMap[prod?.code||""] || scMap[finalIfbNo])
+        : (scMap[prod?.nHK||""] || scMap[sCode] || scMap[prod?.code||""] || scMap[finalIfbNo]);
+      const cr = costMap[finalIfbNo] || costMap[nFiliale] || (isCAN ? (costMap[resolvedIFB] || costMap[prod?.code||""]) : null);
       // Escludi NON FOOD CAN (HO.RE.CA. SUPPLY)
       if(isCAN && /^HO\.RE\.CA\./i.test(String(prod?.category||""))) continue;
       const logEntry = prod ? logMap[String(prod.id)] : null;
@@ -6784,8 +6795,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       // isNuovo = NUOVI ARTICOLI: newSC calcolato presente, ma oldSC (SC BC/NAV) assente
       const isNuovo  = newSC>0 && oldSC===0 && !isKeepOld;
       rows.push({
-        nFiliale: (isCAN && resolvedIFB && resolvedIFB!==nFiliale) ? resolvedIFB : nFiliale,
-        ifbNo, sameCode,
+        nFiliale: finalNFiliale,
+        ifbNo: finalIfbNo, sameCode: finalSameCode,
         description: cr?.description || inv.description || "",
         oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
         skipReason: cr?.skipReason || "",
