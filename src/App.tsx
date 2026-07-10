@@ -999,15 +999,13 @@ export default function App() {
       const plt = pltFromFile > 0 ? pltFromFile : canDefaultPlt;
       const log = { ...logRaw, pltPerContainer: plt };
 
-      // Regola fondamentale: il BC listino usa N COMIT come codice articolo.
-      // Fare match di p.itemCode contro prod.code (IFB) è un errore di namespace:
-      // un altro articolo BC può avere lo stesso N COMIT di un IFB code → prezzo sbagliato.
-      // Quindi: cerca SOLO per prod.nHK (N COMIT). Fallback su prod.code SOLO se nHK assente.
+      // CAN: i prezzi vengono SOLO dal file listino caricato dall'utente (prices).
+      //      Il BC listino non è usato per il calcolo SC CAN (solo per fatture/costi).
+      // HK/MAC: match per N COMIT (namespace BC), fallback IFB solo se nHK assente.
       const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month)
-                  // N COMIT match (namespace corretto)
-                  || (prod.nHK && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.nHK&&(p.branch||p.b)===branch))
-                  // Fallback IFB SOLO se l'articolo non ha N COMIT (codice unico, nessuna ambiguità)
-                  || (!prod.nHK && prod.code && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.code&&(p.branch||p.b)===branch));
+                  || (branch === "CAN" ? null
+                    : (prod.nHK && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.nHK&&(p.branch||p.b)===branch))
+                      || (!prod.nHK && prod.code && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.code&&(p.branch||p.b)===branch)));
       const prPrev = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
 
       const ub = log.ubicazione;
@@ -3782,15 +3780,11 @@ const fcaPrice = parseFloat(get(row, "fcaPrice")) || 0;
 const fcaDiscount = parseFloat(get(row, "fcaDiscount")) || 0;
 // FCA Discounted: calcolato da FCA Price × (1 - FCA Discount% / 100)
 // Per CAN: il file ha FCA Price + FCA Discount (%), non la colonna FCA Discounted precalcolata
-const fcaDiscounted = branch === "CAN"
-  ? (fcaPrice > 0 ? roundN(fcaPrice * (1 - fcaDiscount / 100), 6) : 0)
-  : (parseFloat(get(row, "fcaDiscounted")) || (fcaPrice > 0 ? fcaPrice * (1 - fcaDiscount / 100) : 0));
+// Legge la colonna pre-calcolata se presente, altrimenti calcola e arrotonda a 2dp (uguale all'Excel utente)
+const fcaDiscounted = parseFloat(get(row, "fcaDiscounted")) || (fcaPrice > 0 ? roundN(fcaPrice * (1 - fcaDiscount / 100), 2) : 0);
 const dapPrice = parseFloat(get(row, "dapPrice")) || 0;
 const dapDiscount = parseFloat(get(row, "dapDiscount")) || 0;
-// DAP Discounted: calcolato da DAP Price × (1 - DAP Discount% / 100)
-const dapDiscounted = branch === "CAN"
-  ? (dapPrice > 0 ? roundN(dapPrice * (1 - dapDiscount / 100), 6) : 0)
-  : (parseFloat(get(row, "dapDiscounted")) || (dapPrice > 0 ? dapPrice * (1 - dapDiscount / 100) : 0));
+const dapDiscounted = parseFloat(get(row, "dapDiscounted")) || (dapPrice > 0 ? roundN(dapPrice * (1 - dapDiscount / 100), 2) : 0);
 const dapFinalDirect = parseFloat(get(row, "dapFinalDirect")) || 0;
 
 let dapFinal = 0;
