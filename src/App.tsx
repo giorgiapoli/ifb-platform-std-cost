@@ -7940,7 +7940,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       // Always calculate from formula: LT × (Grado/100) × 7.5036 — do not trust file's TOTALE column
       const totaleBottiglia = lt > 0 && grado > 0 ? roundN((grado / 100) * CAN_ALC_EUR_PER_LT * lt, 2) : 0;
       if(totaleBottiglia <= 0 && lt <= 0) return null;
-      const prod = products.find((p:any) => p.code === ifbNo);
+      const prod = findProduct(ifbNo, products, xrefs);
       return { ifbNo, ltPerUnit:lt, gradoAlcolico:grado, eurPerLt: roundN((grado/100)*CAN_ALC_EUR_PER_LT,4), totaleBottiglia, _found:!!prod, _desc:prod?.description||"—" };
     }).filter(Boolean);
     setPreview(rows); setStep("preview");
