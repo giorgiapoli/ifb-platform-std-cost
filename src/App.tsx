@@ -191,7 +191,7 @@ const CAN_ISLANDS = ["GC","TF","LAN","FUE"] as const;
 
 function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMultiplier=1 }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature, aiem: prodAiem, vendorName, vendorName2 } = product;
-  const { pltPerContainer, area, hasAlcTax, alcTax, convFactor, transport } = logistic || {};
+  const { pltPerContainer, area, hasAlcTax, alcTax, convFactor, transport, isLAN, isFUE } = logistic || {};
 
   const cf = Number(convFactor||1) || 1;
   const pm = Number(priceMultiplier||1) || 1;
@@ -286,6 +286,10 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
     step1[isl] = r2(pE + tr + pL + ai + taE);
     step2[isl] = isTakochef ? pE : r2(step1[isl] + whE);
   }
+  // Excel: SE(isLAN=0; valore_GC; formula_LAN) — se prodotto non va a LAN/FUE → fallback = GC
+  // isLAN/isFUE undefined (logistica non impostata) = comportamento precedente (usa tariffe LAN)
+  if (isLAN === false) { step2.LAN = step2.GC; step1.LAN = step1.GC; }
+  if (isFUE === false) { step2.FUE = step2.GC; step1.FUE = step1.GC; }
 
   return {
     priceEur: pE, plt: pL, aiemUnit: aGC, tassaAlcolica: taE, wh: whE,
