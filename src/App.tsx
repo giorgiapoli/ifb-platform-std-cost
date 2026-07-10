@@ -575,6 +575,7 @@ export default function App() {
   const[costHistory,setCostHistory] = useState(()=>LS.get("ifb_costhistory",[]));
   const[lastImportTs,setLastImportTs] = useState(()=>LS.get("ifb_last_import_ts",0));
   const[lastCalcTs,setLastCalcTs]     = useState(()=>LS.get("ifb_last_calc_ts",0));
+  const[costRefreshKey,setCostRefreshKey] = useState(0);
   const[page,setPage]     = useState(()=>LS.get("ifb_branch","")?"dashboard":"branchSelect");
   const[branch,setBranch] = useState(()=>LS.get("ifb_branch",""));
   const[month,setMonth]   = useState(NOW());
@@ -1195,7 +1196,7 @@ export default function App() {
         area:log.area||"NORD", pltPerContainer:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali,xrefs,canConvFactors,hkConvFactors,bcListiniEnriched]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali,xrefs,canConvFactors,hkConvFactors,bcListiniEnriched,costRefreshKey]);
 
   // MAC: save HK costRows to IDB whenever they're computed (declared after costRows useMemo to avoid TDZ)
   useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
@@ -1382,7 +1383,7 @@ export default function App() {
     bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} xrefs={xrefs} showToast={showToast} branch={branch}/>,
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors} hkConvFactors={hkConvFactors} setHkConvFactors={setHkConvFactors}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs} listiniMode={listiniMode} setListiniMode={setListiniMode} reloadListini={()=>{ setBcListini([]); setListiniReloadKey(k=>k+1); }}/>,
-    invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali}/>,
+    invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali} onRefreshCosts={()=>setCostRefreshKey(k=>k+1)}/>,
     scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast} xrefs={xrefs}/>,
     storico: <Storico
       snapshots={snapshots}
@@ -5157,7 +5158,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 
 
-function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,logistics,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,scAttuali}) {
+function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,logistics,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,scAttuali,onRefreshCosts}) {
   const [step,setStep]         = useState(()=>rows?.length?"view":"upload");
   const [preview,setPreview]   = useState<any[]>([]);
   const [headers,setHeaders]   = useState<string[]>([]);
@@ -5618,9 +5619,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           style={{padding:"6px 14px",background:excludeSample?`${T.purple}20`:T.surface,color:excludeSample?T.purple:T.muted,border:`1px solid ${excludeSample?T.purple:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeSample?"bold":"normal"}}>
           {excludeSample?"✓ Sample esclusi":"🧪 Escludi Sample"}
         </button>
-        <button onClick={()=>window.location.reload()}
+        <button onClick={()=>{ if(onRefreshCosts) onRefreshCosts(); }}
           style={{padding:"6px 14px",background:T.surface,color:T.muted,border:`1px solid ${T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
-          🔄 Ricarica
+          🔄 Aggiorna Costi
         </button>
         <button onClick={()=>{ if(sortBy==="date") setSortDir(d=>d==="desc"?"asc":"desc"); else{ setSortBy("date"); setSortDir("desc"); } }}
           style={{padding:"6px 14px",background:sortBy==="date"?`${T.blue}22`:T.surface,color:sortBy==="date"?T.blue:T.muted,border:`1px solid ${sortBy==="date"?T.blue:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px"}}>
