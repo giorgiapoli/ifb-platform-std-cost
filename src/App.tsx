@@ -7885,9 +7885,8 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
         const autoMap: any = {};
         FIELDS.forEach(f => { autoMap[f] = fi(ALIASES[f], hdrs); });
         setMap(autoMap);
-        // HK: salta mapping, vai diretto alla preview con auto-detect
+        // HK e CAN: salta mapping, vai diretto alla preview con auto-detect
         if(isHKRef.current) {
-          // buildPreview inline con autoMap
           const idx2: any = {};
           FIELDS.forEach(f => { idx2[f] = hdrs.indexOf(autoMap[f]); });
           const rows2 = rows.map((row:any) => {
@@ -7904,7 +7903,29 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
           setPreview(rows2); setStep("preview");
           return;
         }
-        setStep("map");
+        // CAN: auto-detect e vai diretto alla preview senza step mapping
+        {
+          const idx2: any = {};
+          FIELDS.forEach(f => { idx2[f] = hdrs.indexOf(autoMap[f]); });
+          // Fallback: cerca "IFB Item" / "No_" / "LT" / "GRADO ALCOLICO" per nome diretto
+          if(idx2.ifbNo < 0) idx2.ifbNo = hdrs.findIndex(h => /ifb/i.test(h) && /item|n[°o]?_?/i.test(h)) >= 0
+            ? hdrs.findIndex(h => /ifb/i.test(h)) : hdrs.findIndex(h => /^ifb/i.test(h));
+          if(idx2.ltPerUnit < 0) idx2.ltPerUnit = hdrs.findIndex(h => h.trim().toUpperCase() === "LT");
+          if(idx2.gradoAlcolico < 0) idx2.gradoAlcolico = hdrs.findIndex(h => /grado/i.test(h) && /alcolico/i.test(h) && !/in\s*%/i.test(h));
+          const rows2 = rows.map((row:any) => {
+            const ifbNo = idx2.ifbNo >= 0 ? String(row[idx2.ifbNo]||"").trim() : "";
+            if(!ifbNo) return null;
+            const lt = parseFloat(String(row[idx2.ltPerUnit >= 0 ? idx2.ltPerUnit : -1]||"").replace(",",".")) || 0;
+            const gradoRaw = parseFloat(String(row[idx2.gradoAlcolico >= 0 ? idx2.gradoAlcolico : -1]||"").replace(",",".")) || 0;
+            const grado = gradoRaw > 0 && gradoRaw < 1 ? gradoRaw * 100 : gradoRaw;
+            const totaleBottiglia = lt > 0 && grado > 0 ? roundN((grado / 100) * CAN_ALC_EUR_PER_LT * lt, 2) : 0;
+            if(totaleBottiglia <= 0 && lt <= 0) return null;
+            const prod = findProduct(ifbNo, products, xrefs);
+            return { ifbNo, ltPerUnit:lt, gradoAlcolico:grado, eurPerLt: roundN((grado/100)*CAN_ALC_EUR_PER_LT,4), totaleBottiglia, _found:!!prod, _desc:prod?.description||"—" };
+          }).filter(Boolean);
+          setPreview(rows2); setStep("preview");
+          return;
+        }
       } catch(err:any) { showToast("Errore: "+err.message, T.red); }
     };
     reader.readAsBinaryString(file);
