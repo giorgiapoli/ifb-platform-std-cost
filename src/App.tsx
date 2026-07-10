@@ -7923,11 +7923,13 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
       if(!rawCode) { showToast("Inserisci codice articolo", T.red); return; }
       const prod2 = findProduct(rawCode, products, xrefs) || products.find((p:any)=>p.code===rawCode);
       const resolvedIfb = prod2?.code || rawCode;
+      const isSpirits2 = (prod2?.category||"").toUpperCase() === "SPIRITS";
       const lt = parseFloat(String(editRow.ltPerUnit||"").replace(",",".")) || 0;
       const gradoRaw2 = parseFloat(String(editRow.gradoAlcolico||"0").replace(",",".")) || 0;
       const grado = gradoRaw2 > 0 && gradoRaw2 < 1 ? gradoRaw2 * 100 : gradoRaw2;
-      const totaleBottiglia = lt > 0 && grado > 0 ? roundN((grado / 100) * CAN_ALC_EUR_PER_LT * lt, 2) : 0;
-      updated = { ifbNo: resolvedIfb, ltPerUnit: lt, gradoAlcolico: grado, eurPerLt: roundN((grado / 100) * CAN_ALC_EUR_PER_LT, 4), totaleBottiglia };
+      // Tassa alcolica si applica SOLO a SPIRITS — per vini/altri: totaleBottiglia=0
+      const totaleBottiglia = isSpirits2 && lt > 0 && grado > 0 ? roundN((grado / 100) * CAN_ALC_EUR_PER_LT * lt, 2) : 0;
+      updated = { ifbNo: resolvedIfb, ltPerUnit: lt, gradoAlcolico: grado, eurPerLt: isSpirits2 ? roundN((grado / 100) * CAN_ALC_EUR_PER_LT, 4) : 0, totaleBottiglia };
     }
     const next = idx === -1
       ? [...bevInfo, updated]
@@ -8317,7 +8319,11 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
                             <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.ltPerUnit||"—"}</td>
                             <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.gradoAlcolico||"—"}°</td>
                             <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right"}}>{b.eurPerLt>0?b.eurPerLt.toFixed(2):"—"}</td>
-                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:T.orange,fontWeight:"bold"}}>{b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—"}</td>
+                            <td style={{padding:"3px 6px",fontFamily:"monospace",fontSize:"10px",textAlign:"right",color:(prod?.category||"").toUpperCase()==="SPIRITS"?T.orange:T.dim,fontWeight:"bold"}}>
+                              {(prod?.category||"").toUpperCase()==="SPIRITS"
+                                ? (b.totaleBottiglia>0?b.totaleBottiglia.toFixed(4):"—")
+                                : <span style={{fontSize:"9px",fontWeight:"normal"}}>non spirits</span>}
+                            </td>
                           </>}
                           <td style={{padding:"3px 6px",display:"flex",gap:"4px"}}>
                             <MiniBtn label="✎" onClick={()=>{setEditingIdx(realIdx);setEditRow({...b});}} color={T.blue}/>
