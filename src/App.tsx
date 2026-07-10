@@ -5339,7 +5339,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(scFilter==="ok")            displayed=displayed.filter(r=>r.scGC!=null&&!isSample(r));
   else if(scFilter==="mancante") displayed=displayed.filter(r=>r.scGC===null&&!isSample(r));
   else if(scFilter==="sample")   displayed=displayed.filter(r=>isSample(r));
-  if(last30){ const cut=Date.now()-30*24*60*60*1000; displayed=displayed.filter(r=>{ const d=new Date(r.date); return !isNaN(d.getTime())&&d.getTime()>=cut; }); }
+  if(last30){ const cutStr=new Date(Date.now()-30*86400000).toISOString().slice(0,10); displayed=displayed.filter(r=>String(r.date||r.postingDate||"").slice(0,10)>=cutStr); }
   if(dedup){
     const best=new Map<string,any>();
     displayed.forEach(r=>{
