@@ -6690,8 +6690,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         : (cr?.cost?.step2Hkd || 0);
       const deltaAbs = oldSC>0 ? newSC-oldSC : 0;
       const deltaPct = oldSC>0 ? deltaAbs/oldSC*100 : 0;
-      // noCalc = DA INSERIRE: sia newSC che oldSC mancanti (nessun dato per calcolare)
-      const noCalc   = newSC===0 && oldSC===0;
+      // noCalc = DA INSERIRE: newSC non calcolabile (manca logistica, prezzo zero, ecc.) — indipendentemente da oldSC
+      const noCalc   = newSC===0 && !isKeepOld;
       // isNuovo = NUOVI ARTICOLI: newSC calcolato presente, ma oldSC (SC BC/NAV) assente
       const isNuovo  = newSC>0 && oldSC===0 && !isKeepOld;
       rows.push({
@@ -6826,20 +6826,21 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           </div>
         </Section>
 
-        {/* ALERT 4 — DA INSERIRE (entrambi mancanti) */}
-        <Section title={`❌ 2. DA INSERIRE — SC mancante e non calcolabile (${alert4.length})`} accent={T.red}>
-          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Né New SC né SC BC/NAV presenti — mancano listino o logistica. Esclusi articoli KEEP OLD (ultimo ordine &gt;6 mesi fa).</div>
+        {/* ALERT 4 — DA INSERIRE (newSC non calcolabile) */}
+        <Section title={`❌ 2. DA INSERIRE — New SC non calcolabile (${alert4.length})`} accent={T.red}>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Standard Cost non calcolabile: manca logistica, prezzo zero, o listino assente. Acquistati nell'ultimo mese — da verificare.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Skip Reason"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC in macchina"/><TH h="Skip Reason"/><TH h="Last Date"/></tr></thead>
               <tbody>
                 {alert4.length===0
                   ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
                   : alert4.map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.red}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
+                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
                       <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"left"}}>{r.skipReason||"—"}</td>
-                      {tdM(r.stockQty)}{tdM(r.lastDate)}
+                      {tdM(r.lastDate)}
                     </tr>
                   ))}
               </tbody>
