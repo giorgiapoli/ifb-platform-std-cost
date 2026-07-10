@@ -1029,11 +1029,15 @@ export default function App() {
       // CAN: i prezzi vengono SOLO dal file listino caricato dall'utente (prices).
       //      Il BC listino non è usato per il calcolo SC CAN (solo per fatture/costi).
       // HK/MAC: match per N COMIT (namespace BC), fallback IFB solo se nHK assente.
-      const pr     = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===month)
+      // Doppia codifica: stesso prodotto può avere due entries nel listino (una con prezzo=0).
+      // Preferisce sempre quella con prezzo > 0.
+      const prAll  = prices.filter(p=>p.productId===prod.id&&p.branch===branch&&p.month===month);
+      const pr     = prAll.find(p=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0) || prAll[0]
                   || (branch === "CAN" ? null
                     : (prod.nHK && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.nHK&&(p.branch||p.b)===branch))
                       || (!prod.nHK && prod.code && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.code&&(p.branch||p.b)===branch)));
-      const prPrev = prices.find(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
+      const prPrevAll = prices.filter(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
+      const prPrev = prPrevAll.find(p=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0) || prPrevAll[0];
 
       const ub = log.ubicazione;
       const effectiveProd = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
@@ -2049,7 +2053,11 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         });
       }
       
-      if(idx >= 0) updated[idx] = entry;
+      // Doppia codifica: non sovrascrivere un prezzo reale con una riga a prezzo zero
+      const newHasPrice = (entry.dapFinal||entry.dapPrice||entry.fcaDiscounted||entry.fcaPrice||0) > 0;
+      const prevHasPrice = prev && (prev.dapFinal||prev.dapPrice||prev.fcaDiscounted||prev.fcaPrice||0) > 0;
+      if(idx >= 0 && (!newHasPrice && prevHasPrice)) { /* skip: la riga a prezzo 0 non sovrascrive */ }
+      else if(idx >= 0) updated[idx] = entry;
       else updated.push(entry);
       count++;
     });
