@@ -6648,7 +6648,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const ifbNo = isCAN
         ? (nComitFromIfb2 || nFiliale)
         : (xrefByNFiliale[nFiliale] || ifbFromNComit2 || nFiliale);
-      const sameCode = ifbNo===nFiliale || !nComitFromIfb2 && isCAN;
+      // CAN: ifbFromNComit2 = IFB code quando sCode è N COMIT numerico (es. "4141" → "MT310")
+      const resolvedIFB = isCAN ? (ifbFromNComit2 || (nComitFromIfb2 ? nFiliale : "")) : "";
+      const sameCode = isCAN ? (ifbNo === (ifbFromNComit2 || nFiliale)) : (ifbNo===nFiliale);
       // Chiave canonica = N COMIT numerico se disponibile, altrimenti IFB code
       // Questo risolve doppia codifica (es. MT314 e 4144 = stesso item): sempre il numero vince
       const isNumeric = (s:string) => /^\d+$/.test(s);
@@ -6656,13 +6658,16 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const canonicalKey = numericNComit || ifbNo || nFiliale;
       if(seen.has(canonicalKey)) continue;
       seen.add(canonicalKey);
-      const prod     = (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale);
+      // CAN: sCode può essere N COMIT (es. "4141") → cerca anche via findProduct (usa p.nHK) e via IFB risolto
+      const prod = findProduct(sCode, products, xrefs)
+        || findProduct(resolvedIFB, products, xrefs)
+        || (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale||p.code===resolvedIFB);
       // Salta righe non-articolo (FREIGHT, servizi, ecc.) — non in anagrafica e senza cost row
-      if(!prod && !costMap[ifbNo] && !costMap[nFiliale]) continue;
+      if(!prod && !costMap[ifbNo] && !costMap[nFiliale] && !costMap[resolvedIFB]) continue;
       const scEntry = isCAN
         ? (scMap[sCode] || scMap[nComitFromIfb2] || scMap[ifbFromNComit2] || scMap[prod?.code||""] || scMap[ifbNo])
         : (scMap[prod?.nHK||""] || scMap[sCode] || scMap[prod?.code||""] || scMap[ifbNo]);
-      const cr       = costMap[ifbNo] || costMap[nFiliale];
+      const cr = costMap[ifbNo] || costMap[nFiliale] || (isCAN ? (costMap[resolvedIFB] || costMap[prod?.code||""]) : null);
       // Escludi NON FOOD CAN (HO.RE.CA. SUPPLY)
       if(isCAN && /^HO\.RE\.CA\./i.test(String(prod?.category||""))) continue;
       const logEntry = prod ? logMap[String(prod.id)] : null;
@@ -6682,7 +6687,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       // isNuovo = NUOVI ARTICOLI: newSC calcolato presente, ma oldSC (SC BC/NAV) assente
       const isNuovo  = newSC>0 && oldSC===0 && !isKeepOld;
       rows.push({
-        nFiliale, ifbNo, sameCode,
+        nFiliale: (isCAN && resolvedIFB && resolvedIFB!==nFiliale) ? resolvedIFB : nFiliale,
+        ifbNo, sameCode,
         description: cr?.description || inv.description || "",
         oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
         skipReason: cr?.skipReason || "",
