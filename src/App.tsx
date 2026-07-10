@@ -6754,17 +6754,21 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         || (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale||p.code===resolvedIFB);
       // Salta righe non-articolo (FREIGHT, servizi, ecc.) — non in anagrafica e senza cost row
       if(!prod && !costMap[ifbNo] && !costMap[nFiliale] && !costMap[resolvedIFB]) continue;
-      // CAN: se il prodotto è trovato in anagrafica con entrambi i codici, usali direttamente
-      // (più affidabile della sola xref lookup che può fallire per formato/spazi)
-      const finalNFiliale = isCAN && prod?.code && prod?.nHK && String(prod.code)!==String(prod.nHK)
-        ? String(prod.code)
+      // CAN: risolvi coppia N COMIT + IFB No con fallback a cascata:
+      // 1. prod.nHK diretto  2. xref via prod.code  3. xref via sCode (nComitFromIfb2/ifbFromNComit2)
+      const resolvedNComit = isCAN
+        ? (prod?.nHK ? String(prod.nHK)
+          : prod?.code ? (String(xrefByIfbNoPreferNumeric(prod.code)?.nHK||"") || nComitFromIfb2)
+          : nComitFromIfb2)
+        : "";
+      const resolvedIFBCode = isCAN
+        ? (prod?.code || ifbFromNComit2 || resolvedIFB)
+        : "";
+      const hasDualCAN = isCAN && resolvedNComit && resolvedIFBCode && resolvedNComit !== resolvedIFBCode;
+      const finalNFiliale = hasDualCAN ? resolvedIFBCode
         : (isCAN && resolvedIFB && resolvedIFB!==nFiliale) ? resolvedIFB : nFiliale;
-      const finalIfbNo = isCAN && prod?.code && prod?.nHK && String(prod.code)!==String(prod.nHK)
-        ? String(prod.nHK)
-        : ifbNo;
-      const finalSameCode = isCAN && prod?.code && prod?.nHK && String(prod.code)!==String(prod.nHK)
-        ? false
-        : sameCode;
+      const finalIfbNo = hasDualCAN ? resolvedNComit : ifbNo;
+      const finalSameCode = hasDualCAN ? false : sameCode;
       const scEntry = isCAN
         ? (scMap[sCode] || scMap[nComitFromIfb2] || scMap[ifbFromNComit2] || scMap[prod?.code||""] || scMap[finalIfbNo])
         : (scMap[prod?.nHK||""] || scMap[sCode] || scMap[prod?.code||""] || scMap[finalIfbNo]);
