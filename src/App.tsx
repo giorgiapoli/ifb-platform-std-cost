@@ -3287,7 +3287,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                         <td style={{padding:"7px 12px"}}>
                           <select value={l.area||"NORD"} onChange={e=>update(prod.id,"area",e.target.value)}
                             style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"80px"}}>
-                            {["NORD","CENTRO","SUD"].map(v=><option key={v} value={v}>{v}</option>)}
+                            {(branch==="CAN"?["NORD","SUD"]:["NORD","CENTRO","SUD"]).map(v=><option key={v} value={v}>{v}</option>)}
                           </select>
                         </td>
                         {branch==="CAN"&&<td style={{padding:"7px 12px"}}>
