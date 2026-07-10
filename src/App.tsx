@@ -1055,12 +1055,14 @@ export default function App() {
             // Listino chiuso: usa SC da scAttuali come KEEP OLD
             const scEntry = scAttuali.find((s:any) =>
               s.code === prod.code ||
-              s.code === String(prod.id) ||
-              (branch === "CAN" && s.code === prod.nHK)
+              s.code === prod.nHK ||
+              s.ifbCode === prod.code ||
+              s.ifbCode === prod.nHK ||
+              s.code === String(prod.id)
             );
-            // CAN: usa scGranCanaria come riferimento keep old (lastSC=0 nel report NAV)
+            // CAN: usa scGC come riferimento keep old
             const keepOldVal = branch === "CAN"
-              ? (scEntry?.scGranCanaria || scEntry?.scLanzarote || scEntry?.lastSC || 0)
+              ? (scEntry?.scGC || scEntry?.scLan || scEntry?.lastSC || 0)
               : (scEntry?.lastSC || 0);
             if(scEntry && keepOldVal > 0) {
               const isCAN_b2 = branch === "CAN";
@@ -5201,16 +5203,16 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
   const scAttualiMap=useMemo(()=>{
     const m: Record<string,any>={};
-    // Indice primario: qualunque codice è in rec.code (N COMIT per CAN, N HK per HK)
+    // Indice primario: rec.code (N COMIT per CAN, N HK per HK)
     (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) m[String(r.code)]=r; });
-    // Alias bidirezionale tramite xref: aggiunge sia IFB code che N COMIT come chiavi
+    // CAN: ifbCode salvato direttamente nel record — aggiungilo come chiave diretta
+    (scAttuali||[]).forEach((r:any)=>{ if(r.ifbCode) { const k=String(r.ifbCode); if(!m[k]) m[k]=r; } });
+    // Alias bidirezionale tramite xref
     (scAttuali||[]).forEach((rec:any)=>{
       if(rec.code==null) return;
       const k = String(rec.code);
-      // rec.code = N COMIT → alias IFB code (exact: nHK===k)
       const xrByNHK=(xrefs||[]).find((x:any)=>String(x.nHK)===k);
       if(xrByNHK?.ifbNo){ const ak=String(xrByNHK.ifbNo); if(!m[ak]) m[ak]=rec; }
-      // rec.code = IFB code → alias N COMIT (prefer numeric nHK)
       const xrByIfb=xrefByIfbNoPreferNumeric(k);
       if(xrByIfb?.nHK){ const ak=String(xrByIfb.nHK); if(!m[ak]) m[ak]=rec; }
     });
@@ -6375,11 +6377,13 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 
   const isHKReport = branch !== "CAN";
   const viewRows = selEntry ? selEntry.rows : (step==="preview" ? preview : scAttuali);
-  const displayed = viewRows.filter((r:any)=>
-    !search ||
-    String(r.code||"").toLowerCase().includes(search.toLowerCase()) ||
-    String(r.description||"").toLowerCase().includes(search.toLowerCase())
-  );
+  const displayed = viewRows.filter((r:any)=>{
+    if(!search) return true;
+    const q = search.toLowerCase();
+    return String(r.code||"").toLowerCase().includes(q)
+      || String(r.ifbCode||"").toLowerCase().includes(q)
+      || String(r.description||"").toLowerCase().includes(q);
+  });
 
   function renderTable(rows: any[]) {
     return (
@@ -6587,10 +6591,12 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     return m;
   },[costRows]);
 
-  // scMap con alias bidirezionali IFB↔N COMIT via xref (stesso algoritmo di scAttualiMap nel padre)
+  // scMap con alias bidirezionali IFB↔N COMIT via xref + ifbCode diretto
   const scMap = useMemo(()=>{
     const m: Record<string,any>={};
     (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) m[String(r.code)]=r; });
+    // CAN: ifbCode salvato direttamente nel record
+    (scAttuali||[]).forEach((r:any)=>{ if(r.ifbCode) { const k=String(r.ifbCode); if(!m[k]) m[k]=r; } });
     (scAttuali||[]).forEach((rec:any)=>{
       if(rec.code==null) return;
       const k=String(rec.code);
