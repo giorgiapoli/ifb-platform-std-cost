@@ -3208,7 +3208,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto"]:[]),...(branch!=="CAN"?["Cert."]:[]),"Alcol >30°",...(branch!=="CAN"?["Carriage"]:[]),"Conv.",""].map(c=>(
+              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto","GC","TF","FUE","LAN"]:[]),...(branch!=="CAN"?["Cert."]:[]),"Alcol >30°",...(branch!=="CAN"?["Carriage"]:[]),"Conv.",""].map(c=>(
                 <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
               ))}
               </tr>
@@ -3232,6 +3232,11 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                         <td style={{padding:"7px 12px"}}><Chip label={l.ubicazione||"—"} color={l.ubicazione==="FOR"?T.purple:l.ubicazione==="MTS"?T.blue:T.green}/></td>
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.area||"—"}</td>
                         {branch==="CAN"&&<td style={{padding:"7px 12px"}}><Chip label={l.transport||"GOMMA"} color={l.transport==="MARE"?T.blue:T.muted}/></td>}
+                        {branch==="CAN"&&<>
+                          {(["isGC","isTF","isFUE","isLAN"] as const).map(k=>(
+                            <td key={k} style={{padding:"4px 8px",textAlign:"center",fontSize:"13px"}}>{l[k]?"✓":"—"}</td>
+                          ))}
+                        </>}
                         {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasCert?"Sì":"No"}</td>}
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
                         {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>}
@@ -3258,6 +3263,13 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                             {["GOMMA","MARE"].map(v=><option key={v} value={v}>{v}</option>)}
                           </select>
                         </td>}
+                        {branch==="CAN"&&(["isGC","isTF","isFUE","isLAN"] as const).map(k=>(
+                          <td key={k} style={{padding:"4px 8px",textAlign:"center"}}>
+                            <input type="checkbox" checked={!!l[k]}
+                              onChange={e=>update(prod.id,k,e.target.checked)}
+                              style={{width:"16px",height:"16px",cursor:"pointer",accentColor:T.gold}}/>
+                          </td>
+                        ))}
                         {branch!=="CAN"&&<td style={{padding:"7px 12px"}}>
                           <select value={String(l.hasCert||false)} onChange={e=>update(prod.id,"hasCert",e.target.value)}
                             style={{background:T.card,color:T.text,border:`1px solid ${T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px",width:"60px"}}>
