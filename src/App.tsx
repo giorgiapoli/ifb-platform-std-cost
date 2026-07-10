@@ -1868,10 +1868,10 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         // Auto-mapping dei campi (solo quelli necessari)
         const am = {};
 
-        // Mappa il codice filiale (N HK / N COMIT) → "code"
-        const branchCodeAliases = ["n hk", "nhk", "n comit", "ncomit", "comit", "n canarie", "ncanarie", "n. comit"];
+        // Mappa il codice filiale (N HK / N COMIT / No_) → "code"
+        const branchCodeAliases = ["n hk", "nhk", "n comit", "ncomit", "comit", "n canarie", "ncanarie", "n. comit", "no_", "no.", "item no."];
         // Mappa il codice IFB → "ifbCode" (secondo campo opzionale per fallback lookup)
-        const ifbCodeAliases = ["ifb item", "ifb no", "ifb n", "no_", "item no.", "codice ifb", "ifb code"];
+        const ifbCodeAliases = ["ifb item", "ifb no", "ifb n", "codice ifb", "ifb code"];
 
         for(const h of hdrs) {
           const hl = h.toLowerCase().trim();
