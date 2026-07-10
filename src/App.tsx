@@ -274,8 +274,10 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   const fLAN = r2(freightPerIsland("LAN")), iLAN = r2(inlandPerIsland("LAN")), bLAN = r2(barcPerIsland("LAN"));
   const transpGC  = fGC  + iGC  + vbE + bGC  + asE;
   const transpLAN = fLAN + iLAN + vbE + bLAN + asE;
-  const aGC  = r2((pE + transpGC)  * aiemPct);
-  const aLAN = r2((pE + transpLAN) * aiemPct);
+  // Base AIEM: AL + IF(MARE, AM+AU, BC+BE) — senza assicurazione
+  // MARE: fGC+iGC>0, vbE=bGC=0; GOMMA: fGC=iGC=0, vbE+bGC>0
+  const aGC  = r2((pE + fGC  + iGC  + vbE + bGC)  * aiemPct);
+  const aLAN = r2((pE + fLAN + iLAN + vbE + bLAN) * aiemPct);
 
   const isTakochef = String(vendorName2||"").toUpperCase().includes("TAKOCHEF");
   for (const isl of CAN_ISLANDS) {
