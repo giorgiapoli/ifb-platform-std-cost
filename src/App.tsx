@@ -6825,9 +6825,10 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     for (const inv of monthRows) {
       const nFiliale = inv.itemCode;
       if(!nFiliale) continue;
-      // Escludi SAMPLE (price=0), AIR
+      // Escludi SAMPLE (price=0), AIR, FREIGHT
       if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
       if(inv.transport==="AIR") continue;
+      if(/^FREIGHT$/i.test(String(nFiliale))) continue;
       const sCode = String(nFiliale);
       // Risolvi xref bidirezionale
       const nComitFromIfb2 = isCAN ? String(xrefByIfbNoPreferNumeric(sCode)?.nHK||"") : "";
@@ -6878,8 +6879,11 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       // Escludi NON FOOD CAN (HO.RE.CA. SUPPLY)
       if(isCAN && /^HO\.RE\.CA\./i.test(String(prod?.category||""))) continue;
       const logEntry = prod ? logMap[String(prod.id)] : null;
-      const lastOrderRaw2 = logEntry?.lastOrderDate || inv.date || inv.postingDate;
-      const lastOrderD = lastOrderRaw2 ? new Date(toIsoDate(lastOrderRaw2)) : null;
+      const invDateStr  = toIsoDate(inv.date || inv.postingDate || "");
+      const logDateStr  = logEntry?.lastOrderDate ? toIsoDate(logEntry.lastOrderDate) : "";
+      // Prendi la data più recente tra logistica e fattura (se logistica è vecchia, la fattura recente vince)
+      const lastOrderRaw2 = (!logDateStr || (invDateStr && invDateStr > logDateStr)) ? invDateStr : logDateStr;
+      const lastOrderD = lastOrderRaw2 ? new Date(lastOrderRaw2) : null;
       const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
       // Usa island flags dalla logistica: default GC/TF se entry mancante (isola principale)
       const destGCTF_cm   = !logEntry || logEntry.isGC || logEntry.isTF;
@@ -6933,8 +6937,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     ];
     const data = all.map((r:any)=>({
       "Tipo":        r.tipo,
-      "N COMIT":     isCAN ? (r.sameCode ? (isNumCode(r.nFiliale) ? r.nFiliale : "") : r.ifbNo) : r.nFiliale,
-      "IFB No":      isCAN ? (r.sameCode ? (isNumCode(r.nFiliale) ? "" : r.nFiliale) : r.nFiliale) : r.ifbNo,
+      "N COMIT":     isCAN ? (r.sameCode ? r.nFiliale : r.ifbNo) : r.nFiliale,
+      "IFB No":      isCAN ? r.nFiliale : r.ifbNo,
       "Descrizione": r.description,
       "Old SC":      r.oldSC>0 ? Number(r.oldSC.toFixed(2)) : "",
       "New SC":      r.newSC>0 ? Number(r.newSC.toFixed(2)) : "",
@@ -6960,9 +6964,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const tdCodes = (r:any) => hasDualCode
     ? isCAN
       ? r.sameCode
-        ? isNumCode(r.nFiliale)
-          ? <>{tdC(r.nFiliale)}{tdC("")}</>
-          : <>{tdC("")}{tdC(r.nFiliale)}</>
+        ? <>{tdC(r.nFiliale)}{tdC(r.nFiliale)}</>
         : <>{tdC(r.ifbNo)}{tdC(r.nFiliale)}</>
       : <>{tdC(r.nFiliale)}{tdC(r.sameCode?"":r.ifbNo)}</>
     : tdC(r.nFiliale);

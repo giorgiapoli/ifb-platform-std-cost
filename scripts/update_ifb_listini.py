@@ -34,7 +34,7 @@ TEMP_NORM = {
 CUSTOMERS = {
     "HK":  "40000854",
     "CAN": "40000175",
-    "MAC": "40001358",
+    # MAC escluso: SC Macao si calcola da BrightView Standard_Cost, non da listini IFB
 }
 
 
@@ -817,7 +817,7 @@ if __name__ == "__main__":
                 row = compute_row(branch, code, slots, purch, item_card, transport_costs, iss_carriage, vendor_carriage_map, ifb_item_carriage, uom_conv.get(code, {}), nhk_uom=nhk_uom_v, nhk_code=nhk_code_v)
                 all_rows.append(row)
 
-    print(f"\nTotale {len(all_rows)} righe listino (HK+CAN+MAC)")
+    print(f"\nTotale {len(all_rows)} righe listino (HK+CAN)")
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
 
