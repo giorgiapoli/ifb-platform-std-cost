@@ -31,7 +31,7 @@ def get_xref_data(token):
     url = (
         f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV}"
         f"/ODataV4/Company('{BC_COMPANY}')/Item_Card_Excel"
-        f"?$select=No,AltICMIFB_Item&$top=5000"
+        f"?$top=5000"
     )
     results = []
     while url:
