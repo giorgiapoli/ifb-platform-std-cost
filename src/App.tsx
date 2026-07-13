@@ -6886,36 +6886,35 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const lastOrderRaw2 = (!logDateStr || (invDateStr && invDateStr > logDateStr)) ? invDateStr : logDateStr;
       const lastOrderD = lastOrderRaw2 ? new Date(lastOrderRaw2) : null;
       const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
-      // Usa island flags dalla logistica: default GC/TF se entry mancante (isola principale)
-      const destGCTF_cm   = !logEntry || logEntry.isGC || logEntry.isTF;
-      const destLANFUE_cm = !logEntry || logEntry.isLAN || logEntry.isFUE;
-      const oldSC    = isCAN
-        ? (destGCTF_cm
-            ? (scEntry?.scGC || scEntry?.lastSC || 0)
-            : (scEntry?.scLan || scEntry?.lastSC || 0))
-        : (scEntry?.lastSC || 0);
-      const newSC    = isCAN
-        ? (destGCTF_cm
-            ? (cr?.cost?.step2GC || cr?.cost?.step2Eur || 0)
-            : (cr?.cost?.step2LAN || cr?.cost?.step2Eur || 0))
-        : (cr?.cost?.step2Hkd || 0);
-      const deltaAbs = oldSC>0 ? newSC-oldSC : 0;
-      const deltaPct = oldSC>0 ? deltaAbs/oldSC*100 : 0;
-      // noCalc = DA INSERIRE: newSC non calcolabile (manca logistica, prezzo zero, ecc.) — indipendentemente da oldSC
+      // CAN: calcola sempre entrambe le destinazioni GC/TF e FUE/LAN
+      const oldScGC  = isCAN ? (scEntry?.scGC  || scEntry?.lastSC || 0) : 0;
+      const oldScLan = isCAN ? (scEntry?.scLan || scEntry?.lastSC || 0) : 0;
+      const newScGC  = isCAN ? (cr?.cost?.step2GC  || cr?.cost?.step2Eur || 0) : 0;
+      const newScLan = isCAN ? (cr?.cost?.step2LAN || cr?.cost?.step2Eur || 0) : 0;
+      const deltaPctGC  = isCAN && oldScGC>0  ? (newScGC -oldScGC )/oldScGC *100 : 0;
+      const deltaPctLan = isCAN && oldScLan>0 ? (newScLan-oldScLan)/oldScLan*100 : 0;
+      // Per compatibilità HK: oldSC/newSC/deltaPct singoli
+      const oldSC   = isCAN ? (oldScGC  || oldScLan)  : (scEntry?.lastSC || 0);
+      const newSC   = isCAN ? (newScGC  || newScLan)  : (cr?.cost?.step2Hkd || 0);
+      const deltaPct = isCAN ? (oldScGC>0 ? deltaPctGC : deltaPctLan) : (oldSC>0?(newSC-oldSC)/oldSC*100:0);
+      // noCalc = DA INSERIRE: newSC non calcolabile
       const noCalc   = newSC===0 && !isKeepOld;
-      // isNuovo = NUOVI ARTICOLI: newSC calcolato presente, ma oldSC (SC BC/NAV) assente
+      // isNuovo = NUOVI ARTICOLI: newSC calcolato, oldSC assente
       const isNuovo  = newSC>0 && oldSC===0 && !isKeepOld;
+      const isDeltaGC  = isCAN && oldScGC>0  && newScGC>0  && Math.abs(deltaPctGC) >threshold && !isKeepOld;
+      const isDeltaLan = isCAN && oldScLan>0 && newScLan>0 && Math.abs(deltaPctLan)>threshold && !isKeepOld;
       rows.push({
         nFiliale: finalNFiliale,
         ifbNo: finalIfbNo, sameCode: finalSameCode,
         description: cr?.description || inv.description || "",
         oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
+        oldScGC, oldScLan, newScGC, newScLan, deltaPctGC, deltaPctLan,
         skipReason: cr?.skipReason || "",
         lastDate: toIsoDate(scEntry?.lastPurchaseDate || inv.date || inv.postingDate || ""),
         stockQty: scEntry?.stockQty ?? "",
         isKeepOld,
         isNuovo,
-        isDelta:  oldSC>0 && newSC>0 && Math.abs(deltaPct)>threshold && !isKeepOld,
+        isDelta: isCAN ? (isDeltaGC || isDeltaLan) : (oldSC>0 && newSC>0 && Math.abs(deltaPct)>threshold && !isKeepOld),
         isKeepOldOrdered: isKeepOld,
       });
     }
@@ -6941,9 +6940,18 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       "N COMIT":     isCAN ? (r.sameCode ? r.nFiliale : r.ifbNo) : r.nFiliale,
       "IFB No":      isCAN ? r.nFiliale : r.ifbNo,
       "Descrizione": r.description,
-      "Old SC":      r.oldSC>0 ? Number(r.oldSC.toFixed(2)) : "",
-      "New SC":      r.newSC>0 ? Number(r.newSC.toFixed(2)) : "",
-      "Delta %":     r.oldSC>0 ? (r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%" : "",
+      ...(isCAN ? {
+        "Old SC GC/TF":   r.oldScGC>0  ? Number(r.oldScGC.toFixed(2))  : "",
+        "Old SC FUE/LAN": r.oldScLan>0 ? Number(r.oldScLan.toFixed(2)) : "",
+        "New SC GC/TF":   r.newScGC>0  ? Number(r.newScGC.toFixed(2))  : "",
+        "New SC FUE/LAN": r.newScLan>0 ? Number(r.newScLan.toFixed(2)) : "",
+        "Δ% GC/TF":  r.oldScGC>0  ? (r.deltaPctGC>0?"+":"")+r.deltaPctGC.toFixed(2)+"%" : "",
+        "Δ% FUE/LAN":r.oldScLan>0 ? (r.deltaPctLan>0?"+":"")+r.deltaPctLan.toFixed(2)+"%" : "",
+      } : {
+        "Old SC":  r.oldSC>0 ? Number(r.oldSC.toFixed(2)) : "",
+        "New SC":  r.newSC>0 ? Number(r.newSC.toFixed(2)) : "",
+        "Delta %": r.oldSC>0 ? (r.deltaPct>0?"+":"")+r.deltaPct.toFixed(2)+"%" : "",
+      }),
       "Last Date":   r.lastDate,
       "Stock Qty":   r.stockQty,
     }));
@@ -7068,15 +7076,23 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC in macchina vs SC calcolato: variazione oltre la soglia.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Ult. Fattura"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/>
+                {isCAN ? <><TH h="Old SC GC/TF"/><TH h="Old SC FUE/LAN"/><TH h="New SC GC/TF"/><TH h="New SC FUE/LAN"/><TH h="Δ% GC"/><TH h="Δ% LAN"/></> : <><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/></>}
+                <TH h="Ult. Fattura"/></tr></thead>
               <tbody>
                 {alert2.length===0
-                  ? <tr><td colSpan={6+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  ? <tr><td colSpan={8+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
                   : alert2.map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:r.deltaPct>0?`${T.orange}07`:`${T.red}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
-                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
-                      {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}{tdM(r.lastDate)}
+                      {isCAN ? <>
+                        {tdSC(r.oldScGC)}{tdSC(r.oldScLan)}{tdSC(r.newScGC)}{tdSC(r.newScLan)}
+                        {tdDp(r.deltaPctGC,r.oldScGC)}{tdDp(r.deltaPctLan,r.oldScLan)}
+                      </> : <>
+                        <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
+                        {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}
+                      </>}
+                      {tdM(r.lastDate)}
                     </tr>
                   ))}
               </tbody>
@@ -7089,15 +7105,23 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Non ordinati da &gt;180 giorni ma presenti nelle fatture di questo mese — SC probabilmente da aggiornare.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/>
+                {isCAN ? <><TH h="Old SC GC/TF"/><TH h="Old SC FUE/LAN"/><TH h="New SC GC/TF"/><TH h="New SC FUE/LAN"/><TH h="Δ% GC"/><TH h="Δ% LAN"/></> : <><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/></>}
+                <TH h="Stock"/><TH h="Last Date"/></tr></thead>
               <tbody>
                 {alert3.length===0
-                  ? <tr><td colSpan={7+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  ? <tr><td colSpan={9+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
                   : alert3.map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.purple}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
-                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
-                      {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
+                      {isCAN ? <>
+                        {tdSC(r.oldScGC)}{tdSC(r.oldScLan)}{tdSC(r.newScGC)}{tdSC(r.newScLan)}
+                        {tdDp(r.deltaPctGC,r.oldScGC)}{tdDp(r.deltaPctLan,r.oldScLan)}
+                      </> : <>
+                        <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
+                        {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}
+                      </>}
+                      {tdM(r.stockQty)}{tdM(r.lastDate)}
                     </tr>
                   ))}
               </tbody>
