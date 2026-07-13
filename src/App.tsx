@@ -5532,9 +5532,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.ifbNo?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
-  if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
+  if(!search&&!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
   if(excludeSample) displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
-  if(filterMotivo!=="non-food") displayed=displayed.filter(r=>r.skipReason!=="NON FOOD");
+  if(!search&&filterMotivo!=="non-food") displayed=displayed.filter(r=>r.skipReason!=="NON FOOD");
   displayed=displayed.filter(r=>r.itemCode!=="ITEM"&&r.itemCode!=="item");
   if(excludeKeepOld) displayed=displayed.filter(r=>!r.isKeepOld);
   if(filterDeltaPct!=="all"){
