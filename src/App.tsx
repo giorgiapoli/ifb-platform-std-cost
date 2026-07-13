@@ -6931,7 +6931,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   },[monthRows, xrefByNFiliale, scMap, costMap, products, logMap, isCAN, threshold]);
 
   const alert1 = analysisRows.filter(r=>r.isNuovo);          // NUOVI ARTICOLI: newSC calcolato, oldSC assente
-  const alert2 = analysisRows.filter(r=>r.isDelta);          // TO UPDATE Δ%
+  const alert2 = analysisRows.filter(r=>r.isDelta).sort((a:any,b:any)=>{
+    const pa = isCAN ? a.deltaPctGC : a.deltaPct;
+    const pb = isCAN ? b.deltaPctGC : b.deltaPct;
+    if(pa>=0 && pb>=0) return pb-pa;      // entrambi positivi: decrescente
+    if(pa<0  && pb<0 ) return pa-pb;      // entrambi negativi: crescente (più negativo prima)
+    return pa>=0 ? -1 : 1;               // positivi prima dei negativi
+  });
   const alert3 = analysisRows.filter(r=>r.isKeepOldOrdered && !r.isNuovo);
   const alert4 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld); // DA INSERIRE: mancanti ma NON keep old
 
