@@ -1046,19 +1046,16 @@ export default function App() {
   const costRows = useMemo(()=>{
     if(!branch) return [];
 
-    // MAC: 5-step formula (ASSUNZIONI). SC BV viene da scAttuali BV (fallback: anagrafica standardCostHkd)
+    // MAC: 5-step formula (ASSUNZIONI).
+    // SC BV (HKD) viene direttamente da mac_anagrafica.json → standardCostHkd,
+    // che è già il join HOFF Macau × BrightView Standard_Cost fatto in update_mac_anagrafica.py.
     if (branch === "MAC") {
       const eligible = products.filter((p:any) => p.active !== false);
       return eligible.map((prod:any) => {
-        // Cerca SC BV in scAttuali (BV SC Attuali importati nella pagina SC Attuali)
-        const scEntry = scAttuali.find((s:any) =>
-          (prod.nHK && (String(s.code)===String(prod.nHK) || String(s.nHK)===String(prod.nHK) || String(s.ifbCode)===String(prod.nHK))) ||
-          (prod.code && (String(s.code)===String(prod.code) || String(s.nHK)===String(prod.code) || String(s.ifbCode)===String(prod.code)))
-        );
-        const scBvHkd = Number(scEntry?.lastSC) > 0 ? Number(scEntry.lastSC) : (Number(prod.standardCostHkd) || 0);
-        const isHoff = prod.isHoff ?? false;
-        const salesUomBv  = prod.hkUom  || "KG";
-        const salesUomMac = prod.uom || salesUomBv;
+        const scBvHkd    = Number(prod.standardCostHkd) || 0;
+        const isHoff     = prod.isHoff ?? false;
+        const salesUomBv  = prod.hkUom || "KG";
+        const salesUomMac = prod.uom   || salesUomBv;
         const macCost = calcMAC({
           scBvHkd, isHoff,
           salesUomBv, salesUomMac,
@@ -1070,7 +1067,7 @@ export default function App() {
         return {
           ...prod, id: prod.id||prod.code, code: prod.code, nHK: prod.nHK,
           description: prod.description, uom: salesUomMac,
-          isHoff, salesUomBv, salesUomMac, scBvHkd, scEntry: scEntry || null,
+          isHoff, salesUomBv, salesUomMac, scBvHkd,
           cost: macCost, prevCost: null,
         };
       });
