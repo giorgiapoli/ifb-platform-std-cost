@@ -5421,7 +5421,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const isSampleRow=r.unitPrice===0||r.unitPrice===0.01;
         const logEntry=prod?logistics?.find((l:any)=>l.productId===prod.id&&l.branch===branch):null;
         const skipReasonRaw=isAir?"AIR":isNonFoodCAN?"NON FOOD":isSampleRow?"SAMPLE":
-          cr?.skipReason||(!prod?"NON IN ANAGRAFICA":!cr&&!logEntry?"NO LOGISTICA":"");
+          cr?.skipReason||(!prod?"NON IN ANAGRAFICA":!cr?"NON IN LISTINO":!logEntry?"NO LOGISTICA":"");
         // Se "NO PREZZO" ma l'articolo appare in fattura → listino era aperto e poi chiuso
         const skipReason = skipReasonRaw?.includes("NO PREZZO") && soldItemCodes.has(String(r.itemCode||""))
           ? skipReasonRaw.replace("NO PREZZO","LISTINO CHIUSO E NON RIAPERTO")
@@ -5529,7 +5529,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(filterMotivo==="non-sample") displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
   else if(filterMotivo==="keep-old") displayed=displayed.filter(r=>r.isKeepOld===true);
   else if(filterMotivo==="non-food") displayed=displayed.filter(r=>r.skipReason==="NON FOOD");
-  if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
+  if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.ifbNo?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
   if(!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
@@ -6845,7 +6845,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     for (const inv of monthRows) {
       const nFiliale = inv.itemCode;
       if(!nFiliale) continue;
-      // Escludi SAMPLE (price=0), AIR, FREIGHT
+      // Escludi SAMPLE (price=0), AIR, FREIGHT, righe storno (qty<=0)
+      if(!inv.qty || inv.qty <= 0) continue;
       if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
       if(inv.transport==="AIR") continue;
       if(/^FREIGHT$/i.test(String(nFiliale))) continue;
@@ -6938,6 +6939,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       });
     }
     // Secondo passaggio: rimuovi eventuali duplicati rimasti (stesso nFiliale o stesso ifbNo)
+    // Ordina: righe con SC calcolato prima, così in caso di duplicato vince la riga buona
+    rows.sort((a:any,b:any)=>(b.newSC>0?1:0)-(a.newSC>0?1:0));
     const seen2 = new Set<string>();
     return rows.filter(r=>{
       const k1 = String(r.nFiliale||"");
