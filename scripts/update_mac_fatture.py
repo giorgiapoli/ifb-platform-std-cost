@@ -1,7 +1,7 @@
 """
 Aggiorna docs/data/mac_fatture.json con le fatture BrightView → MACAO da BC.
 Company: BRIGHT VIEW TRADING HK LIMITED (Production_HK).
-Clienti Macao: 40001358 (THE HOUSE OF FINE FOODS M...) e 40001359 (THE HOUSE OF FINE FOODS LTD).
+Clienti Macao in BC BrightView Sales Invoice Line: CUST-00715 e CUST-02012.
 Usato da GitHub Actions. CLIENT_SECRET letto da variabile d'ambiente BC_CLIENT_SECRET.
 """
 import os, json, requests
@@ -16,7 +16,7 @@ COMPANY       = "BRIGHT%20VIEW%20TRADING%20HK%20LIMITED"
 BASE          = f"https://api.businesscentral.dynamics.com/v2.0/{TENANT_ID}/{BC_ENV}/ODataV4/Company('{COMPANY}')"
 OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "mac_fatture.json"
 
-MAC_CUSTOMERS = ["40001358", "40001359"]
+MAC_CUSTOMERS = ["CUST-00715", "CUST-02012"]
 DATE_FROM     = (datetime.today() - timedelta(days=365)).strftime("%Y-%m-%d")
 
 
