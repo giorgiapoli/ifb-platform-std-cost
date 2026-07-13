@@ -4689,6 +4689,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             fontWeight:"bold",cursor:needsRecalc?"pointer":"not-allowed",fontSize:"12px",marginTop:"-8px"}}>
           {needsRecalc?"⟳ Ricalcola & Salva":"✓ Aggiornato"}
         </button>
+        {!isMAC && (
         <button onClick={()=>{ setListiniMode("bc"); reloadListini(); }}
           title="Ricarica listini prezzi da BC IFB e aggiorna tutti i calcoli"
           style={{padding:"7px 14px",background:listiniMode==="excel"?`${T.blue}22`:`${T.surface}`,
@@ -4696,6 +4697,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
             color:listiniMode==="excel"?T.blue:T.muted,cursor:"pointer",fontSize:"12px",marginTop:"-8px",whiteSpace:"nowrap"}}>
           {listiniMode==="excel" ? "📊 Excel attivo — 🔄 Aggiorna da BC" : "🔄 Aggiorna Listini da BC"}
         </button>
+        )}
         <button onClick={()=>exportXLSX(
           filtered.filter((r:any)=>r.cost).map((r:any)=> branch==="CAN" ? (()=>{
             const nComitVal = (xrefs||[]).find((x:any)=>x.ifbNo===r.code||x.ifbNo===r.nHK)?.nHK || r.nHK || "";
