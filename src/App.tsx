@@ -6851,8 +6851,11 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const prod = findProduct(sCode, products, xrefs)
         || findProduct(resolvedIFB, products, xrefs)
         || (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale||p.code===resolvedIFB);
-      // Salta righe non-articolo (FREIGHT, servizi, ecc.) — non in anagrafica e senza cost row
-      if(!prod && !costMap[ifbNo] && !costMap[nFiliale] && !costMap[resolvedIFB]) continue;
+      // Salta righe non-articolo (FREIGHT, servizi, ecc.) — non in anagrafica, senza cost row E senza xref
+      const hasXref = isCAN
+        ? !!(nComitFromIfb2 || ifbFromNComit2)
+        : !!xrefByNFiliale[nFiliale];
+      if(!prod && !costMap[ifbNo] && !costMap[nFiliale] && !costMap[resolvedIFB] && !hasXref) continue;
       // CAN: risolvi coppia N COMIT + IFB No con fallback a cascata:
       // 1. prod.nHK diretto  2. xref via prod.code  3. xref via sCode (nComitFromIfb2/ifbFromNComit2)
       const resolvedNComit = isCAN
