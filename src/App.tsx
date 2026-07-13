@@ -6825,9 +6825,10 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     for (const inv of monthRows) {
       const nFiliale = inv.itemCode;
       if(!nFiliale) continue;
-      // Escludi SAMPLE (price=0), AIR
+      // Escludi SAMPLE (price=0), AIR, FREIGHT
       if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
       if(inv.transport==="AIR") continue;
+      if(/^FREIGHT$/i.test(String(nFiliale))) continue;
       const sCode = String(nFiliale);
       // Risolvi xref bidirezionale
       const nComitFromIfb2 = isCAN ? String(xrefByIfbNoPreferNumeric(sCode)?.nHK||"") : "";
