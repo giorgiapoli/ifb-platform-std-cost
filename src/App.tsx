@@ -4520,6 +4520,7 @@ function FxRates({fx,setFx,branch,month}) {
 function CostTable({costRows,branch,month,logistics,lastImportTs,lastCalcTs,setLastCalcTs,
   setCostHistory,initFilter,salesRows=[],products=[],xrefs=[],listiniMode="bc",setListiniMode=(_:any)=>{},reloadListini=()=>{}}: any) {
 
+    const isMAC = branch === "MAC";
     const[search,setSearch]     = useState("");
     const[showDetail,setShowDetail] = useState<string|null>(null);
     const[invoiceOnly,setInvoiceOnly] = useState(false);
