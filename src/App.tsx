@@ -5443,11 +5443,13 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         const ifbFromNComit = branch==="CAN"
           ? (String((xrefs||[]).find((x:any)=>String(x.nHK)===sItemCode)?.ifbNo||""))
           : "";
+        // Preferisce sempre l'entry scAttuali che ha scGC/scLan valorizzati
+        const scaCandidates = branch==="CAN"
+          ? [scAttualiMap[sItemCode], scAttualiMap[nComitFromIfb], scAttualiMap[ifbFromNComit], scAttualiMap[prod?.code||""]]
+          : [];
         const scaRec = branch==="CAN"
-          ? (scAttualiMap[sItemCode]           // 1. N COMIT diretto
-             || scAttualiMap[nComitFromIfb]    // 2. N COMIT via xref (se itemCode era IFB)
-             || scAttualiMap[ifbFromNComit]    // 3. IFB code via xref (se itemCode era N COMIT)
-             || scAttualiMap[prod?.code||""])  // 4. IFB code da prodotto
+          ? (scaCandidates.find((r:any)=>r?.scGC!=null||r?.scLan!=null)
+             || scaCandidates.find(Boolean))  // fallback: primo trovato anche senza scGC
           : (scAttualiMap[prod?.nHK||""] || scAttualiMap[r.nHK||""] || scAttualiMap[prod?.code||""] || scAttualiMap[sItemCode]);
         const bcStdCost = branch==="CAN" ? null : (prod?.standardCostHkd || null);
         const deltaSC = branch==="CAN" ? null
