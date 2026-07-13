@@ -1,4 +1,4 @@
-﻿name: Update BC Data (HK)
+﻿name: Update BC Data (HK + MAC)
 
 on:
   workflow_dispatch:        # Solo trigger manuale dal tab Actions su GitHub
@@ -52,11 +52,21 @@ jobs:
           BC_CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
         run: python scripts/update_ifb_listini.py
 
+      - name: Update MAC Anagrafica (HOFF Macau)
+        env:
+          BC_CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
+        run: python scripts/update_mac_anagrafica.py
+
+      - name: Update MAC Fatture (BrightView → Macao)
+        env:
+          BC_CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
+        run: python scripts/update_mac_fatture.py
+
       - name: Commit and push JSON
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/data/hk_xref.json docs/data/hk_sc.json docs/data/hk_anagrafica.json docs/data/ifb_fatture.json docs/data/ifb_listini.json docs/data/ifb_listini_HK.json docs/data/ifb_listini_CAN.json docs/data/ifb_listini_MAC.json
+          git add docs/data/hk_xref.json docs/data/hk_sc.json docs/data/hk_anagrafica.json docs/data/ifb_fatture.json docs/data/ifb_listini.json docs/data/ifb_listini_HK.json docs/data/ifb_listini_CAN.json docs/data/ifb_listini_MAC.json docs/data/mac_anagrafica.json docs/data/mac_fatture.json
           if ! git diff --cached --quiet; then
             git commit -m "Auto-update BC data $(date +'%Y-%m-%d')"
             git pull --rebase origin main

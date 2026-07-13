@@ -16,11 +16,11 @@ OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "ifb_fatture.js
 # Ultimi 12 mesi
 DATE_FROM = (datetime.today() - timedelta(days=365)).strftime("%Y-%m-%d")
 
-# Clienti per branch
+# Clienti per branch (solo IFB Italia → filiali)
+# MAC escluso: le fatture MAC vengono da BC BrightView (update_mac_fatture.py)
 CUSTOMERS = {
     "HK":  "40000854",  # BRIGHT VIEW TRADING HK LIMITED
     "CAN": "40000175",  # COMERCIAL ITALIANA DE ALIMENTACION S.
-    "MAC": "40001358",  # THE HOUSE OF FINE FOODS (MACAO)
 }
 
 
