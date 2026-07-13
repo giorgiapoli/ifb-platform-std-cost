@@ -6823,6 +6823,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   },[logistics]);
 
   const [rollingDays, setRollingDays] = useState(30);
+  const [checkSearch, setCheckSearch] = useState("");
   const monthRows = useMemo(()=>{
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - rollingDays);
@@ -6947,6 +6948,14 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const alert5 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && r.skipReason==="PREZZO ZERO"); // DELISTATI
   const alert4 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && r.skipReason!=="PREZZO ZERO"); // DA INSERIRE: mancanti ma NON keep old
 
+  const checkFilter = (r:any) => {
+    if(!checkSearch.trim()) return true;
+    const q = checkSearch.trim().toLowerCase();
+    return String(r.nFiliale||"").toLowerCase().includes(q)
+      || String(r.ifbNo||"").toLowerCase().includes(q)
+      || String(r.description||"").toLowerCase().includes(q);
+  };
+
   function exportExcel() {
     const branchCode = isCAN?"COMIT":"HK";
     const today = new Date(); const monthFmt = `${today.getFullYear()}_${String(today.getMonth()+1).padStart(2,"0")}`;
@@ -7022,6 +7031,11 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
             <input type="number" value={threshold} onChange={e=>setThreshold(Number(e.target.value)||3)}
               min={0} max={50} step={0.5} style={{...inputStyle(),width:"80px"}}/>
           </div>
+          <div>
+            <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Cerca articolo</label>
+            <input placeholder="codice o descrizione…" value={checkSearch} onChange={e=>setCheckSearch(e.target.value)}
+              style={{...inputStyle(),minWidth:"200px"}}/>
+          </div>
           {scAttuali.length===0&&(
             <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>
               ⚠ SC Attuali non caricati
@@ -7059,9 +7073,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
               <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="New SC Calc"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
               <tbody>
-                {alert1.length===0
-                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
-                  : alert1.map((r:any,i:number)=>(
+                {alert1.filter(checkFilter).length===0
+                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert1.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
+                  : alert1.filter(checkFilter).map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.blue}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
                       {tdSC(r.newSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
@@ -7079,9 +7093,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
               <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC in macchina"/><TH h="Skip Reason"/><TH h="Last Date"/></tr></thead>
               <tbody>
-                {alert4.length===0
-                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
-                  : alert4.map((r:any,i:number)=>(
+                {alert4.filter(checkFilter).length===0
+                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert4.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
+                  : alert4.filter(checkFilter).map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.red}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
                       <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
@@ -7101,9 +7115,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
               <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC in macchina"/><TH h="Skip Reason"/><TH h="Last Date"/></tr></thead>
               <tbody>
-                {alert5.length===0
-                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
-                  : alert5.map((r:any,i:number)=>(
+                {alert5.filter(checkFilter).length===0
+                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert5.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
+                  : alert5.filter(checkFilter).map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.dim}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
                       <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
@@ -7125,9 +7139,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
                 {isCAN ? <><TH h="Old SC GC/TF"/><TH h="Old SC FUE/LAN"/><TH h="New SC GC/TF"/><TH h="New SC FUE/LAN"/><TH h="Δ% GC"/><TH h="Δ% LAN"/></> : <><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/></>}
                 <TH h="Ult. Fattura"/></tr></thead>
               <tbody>
-                {alert2.length===0
-                  ? <tr><td colSpan={8+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
-                  : alert2.map((r:any,i:number)=>(
+                {alert2.filter(checkFilter).length===0
+                  ? <tr><td colSpan={8+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert2.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
+                  : alert2.filter(checkFilter).map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:r.deltaPct>0?`${T.orange}07`:`${T.red}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
                       {isCAN ? <>
@@ -7154,9 +7168,9 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
                 {isCAN ? <><TH h="Old SC GC/TF"/><TH h="Old SC FUE/LAN"/><TH h="New SC GC/TF"/><TH h="New SC FUE/LAN"/><TH h="Δ% GC"/><TH h="Δ% LAN"/></> : <><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/></>}
                 <TH h="Stock"/><TH h="Last Date"/></tr></thead>
               <tbody>
-                {alert3.length===0
-                  ? <tr><td colSpan={9+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
-                  : alert3.map((r:any,i:number)=>(
+                {alert3.filter(checkFilter).length===0
+                  ? <tr><td colSpan={9+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert3.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
+                  : alert3.filter(checkFilter).map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.purple}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
                       {isCAN ? <>
