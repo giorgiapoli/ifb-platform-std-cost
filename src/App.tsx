@@ -5457,12 +5457,11 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         // Delta CAN: SC proposto (scGC/scFUE) vs SC Attuali (scBcGcTf/scBcFueLan)
         const deltaGC  = branch==="CAN" && scGC!=null && scBcGcTf!=null && scBcGcTf>0 ? scGC - scBcGcTf : null;
         const deltaFUE = branch==="CAN" && scFUE!=null && scBcFueLan!=null && scBcFueLan>0 ? scFUE - scBcFueLan : null;
-        // Δ% CAN: usa GC come riferimento; HK: usa prevCost se disponibile, altrimenti bcStdCost
-        // canPct: usa GC/TF come riferimento se prodotto va lì, altrimenti LAN/FUE
+        // Δ% CAN: sempre calcolato se i valori esistono (GC come primario, LAN/FUE come fallback)
         const canPct  = branch==="CAN"
-          ? (destGCTF && scBcGcTf!=null && scBcGcTf>0 && scGC!=null
+          ? (scGC!=null && scBcGcTf!=null && scBcGcTf>0
               ? (scGC-scBcGcTf)/scBcGcTf*100
-              : destLANFUE && scBcFueLan!=null && scBcFueLan>0 && scFUE!=null
+              : scFUE!=null && scBcFueLan!=null && scBcFueLan>0
                 ? (scFUE-scBcFueLan)/scBcFueLan*100
                 : null)
           : null;
