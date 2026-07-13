@@ -5404,7 +5404,9 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         // CAN: r.itemCode = N COMIT → xref → prod. Fallback: prova IFB code diretto
         const prod=findProduct(r.itemCode,products,xrefs)
           ||(branch==="CAN"?products?.find((p:any)=>p.code===r.itemCode)||null:null);
-        const cr=prod?costRows.find((c:any)=>c.id===prod.id):null;
+        // Preferisce costRow con costo valido (evita che un duplicato senza logistica mascheri quello valido)
+        const crAll=prod?costRows.filter((c:any)=>c.id===prod.id):[];
+        const cr=crAll.find((c:any)=>c.cost!==null)||crAll[0]||null;
         const isAir=branch!=="CAN"&&(r.transport==="AIR"||cr?.isAir===true||cr?.skipReason==="AIR");
         const locationIsNCJ=branch!=="CAN"&&String(r.location||"").toUpperCase().includes("NCJ");
         const mismatch=branch!=="CAN"&&((isAir&&!locationIsNCJ)||(!isAir&&locationIsNCJ));
