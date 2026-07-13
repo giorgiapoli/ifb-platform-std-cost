@@ -436,27 +436,81 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
 // ─── MACAO CONSTANTS & CALC ───────────────────────────────────────────────────
 const HKD_TO_MOP = 1.03;          // fixed exchange rate HKD → MOP
 const MAC_MARKUP = { hoff: 0.03, nonHoff: 0.10 };  // 3% HOFF, 10% non-HOFF
-// ALL-IN logistics cost per KG (MOP): BV Warehouse→HK Port + Ferry + Customs + Delivery Macao
-const MAC_LOG_PER_KG: any = { DRY: 3, FRESH: 5, FROZEN: 8 };
+// Logistics per KG (MOP): from ASSUNZIONI. VERDURA (VI*/VH*) replaces base rate with 8.
+const MAC_LOG_PER_KG: any = { DRY: 3, FRESH: 5, FROZEN: 8, VERDURA: 8 };
 
-function calcMAC({ hkCost, isHoff, macToHkConv = 1, temperature = "DRY", kgPerMacUom = 0 }: any) {
-  if (!hkCost?.step2Hkd) return null;
+// KG per Sales UOM BV (STEP 3) — from ASSUNZIONI
+function macKgPerBvUom(bvU: string, pcsgross: number, qty: number): number {
+  const u = bvU.toUpperCase();
+  if (u === "KG") return 1;
+  if (u === "PCS") return pcsgross;
+  if (u === "BOX" || u === "CTN") return pcsgross * qty;
+  if (u === "GR") return 0.001;
+  return pcsgross || 1;
+}
+
+// Fattore UOM (Sales UOM BV → Sales UOM MACAO, STEP 5) — from Excel formula col AB
+function macFattoreUom(bvU: string, macU: string, pcsgross: number, qty: number): number {
+  const b = bvU.toUpperCase(); const m = macU.toUpperCase();
+  if (b === "KG") {
+    if (m === "KG") return 1;
+    if (m === "PCS") return pcsgross > 0 ? 1 / pcsgross : 1;
+    if (m === "BOX" || m === "CTN") return (pcsgross * qty) > 0 ? 1 / (pcsgross * qty) : 1;
+    if (m === "GR") return 1000;
+  }
+  if (b === "PCS") {
+    if (m === "PCS") return 1;
+    if (m === "KG") return pcsgross;
+    if (m === "BOX" || m === "CTN") return qty > 0 ? 1 / qty : 1;
+    if (m === "GR") return pcsgross * 1000;
+  }
+  if (b === "BOX" || b === "CTN") {
+    if (m === "BOX" || m === "CTN") return 1;
+    if (m === "KG") return pcsgross * qty;
+    if (m === "PCS") return qty;
+    if (m === "GR") return pcsgross * qty * 1000;
+  }
+  if (b === "GR") {
+    if (m === "GR") return 1;
+    if (m === "KG") return 0.001;
+  }
+  return 1;
+}
+
+// 5-step MAC formula — exact replica of SC MACAO CALC Excel formulas
+function calcMAC({ scBvHkd, isHoff, salesUomBv = "KG", salesUomMac = "KG", pcsgrossweight = 0, quantityxpackaging = 1, producttype = "DRY", ifbCode = "" }: any) {
+  if (!scBvHkd || scBvHkd <= 0) return null;
   const markup = isHoff ? MAC_MARKUP.hoff : MAC_MARKUP.nonHoff;
-  const conv = Number(macToHkConv) > 0 ? Number(macToHkConv) : 1;
-  const hkNewSC = roundN(hkCost.step2Hkd,2);
-  const baseInMop = roundN(hkNewSC * conv * (1 + markup) * HKD_TO_MOP, 2);
-  // Costo logistico ALL-IN per MAC UOM (MOP/kg × kg per MAC UOM)
-  const logPerKg = MAC_LOG_PER_KG[String(temperature||"DRY").toUpperCase()] ?? 3;
-  const logPerUom = roundN(kgPerMacUom > 0 ? logPerKg * kgPerMacUom : logPerKg, 2);
-  const macNewSC = roundN(baseInMop + logPerUom, 2);
+  const bvU = String(salesUomBv || "KG").toUpperCase().trim();
+  const macU = String(salesUomMac || "KG").toUpperCase().trim();
+  const N = Number(pcsgrossweight) || 0;
+  const P = Math.max(Number(quantityxpackaging) || 1, 1);
+
+  // STEP 1+2: SC_BV × (1+markup) × 1.03 [MOP/Sales UOM BV]
+  const step2 = scBvHkd * (1 + markup) * HKD_TO_MOP;
+
+  // STEP 3: KG per Sales UOM BV → logistics per BV UOM
+  const kgPerBvUom = macKgPerBvUom(bvU, N, P);
+  const temp = String(producttype || "DRY").toUpperCase();
+  const isVerdura = String(ifbCode || "").toUpperCase().startsWith("VI") || String(ifbCode || "").toUpperCase().startsWith("VH");
+  const logRate = isVerdura ? MAC_LOG_PER_KG.VERDURA : (MAC_LOG_PER_KG[temp] ?? MAC_LOG_PER_KG.DRY);
+  const logPerBvUom = logRate * kgPerBvUom;
+
+  // STEP 4: Total [MOP/Sales UOM BV]
+  const totalPerBvUom = step2 + logPerBvUom;
+
+  // STEP 5: × Fattore UOM (BV→MAC) = SC MACAO FINALE [MOP/Sales UOM MACAO]
+  const fattore = macFattoreUom(bvU, macU, N, P);
+  const macNewSC = roundN(totalPerBvUom * fattore, 2);
+
   return {
-    hkNewSC, markup: markup * 100, isHoff, macNewSC, macToHkConv: conv,
-    baseInMop, logPerKg, logPerUom, temperature,
+    scBvHkd, markup: markup * 100, isHoff,
+    salesUomBv: bvU, salesUomMac: macU,
+    kgPerBvUom, logRate, isVerdura, logPerBvUom: roundN(logPerBvUom, 4),
+    step2: roundN(step2, 4), totalPerBvUom: roundN(totalPerBvUom, 4),
+    fattore, macNewSC,
     step2Hkd: macNewSC,
-    step2Eur: 0,
-    priceEur: hkCost.priceEur || 0,
-    unitsPerPlt: hkCost.unitsPerPlt || 0,
-    rate: HKD_TO_MOP,
+    step2Eur: 0, priceEur: 0, unitsPerPlt: 0, rate: HKD_TO_MOP,
   };
 }
 
@@ -952,38 +1006,31 @@ export default function App() {
   const costRows = useMemo(()=>{
     if(!branch) return [];
 
-    // MAC: calcola da standardCostHkd importato nel file anagrafica MAC
+    // MAC: 5-step formula (ASSUNZIONI). SC BV viene da scAttuali BV (fallback: anagrafica standardCostHkd)
     if (branch === "MAC") {
-      const eligible = products.filter((p:any) => p.active && p.standardCostHkd > 0);
+      const eligible = products.filter((p:any) => p.active !== false);
       return eligible.map((prod:any) => {
+        // Cerca SC BV in scAttuali (BV SC Attuali importati nella pagina SC Attuali)
+        const scEntry = scAttuali.find((s:any) =>
+          (prod.nHK && (String(s.code)===String(prod.nHK) || String(s.nHK)===String(prod.nHK) || String(s.ifbCode)===String(prod.nHK))) ||
+          (prod.code && (String(s.code)===String(prod.code) || String(s.nHK)===String(prod.code) || String(s.ifbCode)===String(prod.code)))
+        );
+        const scBvHkd = Number(scEntry?.lastSC) > 0 ? Number(scEntry.lastSC) : (Number(prod.standardCostHkd) || 0);
         const isHoff = prod.isHoff ?? false;
-        const macUom = prod.uom  || "";
-        const hkUom  = prod.hkUom || "";
-        // Conversione automatica UOM: se MAC vende a BOX e HK a PCS, conv = qtyPerBox
-        const uomDiffers = macUom && hkUom && macUom.toUpperCase() !== hkUom.toUpperCase();
-        let macToHkConv = 1;
-        if (uomDiffers) {
-          const hkU = hkUom.toUpperCase();
-          const mU  = macUom.toUpperCase();
-          const qty = Number(prod.qtyPerBox) || 1;
-          if (hkU==="PCS" && (mU==="BOX"||mU==="CTN")) macToHkConv = qty;
-          else if ((hkU==="BOX"||hkU==="CTN") && mU==="PCS") macToHkConv = 1/qty;
-        }
-        // kg per MAC UOM (per costo logistica ALL-IN)
-        // Se MAC vende a KG → 1; se a BOX → kgPerBox; se a PCS → kgPerBox/qtyPerBox
-        const mU = macUom.toUpperCase();
-        const kgPerMacUom = mU==="KG" ? 1
-          : mU==="BOX"||mU==="CTN" ? (Number(prod.kgPerBox)||0)
-          : mU==="PCS" ? (Number(prod.kgPerBox)||0) / Math.max(Number(prod.qtyPerBox)||1,1)
-          : 1;
-        const temperature = prod.temperature || "DRY";
-        // Base = standardCostHkd dal file MAC (costo FOB che Macao paga a HK)
-        const hkCostBase = { step2Hkd: prod.standardCostHkd, step2Eur:0, priceEur:0, unitsPerPlt:0, rate: HKD_TO_MOP };
-        const macCost = calcMAC({ hkCost: hkCostBase, isHoff, macToHkConv, temperature, kgPerMacUom });
+        const salesUomBv  = prod.hkUom  || "KG";
+        const salesUomMac = prod.uom || salesUomBv;
+        const macCost = calcMAC({
+          scBvHkd, isHoff,
+          salesUomBv, salesUomMac,
+          pcsgrossweight:     prod.pcsgrossweight || 0,
+          quantityxpackaging: prod.qtyPerBox      || 1,
+          producttype:        prod.temperature    || "DRY",
+          ifbCode:            prod.code           || "",
+        });
         return {
           ...prod, id: prod.id||prod.code, code: prod.code, nHK: prod.nHK,
-          description: prod.description, uom: macUom,
-          isHoff, macUom, hkUom, uomDiffers, macToHkConv,
+          description: prod.description, uom: salesUomMac,
+          isHoff, salesUomBv, salesUomMac, scBvHkd, scEntry: scEntry || null,
           cost: macCost, prevCost: null,
         };
       });
@@ -1217,8 +1264,8 @@ export default function App() {
     ...(!isCAN&&!isMAC ? [{id:"air", icon:"✈", label:"AIR Transport"}] : []),
     ...(!isMAC ? [{id:"exceptions", icon:"⚡", label:"Eccezioni Prezzi"}] : []),
     {id:"costs",      icon:"◆", label:"Standard Cost"},
-    ...(!isMAC ? [{id:"invoice", icon:"📋", label:"Fatture & Costi", badge:"⇪"}] : []),
-    ...(!isMAC ? [{id:"scattuali", icon:"📊", label:"SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined}] : []),
+    {id:"invoice", icon:"📋", label:"Fatture & Costi", badge:"⇪"},
+    {id:"scattuali", icon:"📊", label: isMAC ? "SC Attuali BV" : "SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
     ...(!isMAC ? [{id:"check", icon:"📅", label:"Check Mensile"}] : []),
     {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
@@ -4596,7 +4643,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
           sub={branch==="MAC"?`${calc.length} articoli · SC HKD × markup × ${HKD_TO_MOP} HKD/MOP`:`${filtered.length} articoli · ${calc.length} calcolati · INALCA F&B · SEA`}/>
       {branch==="MAC"&&costRows.length===0&&(
         <div style={{padding:"32px",textAlign:"center",color:T.muted,fontSize:"13px"}}>
-          ⚠ Nessun articolo MAC con Standard Cost. Vai in <strong>Anagrafica</strong> e importa il file Macao (con colonna <code>standardcost</code>).
+          ⚠ Nessun articolo MAC. Vai in <strong>Anagrafica</strong> e importa il file Macao. Per il calcolo SC, importa i BV SC Attuali nella pagina <strong>SC Attuali</strong> (oppure usa il campo <code>standardcost</code> nell'anagrafica come fallback).
         </div>
       )}
                 <button onClick={saveSnapshot} disabled={!needsRecalc}
@@ -4850,14 +4897,13 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                     <td style={{...cell(),textAlign:"center"}}>
                       <Chip label={r.isHoff?"HOFF":"NON-HOFF"} color={r.isHoff?T.orange:T.blue}/>
                     </td>
-                    <td style={cell(T.blue)}>{mc?`${mc.hkNewSC.toFixed(2)}`:"—"}</td>
-                    <td style={cell(T.dim)}>{mc?`+${mc.markup.toFixed(0)}%`:"—"}</td>
-                    <td style={cell(mc&&r.uomDiffers&&mc.macToHkConv===1?T.orange:T.green,true)}>
+                    <td style={cell(T.blue)}>{mc?`${(mc.scBvHkd||0).toFixed(2)}`:"—"}</td>
+                    <td style={cell(T.dim)}>{mc?`+${(mc.markup||0).toFixed(0)}%`:"—"}</td>
+                    <td style={cell(mc?T.green:T.dim,true)}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
                         {mc?<>
                           {`${mc.macNewSC.toFixed(2)}`}
-                          {mc.macToHkConv>1&&<span style={{fontSize:"8px",color:T.purple,marginLeft:"3px"}}>×{mc.macToHkConv}</span>}
-                          {r.uomDiffers&&mc.macToHkConv===1&&<span style={{fontSize:"8px",color:T.orange,marginLeft:"3px"}}>⚠UOM</span>}
+                          {mc.fattore&&mc.fattore!==1&&<span style={{fontSize:"8px",color:T.purple,marginLeft:"3px"}}>×{mc.fattore.toFixed(3)}</span>}
                         </>:<span style={{color:T.dim,fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                       </span>
                     </td>
@@ -4877,13 +4923,12 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                         <table style={{borderCollapse:"collapse"}}>
                           <tbody>
                             {[
-                              ["SC HK / FOB (HKD)",`HKD ${mc.hkNewSC.toFixed(4)}`,`Costo pagato da Macao a HK${mc.macToHkConv>1?` (per ${r.hkUom||"HK UOM"})`:""}`,T.blue],
-                              ...(mc.macToHkConv>1?[[`Conv. UOM (×${mc.macToHkConv})`,`HKD ${(mc.hkNewSC*mc.macToHkConv).toFixed(4)}`,`${r.hkUom||"HK UOM"} → ${r.macUom||"MAC UOM"}: × ${mc.macToHkConv}`,T.purple]]:[]),
-                              [`Markup ${r.isHoff?"HOFF":"non-HOFF"}`,`+ ${mc.markup.toFixed(0)}%`,r.isHoff?"HOFF (House of Fine Foods): +3%":"Non-HOFF: +10%",T.orange],
-                              ["Tasso HKD → MOP",`× ${HKD_TO_MOP}`,"Tasso di cambio fisso",T.muted],
-                              ["Base in MOP",`MOP ${mc.baseInMop?.toFixed(4)||"—"}`,`HKD ${mc.hkNewSC.toFixed(4)} × ${mc.macToHkConv>1?mc.macToHkConv+"×":""}${(1+mc.markup/100).toFixed(2)} × ${HKD_TO_MOP}`,T.muted],
-                              [`Logistica ALL-IN (${mc.temperature||"DRY"})`,`+ MOP ${mc.logPerUom?.toFixed(4)||"—"}`,`${mc.logPerKg} MOP/kg × ${(mc.logPerUom/mc.logPerKg||1).toFixed(3)} kg/${r.macUom||"UOM"} · include: BV Whs→HK Port, Ferry, Dogana, Consegna Macao`,T.blue],
-                              ["NEW SC MAC (MOP)",`MOP ${mc.macNewSC.toFixed(4)}`,`Base MOP + Logistica`,T.green],
+                              ["STEP 1 — SC BV (HKD)",`HKD ${(mc.scBvHkd||0).toFixed(4)}`,`SC BV ${r.salesUomBv||"KG"} ${r.scEntry?"(da SC Attuali BV)":"(da anagrafica — fallback)"}`,T.blue],
+                              [`STEP 2 — × (1+${mc.markup?.toFixed(0)||0}%) × 1.03`,`MOP ${(mc.step2||0).toFixed(4)}`,`SC_BV_MOP [MOP / ${r.salesUomBv||"KG"}_BV] · Markup: ${r.isHoff?"HOFF +3%":"non-HOFF +10%"}`,T.orange],
+                              [`STEP 3 — Logistica (${mc.logRate||0} MOP/KG${mc.isVerdura?" · VERDURA":""})`,`+ MOP ${(mc.logPerBvUom||0).toFixed(4)}`,`${mc.logRate} MOP/KG × ${(mc.kgPerBvUom||0).toFixed(4)} KG/${r.salesUomBv||"KG"}_BV`,T.blue],
+                              ["STEP 4 — Totale / BV UOM",`MOP ${(mc.totalPerBvUom||0).toFixed(4)}`,`[MOP / ${r.salesUomBv||"KG"}_BV]`,T.muted],
+                              [`STEP 5 — × Fattore UOM (${r.salesUomBv||"KG"}→${r.salesUomMac||"KG"})`,`× ${(mc.fattore||1).toFixed(6)}`,`Conversione da BV UOM a MAC UOM`,T.purple],
+                              ["SC MACAO FINALE",`MOP ${(mc.macNewSC||0).toFixed(4)}`,`[MOP / ${r.salesUomMac||"KG"}_MAC]`,T.green],
                             ].map(([k,v,f,col]:any[])=>(
                               <tr key={String(k)}>
                                 <td style={{padding:"3px 12px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{k}</td>
@@ -4894,7 +4939,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                           </tbody>
                         </table>
                         <div style={{marginTop:"6px",fontSize:"9px",color:T.dim}}>
-                          u/plt: {(mc.unitsPerPlt||0).toFixed(2)} · HK UOM: {r.hkUom||"—"} · MAC UOM: {r.macUom||"—"}
+                          BV UOM: {r.salesUomBv||"—"} · MAC UOM: {r.salesUomMac||"—"} · pcsgrossweight: {r.pcsgrossweight||0} · qty/box: {r.qtyPerBox||0}
                         </div>
                       </td>
                     </tr>
@@ -7215,27 +7260,14 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
           Snapshot del {new Date(selCostSnap.ts).toLocaleString("it-IT")}
         </div>
         <table style={{width:"100%",borderCollapse:"collapse"}}>
-          <THead cols={branch==="HK"&&macProds.length>0
-            ? [branchN(branch),"IFB No","Descrizione","New SC HKD","New SC MAC (MOP)","HOFF","×UOM","Note"]
-            : [branchN(branch),"IFB No","Descrizione","Costo HKD","Note"]} sticky />
+          <THead cols={[branchN(branch),"IFB No","Descrizione","Costo","Note"]} sticky />
           <tbody>{(selCostSnap.rows||[]).map((r:any,i:number)=>{
-            const macProd = branch==="HK"&&macProds.length>0
-              ? (macProds.find((p:any)=>p.id===r.id||p.code===r.code||p.nHK===r.nHK))
-              : null;
-            const macCost = macProd && r.cost!=null
-              ? calcMAC({ hkCost:{step2Hkd:r.cost,step2Eur:0,priceEur:0,unitsPerPlt:0}, isHoff:macProd.isHoff??false, macToHkConv:macProd.macToHkConv>1?macProd.macToHkConv:1 })
-              : null;
             return(
             <tr key={r.id||i} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
               <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
               <TD mono><span style={{color:T.gold}}>{r.code}</span></TD>
               <TD>{r.description}</TD>
               <TD mono><span style={{color:T.gold,fontWeight:"bold"}}>{r.cost!=null?roundN(r.cost).toFixed(2):"—"}</span></TD>
-              {branch==="HK"&&macProds.length>0&&<>
-                <TD mono><span style={{color:macCost?T.green:T.dim,fontWeight:"bold"}}>{macCost?macCost.macNewSC.toFixed(2):"—"}</span></TD>
-                <TD><span style={{color:macProd?(macProd.isHoff?T.orange:T.blue):T.dim,fontSize:"10px"}}>{macProd?(macProd.isHoff?"HOFF +3%":"non-HOFF +10%"):"—"}</span></TD>
-                <TD mono><span style={{color:T.muted,fontSize:"10px"}}>{macProd?.macToHkConv>1?`×${macProd.macToHkConv}`:"—"}</span></TD>
-              </>}
               <TD><span style={{color:T.dim,fontSize:"11px"}}>{r.skipReason||""}</span></TD>
             </tr>
             );
@@ -7470,7 +7502,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
   // Campi per branch: solo quelli rilevanti
   const FIELDS_HK  = ["nHK","code","description","category","uom","qtyPerBox","boxPerPallet","kgPerBox","kgxplt","temperature","active","vendorName","vendorName2"];
   const FIELDS_CAN = ["nHK","code","description","category","uom","baseUom","qtyPerBox","boxPerPallet","netWeightPcs","kgPerBox","kgxplt","temperature","aiem","active","vendorName","vendorName2"];
-  const FIELDS_MAC = ["nHK","code","description","isHoff","uom","hkUom","standardCostHkd","temperature","kgPerBox","qtyPerBox","active","vendorName"];
+  const FIELDS_MAC = ["nHK","code","description","isHoff","uom","hkUom","standardCostHkd","temperature","pcsgrossweight","qtyPerBox","active","vendorName"];
   const FIELDS = branch==="CAN" ? FIELDS_CAN : branch==="MAC" ? FIELDS_MAC : FIELDS_HK;
 
   const FLABELS: any = {
@@ -7488,8 +7520,9 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     temperature: "Product Type (DRY/FRESH/FROZEN)",
     aiem: "★ AIEM % (col. W anagrafica CAN)",
     isHoff: "HOFF Flag (1 = House of Fine Foods)",
-    hkUom: "HK/BV UOM (per conversione automatica)",
-    standardCostHkd: "★ Standard Cost HK (HKD) — base calcolo MAC",
+    hkUom: "BV Sales UOM (UOM vendita BV, base calcolo MAC)",
+    standardCostHkd: "Standard Cost BV (HKD) — fallback se SC Attuali BV assente",
+    pcsgrossweight: "★ Peso Lordo 1 Pezzo KG (pcsgrossweight — per conversioni UOM)",
     active: "Bloccato",
     vendorName: "Vendor Name",
     vendorName2: "Vendor Name 2"
@@ -7507,14 +7540,12 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
     netWeightPcs:["pesonettopcs","peso netto pcs","netweightpcs","net weight pcs","pesonettopz","peso netto pz","pcsnetweight","pcs net weight","netweightpcs","pcsnettweight"],
     kgPerBox:    ["netweightbox","net weight box","pesonetto","peso netto","pesonetto box","peso netto box","netweight","net weight"],
     kgxplt:      ["kgxplt","kg x pallet","kg per pallet","kgperpallet","kgplt","kgxplt netto","kg x plt netto","kg plt netto"],
-    temperature: ["producttype","product type","product type rettificato"],
+    temperature: ["producttype","product type","product type rettificato","producttype rettificato","tipoprodotto"],
     aiem:        ["aiem","igic","alim","aiem%","aiem_perc","aiem_canarie","aiemperc"],
     isHoff:      ["ishoff","hoff","hofflag","hoff flag","hoff_flag","is hoff"],
-    hkUom:            ["bvsalesunitofmeasure","bv salesunitofmeasure","bvuom","hk uom","hkuom"],
+    hkUom:            ["bvsalesunitofmeasure","bv salesunitofmeasure","bvsalesuom","bv sales uom","bvuom","hk uom","hkuom","sales uom bv","salesuombv"],
     standardCostHkd:  ["standardcost","standard cost","costo standard","costostandard","sc hkd","schkd","fob","fobprice","fob price"],
-    temperature:      ["producttype","product type","producttype rettificato","tipoprodotto"],
-    kgPerBox:         ["netweight","net weight","kgperbox","kg per box","kg/box","pesokg","peso netto","pesonetto","peso netto box","net weight box","netweightbox"],
-    qtyPerBox:        ["quantityxpackaging","quantity x packaging","qtxbox","qty per box","qtyperbox","pzperbox"],
+    pcsgrossweight:   ["pcsgrossweight","pcs gross weight","peso lordo pcs","pesolordo","gross weight pcs","grossweightpcs","grossweight"],
     active:           ["blocked"],
     vendorName:  ["vendorname","vendor name"],
     vendorName2: ["vendorname2","vendor name 2"],
@@ -7670,6 +7701,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
       isHoff: ["true","1","yes","hoff","si","sì","vero","x"].includes(String(r.isHoff||"").toLowerCase()),
       hkUom: r.hkUom ? String(r.hkUom).trim().toUpperCase() : "",
       standardCostHkd: parseFloat(String(r.standardCostHkd||"").replace(",",".")) || 0,
+      pcsgrossweight: parseFloat(String(r.pcsgrossweight||"").replace(",",".")) || 0,
       active: parseActive(r.active),
       vendorName: r.vendorName || "",
       vendorName2: r.vendorName2 || "",
