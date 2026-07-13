@@ -6937,20 +6937,31 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         isKeepOldOrdered: isKeepOld,
       });
     }
-    return rows;
+    // Secondo passaggio: rimuovi eventuali duplicati rimasti (stesso nFiliale o stesso ifbNo)
+    const seen2 = new Set<string>();
+    return rows.filter(r=>{
+      const k1 = String(r.nFiliale||"");
+      const k2 = String(r.ifbNo||"");
+      if(k1 && seen2.has(k1)) return false;
+      if(k2 && seen2.has(k2)) return false;
+      if(k1) seen2.add(k1);
+      if(k2) seen2.add(k2);
+      return true;
+    });
   },[monthRows, xrefByNFiliale, scMap, costMap, products, logMap, isCAN, threshold]);
 
-  const alert1 = analysisRows.filter(r=>r.isNuovo);          // NUOVI ARTICOLI: newSC calcolato, oldSC assente
-  const alert2 = analysisRows.filter(r=>r.isDelta).sort((a:any,b:any)=>{
+  // Priorità rigida: ogni articolo appartiene a UNA SOLA categoria
+  const alert1 = analysisRows.filter(r=>r.isNuovo);
+  const alert2 = analysisRows.filter(r=>r.isDelta && !r.isNuovo).sort((a:any,b:any)=>{
     const pa = isCAN ? a.deltaPctGC : a.deltaPct;
     const pb = isCAN ? b.deltaPctGC : b.deltaPct;
-    if(pa>=0 && pb>=0) return pb-pa;      // entrambi positivi: decrescente
-    if(pa<0  && pb<0 ) return pa-pb;      // entrambi negativi: crescente (più negativo prima)
-    return pa>=0 ? -1 : 1;               // positivi prima dei negativi
+    if(pa>=0 && pb>=0) return pb-pa;
+    if(pa<0  && pb<0 ) return pa-pb;
+    return pa>=0 ? -1 : 1;
   });
-  const alert3 = analysisRows.filter(r=>r.isKeepOldOrdered && !r.isNuovo);
-  const alert5 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && r.skipReason==="PREZZO ZERO"); // DELISTATI
-  const alert4 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && r.skipReason!=="PREZZO ZERO"); // DA INSERIRE: mancanti ma NON keep old
+  const alert3 = analysisRows.filter(r=>r.isKeepOldOrdered && !r.isNuovo && !r.isDelta);
+  const alert5 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && !r.isNuovo && !r.isDelta && r.skipReason==="PREZZO ZERO"); // DELISTATI
+  const alert4 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && !r.isNuovo && !r.isDelta && r.skipReason!=="PREZZO ZERO"); // DA INSERIRE
 
   const checkFilter = (r:any) => {
     if(!checkSearch.trim()) return true;
