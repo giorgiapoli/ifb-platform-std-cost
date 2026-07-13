@@ -812,8 +812,48 @@ export default function App() {
         } catch(_) { /* offline — usa dati IDB */ }
       }
 
-      // Auto-fetch fatture IFB da GitHub (HK + CAN + MAC, filtrate per branch/customer)
-      if(["HK","CAN","MAC"].includes(branch)) {
+      // MAC: anagrafica da HOFF Macau BC + fatture da BrightView→Macao BC
+      if(branch === "MAC") {
+        const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
+        const t = Date.now();
+        try {
+          const [rana, rfat] = await Promise.all([
+            fetch(`${base}data/mac_anagrafica.json?t=${t}`),
+            fetch(`${base}data/mac_fatture.json?t=${t}`),
+          ]);
+          if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
+          if(rfat.ok) {
+            const all = await rfat.json();
+            if(Array.isArray(all) && all.length > 0) {
+              const prods: any[] = await IDB.get(`ifb_products_${branch}`, []);
+              const fByCode: Record<string,any> = {};
+              const fByNHK:  Record<string,any> = {};
+              prods.forEach((p: any) => { if(p.code) fByCode[p.code]=p; if(p.nHK) fByNHK[p.nHK]=p; });
+              const branchRows = all.map((row: any) => ({
+                itemCode:    String(row["No_"] || "").trim(),
+                description: String(row["Description"] || "").trim(),
+                date:        String(row["Last Posting Date"] || ""),
+                qty:         Number(row["Quantity"] || 0),
+                unitPrice:   Number(row["Price"] || 0),
+                location:    String(row["Location Code"] || "").trim(),
+                nHK:         (fByCode[String(row["No_"]||"").trim()] || fByNHK[String(row["No_"]||"").trim()])?.nHK || "",
+                transport:   "SEA",
+                _prodFound:  !!(fByCode[String(row["No_"]||"").trim()] || fByNHK[String(row["No_"]||"").trim()]),
+                branch:      "MAC",
+                _fromBC:     true,
+              }));
+              if(branchRows.length > 0) {
+                setSalesRows(branchRows);
+                CLOUD.set(`ifb_sales_invoice_${branch}`, branchRows);
+                setDataSource(`fatture_${branch}`,"bc");
+              }
+            }
+          }
+        } catch(_) { /* offline — usa dati IDB */ }
+      }
+
+      // Auto-fetch fatture IFB da GitHub (HK + CAN, filtrate per branch/customer)
+      if(["HK","CAN"].includes(branch)) {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         try {
           const r = await fetch(`${base}data/ifb_fatture.json?t=${Date.now()}`);
