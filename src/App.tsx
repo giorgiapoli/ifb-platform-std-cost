@@ -6794,19 +6794,23 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   },[costRows]);
 
   // scMap con alias bidirezionali IFB↔N COMIT via xref + ifbCode diretto
+  // Preferisce sempre l'entry con scGC/scLan valorizzati (non sovrascrive un buono con uno senza scGC)
   const scMap = useMemo(()=>{
     const m: Record<string,any>={};
-    (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) m[String(r.code)]=r; });
-    // CAN: ifbCode salvato direttamente nel record
-    (scAttuali||[]).forEach((r:any)=>{ if(r.ifbCode) { const k=String(r.ifbCode); if(!m[k]) m[k]=r; } });
+    const set = (k:string, r:any) => {
+      if(!k) return;
+      if(!m[k] || ((m[k].scGC==null && m[k].scLan==null) && (r.scGC!=null || r.scLan!=null))) m[k]=r;
+    };
+    (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) set(String(r.code),r); });
+    (scAttuali||[]).forEach((r:any)=>{ if(r.ifbCode) set(String(r.ifbCode),r); });
     (scAttuali||[]).forEach((rec:any)=>{
       if(rec.code==null) return;
       const k=String(rec.code);
       const xrByNHK=(xrefs||[]).find((x:any)=>String(x.nHK)===k);
-      if(xrByNHK?.ifbNo){ const ak=String(xrByNHK.ifbNo); if(!m[ak]) m[ak]=rec; }
+      if(xrByNHK?.ifbNo) set(String(xrByNHK.ifbNo), rec);
       const matches=(xrefs||[]).filter((x:any)=>String(x.ifbNo)===k);
       const xrByIfb=matches.find((x:any)=>/^\d+$/.test(String(x.nHK)))||matches[0];
-      if(xrByIfb?.nHK){ const ak=String(xrByIfb.nHK); if(!m[ak]) m[ak]=rec; }
+      if(xrByIfb?.nHK) set(String(xrByIfb.nHK), rec);
     });
     return m;
   },[scAttuali, xrefs]);
@@ -6897,8 +6901,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const lastOrderD = lastOrderRaw2 ? new Date(lastOrderRaw2) : null;
       const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
       // CAN: calcola sempre entrambe le destinazioni GC/TF e FUE/LAN
-      const oldScGC  = isCAN ? (scEntry?.scGC  || scEntry?.lastSC || 0) : 0;
-      const oldScLan = isCAN ? (scEntry?.scLan || scEntry?.lastSC || 0) : 0;
+      const oldScGC  = isCAN ? (scEntry?.scGC  || 0) : 0;
+      const oldScLan = isCAN ? (scEntry?.scLan || 0) : 0;
       const newScGC  = isCAN ? (cr?.cost?.step2GC  || cr?.cost?.step2Eur || 0) : 0;
       const newScLan = isCAN ? (cr?.cost?.step2LAN || cr?.cost?.step2Eur || 0) : 0;
       const deltaPctGC  = isCAN && oldScGC>0  ? (newScGC -oldScGC )/oldScGC *100 : 0;
