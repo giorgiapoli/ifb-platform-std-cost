@@ -6944,7 +6944,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     return pa>=0 ? -1 : 1;               // positivi prima dei negativi
   });
   const alert3 = analysisRows.filter(r=>r.isKeepOldOrdered && !r.isNuovo);
-  const alert4 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld); // DA INSERIRE: mancanti ma NON keep old
+  const alert5 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && r.skipReason==="PREZZO ZERO"); // DELISTATI
+  const alert4 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && r.skipReason!=="PREZZO ZERO"); // DA INSERIRE: mancanti ma NON keep old
 
   function exportExcel() {
     const branchCode = isCAN?"COMIT":"HK";
@@ -6952,6 +6953,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     const all = [
       ...alert1.map((r:any)=>({...r,tipo:"NUOVI ARTICOLI"})),
       ...alert4.map((r:any)=>({...r,tipo:"DA INSERIRE"})),
+      ...alert5.map((r:any)=>({...r,tipo:"DELISTATI"})),
       ...alert2.map((r:any)=>({...r,tipo:"TO UPDATE (Delta%)"})),
       ...alert3.map((r:any)=>({...r,tipo:"TO UPDATE (Keep Old)"})),
     ];
@@ -7039,6 +7041,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           {([
             {label:"NUOVI ARTICOLI",n:alert1.length,c:T.blue,icon:"🆕"},
             {label:"DA INSERIRE",n:alert4.length,c:T.red,icon:"❌"},
+            {label:"DELISTATI",n:alert5.length,c:T.dim,icon:"🗑"},
             {label:"TO UPDATE (Δ%)",n:alert2.length,c:T.orange,icon:"⬆"},
             {label:"TO UPDATE (Keep Old)",n:alert3.length,c:T.purple,icon:"♻"},
           ] as {label:string,n:number,c:string,icon:string}[]).map(({label,n,c,icon})=>(
@@ -7091,8 +7094,30 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           </div>
         </Section>
 
+        {/* ALERT 5 — DELISTATI (prezzo zero) */}
+        <Section title={`🗑 3. DELISTATI — Prezzo zero (${alert5.length})`} accent={T.dim}>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Articoli con prezzo zero — potenzialmente delistati.</div>
+          <div style={{overflowX:"auto"}}>
+            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC in macchina"/><TH h="Skip Reason"/><TH h="Last Date"/></tr></thead>
+              <tbody>
+                {alert5.length===0
+                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>Nessun articolo ✓</td></tr>
+                  : alert5.map((r:any,i:number)=>(
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.dim}07`}}>
+                      {tdCodes(r)}{tdD(r.description)}
+                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
+                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"left"}}>{r.skipReason||"—"}</td>
+                      {tdM(r.lastDate)}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </Section>
+
         {/* ALERT 2 */}
-        <Section title={`⬆ 3. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
+        <Section title={`⬆ 4. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC in macchina vs SC calcolato: variazione oltre la soglia.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
@@ -7121,7 +7146,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         </Section>
 
         {/* ALERT 3 */}
-        <Section title={`♻ 4. TO UPDATE — Keep Old tornato a ordine (${alert3.length})`} accent={T.purple}>
+        <Section title={`♻ 5. TO UPDATE — Keep Old tornato a ordine (${alert3.length})`} accent={T.purple}>
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Non ordinati da &gt;180 giorni ma presenti nelle fatture di questo mese — SC probabilmente da aggiornare.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
