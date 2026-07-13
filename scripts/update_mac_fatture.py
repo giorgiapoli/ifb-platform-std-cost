@@ -46,35 +46,28 @@ def bc_get(token, endpoint):
 
 
 def get_fatture(token, customer_no):
-    """Prova vari nomi entity per le righe fattura BV."""
-    # Candidati in ordine di probabilità (BV potrebbe avere nomi diversi da IFB)
-    for entity in ["IFB_Sales_Invoice_Line", "BV_Sales_Invoice_Line", "Sales_Invoice_Line"]:
-        try:
-            print(f"  Provo entity '{entity}' per customer {customer_no}...")
-            rows = bc_get(token, (
-                f"{entity}"
-                f"?$filter=postingdate ge {DATE_FROM}"
-                f" and type eq 'Item'"
-                f" and billtocustomerno eq '{customer_no}'"
-                f"&$top=50000"
-            ))
-            print(f"    Trovate {len(rows)} righe bill-to")
-            # Prova anche sell-to
-            rows2 = bc_get(token, (
-                f"{entity}"
-                f"?$filter=postingdate ge {DATE_FROM}"
-                f" and type eq 'Item'"
-                f" and selltocustomerno eq '{customer_no}'"
-                f"&$top=50000"
-            ))
-            # Dedup
-            seen = {(r.get("documentno",""), r.get("no","")) for r in rows}
-            extra = [r for r in rows2 if (r.get("documentno",""), r.get("no","")) not in seen]
-            print(f"    sell-to extra: {len(extra)}, totale: {len(rows)+len(extra)}")
-            return rows + extra, entity
-        except Exception as e:
-            print(f"    '{entity}' non disponibile: {e}")
-    return [], None
+    """Legge righe fattura BV per customer Macao da IFB_Invoice_Line."""
+    entity = "IFB_Invoice_Line"
+    print(f"  Leggo '{entity}' per customer {customer_no}...")
+    rows = bc_get(token, (
+        f"{entity}"
+        f"?$filter=postingdate ge {DATE_FROM}"
+        f" and type eq 'Item'"
+        f" and billtocustomerno eq '{customer_no}'"
+        f"&$top=50000"
+    ))
+    print(f"    bill-to: {len(rows)} righe")
+    rows2 = bc_get(token, (
+        f"{entity}"
+        f"?$filter=postingdate ge {DATE_FROM}"
+        f" and type eq 'Item'"
+        f" and selltocustomerno eq '{customer_no}'"
+        f"&$top=50000"
+    ))
+    seen = {(r.get("documentno",""), r.get("no","")) for r in rows}
+    extra = [r for r in rows2 if (r.get("documentno",""), r.get("no","")) not in seen]
+    print(f"    sell-to extra: {len(extra)}, totale: {len(rows)+len(extra)}")
+    return rows + extra
 
 
 if __name__ == "__main__":
@@ -89,10 +82,9 @@ if __name__ == "__main__":
     seen_keys = set()
 
     for customer_no in MAC_CUSTOMERS:
-        rows, entity = get_fatture(token, customer_no)
+        rows = get_fatture(token, customer_no)
         if not rows:
             print(f"  ATTENZIONE: nessuna fattura trovata per customer {customer_no}.")
-            print("  Suggerimento: esegui discover_entities.py (COMPANY=BRIGHT VIEW TRADING HK LIMITED) per trovare il nome entity corretto.")
             continue
 
         for item in rows:
