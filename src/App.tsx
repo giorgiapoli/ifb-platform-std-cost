@@ -5421,11 +5421,12 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
           ? skipReasonRaw.replace("NO PREZZO","LISTINO CHIUSO E NON RIAPERTO")
           : skipReasonRaw;
         const logTransport=logEntry?.transport||"";
-        // Usa island flags dalla logistica: default true se entry mancante
+        // CAN: mostra sempre entrambi i valori calcolati dal costRow (GC e LAN/FUE)
+        // step2LAN usato per FUE/LAN (coerente con Check Mensile)
         const destGCTF   = !logEntry || logEntry.isGC || logEntry.isTF;
         const destLANFUE = !logEntry || logEntry.isLAN || logEntry.isFUE;
-        const scGC  = destGCTF   ? (cr?.cost?.step2GC  ?? null) : null;
-        const scFUE = destLANFUE ? (cr?.cost?.step2FUE ?? null) : null;
+        const scGC  = cr?.cost?.step2GC  ?? null;
+        const scFUE = cr?.cost?.step2LAN ?? null;
         // CAN: scAttuali keyed by N COMIT (e alias IFB via xref aggiunto nella mappa)
         //   1. r.itemCode (N COMIT o IFB — mappa copre entrambi)
         //   2. N COMIT ricavato dall'xref se r.itemCode è IFB
