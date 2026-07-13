@@ -1116,12 +1116,16 @@ export default function App() {
       // HK/MAC: match per N COMIT (namespace BC), fallback IFB solo se nHK assente.
       // Doppia codifica: stesso prodotto può avere due entries nel listino (una con prezzo=0).
       // Preferisce sempre quella con prezzo > 0.
-      const prAll  = prices.filter(p=>p.productId===prod.id&&p.branch===branch&&p.month===month);
+      const priceMatch = (p:any) => p.branch===branch && (
+        p.productId===prod.id || p.productId===prod.nHK || p.productId===prod.code ||
+        (prod.nHK && p.productId===`CAN_${prod.nHK}`)
+      );
+      const prAll  = prices.filter(p=>p.month===month && priceMatch(p));
       const pr     = prAll.find(p=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0) || prAll[0]
                   || (branch === "CAN" ? null
                     : (prod.nHK && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.nHK&&(p.branch||p.b)===branch))
                       || (!prod.nHK && prod.code && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.code&&(p.branch||p.b)===branch)));
-      const prPrevAll = prices.filter(p=>p.productId===prod.id&&p.branch===branch&&p.month===prevM);
+      const prPrevAll = prices.filter(p=>p.month===prevM && priceMatch(p));
       const prPrev = prPrevAll.find(p=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0) || prPrevAll[0];
 
       const ub = log.ubicazione;
