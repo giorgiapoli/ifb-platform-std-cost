@@ -1302,7 +1302,7 @@ export default function App() {
     ...(!isMAC ? [{id:"exceptions", icon:"⚡", label:"Eccezioni Prezzi"}] : []),
     {id:"costs",      icon:"◆", label:"Standard Cost"},
     {id:"invoice", icon:"📋", label:"Fatture & Costi", badge:"⇪"},
-    {id:"scattuali", icon:"📊", label: isMAC ? "SC Attuali BV" : "SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined},
+    {id:"scattuali", icon:"📊", label: isMAC ? "SC Attuali MAC" : "SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
     ...(!isMAC ? [{id:"check", icon:"📅", label:"Check Mensile"}] : []),
     {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
