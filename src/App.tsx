@@ -6774,12 +6774,17 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     return m;
   },[xrefs]);
 
-  // costMap: keyed by IFB code (priorità IFB per listini)
+  // costMap: keyed by IFB code, nHK e id — preferisce sempre righe con costo valido
   const costMap = useMemo(()=>{
     const m: Record<string,any>={};
+    const set = (k:string, r:any) => {
+      if(!k) return;
+      if(!m[k] || (m[k].cost===null && r.cost!==null)) m[k]=r;
+    };
     (costRows||[]).forEach((r:any)=>{
-      if(r.code) m[r.code]=r;
-      if(r.id) m[String(r.id)]=r;
+      set(r.code,        r);
+      set(String(r.id||""), r);
+      if(r.nHK) set(String(r.nHK), r);
     });
     return m;
   },[costRows]);
