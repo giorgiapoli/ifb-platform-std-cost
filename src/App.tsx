@@ -5505,15 +5505,6 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(scFilter==="mancante") displayed=displayed.filter(r=>r.scGC===null&&!isSample(r));
   else if(scFilter==="sample")   displayed=displayed.filter(r=>isSample(r));
   if(last30){ const cutStr=new Date(Date.now()-30*86400000).toISOString().slice(0,10); displayed=displayed.filter(r=>String(r.date||r.postingDate||"").slice(0,10)>=cutStr); }
-  if(dedup){
-    const best=new Map<string,any>();
-    displayed.forEach(r=>{
-      const key=String(r.itemCode||r.ifbNo||"");
-      const prev=best.get(key);
-      if(!prev||new Date(r.date)>new Date(prev.date)) best.set(key,r);
-    });
-    displayed=[...best.values()];
-  }
   if(filterNHK==="__MISSING__") displayed=displayed.filter(r=>!r.nHK);
   else if(filterNHK)            displayed=displayed.filter(r=>r.nHK===filterNHK);
   if(filterLocation==="ncj")     displayed=displayed.filter(r=>String(r.location||"").toUpperCase().includes("NCJ"));
@@ -5531,6 +5522,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
   else if(filterMotivo==="non-food") displayed=displayed.filter(r=>r.skipReason==="NON FOOD");
   if(search){const q=search.toLowerCase();displayed=displayed.filter(r=>r.description?.toLowerCase().includes(q)||r.itemCode?.toLowerCase().includes(q)||r.nHK?.toLowerCase().includes(q)||r.ifbNo?.toLowerCase().includes(q)||r.location?.toLowerCase().includes(q));}
   displayed=displayed.filter(r=>!r.description?.toUpperCase().includes("FREIGHT"));
+  if(dedup){
+    const best=new Map<string,any>();
+    displayed.forEach(r=>{
+      const key=String(r.nHK||r.itemCode||r.ifbNo||"");
+      const prev=best.get(key);
+      if(!prev||new Date(r.date)>new Date(prev.date)) best.set(key,r);
+    });
+    displayed=[...best.values()];
+  }
   displayed=displayed.filter(r=>r.qty>0||r.isSample);
   if(!search&&!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
   if(excludeSample) displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
@@ -6873,11 +6873,13 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const prod = findProduct(sCode, products, xrefs)
         || findProduct(resolvedIFB, products, xrefs)
         || (products||[]).find((p:any)=>p.code===ifbNo||p.code===nFiliale||p.code===resolvedIFB);
-      // Salta righe non-articolo (FREIGHT, servizi, ecc.) — non in anagrafica, senza cost row E senza xref
+      // Salta righe non-articolo (FREIGHT, servizi, ecc.) — senza cost row E senza xref E senza prod
+      // NON IN ANAGRAFICA: se non in costMap né xref ma il codice sembra un articolo reale, includi come NON IN ANAGRAFICA
       const hasXref = isCAN
         ? !!(nComitFromIfb2 || ifbFromNComit2)
         : !!xrefByNFiliale[nFiliale];
-      if(!prod && !costMap[ifbNo] && !costMap[nFiliale] && !costMap[resolvedIFB] && !hasXref) continue;
+      const looksLikeProduct = /^[A-Z0-9]{3,}/i.test(sCode);
+      if(!prod && !costMap[ifbNo] && !costMap[nFiliale] && !costMap[resolvedIFB] && !hasXref && !looksLikeProduct) continue;
       // CAN: risolvi coppia N COMIT + IFB No con fallback a cascata:
       // 1. prod.nHK diretto  2. xref via prod.code  3. xref via sCode (nComitFromIfb2/ifbFromNComit2)
       const resolvedNComit = isCAN
@@ -6982,7 +6984,6 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       ...alert4.map((r:any)=>({...r,tipo:"DA INSERIRE"})),
       ...alert5.map((r:any)=>({...r,tipo:"DELISTATI"})),
       ...alert2.map((r:any)=>({...r,tipo:"TO UPDATE (Delta%)"})),
-      ...alert3.map((r:any)=>({...r,tipo:"TO UPDATE (Keep Old)"})),
     ];
     const data = all.map((r:any)=>({
       "Tipo":        r.tipo,
@@ -7062,7 +7063,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           {analysisRows.length>0&&<div style={{display:"flex",gap:"10px",alignItems:"center"}}>
             <span style={{fontSize:"11px",color:T.muted}}>{monthRows.length} righe · {analysisRows.length} articoli univoci</span>
             <span style={{fontSize:"10px",color:T.dim}}>(ultimi {rollingDays}gg)</span>
-            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={alert1.length+alert2.length+alert3.length+alert4.length===0}/>
+            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={alert1.length+alert2.length+alert4.length===0}/>
           </div>}
         </div>
       </Section>
@@ -7075,7 +7076,6 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
             {label:"DA INSERIRE",n:alert4.length,c:T.red,icon:"❌"},
             {label:"DELISTATI",n:alert5.length,c:T.dim,icon:"🗑"},
             {label:"TO UPDATE (Δ%)",n:alert2.length,c:T.orange,icon:"⬆"},
-            {label:"TO UPDATE (Keep Old)",n:alert3.length,c:T.purple,icon:"♻"},
           ] as {label:string,n:number,c:string,icon:string}[]).map(({label,n,c,icon})=>(
             <div key={label} style={{background:`${c}11`,border:`1px solid ${c}44`,borderRadius:"8px",padding:"10px 18px",minWidth:"140px"}}>
               <div style={{fontSize:"9px",color:c,letterSpacing:"1px",textTransform:"uppercase",marginBottom:"2px"}}>{icon} {label}</div>
@@ -7178,33 +7178,6 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         </Section>
 
         {/* ALERT 3 */}
-        <Section title={`♻ 5. TO UPDATE — Keep Old tornato a ordine (${alert3.length})`} accent={T.purple}>
-          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Non ordinati da &gt;180 giorni ma presenti nelle fatture di questo mese — SC probabilmente da aggiornare.</div>
-          <div style={{overflowX:"auto"}}>
-            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/>
-                {isCAN ? <><TH h="Old SC GC/TF"/><TH h="Old SC FUE/LAN"/><TH h="New SC GC/TF"/><TH h="New SC FUE/LAN"/><TH h="Δ% GC"/><TH h="Δ% LAN"/></> : <><TH h="Old SC"/><TH h="New SC"/><TH h="Δ %"/></>}
-                <TH h="Stock"/><TH h="Last Date"/></tr></thead>
-              <tbody>
-                {alert3.filter(checkFilter).length===0
-                  ? <tr><td colSpan={9+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert3.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
-                  : alert3.filter(checkFilter).map((r:any,i:number)=>(
-                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.purple}07`}}>
-                      {tdCodes(r)}{tdD(r.description)}
-                      {isCAN ? <>
-                        {tdSC(r.oldScGC)}{tdSC(r.oldScLan)}{tdSC(r.newScGC)}{tdSC(r.newScLan)}
-                        {tdDp(r.deltaPctGC,r.oldScGC)}{tdDp(r.deltaPctLan,r.oldScLan)}
-                      </> : <>
-                        <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
-                        {tdSC(r.newSC)}{tdDp(r.deltaPct,r.oldSC)}
-                      </>}
-                      {tdM(r.stockQty)}{tdM(r.lastDate)}
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
       </>}
 
       {!analysisRows.length&&(
