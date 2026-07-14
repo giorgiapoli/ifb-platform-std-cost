@@ -4044,14 +4044,19 @@ if (dapFinalDirect !== 0) {
   }
 }
 
-const existing = prod ? prices.find(p => p.productId === prod.id && p.branch === branch && p.month === _month) : null;
+const existing = prices.find(p =>
+  p.branch === branch && p.month === _month &&
+  (p.rawNHK || "") === (rawCode || "") && (p.rawIfbCode || "") === (rawIfbCode || "")
+) || null;
 
 return {
 _idx: idx,
 rawCode,
-ifbNo_from_file: rawCode,
+ifbNo_from_file: rawCode || rawIfbCode,
+rawNHK: rawCode || "",
+rawIfbCode: rawIfbCode || "",
 description_from_file: rawDescription,
-productId: prod?.id || null,
+productId: prod?.id || rawCode || rawIfbCode || null,
 nHK_from_anag: prod?.nHK || "",
 ifbNo_from_anag: prod?.code || "",
 description_from_anag: prod?.description || "",
@@ -4080,11 +4085,18 @@ const diffs = [];
 let count = 0, newCount = 0, changed = 0;
 
 preview.forEach(r => {
-if (!r._hasProduct) return;
+const rawNHK = r.rawNHK || "";
+const rawIfbCode = r.rawIfbCode || "";
 
-const idx = updated.findIndex(p => p.productId === r.productId && p.branch === branch && p.month === importMonth);
-const entry = {
-productId: r.productId,
+// Upsert key = coppia esatta dal file; non si fondono righe con doppia codifica
+const idx = updated.findIndex(p =>
+  p.branch === branch && p.month === importMonth &&
+  (p.rawNHK || "") === rawNHK && (p.rawIfbCode || "") === rawIfbCode
+);
+const entry: any = {
+productId: r.productId || rawNHK || rawIfbCode,
+rawNHK,
+rawIfbCode,
 branch,
 month: importMonth,
 dapFinal: r.dapFinal,
@@ -4097,7 +4109,7 @@ fcaDiscount: r.fcaDiscount || 0,
 dapDiscount: r.dapDiscount || 0,
 };
 const prev = idx >= 0 ? updated[idx] : null;
-const diffFields = [];
+const diffFields: any[] = [];
 
 ["dapFinal", "mtsPrice", "fcaDiscounted", "dapDiscounted", "dapPrice", "fcaPrice"].forEach(f => {
 const oldR = roundN(prev?.[f] || 0);
@@ -4113,9 +4125,9 @@ else if (diffFields.length > 0) changed++;
 if (diffFields.length > 0 || !prev) {
 diffs.push({
 productId: r.productId,
-nHK: r.nHK_from_anag,
-ifbNo: r.ifbNo_from_anag,
-description: r.description_from_anag,
+nHK: r.nHK_from_anag || rawNHK,
+ifbNo: r.ifbNo_from_anag || rawIfbCode,
+description: r.description_from_anag || r.description_from_file || "",
 isNew: !prev,
 fields: diffFields
 });
