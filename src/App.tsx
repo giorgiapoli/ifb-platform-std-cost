@@ -5852,7 +5852,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <div style={{overflowX:"auto"}}>
           <table style={{width:"100%",borderCollapse:"collapse"}}>
             <thead><tr>
-              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo",...(branch==="CAN"?["UOM IFB","UOM Acq."]:[] as any),"Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN","Δ GC/TF","Δ FUE/LAN"]:["New SC ▾","SC BC","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
+              {["Data",branchN(branch)+" ▾","IFB No ▾","Descrizione","Qty","Prezzo",...(branch==="CAN"?["UOM IFB","UOM Acq."]:[] as any),"Location ▾","Mag./Trasp.","Old SC",...(branch==="CAN"?["SC GC/TF ▾","SC FUE/LAN","SC NAV GC/TF ▾","SC NAV FUE/LAN","Δ GC/TF","Δ FUE/LAN"]:["New SC ▾","SC BC ▾","Δ SC"]),"Δ%","Motivo"].map((c,ci)=>{
                 const narrowW = ci===0?"80px":ci===1?"80px":ci===2?"70px":undefined;
                 if(c===branchN(branch)+" ▾") return(
                   <th key={c} style={{padding:"4px 4px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10,width:"62px",maxWidth:"62px"}}>
@@ -5881,6 +5881,15 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                       <option value="ok">✅ Con costo</option>
                       <option value="mancante">❌ MANCANTE</option>
                       <option value="air">✈ AIR</option>
+                    </select>
+                  </th>
+                );
+                if(c==="SC BC ▾") return(
+                  <th key={c} style={{padding:"4px 8px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10}}>
+                    <select value={filterScBC} onChange={e=>setFilterScBC(e.target.value as any)}
+                      style={{background:filterScBC!=="all"?`${T.gold}22`:T.card,color:filterScBC!=="all"?T.gold:T.muted,border:`1px solid ${filterScBC!=="all"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none"}}>
+                      <option value="all">SC BC ▾</option>
+                      <option value="assente">❌ Mancanti (—)</option>
                     </select>
                   </th>
                 );
