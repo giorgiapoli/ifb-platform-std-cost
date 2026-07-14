@@ -1117,16 +1117,23 @@ export default function App() {
       // Doppia codifica: stesso prodotto può avere due entries nel listino (una con prezzo=0).
       // Preferisce sempre quella con prezzo > 0.
       const priceMatch = (p:any) => p.branch===branch && (
+        // Coppia esatta (N COMIT + IFB No) — match più specifico
+        (p.rawNHK && p.rawIfbCode && p.rawNHK===prod.nHK && p.rawIfbCode===prod.code) ||
+        // Singolo codice — fallback
         p.productId===prod.id || p.productId===prod.nHK || p.productId===prod.code ||
-        (prod.nHK && p.productId===`CAN_${prod.nHK}`)
+        (prod.nHK && p.productId===`CAN_${prod.nHK}`) ||
+        (p.rawNHK && p.rawNHK===prod.nHK) || (p.rawIfbCode && p.rawIfbCode===prod.code)
       );
       const prAll  = prices.filter(p=>p.month===month && priceMatch(p));
-      const pr     = prAll.find(p=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0) || prAll[0]
+      // Preferisce la riga che matcha la coppia esatta (N COMIT + IFB No)
+      const prPair = prAll.find(p=>p.rawNHK && p.rawIfbCode && p.rawNHK===prod.nHK && p.rawIfbCode===prod.code && (p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0);
+      const pr     = prPair || prAll.find(p=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0) || prAll[0]
                   || (branch === "CAN" ? null
                     : (prod.nHK && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.nHK&&(p.branch||p.b)===branch))
                       || (!prod.nHK && prod.code && bcListiniEnriched.find((p:any)=>(p.itemCode||p.n)===prod.code&&(p.branch||p.b)===branch)));
       const prPrevAll = prices.filter(p=>p.month===prevM && priceMatch(p));
-      const prPrev = prPrevAll.find(p=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0) || prPrevAll[0];
+      const prPrevPair = prPrevAll.find(p=>p.rawNHK && p.rawIfbCode && p.rawNHK===prod.nHK && p.rawIfbCode===prod.code && (p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0);
+      const prPrev = prPrevPair || prPrevAll.find(p=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0) || prPrevAll[0];
 
       const ub = log.ubicazione;
       const effectiveProd = log.temperatureOverride ? { ...prod, temperature: log.temperatureOverride } : prod;
@@ -2081,6 +2088,8 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         _idx: idx,
         rawCode: displayCode,
         ifbNo_from_file: displayCode,
+        rawNHK: rawCode || "",       // N COMIT dal file
+        rawIfbCode: rawIfbCode || "", // IFB No dal file
         description_from_file: rawDescription,
         productId: prod?.id || null,
         nHK_from_anag: prod?.nHK || "",
@@ -2109,11 +2118,18 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
     let count = 0, newCount = 0, changed = 0;
     
     preview.forEach(r => {
-      if(!r._hasProduct) return;
-      
-      const idx = updated.findIndex(p => p.productId === r.productId && p.branch === branch && p.month === importMonth);
-      const entry = {
-        productId: r.productId,
+      const rawNHK = r.rawNHK || "";
+      const rawIfbCode = r.rawIfbCode || "";
+
+      // Upsert key = coppia esatta dal file (N COMIT + IFB No); non si fondono righe diverse
+      const idx = updated.findIndex(p =>
+        p.branch === branch && p.month === importMonth &&
+        (p.rawNHK || "") === rawNHK && (p.rawIfbCode || "") === rawIfbCode
+      );
+      const entry: any = {
+        productId: r.productId || rawNHK || rawIfbCode,
+        rawNHK,
+        rawIfbCode,
         branch,
         month: importMonth,
         dapFinal: r.dapFinal,
@@ -2124,8 +2140,8 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
         carriageCost: r.carriageCost||0
       };
       const prev = idx >= 0 ? updated[idx] : null;
-      const diffFields = [];
-      
+      const diffFields: any[] = [];
+
       ["dapFinal","mtsPrice","fcaDiscounted","dapPrice","fcaPrice"].forEach(f => {
         const oldR = roundN(prev?.[f] || 0);
         const newR = roundN(entry[f] || 0);
@@ -2133,32 +2149,22 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
           diffFields.push({field: f, old: oldR, new: newR, delta: oldR > 0 ? ((newR - oldR) / oldR * 100) : null});
         }
       });
-      
+
       if(!prev) newCount++;
       else if(diffFields.length > 0) changed++;
-      
+
       if(diffFields.length > 0 || !prev) {
         diffs.push({
           productId: r.productId,
-          nHK: r.nHK_from_anag,
-          ifbNo: r.ifbNo_from_anag,
-          description: r.description_from_anag,
+          nHK: r.nHK_from_anag || rawNHK,
+          ifbNo: r.ifbNo_from_anag || rawIfbCode,
+          description: r.description_from_anag || r.description_from_file || "",
           isNew: !prev,
           fields: diffFields
         });
       }
-      
-      // Doppia codifica: merge per campo — per ogni prezzo mantiene il valore > 0
-      // (es. riga 4114 ha FCA=7.69, riga IT20363 ha FCA=0 → risultato finale FCA=7.69)
-      if(idx >= 0) {
-        const merged = { ...entry };
-        if(prev) {
-          for(const f of ["dapFinal","dapPrice","fcaDiscounted","fcaPrice","carriageCost","mtsPrice"]) {
-            if(!(merged[f]>0) && (prev[f]||0)>0) merged[f] = prev[f];
-          }
-        }
-        updated[idx] = merged;
-      }
+
+      if(idx >= 0) updated[idx] = entry;
       else updated.push(entry);
       count++;
     });
