@@ -5443,18 +5443,23 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
 
   const scAttualiMap=useMemo(()=>{
     const m: Record<string,any>={};
+    // Preferisce sempre l'entry con scGC/scLan > 0 (es. riga "nulo" con scGC=0 non sovrascrive quella valida)
+    const setIfBetter = (k:string, r:any) => {
+      if(!k) return;
+      if(!m[k] || ((!m[k].scGC && !m[k].scLan) && (r.scGC || r.scLan))) m[k]=r;
+    };
     // Indice primario: rec.code (N COMIT per CAN, N HK per HK)
-    (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) m[String(r.code)]=r; });
+    (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) setIfBetter(String(r.code),r); });
     // CAN: ifbCode salvato direttamente nel record — aggiungilo come chiave diretta
-    (scAttuali||[]).forEach((r:any)=>{ if(r.ifbCode) { const k=String(r.ifbCode); if(!m[k]) m[k]=r; } });
+    (scAttuali||[]).forEach((r:any)=>{ if(r.ifbCode) setIfBetter(String(r.ifbCode),r); });
     // Alias bidirezionale tramite xref
     (scAttuali||[]).forEach((rec:any)=>{
       if(rec.code==null) return;
       const k = String(rec.code);
       const xrByNHK=(xrefs||[]).find((x:any)=>String(x.nHK)===k);
-      if(xrByNHK?.ifbNo){ const ak=String(xrByNHK.ifbNo); if(!m[ak]) m[ak]=rec; }
+      if(xrByNHK?.ifbNo) setIfBetter(String(xrByNHK.ifbNo), rec);
       const xrByIfb=xrefByIfbNoPreferNumeric(k);
-      if(xrByIfb?.nHK){ const ak=String(xrByIfb.nHK); if(!m[ak]) m[ak]=rec; }
+      if(xrByIfb?.nHK) setIfBetter(String(xrByIfb.nHK), rec);
     });
     return m;
   },[scAttuali,xrefs,xrefByIfbNoPreferNumeric]);
