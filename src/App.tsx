@@ -3013,6 +3013,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
     const existing = getLog(productId);
     const val = ["ubicazione","area","transport"].includes(field) ? rawVal :
                 ["hasCert","hasAlcTax"].includes(field) ? (rawVal === "true") :
+                ["isGC","isTF","isFUE","isLAN"].includes(field) ? !!rawVal :
                 (parseFloat(rawVal) || 0);
     const next = existing
       ? logistics.map(l => l.productId===productId&&l.branch===branch ? {...l, [field]:val, _manualOverride:true} : l)
