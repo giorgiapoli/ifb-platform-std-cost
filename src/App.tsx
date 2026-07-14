@@ -6900,6 +6900,16 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
 
   const analysisRows = useMemo(()=>{
     if(!monthRows.length) return [];
+    // Pre-calcola qty netto per codice: articoli completamente stornati (netto<=0) vanno esclusi
+    const netQtyByCode: Record<string, number> = {};
+    for (const inv of monthRows) {
+      if(!inv.itemCode) continue;
+      if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
+      if(inv.transport==="AIR") continue;
+      if(/^FREIGHT$/i.test(String(inv.itemCode))) continue;
+      const k = String(inv.itemCode);
+      netQtyByCode[k] = (netQtyByCode[k]||0) + (inv.qty||0);
+    }
     const seen = new Set<string>();
     const rows: any[] = [];
     for (const inv of monthRows) {
@@ -6910,6 +6920,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
       if(inv.transport==="AIR") continue;
       if(/^FREIGHT$/i.test(String(nFiliale))) continue;
+      // Escludi articoli completamente stornati (qty netta <= 0 nel periodo)
+      if((netQtyByCode[String(nFiliale)]||0) <= 0) continue;
       const sCode = String(nFiliale);
       // Risolvi xref bidirezionale
       const nComitFromIfb2 = isCAN ? String(xrefByIfbNoPreferNumeric(sCode)?.nHK||"") : "";
