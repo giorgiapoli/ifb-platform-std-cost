@@ -5533,7 +5533,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
     });
     displayed=[...best.values()];
   }
-  if(!search&&!showNoAna&&filterMotivo!=="anagrafica") displayed=displayed.filter(r=>r.skipReason!=="NON IN ANAGRAFICA");
+  // NON IN ANAGRAFICA sempre visibili — skipReason mostrato nella colonna Motivo
   if(excludeSample) displayed=displayed.filter(r=>r.skipReason!=="SAMPLE");
   if(!search&&filterMotivo!=="non-food") displayed=displayed.filter(r=>r.skipReason!=="NON FOOD");
   displayed=displayed.filter(r=>r.itemCode!=="ITEM"&&r.itemCode!=="item");
@@ -5701,10 +5701,6 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         <button onClick={()=>setDedup(v=>!v)}
           style={{padding:"6px 14px",background:dedup?`${T.purple}25`:T.surface,color:dedup?T.purple:T.muted,border:`1px solid ${dedup?T.purple:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:dedup?"bold":"normal"}}>
           {dedup?"✓ Senza duplicati":"⧉ Senza duplicati"}
-        </button>
-        <button onClick={()=>setShowNoAna(v=>!v)}
-          style={{padding:"6px 14px",background:showNoAna?`${T.red}20`:T.surface,color:showNoAna?T.red:T.muted,border:`1px solid ${showNoAna?T.red+"66":T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:showNoAna?"bold":"normal"}}>
-          {showNoAna?"✓ Non in Ana.":"👁 Non in Ana."}
         </button>
         <button onClick={()=>setExcludeKeepOld(v=>!v)}
           style={{padding:"6px 14px",background:excludeKeepOld?`${T.orange}20`:T.surface,color:excludeKeepOld?T.orange:T.muted,border:`1px solid ${excludeKeepOld?T.orange:T.border}`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:excludeKeepOld?"bold":"normal"}}>
