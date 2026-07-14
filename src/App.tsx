@@ -1440,10 +1440,11 @@ export default function App() {
   bumpImportTs={bumpImportTs}
 />,
   
-    xref:        <XRefPage 
-      xrefs={xrefs} 
-      setXrefs={setXrefs} 
-      branch={branch} 
+    xref:        <XRefPage
+      xrefs={xrefs}
+      setXrefs={setXrefs}
+      branch={branch}
+      products={products}
       snapshots={snapshots}
       setSnapshots={setSnapshots}
       importLogs={importLogs}
@@ -1503,7 +1504,7 @@ export default function App() {
       showToast={showToast}
       macHkCostRows={macHkCostRows}
     />,
-    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products} logistics={logistics}
+    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products} logistics={logistics} airList={airList}
       onRefresh={async()=>{
         setSalesRows(await CLOUD.get(`ifb_sales_invoice_${branch}`,[]));
         setScAttuali(await CLOUD.get(`ifb_scattuali_${branch}`,[]));
@@ -1656,7 +1657,7 @@ export default function App() {
 }
 
 // ─── XREF PAGE ────────────────────────────────────────────────────────────────
-function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+function XRefPage({xrefs,setXrefs,branch,products=[],snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
   const branchCode = branch === "CAN" ? "N COMIT" : "N HK";
   const[step,setStep]=useState("main");
   const[rawRows,setRawRows]=useState([]);
@@ -1724,7 +1725,14 @@ function XRefPage({xrefs,setXrefs,branch,snapshots,setSnapshots,importLogs,setIm
     setStep("main");setPreview([]);setRawRows([]);setHeaders([]);
   }
 
-  const displayed=xrefs.filter(x=>!search||x.nHK?.toLowerCase().includes(search.toLowerCase())||x.ifbNo?.toLowerCase().includes(search.toLowerCase()));
+  // Escludi xref che puntano a prodotti bloccati (active=false)
+  const blockedCodes = useMemo(()=>{
+    const s = new Set<string>();
+    (products||[]).filter((p:any)=>p.active===false).forEach((p:any)=>{ if(p.code) s.add(String(p.code)); if(p.nHK) s.add(String(p.nHK)); if(p.id) s.add(String(p.id)); });
+    return s;
+  },[products]);
+  const activeXrefs = xrefs.filter((x:any)=>!blockedCodes.has(String(x.nHK||""))&&!blockedCodes.has(String(x.ifbNo||"")));
+  const displayed=activeXrefs.filter((x:any)=>!search||String(x.nHK||"").toLowerCase().includes(search.toLowerCase())||String(x.ifbNo||"").toLowerCase().includes(search.toLowerCase()));
 
   return(
     <div>
@@ -2650,10 +2658,10 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
 
   const branchAir = airList;
 
-  // Item classificati AIR automaticamente da BC (bcTransportation contiene "air")
+  // Item classificati AIR automaticamente da BC (bcTransportation contiene "air"), esclusi i bloccati
   const bcAirItems = useMemo(()=>
     products
-      .filter((p:any)=>isAirTransport(p.bcTransportation))
+      .filter((p:any)=>isAirTransport(p.bcTransportation) && p.active !== false)
       .map((p:any)=>({
         productId: p.id, code: p.code, nHK: p.nHK,
         description: p.description, transportation: p.bcTransportation, _fromBC: true,
@@ -2669,9 +2677,9 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
 
   const _sq=search.toLowerCase();
   const displayed=allAirItems.filter((a:any)=>!search
-    ||a.description?.toLowerCase().includes(_sq)
-    ||a.code?.toLowerCase().includes(_sq)
-    ||a.nHK?.toLowerCase().includes(_sq));
+    ||String(a.description||"").toLowerCase().includes(_sq)
+    ||String(a.code||"").toLowerCase().includes(_sq)
+    ||String(a.nHK||"").toLowerCase().includes(_sq));
 
   return(
     <div>
@@ -6817,7 +6825,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 }
 
 // ─── CHECK MENSILE ────────────────────────────────────────────────────────────
-function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[], onRefresh=null as any}) {
+function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[], airList=[] as any[], onRefresh=null as any}) {
   const isCAN = branch === "CAN";
   const cur = isCAN ? "€" : "HK$";
   // Converte seriale Excel o stringa data → "YYYY-MM-DD"
@@ -6913,6 +6921,21 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     });
   },[salesRows, rollingDays]);
 
+  // Set di codici AIR (airList + bcTransportation) e bloccati — esclusi da Check Mensile HK
+  const airCodeSet = useMemo(()=>{
+    const s = new Set<string>();
+    if(branch==="CAN") return s;
+    (airList||[]).forEach((a:any)=>{ if(a.productId) s.add(String(a.productId)); if(a.code) s.add(String(a.code)); if(a.nHK) s.add(String(a.nHK)); });
+    (products||[]).filter((p:any)=>isAirTransport(p.bcTransportation)).forEach((p:any)=>{ if(p.id) s.add(String(p.id)); if(p.code) s.add(String(p.code)); if(p.nHK) s.add(String(p.nHK)); });
+    return s;
+  },[airList, products, branch]);
+
+  const blockedCodeSet = useMemo(()=>{
+    const s = new Set<string>();
+    (products||[]).filter((p:any)=>p.active===false).forEach((p:any)=>{ if(p.id) s.add(String(p.id)); if(p.code) s.add(String(p.code)); if(p.nHK) s.add(String(p.nHK)); });
+    return s;
+  },[products]);
+
   const analysisRows = useMemo(()=>{
     if(!monthRows.length) return [];
     // Pre-calcola qty netto per codice: articoli completamente stornati (netto<=0) vanno esclusi
@@ -6938,6 +6961,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       // Escludi articoli completamente stornati (qty netta <= 0 nel periodo)
       if((netQtyByCode[String(nFiliale)]||0) <= 0) continue;
       const sCode = String(nFiliale);
+      // HK: escludi articoli AIR e bloccati
+      if(airCodeSet.has(sCode) || blockedCodeSet.has(sCode)) continue;
       // Risolvi xref bidirezionale
       const nComitFromIfb2 = isCAN ? String(xrefByIfbNoPreferNumeric(sCode)?.nHK||"") : "";
       const ifbFromNComit2 = isCAN ? String((xrefs||[]).find((x:any)=>String(x.nHK)===sCode)?.ifbNo||"") : "";
