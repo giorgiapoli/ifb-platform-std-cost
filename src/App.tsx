@@ -6962,8 +6962,11 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const deltaPct = isCAN ? (oldScGC>0 ? deltaPctGC : deltaPctLan) : (oldSC>0?(newSC-oldSC)/oldSC*100:0);
       // noCalc = DA INSERIRE: newSC non calcolabile
       const noCalc   = newSC===0 && !isKeepOld;
-      // isNuovo = NUOVI ARTICOLI: newSC calcolato, oldSC assente
-      const isNuovo  = newSC>0 && oldSC===0 && !isKeepOld;
+      // isNuovo CAN: newSC calcolato ma mancano scGC e scLan specifici per destinazione
+      // (lastSC generico non è sufficiente — l'articolo va inserito con SC per GC/LAN)
+      const isNuovo  = isCAN
+        ? (newSC>0 && oldScGC===0 && oldScLan===0 && !isKeepOld)
+        : (newSC>0 && oldSC===0 && !isKeepOld);
       const isDeltaGC  = isCAN && oldScGC>0  && newScGC>0  && Math.abs(deltaPctGC) >threshold && !isKeepOld;
       const isDeltaLan = isCAN && oldScLan>0 && newScLan>0 && Math.abs(deltaPctLan)>threshold && !isKeepOld;
       rows.push({
