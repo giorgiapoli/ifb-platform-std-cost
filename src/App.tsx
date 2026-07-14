@@ -7086,14 +7086,14 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC BC/NAV assente ma Standard Cost calcolabile dal listino — da inserire in Business Central.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="New SC Calc"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC GC/TF"/><TH h="SC LAN/FUE"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
               <tbody>
                 {alert1.filter(checkFilter).length===0
-                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert1.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
+                  ? <tr><td colSpan={6+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert1.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
                   : alert1.filter(checkFilter).map((r:any,i:number)=>(
                     <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.blue}07`}}>
                       {tdCodes(r)}{tdD(r.description)}
-                      {tdSC(r.newSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
+                      {tdSC(r.newScGC||r.newSC)}{tdSC(r.newScLan||r.newSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
                     </tr>
                   ))}
               </tbody>
