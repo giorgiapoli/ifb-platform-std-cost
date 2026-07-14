@@ -75,13 +75,24 @@ export const IDB = {
 
 // ── CLOUD: IDB + Supabase sync ────────────────────────────────────────────────
 export const CLOUD = {
-  /** Legge da Supabase se disponibile e il key è condiviso; altrimenti da IDB */
+  /** Legge da Supabase se disponibile; preferisce il dato più recente tra Supabase e IDB */
   get: async (key: string, def: any = null) => {
     if (supabase && CLOUD_KEYS.has(key)) {
       try {
-        const { data } = await supabase.from('app_data').select('data').eq('key', key).maybeSingle();
+        const { data } = await supabase.from('app_data').select('data, updated_at').eq('key', key).maybeSingle();
         if (data?.data !== undefined) {
-          await IDB.set(key, data.data); // aggiorna cache locale
+          const supaTs = data.updated_at ? new Date(data.updated_at).getTime() : 0;
+          const localTs: number = (await IDB.get(`__ts__${key}`, 0)) as number;
+          if (localTs > supaTs) {
+            // IDB è più recente (write Supabase precedente fallito) → resync
+            const localVal = await IDB.get(key, def);
+            supabase.from('app_data')
+              .upsert({ key, data: localVal, updated_at: new Date(localTs).toISOString() }, { onConflict: 'key' })
+              .then().catch(() => {});
+            return localVal;
+          }
+          await IDB.set(key, data.data);
+          await IDB.set(`__ts__${key}`, supaTs);
           return data.data;
         }
       } catch { /* offline → IDB fallback */ }
@@ -89,14 +100,20 @@ export const CLOUD = {
     return IDB.get(key, def);
   },
 
-  /** Scrive su IDB (immediato) + Supabase (async, solo admin) */
+  /** Scrive su IDB (immediato, con timestamp) + Supabase con retry */
   set: async (key: string, val: any) => {
+    const ts = Date.now();
     await IDB.set(key, val);
+    await IDB.set(`__ts__${key}`, ts);
     if (supabase && CLOUD_KEYS.has(key)) {
       try {
-        await supabase.from('app_data')
-          .upsert({ key, data: val, updated_at: new Date().toISOString() }, { onConflict: 'key' });
-      } catch { /* ignore cloud errors */ }
+        const { error } = await supabase.from('app_data')
+          .upsert({ key, data: val, updated_at: new Date(ts).toISOString() }, { onConflict: 'key' });
+        if (error) {
+          await supabase.from('app_data')
+            .upsert({ key, data: val, updated_at: new Date(ts).toISOString() }, { onConflict: 'key' });
+        }
+      } catch { /* offline — IDB ha già il dato */ }
     }
     return true;
   },

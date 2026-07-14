@@ -1482,7 +1482,13 @@ export default function App() {
       showToast={showToast}
       macHkCostRows={macHkCostRows}
     />,
-    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products} logistics={logistics}/>,
+    check: <CheckMensile costRows={costRows} branch={branch} salesRows={salesRows} xrefs={xrefs} scAttuali={scAttuali} products={products} logistics={logistics}
+      onRefresh={async()=>{
+        setSalesRows(await CLOUD.get(`ifb_sales_invoice_${branch}`,[]));
+        setScAttuali(await CLOUD.get(`ifb_scattuali_${branch}`,[]));
+        setProducts(await CLOUD.get(`ifb_products_${branch}`,[]));
+        setLogistics(await CLOUD.get("ifb_logistics",[]));
+      }}/>,
     mail:  <MailGen costRows={costRows} branch={branch} month={month}/>,
     notes:       <NotesPage/>,
   };
@@ -6740,7 +6746,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
 }
 
 // ─── CHECK MENSILE ────────────────────────────────────────────────────────────
-function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[]}) {
+function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, logistics=[], onRefresh=null as any}) {
   const isCAN = branch === "CAN";
   const cur = isCAN ? "€" : "HK$";
   // Converte seriale Excel o stringa data → "YYYY-MM-DD"
@@ -7052,6 +7058,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
             <input placeholder="codice o descrizione…" value={checkSearch} onChange={e=>setCheckSearch(e.target.value)}
               style={{...inputStyle(),minWidth:"200px"}}/>
           </div>
+          {onRefresh&&<button onClick={async()=>{await onRefresh();}} style={{padding:"6px 14px",background:T.surface,color:T.blue,border:`1px solid ${T.blue}66`,borderRadius:"6px",cursor:"pointer",fontSize:"11px",fontWeight:"bold"}}>🔄 Aggiorna dati</button>}
           {scAttuali.length===0&&(
             <div style={{fontSize:"12px",color:T.orange,padding:"7px 12px",border:`1px solid ${T.orange}44`,borderRadius:"6px"}}>
               ⚠ SC Attuali non caricati
