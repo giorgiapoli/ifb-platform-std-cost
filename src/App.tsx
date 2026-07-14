@@ -6863,7 +6863,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     const m: Record<string,any>={};
     const set = (k:string, r:any) => {
       if(!k) return;
-      if(!m[k] || ((m[k].scGC==null && m[k].scLan==null) && (r.scGC!=null || r.scLan!=null))) m[k]=r;
+      // Preferisce entry con scGC/scLan > 0; confronta con falsy (0 e null sono entrambi "vuoti")
+      if(!m[k] || ((!m[k].scGC && !m[k].scLan) && (r.scGC || r.scLan))) m[k]=r;
     };
     (scAttuali||[]).forEach((r:any)=>{ if(r.code!=null) set(String(r.code),r); });
     (scAttuali||[]).forEach((r:any)=>{ if(r.ifbCode) set(String(r.ifbCode),r); });
