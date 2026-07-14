@@ -3001,10 +3001,12 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
     const existing = getLog(id);
     let next = logistics;
     if(!existing) {
-      // Entry never existed: create it with current defaults
       next = [...logistics, getOrDefault(id)];
-      setLogistics(next);
+    } else if(existing.productId !== id) {
+      // Migra il productId vecchio al nuovo (dopo reload anagrafica)
+      next = logistics.map(l => l.productId===existing.productId&&l.branch===branch ? {...l, productId:id} : l);
     }
+    setLogistics(next);
     CLOUD.set("ifb_logistics", next);
     showToast("Salvato ✓", T.green);
     setEditingRows(prev=>{ const s=new Set(prev); s.delete(id); return s; });
@@ -3037,8 +3039,10 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
                 ["hasCert","hasAlcTax"].includes(field) ? (rawVal === "true") :
                 ["isGC","isTF","isFUE","isLAN"].includes(field) ? !!rawVal :
                 (parseFloat(rawVal) || 0);
+    // Usa l'id reale dell'entry trovata (potrebbe essere vecchio id dopo reload anagrafica)
+    const matchId = existing?.productId || productId;
     const next = existing
-      ? logistics.map(l => l.productId===productId&&l.branch===branch ? {...l, [field]:val, _manualOverride:true} : l)
+      ? logistics.map(l => l.productId===matchId&&l.branch===branch ? {...l, productId, [field]:val, _manualOverride:true} : l)
       : [...logistics, {...getOrDefault(productId), [field]: val, _manualOverride:true}];
     setLogistics(next);
     CLOUD.set("ifb_logistics", next);
