@@ -3053,13 +3053,16 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
                 ["hasCert","hasAlcTax"].includes(field) ? (rawVal === "true") :
                 ["isGC","isTF","isFUE","isLAN"].includes(field) ? !!rawVal :
                 (parseFloat(rawVal) || 0);
-    // Usa l'id reale dell'entry trovata (potrebbe essere vecchio id dopo reload anagrafica)
     const matchId = existing?.productId || productId;
-    const next = existing
-      ? logistics.map(l => l.productId===matchId&&l.branch===branch ? {...l, productId, [field]:val, _manualOverride:true} : l)
-      : [...logistics, {...getOrDefault(productId), [field]: val, _manualOverride:true}];
-    setLogistics(next);
-    CLOUD.set("ifb_logistics", next);
+    // Forma funzionale: cattura sempre lo stato più recente (evita stale closure su click rapidi)
+    setLogistics(prev => {
+      const ex = prev.find(l=>l.productId===matchId&&l.branch===branch);
+      const next = ex
+        ? prev.map(l => l.productId===matchId&&l.branch===branch ? {...l, productId, [field]:val, _manualOverride:true} : l)
+        : [...prev, {...getOrDefault(productId), [field]: val, _manualOverride:true}];
+      CLOUD.set("ifb_logistics", next);
+      return next;
+    });
   }
 
   function parseLogFile(e) {
