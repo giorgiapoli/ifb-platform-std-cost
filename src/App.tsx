@@ -3012,16 +3012,24 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   const [editingRows, setEditingRows] = useState<Set<string>>(new Set());
   function toggleEdit(id:string) { setEditingRows(prev=>{ const s=new Set(prev); s.has(id)?s.delete(id):s.add(id); return s; }); }
   function saveRow(id:string) {
-    const existing = getLog(id);
-    let next = logistics;
-    if(!existing) {
-      next = [...logistics, getOrDefault(id)];
-    } else if(existing.productId !== id) {
-      // Migra il productId vecchio al nuovo (dopo reload anagrafica)
-      next = logistics.map(l => l.productId===existing.productId&&l.branch===branch ? {...l, productId:id} : l);
-    }
-    setLogistics(next);
-    CLOUD.set("ifb_logistics", next);
+    // Usa forma funzionale per leggere lo stato più recente (evita stale closure dopo update())
+    setLogistics(prev => {
+      const prod = allIFBProducts.find((p:any)=>p.id===id);
+      const existing = prev.find(l=>l.productId===id && l.branch===branch)
+        || (prod ? prev.find(l=>l.branch===branch && (
+            (prod.nHK && l.productId===prod.nHK) ||
+            (prod.code && l.productId===prod.code)
+          )) : null);
+      let next = prev;
+      if(!existing) {
+        const area = branch==="CAN" ? canAreaByVendor(prod?.vendorName||"") : "NORD";
+        next = [...prev, {productId:id, branch, area, ubicazione:"MTO", pltPerContainer:0, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0, _manualOverride:true}];
+      } else if(existing.productId !== id) {
+        next = prev.map(l => l.productId===existing.productId&&l.branch===branch ? {...l, productId:id} : l);
+      }
+      CLOUD.set("ifb_logistics", next);
+      return next;
+    });
     showToast("Salvato ✓", T.green);
     setEditingRows(prev=>{ const s=new Set(prev); s.delete(id); return s; });
   }
