@@ -6959,7 +6959,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   },[monthRows, xrefByNFiliale, scMap, costMap, products, logMap, isCAN, threshold]);
 
   // Priorità rigida: ogni articolo appartiene a UNA SOLA categoria
-  const alert1 = analysisRows.filter(r=>r.isNuovo);
+  const alert1 = analysisRows.filter(r=>r.isNuovo || (r.noCalc && !r.isKeepOld && !r.isDelta && r.skipReason!=="PREZZO ZERO"));
   const alert2 = analysisRows.filter(r=>r.isDelta && !r.isNuovo).sort((a:any,b:any)=>{
     const pa = isCAN ? a.deltaPctGC : a.deltaPct;
     const pb = isCAN ? b.deltaPctGC : b.deltaPct;
@@ -6969,7 +6969,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   });
   const alert3 = analysisRows.filter(r=>r.isKeepOldOrdered && !r.isNuovo && !r.isDelta);
   const alert5 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && !r.isNuovo && !r.isDelta && r.skipReason==="PREZZO ZERO"); // DELISTATI
-  const alert4 = analysisRows.filter(r=>r.noCalc && !r.isKeepOld && !r.isNuovo && !r.isDelta && r.skipReason!=="PREZZO ZERO"); // DA INSERIRE
+  const alert4: any[] = []; // rimosso — merged in alert1
 
   const checkFilter = (r:any) => {
     if(!checkSearch.trim()) return true;
@@ -6984,7 +6984,6 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     const today = new Date(); const monthFmt = `${today.getFullYear()}_${String(today.getMonth()+1).padStart(2,"0")}`;
     const all = [
       ...alert1.map((r:any)=>({...r,tipo:"NUOVI ARTICOLI"})),
-      ...alert4.map((r:any)=>({...r,tipo:"DA INSERIRE"})),
       ...alert5.map((r:any)=>({...r,tipo:"DELISTATI"})),
       ...alert2.map((r:any)=>({...r,tipo:"TO UPDATE (Delta%)"})),
     ];
@@ -7067,7 +7066,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           {analysisRows.length>0&&<div style={{display:"flex",gap:"10px",alignItems:"center"}}>
             <span style={{fontSize:"11px",color:T.muted}}>{monthRows.length} righe · {analysisRows.length} articoli univoci</span>
             <span style={{fontSize:"10px",color:T.dim}}>(ultimi {rollingDays}gg)</span>
-            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={alert1.length+alert2.length+alert4.length===0}/>
+            <ActionBtn label="📥 Esporta Excel" onClick={exportExcel} primary disabled={alert1.length+alert2.length===0}/>
           </div>}
         </div>
       </Section>
@@ -7077,7 +7076,6 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         <div style={{display:"flex",gap:"14px",flexWrap:"wrap",padding:"0 0 18px"}}>
           {([
             {label:"NUOVI ARTICOLI",n:alert1.length,c:T.blue,icon:"🆕"},
-            {label:"DA INSERIRE",n:alert4.length,c:T.red,icon:"❌"},
             {label:"DELISTATI",n:alert5.length,c:T.dim,icon:"🗑"},
             {label:"TO UPDATE (Δ%)",n:alert2.length,c:T.orange,icon:"⬆"},
           ] as {label:string,n:number,c:string,icon:string}[]).map(({label,n,c,icon})=>(
@@ -7088,41 +7086,21 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           ))}
         </div>
 
-        {/* ALERT 1 — NUOVI ARTICOLI */}
-        <Section title={`🆕 1. NUOVI ARTICOLI — SC calcolato, non ancora in sistema (${alert1.length})`} accent={T.blue}>
-          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC BC/NAV assente ma Standard Cost calcolabile dal listino — da inserire in Business Central.</div>
+        {/* ALERT 1 — NUOVI ARTICOLI (merged: SC calcolato + SC non calcolabile) */}
+        <Section title={`🆕 1. NUOVI ARTICOLI — SC non ancora in sistema (${alert1.length})`} accent={T.blue}>
+          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Acquistati negli ultimi {rollingDays}gg senza SC in BC/NAV. SC calcolato dove disponibile; Skip Reason indica il motivo se non calcolabile.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC GC/TF"/><TH h="SC LAN/FUE"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
+              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC GC/TF"/><TH h="SC LAN/FUE"/><TH h="Skip Reason"/><TH h="Stock"/><TH h="Last Date"/></tr></thead>
               <tbody>
                 {alert1.filter(checkFilter).length===0
-                  ? <tr><td colSpan={6+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert1.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
+                  ? <tr><td colSpan={7+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert1.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
                   : alert1.filter(checkFilter).map((r:any,i:number)=>(
-                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.blue}07`}}>
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:r.newSC>0?`${T.blue}07`:`${T.red}05`}}>
                       {tdCodes(r)}{tdD(r.description)}
-                      {tdSC(r.newScGC||r.newSC)}{tdSC(r.newScLan||r.newSC)}{tdM(r.stockQty)}{tdM(r.lastDate)}
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-
-        {/* ALERT 4 — DA INSERIRE (newSC non calcolabile) */}
-        <Section title={`❌ 2. DA INSERIRE — New SC non calcolabile (${alert4.length})`} accent={T.red}>
-          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Standard Cost non calcolabile: manca logistica, prezzo zero, o listino assente. Acquistati nell'ultimo mese — da verificare.</div>
-          <div style={{overflowX:"auto"}}>
-            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC in macchina"/><TH h="Skip Reason"/><TH h="Last Date"/></tr></thead>
-              <tbody>
-                {alert4.filter(checkFilter).length===0
-                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert4.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
-                  : alert4.filter(checkFilter).map((r:any,i:number)=>(
-                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.red}07`}}>
-                      {tdCodes(r)}{tdD(r.description)}
-                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
-                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"left"}}>{r.skipReason||"—"}</td>
-                      {tdM(r.lastDate)}
+                      {tdSC(r.newScGC||r.newSC)}{tdSC(r.newScLan||r.newSC)}
+                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"left",whiteSpace:"nowrap"}}>{r.skipReason||"—"}</td>
+                      {tdM(r.stockQty)}{tdM(r.lastDate)}
                     </tr>
                   ))}
               </tbody>
@@ -7131,7 +7109,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         </Section>
 
         {/* ALERT 5 — DELISTATI (prezzo zero) */}
-        <Section title={`🗑 3. DELISTATI — Prezzo zero (${alert5.length})`} accent={T.dim}>
+        <Section title={`🗑 2. DELISTATI — Prezzo zero (${alert5.length})`} accent={T.dim}>
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Articoli con prezzo zero — potenzialmente delistati.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
@@ -7153,7 +7131,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         </Section>
 
         {/* ALERT 2 */}
-        <Section title={`⬆ 4. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
+        <Section title={`⬆ 3. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC in macchina vs SC calcolato: variazione oltre la soglia.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
