@@ -772,16 +772,26 @@ export default function App() {
             const prevLog: any[] = await CLOUD.get("ifb_logistics", []);
             const otherBranchLog = prevLog.filter((l:any) => l.branch !== "CAN");
             // Indice delle righe CAN modificate manualmente: non vanno sovrascritte dal worktab
+            // Cerca per productId, ma anche per nHK/code in caso di reload anagrafica con id cambiati
             const manualOverrides: Record<string, any> = {};
             prevLog.filter((l:any) => l.branch === "CAN" && l._manualOverride).forEach((l:any) => {
               manualOverrides[l.productId] = l;
+              // Alias per nHK/code: così si trova anche se prod.id è diverso dal productId salvato
+              const prod = canProds.find((p:any) => p.id === l.productId);
+              if(prod) {
+                if(prod.nHK) manualOverrides[prod.nHK] = l;
+                if(prod.code) manualOverrides[prod.code] = l;
+              }
             });
+            const coveredProductIds = new Set<string>();
             const canLog = wt.flatMap((row: any) => {
               const prod = canProds.find((p:any) => p.nHK === row.nComit || p.code === row.ifbNo)
                         || canProds.find((p:any) => canXrefs.find((x:any) => x.nHK === row.nComit && x.ifbNo === p.code));
               if(!prod) return [];
-              // Preserva modifiche manuali dell'utente
-              if(manualOverrides[prod.id]) return [manualOverrides[prod.id]];
+              coveredProductIds.add(prod.id);
+              // Preserva modifiche manuali dell'utente (cerca per id corrente o alias)
+              const manualEntry = manualOverrides[prod.id] || manualOverrides[prod.nHK||""] || manualOverrides[prod.code||""];
+              if(manualEntry) return [{...manualEntry, productId: prod.id}];
               const transport = (row.transport||"").toUpperCase().includes("MARE") ? "MARE" : "GOMMA";
               const ubicazione = row.mtsUb === "MTS" ? "MTS" : row.mtsUb === "FOR" ? "FOR" : "MTO";
               return [{
@@ -805,7 +815,11 @@ export default function App() {
                 isLAN: !!row.isLAN,
               }];
             });
-            const merged = [...otherBranchLog, ...canLog];
+            // CRITICO: le entry manuali per prodotti NON nel worktab vanno comunque preservate
+            const extraManuals = prevLog.filter((l:any) =>
+              l.branch === "CAN" && l._manualOverride && !coveredProductIds.has(l.productId)
+            );
+            const merged = [...otherBranchLog, ...canLog, ...extraManuals];
             setLogistics(merged);
             CLOUD.set("ifb_logistics", merged);
           }
