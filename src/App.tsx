@@ -3011,11 +3011,21 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   }
 
   function getLog(productId) {
-    return logistics.find(l=>l.productId===productId && l.branch===branch) || null;
+    const direct = logistics.find(l=>l.productId===productId && l.branch===branch);
+    if(direct) return direct;
+    // Fallback: se l'id del prodotto è cambiato dopo reload anagrafica, cerca per nHK o code
+    const prod = allIFBProducts.find((p:any)=>p.id===productId);
+    if(!prod) return null;
+    return logistics.find(l=>l.branch===branch && (
+      (prod.nHK && l.productId===prod.nHK) ||
+      (prod.code && l.productId===prod.code)
+    )) || null;
   }
 
   function getOrDefault(productId) {
-    if(getLog(productId)) return getLog(productId);
+    const found = getLog(productId);
+    // Se trovato con ID diverso (fallback nHK/code), restituisce con productId corretto
+    if(found) return found.productId === productId ? found : {...found, productId};
     const prod = allIFBProducts.find((p:any)=>p.id===productId);
     const area = branch==="CAN" ? canAreaByVendor(prod?.vendorName||"") : "NORD";
     return {productId, branch, area, ubicazione:"MTO", pltPerContainer:0, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0};
