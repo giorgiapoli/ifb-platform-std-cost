@@ -6925,7 +6925,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       const deltaPctGC  = isCAN && oldScGC>0  ? (newScGC -oldScGC )/oldScGC *100 : 0;
       const deltaPctLan = isCAN && oldScLan>0 ? (newScLan-oldScLan)/oldScLan*100 : 0;
       // Per compatibilità HK: oldSC/newSC/deltaPct singoli
-      const oldSC   = isCAN ? (oldScGC  || oldScLan)  : (scEntry?.lastSC || 0);
+      // CAN: fallback su lastSC se scGC/scLan non ancora popolati (evita falsi isNuovo)
+      const oldSC   = isCAN ? (oldScGC || oldScLan || scEntry?.lastSC || 0) : (scEntry?.lastSC || 0);
       const newSC   = isCAN ? (newScGC  || newScLan)  : (cr?.cost?.step2Hkd || 0);
       const deltaPct = isCAN ? (oldScGC>0 ? deltaPctGC : deltaPctLan) : (oldSC>0?(newSC-oldSC)/oldSC*100:0);
       // noCalc = DA INSERIRE: newSC non calcolabile
