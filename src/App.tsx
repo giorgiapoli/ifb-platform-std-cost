@@ -7127,7 +7127,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     ];
     const data = all.map((r:any)=>({
       "Tipo":        r.tipo,
-      "N COMIT":     isCAN ? (r.sameCode ? r.nFiliale : r.ifbNo) : r.nFiliale,
+      [isCAN ? "N COMIT" : "N HK"]: isCAN ? (r.sameCode ? r.nFiliale : r.ifbNo) : r.nFiliale,
       "IFB No":      isCAN ? r.nFiliale : r.ifbNo,
       "Descrizione": r.description,
       ...(isCAN ? {
