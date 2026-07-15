@@ -360,13 +360,11 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   const pm = Number(priceMultiplier||1) || 1;
 
   // ── Units per pallet ── (formula modello Excel) / conv factor item
-  // PCS: qtyPerBox × boxPerPallet
-  // BOX: boxPerPallet
-  // KG:  boxPerPallet (come modello Excel: divisore = colli/pallet, non kg/pallet)
+  // PCS: qtyPerBox × boxPerPallet  |  BOX: boxPerPallet  |  KG: kgxplt (kg per pallet da anagrafica BC)
   let unitsPerPlt: number;
   if (uom==="BOX") unitsPerPlt = Number(boxPerPallet) / pm;
   else if (uom==="KG") {
-    unitsPerPlt = (Number(boxPerPallet) > 0 ? Number(boxPerPallet) : (Number(kgxplt) > 0 ? Number(kgxplt) : 300)) / pm;
+    unitsPerPlt = (Number(kgxplt) > 0 ? Number(kgxplt) : 300) / pm;
   }
   else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet) / pm; // PCS
 
