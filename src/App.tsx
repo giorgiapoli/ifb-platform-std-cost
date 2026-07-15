@@ -6939,11 +6939,10 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   const analysisRows = useMemo(()=>{
     if(!monthRows.length) return [];
     // Pre-calcola qty netto per codice: articoli completamente stornati (netto<=0) vanno esclusi
+    // Include TUTTE le righe (anche prezzo=0) perché gli storni/note credito possono avere prezzo zero
     const netQtyByCode: Record<string, number> = {};
     for (const inv of monthRows) {
       if(!inv.itemCode) continue;
-      if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
-      if(inv.transport==="AIR") continue;
       if(/^FREIGHT$/i.test(String(inv.itemCode))) continue;
       const k = String(inv.itemCode);
       netQtyByCode[k] = (netQtyByCode[k]||0) + (inv.qty||0);
