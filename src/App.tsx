@@ -7044,7 +7044,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       // Prendi la data più recente tra logistica e fattura (se logistica è vecchia, la fattura recente vince)
       const lastOrderRaw2 = (!logDateStr || (invDateStr && invDateStr > logDateStr)) ? invDateStr : logDateStr;
       const lastOrderD = lastOrderRaw2 ? new Date(lastOrderRaw2) : null;
-      const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000)>180 : false;
+      const isKeepOld = lastOrderD ? ((Date.now()-lastOrderD.getTime())/86400000) > (isCAN ? 180 : 45) : false;
       // CAN: calcola sempre entrambe le destinazioni GC/TF e FUE/LAN
       const oldScGC  = isCAN ? (scEntry?.scGC  || 0) : 0;
       const oldScLan = isCAN ? (scEntry?.scLan || 0) : 0;
@@ -7073,7 +7073,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         oldSC, newSC, deltaPct, absDelta:Math.abs(deltaPct), noCalc,
         oldScGC, oldScLan, newScGC, newScLan, deltaPctGC, deltaPctLan,
         skipReason: cr?.skipReason || (!prod && !cr ? "NON IN ANAGRAFICA · NON IN LISTINO" : !prod ? "NON IN ANAGRAFICA" : !cr ? "NON IN LISTINO" : ""),
-        lastDate: toIsoDate(scEntry?.lastPurchaseDate || inv.date || inv.postingDate || ""),
+        lastDate: toIsoDate(inv.date || inv.postingDate || scEntry?.lastPurchaseDate || ""),
         stockQty: scEntry?.stockQty ?? "",
         isKeepOld,
         isNuovo,
