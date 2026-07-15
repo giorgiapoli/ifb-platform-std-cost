@@ -802,7 +802,7 @@ export default function App() {
                 productId: prod.id,
                 nHK: prod.nHK,
                 branch: "CAN",
-                area: row.area || (canAreaByVendor(prod.vendorName2||"") === "SUD" ? "SUD" : canAreaByVendor(prod.vendorName)),
+                area: (canAreaByVendor(prod.vendorName||"") === "SUD" || canAreaByVendor(prod.vendorName2||"") === "SUD") ? "SUD" : (row.area || "NORD"),
                 ubicazione,
                 transport,
                 pltPerContainer: 0,
@@ -3034,7 +3034,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           )) : null);
       let next = prev;
       if(!existing) {
-        const area = branch==="CAN" ? canAreaByVendor(prod?.vendorName||"") : "NORD";
+        const area = branch==="CAN" ? ((canAreaByVendor(prod?.vendorName||"") === "SUD" || canAreaByVendor(prod?.vendorName2||"") === "SUD") ? "SUD" : "NORD") : "NORD";
         next = [...prev, {productId:id, branch, area, ubicazione:"MTO", pltPerContainer:0, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0, _manualOverride:true}];
       } else if(existing.productId !== id) {
         next = prev.map(l => l.productId===existing.productId&&l.branch===branch ? {...l, productId:id} : l);
@@ -3063,7 +3063,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
     // Se trovato con ID diverso (fallback nHK/code), restituisce con productId corretto
     if(found) return found.productId === productId ? found : {...found, productId};
     const prod = allIFBProducts.find((p:any)=>p.id===productId);
-    const area = branch==="CAN" ? canAreaByVendor(prod?.vendorName||"") : "NORD";
+    const area = branch==="CAN" ? ((canAreaByVendor(prod?.vendorName||"") === "SUD" || canAreaByVendor(prod?.vendorName2||"") === "SUD") ? "SUD" : "NORD") : "NORD";
     return {productId, branch, area, ubicazione:"MTO", pltPerContainer:0, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0};
   }
   
@@ -8950,8 +8950,11 @@ function BcBanner({icon="ℹ", title, children}:any){
 }
 
 function PageHeader({title,sub,srcKey=null}:any){
+  const dsrc = srcKey ? getDataSource(srcKey) : null;
+  const loadLabel = dsrc ? new Date(dsrc.ts).toLocaleString("it-IT",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"}) : null;
   return(
     <div style={{marginBottom:"20px"}}>
+      {loadLabel&&<div style={{fontSize:"10px",color:T.muted,marginBottom:"4px",letterSpacing:"0.03em"}}>caricamento visualizzato del: {loadLabel}</div>}
       <h2 style={{color:T.gold,margin:"0 0 4px",fontSize:"18px",display:"flex",alignItems:"center",flexWrap:"wrap",gap:"6px"}}>
         {title}
         {srcKey&&<SourceBadge dataKey={srcKey}/>}
