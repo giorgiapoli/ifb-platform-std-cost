@@ -4283,7 +4283,7 @@ Prezzi totali: <strong style={{ color: T.text }}>{doneInfo.count}</strong> &nbsp
 if (filtered.length === 0 && !invoiceOnly && importStep === "idle") {
 return (
 <div>
-<PageHeader title={`Listini · ${branch} · ${month}`} sub="Nessun prezzo caricato" />
+<PageHeader title={`Listini · ${branch} · ${month}`} sub="Nessun prezzo caricato" srcKey={`listini_${branch}`}/>
 <div style={{ padding: "32px", textAlign: "center", color: T.muted, fontSize: "13px" }}>
 Nessun prezzo per {branch} · {month}.
 </div>
@@ -4303,7 +4303,7 @@ Nessun prezzo per {branch} · {month}.
 
 return (
 <div>
-<PageHeader title={`Listini · ${branch} · ${month}`} sub={`${filtered.length} prezzi caricati`} />
+<PageHeader title={`Listini · ${branch} · ${month}`} sub={`${filtered.length} prezzi caricati`} srcKey={`listini_${branch}`}/>
 {listiniMode === "bc" ? (
   <BcBanner title="Dati aggiornati automaticamente da BC IFB Italia">
     Listini prezzi FCA / DAP / MTS caricati ogni giorno alle 07:00 dal listino acquisto e vendita di <b style={{color:T.text}}>Business Central IFB Italia</b>. Il campo <b style={{color:T.text}}>DAP</b> viene calcolato dalla tabella costi trasporto BC quando non è presente un prezzo DAP esplicito (Pallet1 ÷ pz/pallet).
@@ -8760,6 +8760,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
     setMeatPrices(entries);
     IDB.set("ifb_meatprices", entries);
     IDB.set(`ifb_meatprices_data_${now}`, entries);
+    setDataSource("meatprices", "manual");
     const log = {id:now, type:"meatlist", date:new Date(now).toISOString(), count:entries.length, diffs:[], branch:"ALL"};
     const newLogs = [log,...importLogs]; setImportLogs(newLogs); LS.set("ifb_importlogs",newLogs);
     const newSnaps = [log,...snapshots].slice(0,50); setSnapshots(newSnaps); LS.set("ifb_snapshots",newSnaps);
@@ -8778,7 +8779,7 @@ function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,s
 
   return (
     <div>
-      <PageHeader title="🥩 Listino Carne" sub={`${meatPrices.length} prezzi · usato come fallback se l'articolo non è nei listini principali`}/>
+      <PageHeader title="🥩 Listino Carne" sub={`${meatPrices.length} prezzi · usato come fallback se l'articolo non è nei listini principali`} srcKey="meatprices"/>
 
       {/* Toolbar */}
       <div style={{display:"flex",gap:"10px",marginBottom:"16px",alignItems:"center",flexWrap:"wrap"}}>
