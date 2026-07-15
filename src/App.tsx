@@ -3254,11 +3254,12 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   
     setLogistics(next);
     CLOUD.set("ifb_logistics", next);
-  
+    setDataSource(`logistics_${currentBranch}`, "manual");
+
     if (countAir > 0) {
       showToast(`⚠ ${countAir} articoli AIR rilevati — gestiscili da ✈ AIR Transport`, T.orange);
     }
-  
+
     bumpImportTs();
     showToast(`Logistica aggiornata: ${countLog} prodotti per ${currentBranch} ✓`, T.gold);
   
@@ -3292,7 +3293,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
 
   return (
     <div>
-      <PageHeader title={`Logistica · ${branch}`} sub={`${withCount} con logistica · ${missingCount} senza logistica — totale ${allIFBProducts.length} IFB`}/>
+      <PageHeader title={`Logistica · ${branch}`} sub={`${withCount} con logistica · ${missingCount} senza logistica — totale ${allIFBProducts.length} IFB`} srcKey={`logistics_${branch}`}/>
 
       <div style={{fontSize:"11px", color:T.muted, marginBottom:"10px", padding:"6px 10px", background:`${T.gold}08`, borderRadius:"6px", border:`1px solid ${T.gold}22`}}>
         🟡 Righe <strong style={{color:T.gold}}>dorate</strong> = importate da Work_tab (modificabili) &nbsp;·&nbsp;
