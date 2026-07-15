@@ -56,7 +56,7 @@ function findProduct(code, products, xrefs=[]) {
 // All costs confirmed from 05_Modello_Standard_Cost.xlsx COSTS (LOG) sheet
 const COSTS = {
   FOB:{ DRY:{NORD:2000,CENTRO:0,SUD:1108.55}, FRESH:{NORD:3500,CENTRO:3500,SUD:0}, FROZEN:{NORD:4000,CENTRO:0,SUD:0} },
-  LIC_HKD: 4100+3800,   // LOCAL IMPORT CHARGES in HKD: C MEDIO CON PALLET + C TERMINAL
+  LIC_EUR: 864,          // LOCAL IMPORT CHARGES in EUR fisso (da modello Excel COSTS LOG D29)
   VGM: 100,             // EUR per container
   HC:  80,              // EUR per container (Health Certificate)
   PLT: 30,              // EUR per pallet
@@ -392,7 +392,7 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   const fob = (fobContainer / pltPerContainer) / unitsPerPlt;
 
   // ── LIC = (4100+3800 HKD) / rate / totalUnits ──
-  const lic = (COSTS.LIC_HKD / eurToHkd) / totalUnits;
+  const lic = COSTS.LIC_EUR / totalUnits;
 
   // ── VGM = 100 / totalUnits ──
   const vgm = COSTS.VGM / totalUnits;
@@ -5306,7 +5306,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                 {row("Prezzo acquisto",f4(c.priceEur),"Da listino (DAP/FCA del mese)",T.text)}
                                 {sep("Trasporto e dazi")}
                                 {row("FOB / unit",f4(c.fob),`Freight On Board — ${c.fobContainer}€ ÷ ${c.pltPerContainer} plt ÷ ${c.unitsPerPlt?.toFixed(2)} u/plt`,T.blue)}
-                                {row("LIC / unit",f4(c.lic),`Local Import Charges — (${COSTS.LIC_HKD} HKD ÷ ${c.rate}) ÷ ${c.totalUnits?.toFixed(2)} u/cnt`,T.blue)}
+                                {row("LIC / unit",f4(c.lic),`Local Import Charges — ${COSTS.LIC_EUR}€ ÷ ${c.totalUnits?.toFixed(2)} u/cnt`,T.blue)}
                                 {row("VGM / unit",f4(c.vgm),`Verified Gross Mass — ${COSTS.VGM}€ ÷ ${c.totalUnits?.toFixed(2)} u/cnt`,T.blue)}
                                 {c.hc>0&&row("Certificati / unit",f4(c.hc),`Health cert — ${COSTS.HC}€ ÷ ${c.totalUnits?.toFixed(2)} u/cnt`,T.blue)}
                                 {row("Pallet / unit",f4(c.plt),`Costo pallet ÷ ${(c.unitsPerPlt||0).toFixed(2)} u/plt`,T.blue)}
