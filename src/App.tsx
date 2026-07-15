@@ -227,10 +227,8 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   if (!priceEur) return null;
 
   const temp: string = temperature || "DRY";
-  // Area: controlla ENTRAMBI i vendor name (Vendor Name = IFB, Vendor Name 2 = produttore reale)
-  // Se uno dei due è SUD → usa SUD (Vendor Name 2 è il fornitore vero per articoli intercompany)
-  const vendorArea = (canAreaByVendor(vendorName||"") === "SUD" || canAreaByVendor(vendorName2||"") === "SUD") ? "SUD" : (area || "NORD");
-  const areaKey: string = vendorArea;
+  // Area: viene dal campo "area" della logistica (Work Tab), impostato dall'utente
+  const areaKey: string = area || "NORD";
   const isMARE = transport === "MARE";
   const isFF = temp === "FRESH" || temp === "FROZEN";
 
@@ -802,7 +800,7 @@ export default function App() {
                 productId: prod.id,
                 nHK: prod.nHK,
                 branch: "CAN",
-                area: (canAreaByVendor(prod.vendorName||"") === "SUD" || canAreaByVendor(prod.vendorName2||"") === "SUD") ? "SUD" : (row.area || "NORD"),
+                area: row.area || "NORD",
                 ubicazione,
                 transport,
                 pltPerContainer: 0,
@@ -3034,7 +3032,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           )) : null);
       let next = prev;
       if(!existing) {
-        const area = branch==="CAN" ? ((canAreaByVendor(prod?.vendorName||"") === "SUD" || canAreaByVendor(prod?.vendorName2||"") === "SUD") ? "SUD" : "NORD") : "NORD";
+        const area = "NORD";
         next = [...prev, {productId:id, branch, area, ubicazione:"MTO", pltPerContainer:0, hasCert:false, hasAlcTax:false, alcTax:0, convFactor:1, carriage:0, _manualOverride:true}];
       } else if(existing.productId !== id) {
         next = prev.map(l => l.productId===existing.productId&&l.branch===branch ? {...l, productId:id} : l);
