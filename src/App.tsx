@@ -3376,8 +3376,31 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
 ) : mapStep === "ready" ? (
   <div style={{background:T.card, border:`1px solid ${T.green}`, borderRadius:"8px", padding:"16px", marginBottom:"16px"}}>
     <div style={{color:T.green, fontWeight:"bold", fontSize:"13px", marginBottom:"8px"}}>✓ File rilevato · {logRawRows.length} righe</div>
-    <div style={{fontSize:"12px", color:T.muted, marginBottom:"12px", lineHeight:"1.8"}}>
-      Verranno importati per <strong style={{color:T.gold}}>{branch}</strong>: Ubicazione, Area, Plt/Container, Health Certificate, Carriage, Tassa Alcolica{branch==="CAN" ? ", Isole (GC/TF/FUE/LAN)" : ""}
+    <div style={{fontSize:"12px", color:T.muted, marginBottom:"12px"}}>Verifica o correggi la mappatura colonne prima di importare:</div>
+    <div style={{display:"grid", gridTemplateColumns:"repeat(auto-fill,minmax(220px,1fr))", gap:"8px", marginBottom:"14px"}}>
+      {([
+        ["iNHK", "N Comit / N HK"],
+        ["iIFB",  "Codice IFB"],
+        ["iUb",   "Ubicazione (MTS/MTO)"],
+        ["iArea", "Area (NORD/SUD) ★"],
+        ["iTransport", "Trasporto (MARE/GOMMA)"],
+        ...(branch==="CAN" ? [["iGC","GC"],["iTF","TF"],["iFUE","FUE"],["iLAN","LAN"]] as any[] : []),
+        ["iPlt",  "PLT/Container"],
+        ["iAlcTax","Tassa Alcolica"],
+        ["iCert", "Health Cert"],
+        ["iCarriage","Carriage"],
+      ] as [string,string][]).map(([key, label])=>(
+        <label key={key} style={{display:"flex",flexDirection:"column",gap:"3px"}}>
+          <span style={{fontSize:"10px",color: key==="iArea"?T.gold:T.muted,fontWeight: key==="iArea"?"bold":"normal"}}>{label}</span>
+          <select
+            value={colIdx[key] ?? -1}
+            onChange={e => setColIdx((prev:any) => ({...prev, [key]: Number(e.target.value)}))}
+            style={{background:T.bg,color:T.text,border:`1px solid ${key==="iArea"?T.gold:T.border}`,borderRadius:"4px",padding:"3px 6px",fontSize:"11px"}}>
+            <option value={-1}>— non mappato —</option>
+            {logHeaders.map((h:string,i:number)=><option key={i} value={i}>{h||`Col ${i+1}`}</option>)}
+          </select>
+        </label>
+      ))}
     </div>
     <div style={{display:"flex", gap:"10px"}}>
       <ActionBtn label="← Annulla" onClick={() => setMapStep("idle")}/>
