@@ -227,9 +227,10 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   if (!priceEur) return null;
 
   const temp: string = temperature || "DRY";
-  // Area: sempre derivata dal vendor name (fonte di verità); area da logistica usata solo se vendor non in lista SUD
-  const vendorArea = canAreaByVendor(vendorName || vendorName2 || "");
-  const areaKey: string = vendorArea === "SUD" ? "SUD" : (area || "NORD");
+  // Area: controlla ENTRAMBI i vendor name (Vendor Name = IFB, Vendor Name 2 = produttore reale)
+  // Se uno dei due è SUD → usa SUD (Vendor Name 2 è il fornitore vero per articoli intercompany)
+  const vendorArea = (canAreaByVendor(vendorName||"") === "SUD" || canAreaByVendor(vendorName2||"") === "SUD") ? "SUD" : (area || "NORD");
+  const areaKey: string = vendorArea;
   const isMARE = transport === "MARE";
   const isFF = temp === "FRESH" || temp === "FROZEN";
 
