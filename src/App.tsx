@@ -431,6 +431,9 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
     step2Hkd: roundN(step2Eur * eurToHkd,2),
     rate: eurToHkd,
     unitsPerPlt,
+    pltPerContainer: Number(pltPerContainer),
+    totalUnits: roundN(totalUnits,2),
+    fobContainer: roundN(fobContainer,2),
   };
 }
 
@@ -5302,10 +5305,10 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                 {sep("Costo acquisto")}
                                 {row("Prezzo acquisto",f4(c.priceEur),"Da listino (DAP/FCA del mese)",T.text)}
                                 {sep("Trasporto e dazi")}
-                                {row("FOB / unit",f4(c.fob),"Freight On Board — da tabella COSTS",T.blue)}
-                                {row("LIC / unit",f4(c.lic),"Local Import Charges — da tabella COSTS",T.blue)}
-                                {row("VGM / unit",f4(c.vgm),"Verified Gross Mass — da tabella COSTS",T.blue)}
-                                {c.hc>0&&row("Certificati / unit",f4(c.hc),"Health / import certificate — da tabella COSTS",T.blue)}
+                                {row("FOB / unit",f4(c.fob),`Freight On Board — ${c.fobContainer}€ ÷ ${c.pltPerContainer} plt ÷ ${c.unitsPerPlt?.toFixed(2)} u/plt`,T.blue)}
+                                {row("LIC / unit",f4(c.lic),`Local Import Charges — (${COSTS.LIC_HKD} HKD ÷ ${c.rate}) ÷ ${c.totalUnits?.toFixed(2)} u/cnt`,T.blue)}
+                                {row("VGM / unit",f4(c.vgm),`Verified Gross Mass — ${COSTS.VGM}€ ÷ ${c.totalUnits?.toFixed(2)} u/cnt`,T.blue)}
+                                {c.hc>0&&row("Certificati / unit",f4(c.hc),`Health cert — ${COSTS.HC}€ ÷ ${c.totalUnits?.toFixed(2)} u/cnt`,T.blue)}
                                 {row("Pallet / unit",f4(c.plt),`Costo pallet ÷ ${(c.unitsPerPlt||0).toFixed(2)} u/plt`,T.blue)}
                                 {c.alc>0&&row("Alc. Tax / unit",f4(c.alc),"Tassa alcol — da anagrafica articolo",T.orange)}
                                 {sep("Magazzino")}
