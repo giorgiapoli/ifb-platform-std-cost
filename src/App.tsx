@@ -8179,17 +8179,27 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
             <thead>
               <tr>
                 {([
-                  [branchN(branch),"left","muted"],["IFB No","left","muted"],["Descrizione","left","muted"],
-                  ["Vendor","left","muted"],["Cat.","left","muted"],["UOM","left","muted"],
-                  ["Qty/Box","right","muted"],["Box/Plt","right","muted"],
-                  ...(branch==="CAN"?[["Peso Netto PCS","right","blue"]]:[] as any),
-                  ["Kg/Box","right","muted"],
-                  ...(branch==="CAN"?[["Div. UOM","right","blue"]]:[] as any),
-                  ["Kg x PLT","right","muted"],["Temp","left","muted"],
-                  ...(branch==="CAN"?[["AIEM%","right","orange"]]:[]),
-                  ["Attivo","left","muted"],
-                ] as [string,string,string][]).map(([label,align,col])=>(
-                  <th key={label} style={{padding:"3px 6px",background:T.card,color:(T as any)[col]||T.muted,textAlign:align as any,borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap"}}>{label}</th>
+                  [branchN(branch),"left","muted","","N HK (importato da BC)"],
+                  ["IFB No","left","muted","","Codice IFB (importato da BC)"],
+                  ["Descrizione","left","muted","",""],
+                  ["Vendor","left","muted","",""],
+                  ["Cat.","left","muted","",""],
+                  ["UOM (M)","left","muted","","Sales Unit of Measure da BC — variabile M della formula"],
+                  ["Qty/Box (T)","right","muted","","Quantity x Packaging da BC — variabile T della formula"],
+                  ["Box/Plt (U)","right","muted","","Packaging x Pallet da BC — variabile U della formula"],
+                  ...(branch==="CAN"?[["Peso Netto PCS","right","blue","★","Calcolato"]]:[] as any),
+                  ["Kg/Box","right","blue","★","CALCOLATO: NetWeightPcs × QtyPerBox  (oppure campo KgPerBox da BC)"],
+                  ["Kg x PLT (Y)","right","muted","","kg x pallet da BC — variabile Y della formula"],
+                  ["Qty x PLT","right","blue","★","CALCOLATO: SE(UOM=PCS→T×U; BOX→U; KG→Y)  — Divisore_UM formula Excel"],
+                  ...(branch==="CAN"?[["Div. UOM","right","blue","★","CALCOLATO: Divisore_UM"]]:[] as any),
+                  ["Div. Collo","right","blue","★","CALCOLATO: BOX→1; KG→Kg/Box; PCS→Qty/Box — per costo picking MTS"],
+                  ["Temp","left","muted","",""],
+                  ...(branch==="CAN"?[["AIEM%","right","orange","",""]]:[] as any),
+                  ["Attivo","left","muted","",""],
+                ] as [string,string,string,string,string][]).map(([label,align,col,mark,tip])=>(
+                  <th key={label} title={tip||undefined} style={{padding:"3px 6px",background:T.card,color:(T as any)[col]||T.muted,textAlign:align as any,borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",cursor:tip?"help":"default"}}>
+                    {mark && <span style={{color:T.blue,marginRight:"2px",fontSize:"9px"}}>{mark}</span>}{label}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -8219,9 +8229,16 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
                     <td style={{...tdM,textAlign:"right"}}>{p.qtyPerBox || "—"}</td>
                     <td style={{...tdM,textAlign:"right"}}>{p.boxPerPallet || "—"}</td>
                     {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.netWeightPcs>0?T.blue:T.red}}>{p.netWeightPcs>0?p.netWeightPcs:"⚠ mancante"}</td>}
-                    <td style={{...tdM,textAlign:"right"}}>{kgPerBoxCalc || "—"}</td>
-                    {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:T.blue}} title={`UOM=${p.uom}: BOX→Box/PLT, KG→Kg/PLT, PCS→Qty/Box×Box/PLT`}>{divisoreCollo || "—"}</td>}
+                    <td style={{...tdM,textAlign:"right",color:T.blue}}>{kgPerBoxCalc || "—"}</td>
                     <td style={{...tdM,textAlign:"right"}}><span style={{ color: kgxplt > 0 ? T.text : T.dim }}>{kgxplt > 0 ? kgxplt : "—"}</span></td>
+                    {/* Qty x PLT = Divisore_UM (formula Excel SE) */}
+                    <td style={{...tdM,textAlign:"right",color:T.blue}} title={`SE(UOM=PCS→${parseFloat(p.qtyPerBox)||0}×${bpp}; BOX→${bpp}; KG→${kgxplt})`}>{
+                      uomUp==="PCS" ? roundN((parseFloat(p.qtyPerBox)||0)*bpp,2) :
+                      uomUp==="BOX" ? bpp :
+                      uomUp==="KG"  ? kgxplt : "—"
+                    }</td>
+                    {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:T.blue}} title={`UOM=${p.uom}: BOX→Box/PLT, KG→Kg/PLT, PCS→Qty/Box×Box/PLT`}>{divisoreCollo || "—"}</td>}
+                    <td style={{...tdM,textAlign:"right",color:T.blue}} title={`BOX→1; KG→Kg/Box=${kgPerBoxCalc}; PCS→Qty/Box=${parseFloat(p.qtyPerBox)||0}`}>{divisoreCollo || "—"}</td>
                     <td style={tdS}><Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></td>
                     {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.aiem>0?T.orange:T.dim}}>{p.aiem>0?`${p.aiem}%`:"—"}</td>}
                     <td style={tdS}><Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} /></td>
