@@ -774,10 +774,11 @@ export default function App() {
             const wt: any[] = await rwt.json();
             const prevLog: any[] = await CLOUD.get("ifb_logistics", []);
             const otherBranchLog = prevLog.filter((l:any) => l.branch !== "CAN");
-            // Indice delle righe CAN modificate manualmente: non vanno sovrascritte dal worktab
+            // Indice delle righe CAN importate/modificate manualmente: non vanno sovrascritte dal worktab JSON
+            // Preserva sia _manualOverride (edit cella) che fromImport (import Excel Work_tab)
             // Cerca per productId, ma anche per nHK/code in caso di reload anagrafica con id cambiati
             const manualOverrides: Record<string, any> = {};
-            prevLog.filter((l:any) => l.branch === "CAN" && l._manualOverride).forEach((l:any) => {
+            prevLog.filter((l:any) => l.branch === "CAN" && (l._manualOverride || l.fromImport)).forEach((l:any) => {
               manualOverrides[l.productId] = l;
               // Alias per nHK/code: così si trova anche se prod.id è diverso dal productId salvato
               const prod = canProds.find((p:any) => p.id === l.productId);
@@ -801,7 +802,7 @@ export default function App() {
                 productId: prod.id,
                 nHK: prod.nHK,
                 branch: "CAN",
-                area: row.area || canAreaByVendor(prod.vendorName),
+                area: row.area || (canAreaByVendor(prod.vendorName2||"") === "SUD" ? "SUD" : canAreaByVendor(prod.vendorName)),
                 ubicazione,
                 transport,
                 pltPerContainer: 0,
@@ -818,9 +819,9 @@ export default function App() {
                 isLAN: !!row.isLAN,
               }];
             });
-            // CRITICO: le entry manuali per prodotti NON nel worktab vanno comunque preservate
+            // CRITICO: le entry importate/manuali per prodotti NON nel worktab vanno comunque preservate
             const extraManuals = prevLog.filter((l:any) =>
-              l.branch === "CAN" && l._manualOverride && !coveredProductIds.has(l.productId)
+              l.branch === "CAN" && (l._manualOverride || l.fromImport) && !coveredProductIds.has(l.productId)
             );
             const merged = [...otherBranchLog, ...canLog, ...extraManuals];
             setLogistics(merged);
