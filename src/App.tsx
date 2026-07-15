@@ -355,16 +355,19 @@ function exportXLSX(rows: any[], sheetName: string, fileName: string, textCols?:
  *   Step2 = Step1 + warehouseCost
  */
 function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMultiplier=1 }: any) {
-  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt, temperature } = product;
-  const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor } = logistic || {};
+  const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt: kgxpltProd, temperature } = product;
+  const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor, kgxplt: kgxpltLog } = logistic || {};
   const pm = Number(priceMultiplier||1) || 1;
 
+  // Work Tab DIVISORE UM ha priorità su kgxplt BC anagrafica
+  const kgxplt = Number(kgxpltLog) > 0 ? Number(kgxpltLog) : Number(kgxpltProd);
+
   // ── Units per pallet ── (formula modello Excel) / conv factor item
-  // PCS: qtyPerBox × boxPerPallet  |  BOX: boxPerPallet  |  KG: kgxplt (kg per pallet da anagrafica BC)
+  // PCS: qtyPerBox × boxPerPallet  |  BOX: boxPerPallet  |  KG: kgxplt (kg per pallet da Work Tab o BC)
   let unitsPerPlt: number;
   if (uom==="BOX") unitsPerPlt = Number(boxPerPallet) / pm;
   else if (uom==="KG") {
-    unitsPerPlt = (Number(kgxplt) > 0 ? Number(kgxplt) : 300) / pm;
+    unitsPerPlt = (kgxplt > 0 ? kgxplt : 300) / pm;
   }
   else unitsPerPlt = Number(qtyPerBox) * Number(boxPerPallet) / pm; // PCS
 
@@ -374,8 +377,11 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
     uom==="KG"  ? Number(kgPerBox||qtyPerBox) :
                   Number(qtyPerBox);
 
+  // Default 23 pallet per container quando Work Tab ha 0 o campo mancante
+  const pltCnt = Number(pltPerContainer) > 0 ? Number(pltPerContainer) : 23;
+
   // ── Total units per container ──
-  const totalUnits = unitsPerPlt * Number(pltPerContainer);
+  const totalUnits = unitsPerPlt * pltCnt;
   if (!totalUnits) return null;
 
   const priceEur = Number(priceInput||0) * Number(convFactor) * pm;
@@ -387,7 +393,7 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
 
   // ── FOB ──
   const fobContainer = COSTS.FOB[temperature]?.[area] ?? 0;
-  const fob = (fobContainer / pltPerContainer) / unitsPerPlt;
+  const fob = (fobContainer / pltCnt) / unitsPerPlt;
 
   // ── LIC = (4100+3800 HKD) / rate / totalUnits ──
   const lic = COSTS.LIC_EUR / totalUnits;
@@ -429,7 +435,7 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
     step2Hkd: roundN(step2Eur * eurToHkd,2),
     rate: eurToHkd,
     unitsPerPlt,
-    pltPerContainer: Number(pltPerContainer),
+    pltPerContainer: pltCnt,
     totalUnits: roundN(totalUnits,2),
     fobContainer: roundN(fobContainer,2),
   };
@@ -3108,6 +3114,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           iUb: fi(["mts/mto","mtsmto","ubicazione","location","wh"]),
           iArea: fi(["area","zona","portoimbarco","porto imbarco","porto di partenza","nord/sud","nordsud"]),
           iPlt: fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt","palletpercontainer","numeropallet","pallet per container","npalletcontainer","palletcontainer"]),
+          iDivUm: fi(["divisoreum","divisore um","divisore_um","divum","div um","kgxplt","kg x pallet"]),
           iCert: fi(["healthcertificate","health certificate","cert"]),
           iTemp: fi(["rettificata","temperature","temp","trettificata","camion"]),
           iCarriage: fi(["pltcostmedio","plt cost medio","pltcost","carriage"]),
@@ -3133,7 +3140,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   }
 
   function applyLogFile() {
-    const { iNHK, iIFB, iUb, iArea, iPlt, iCert, iTemp, iCarriage, iAirSea, iTransport, iAlcTax, iGC, iTF, iFUE, iLAN } = colIdx;
+    const { iNHK, iIFB, iUb, iArea, iPlt, iDivUm, iCert, iTemp, iCarriage, iAirSea, iTransport, iAlcTax, iGC, iTF, iFUE, iLAN } = colIdx;
     let next = [...logistics];
     let countLog = 0, countAir = 0;
     const currentBranch = branch;
@@ -3176,6 +3183,13 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
       if (iPlt >= 0) {
         const pltVal = parseFloat(String(row[iPlt] || "0"));
         plt = isNaN(pltVal) ? 0 : pltVal;
+      }
+
+      // DIVISORE UM (Work Tab HK) = kgxplt / qty per pallet — override su BC anagrafica
+      let divUm = 0;
+      if (iDivUm >= 0) {
+        const divVal = parseFloat(String(row[iDivUm] || "0"));
+        divUm = isNaN(divVal) ? 0 : divVal;
       }
   
       // Health Certificate
@@ -3228,6 +3242,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         area,
         ubicazione,
         pltPerContainer: plt,
+        ...(divUm > 0 ? { kgxplt: divUm } : {}),
         hasCert,
         hasAlcTax,
         alcTax,
