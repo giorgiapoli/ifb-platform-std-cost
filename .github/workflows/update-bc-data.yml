@@ -1,7 +1,9 @@
 ﻿name: Update BC Data (HK + MAC)
 
 on:
-  workflow_dispatch:        # Solo trigger manuale dal tab Actions su GitHub
+  schedule:
+    - cron: '0 5 * * 1-5'  # Ogni giorno lavorativo alle 07:00 ora italiana (05:00 UTC)
+  workflow_dispatch:        # Trigger manuale dal tab Actions su GitHub
 
 concurrency:
   group: update-bc-data
