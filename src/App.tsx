@@ -6617,11 +6617,12 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
       const d = new Date(s); return isNaN(d.getTime()) ? 0 : d.getTime();
     };
     const parsed = rawRows.map((row:any[])=>{
-      const code = str(get(row,"code"));
-      if(!code) return null;
+      const code    = str(get(row,"code"));
+      const ifbCode = str(get(row,"ifbCode"));
+      if(!code && !ifbCode) return null;
       return {
         code,
-        ifbCode:          str(get(row,"ifbCode")),
+        ifbCode,
         description:      str(get(row,"description")),
         executionDate:    str(get(row,"executionDate")),
         _execDateVal:     parseDate(get(row,"executionDate")),
@@ -6640,8 +6641,9 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
     if(isCAN && idx("executionDate") >= 0) {
       const byCode: Record<string,any> = {};
       parsed.forEach((r:any) => {
-        const existing = byCode[r.code];
-        if(!existing || r._execDateVal > existing._execDateVal) byCode[r.code] = r;
+        const key = r.code || r.ifbCode;
+        const existing = byCode[key];
+        if(!existing || r._execDateVal > existing._execDateVal) byCode[key] = r;
       });
       deduped = Object.values(byCode);
     }
