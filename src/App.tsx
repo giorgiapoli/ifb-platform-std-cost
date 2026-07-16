@@ -312,9 +312,9 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
 
   return {
     priceEur: pE, plt: pL, aiemUnit: aGC, tassaAlcolica: taE, wh: whE,
-    transport: transport||"GOMMA", unitsPerPlt,
+    transport: transport||"GOMMA", unitsPerPlt, pltPerContainer: plt_n,
     veronaBarcUnit: vbE, barcUnitGC: bGC, assicUnit: asE, freightGC: fGC, inlandGC: iGC,
-    freightLAN: fLAN, barcUnitLAN: bLAN,
+    freightLAN: fLAN, inlandLAN: iLAN, barcUnitLAN: bLAN,
     aiemGCTF: aGC, aiemLANFUE: aLAN,
     isMARE,
     step1GC: step1.GC, step1TF: step1.TF, step1LAN: step1.LAN, step1FUE: step1.FUE,
@@ -5249,10 +5249,19 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                   {sep("Costo acquisto")}
                                   {row("Prezzo acquisto",f4(c.priceEur),f4(c.priceEur),r.ubicazione==="FOR"?"Da listino (FCA)":r.ubicazione==="MTS"?"Da listino (MTS)":"Da listino (DAP Verona)",T.text)}
                                   {isMARE ? sep("Trasporto MARE") : sep("Trasporto GOMMA")}
-                                  {isMARE ? <>
-                                    {row("Freight MARE",f4(c.freightGC),f4(c.freightLAN||0),`MARE[${r.area||"NORD"}] ÷ (u/plt × plt/cont)`,T.blue)}
-                                    {row("Inland",f4(c.inlandGC),f4(c.freightLAN||0),"INLAND ÷ (u/plt × plt/cont)",T.blue)}
-                                  </> : <>
+                                  {isMARE ? (() => {
+                                    const area = r.area||"NORD";
+                                    const uPlt = c.unitsPerPlt?.toFixed(0)||"?";
+                                    const pCnt = c.pltPerContainer||"?";
+                                    const mareGC  = COSTS_CAN.MARE[area]?.GC  ?? 0;
+                                    const mareLAN = COSTS_CAN.MARE[area]?.LAN ?? 0;
+                                    const inlGC   = COSTS_CAN.INLAND_DRY.GC;
+                                    const inlLAN  = COSTS_CAN.INLAND_DRY.LAN;
+                                    return <>
+                                      {row("Freight MARE",f4(c.freightGC),f4(c.freightLAN||0),`${mareGC}€ ÷ (${uPlt} u/plt × ${pCnt} plt/cnt) | LAN: ${mareLAN}€`,T.blue)}
+                                      {row("Inland",f4(c.inlandGC),f4(c.inlandLAN||0),`${inlGC}€ ÷ (${uPlt} u/plt × ${pCnt} plt/cnt) | LAN: ${inlLAN}€`,T.blue)}
+                                    </>;
+                                  })() : <>
                                     {row("Verona → Barcellona",f4(c.veronaBarcUnit),f4(c.veronaBarcUnit),"62,50 € ÷ u/plt (COSTS LOG!D5)",T.blue)}
                                     {row("Barc → Isola",f4(c.barcUnitGC),f4(c.barcUnitLAN||0),"BARC[temp][isola] ÷ u/plt",T.blue)}
                                     {row("Assicurazione",f4(c.assicUnit),f4(c.assicUnit),"Prezzo × 0,5%",T.blue)}
