@@ -6241,7 +6241,7 @@
     "temperature": "DRY",
     "vendorName": "BRIGHT VIEW TRADING HK LTD",
     "uom": "PCS",
-    "hkUom": "BOX",
+    "hkUom": "PCS",
     "pcsgrossweight": 0.4583333333333333,
     "qtyPerBox": 16.8,
     "standardCostHkd": 0.0,
