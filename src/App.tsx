@@ -252,8 +252,9 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
 
   // Costi GOMMA (BC/BE/BG/BI/BK + BM)
   const veronaBarcUnit = isMARE ? 0 : COSTS_CAN.VERONA_BARC_PLT / unitsPerPlt;
+  // Per GOMMA: BARC uguale per tutte le isole (= tasso GC), come da modello Excel
   const barcPerIsland = (isl: string): number =>
-    isMARE ? 0 : (COSTS_CAN.BARC[temp]?.[isl] ?? 0) / unitsPerPlt;
+    isMARE ? 0 : (COSTS_CAN.BARC[temp]?.["GC"] ?? 0) / unitsPerPlt;
   const assicUnit = isMARE ? 0 : priceEur * COSTS_CAN.ASSICURAZIONE;
 
   // Trasporto per isola (escluso pallet e AIEM)
