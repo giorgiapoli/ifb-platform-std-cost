@@ -6542,7 +6542,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
   // Campi da mappare
   const MAP_FIELDS: {key:string; label:string; required?:boolean; canOnly?:boolean; hkOnly?:boolean}[] = [
     {key:"code",            label:"N COMIT (codice articolo)",required:true},
-    {key:"ifbCode",         label:"IFB N",                   canOnly:true},
+    {key:"ifbCode",         label:"IFB N"},
     {key:"description",     label:"Descrizione"},
     {key:"executionDate",   label:"Execution Date",          canOnly:true},
     {key:"lastSC",          label:isCAN?"Standard Cost corrente":"Last Standard Cost"},
@@ -6777,7 +6777,7 @@ function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch
           </div>
           <div style={{display:"flex",gap:"10px"}}>
             <ActionBtn label="← Annulla" onClick={()=>{setStep("main");setRawHeaders([]);setRawRows([]);}}/>
-            <ActionBtn label={`Anteprima →`} onClick={buildPreview} primary disabled={!colMap["code"]}/>
+            <ActionBtn label={`Anteprima →`} onClick={buildPreview} primary disabled={!colMap["code"] && !colMap["ifbCode"]}/>
           </div>
         </Section>
       ) : step==="preview" ? (
