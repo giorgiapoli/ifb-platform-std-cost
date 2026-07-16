@@ -7009,12 +7009,12 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       // Escludi SAMPLE (price=0), AIR, FREIGHT, righe storno (qty<=0)
       if(!inv.qty || inv.qty <= 0) continue;
       if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
-      if(inv.transport==="AIR") continue;
+      if(isAirTransport(String(inv.transport||""))) continue;
       if(/^FREIGHT$/i.test(String(nFiliale))) continue;
       // Escludi articoli completamente stornati (qty netta <= 0 nel periodo)
       if((netQtyByCode[String(nFiliale)]||0) <= 0) continue;
       const sCode = String(nFiliale);
-      // HK: escludi articoli AIR e bloccati
+      // HK: escludi articoli AIR e bloccati (doppio check: per codice E per bcTransportation del prodotto)
       if(airCodeSet.has(sCode) || blockedCodeSet.has(sCode)) continue;
       // Risolvi xref bidirezionale
       const nComitFromIfb2 = isCAN ? String(xrefByIfbNoPreferNumeric(sCode)?.nHK||"") : "";
@@ -7045,6 +7045,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         : !!xrefByNFiliale[nFiliale];
       const looksLikeProduct = /^[A-Z0-9]{3,}/i.test(sCode);
       if(!prod && !costMap[ifbNo] && !costMap[nFiliale] && !costMap[resolvedIFB] && !hasXref && !looksLikeProduct) continue;
+      // HK: secondo check AIR direttamente su bcTransportation del prodotto trovato
+      if(!isCAN && prod && isAirTransport(String(prod.bcTransportation||""))) continue;
       // CAN: risolvi coppia N COMIT + IFB No con fallback a cascata:
       // 1. prod.nHK diretto  2. xref via prod.code  3. xref via sCode (nComitFromIfb2/ifbFromNComit2)
       const resolvedNComit = isCAN
