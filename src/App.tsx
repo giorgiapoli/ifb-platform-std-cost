@@ -5472,7 +5472,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
       const location=String(get(r,"location")||"").trim();
       const prod=findProduct(code,products,xrefs);
       const nHK=prod?.nHK||(xrefs.find((x:any)=>x.ifbNo===code)?.nHK)||"";
-      const isAirProd=prod&&airList.some((a:any)=>a.productId===prod.id||(a.code&&a.code===prod.code)||(a.nHK&&prod.nHK&&a.nHK===prod.nHK));
+      const isAirProd=prod&&(isAirTransport(prod.bcTransportation)||airList.some((a:any)=>a.productId===prod.id||(a.code&&a.code===prod.code)||(a.nHK&&prod.nHK&&a.nHK===prod.nHK)));
       return{itemCode:code,description,date:dateStr,qty,unitPrice,isSample:qty>0&&(unitPrice===0||unitPrice===0.01),location,nHK,transport:isAirProd?"AIR":"SEA",_prodFound:!!prod};
     }).filter(Boolean);
     setPreview(parsed);setStep("preview");
