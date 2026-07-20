@@ -4295,12 +4295,14 @@ const displayed = useMemo(() => {
   if (!search) return filtered;
   const q = search.toLowerCase();
   return filtered.filter((p: any) => {
-    const code = p.itemCode || p.n || "";
-    const prod = prodById[String(p.productId)] || prodById[String(code)];
+    const code = p.itemCode || p.rawNHK || p.n || "";
+    const ifbCode = p.rawIfbCode || p.ifbCode || "";
+    const prod = prodById[String(p.productId)] || prodById[String(code)] || prodById[String(ifbCode)];
     return prod?.description?.toLowerCase().includes(q) ||
       prod?.code?.toLowerCase().includes(q) ||
       prod?.nHK?.toLowerCase().includes(q) ||
       code.toLowerCase().includes(q) ||
+      ifbCode.toLowerCase().includes(q) ||
       (p.nHK  || "").toLowerCase().includes(q) ||
       (p.bcDesc || p.d || "").toLowerCase().includes(q);
   });
