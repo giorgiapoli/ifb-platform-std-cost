@@ -299,14 +299,15 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   const transpLAN = fLAN + iLAN + vbE + bLAN + asE;
   // Base AIEM: AL + IF(MARE, AM+AU, BC+BE) — senza assicurazione
   // MARE: fGC+iGC>0, vbE=bGC=0; GOMMA: fGC=iGC=0, vbE+bGC>0
-  const aGC  = r2((pE + fGC  + iGC  + vbE + bGC)  * aiemPct);
-  const aLAN = r2((pE + fLAN + iLAN + vbE + bLAN) * aiemPct);
+  // AIEM: usa priceEur grezzo (come AL6 nel modello Excel) — non pre-arrotondato
+  const aGC  = r2((priceEur + fGC  + iGC  + vbE + bGC)  * aiemPct);
+  const aLAN = r2((priceEur + fLAN + iLAN + vbE + bLAN) * aiemPct);
 
   const isTakochef = String(vendorName2||"").toUpperCase().includes("TAKOCHEF");
   for (const isl of CAN_ISLANDS) {
     const tr  = (isl==="LAN"||isl==="FUE") ? transpLAN : transpGC;
     const ai  = (isl==="LAN"||isl==="FUE") ? aLAN : aGC;
-    step1[isl] = r2(pE + tr + pL + ai + taE);
+    step1[isl] = r2(priceEur + tr + pL + ai + taE);
     step2[isl] = isTakochef ? pE : r2(step1[isl] + whE);
   }
   // Excel: SE(isLAN=0; valore_GC; formula_LAN) — se prodotto non va a LAN/FUE → fallback = GC
