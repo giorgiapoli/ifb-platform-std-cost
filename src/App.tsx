@@ -4849,7 +4849,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
         )}
         <button onClick={()=>exportXLSX(
           filtered.filter((r:any)=>r.cost).map((r:any)=> branch==="CAN" ? (()=>{
-            const nComitVal = (xrefs||[]).find((x:any)=>x.ifbNo===r.code||x.ifbNo===r.nHK)?.nHK || r.nHK || "";
+            const nComitVal = r.nHK || (xrefs||[]).find((x:any)=>x.ifbNo===r.code)?.nHK || "";
             const ifbVal = r.code || r.nHK || "";
             return {
             "N COMIT":nComitVal,"IFB No":ifbVal,"Descrizione":r.description||"",
