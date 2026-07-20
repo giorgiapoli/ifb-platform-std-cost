@@ -252,9 +252,9 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
 
   // Costi GOMMA (BC/BE/BG/BI/BK + BM)
   const veronaBarcUnit = isMARE ? 0 : COSTS_CAN.VERONA_BARC_PLT / unitsPerPlt;
-  // Per GOMMA: BARC uguale per tutte le isole (= tasso GC), come da modello Excel
+  // GOMMA: BARC→Isola dipende dall'isola (LAN/FUE diversi da GC/TF — COSTS(LOG) righe 9-11)
   const barcPerIsland = (isl: string): number =>
-    isMARE ? 0 : (COSTS_CAN.BARC[temp]?.["GC"] ?? 0) / unitsPerPlt;
+    isMARE ? 0 : (COSTS_CAN.BARC[temp]?.[isl] ?? COSTS_CAN.BARC[temp]?.["GC"] ?? 0) / unitsPerPlt;
   const assicUnit = isMARE ? 0 : priceEur * COSTS_CAN.ASSICURAZIONE;
 
   // Trasporto per isola (escluso pallet e AIEM)
@@ -784,11 +784,11 @@ export default function App() {
             const wt: any[] = await rwt.json();
             const prevLog: any[] = await CLOUD.get("ifb_logistics", []);
             const otherBranchLog = prevLog.filter((l:any) => l.branch !== "CAN");
-            // Indice delle righe CAN importate/modificate manualmente: non vanno sovrascritte dal worktab JSON
-            // Preserva sia _manualOverride (edit cella) che fromImport (import Excel Work_tab)
+            // Preserva solo le modifiche manuali dell'utente (edit cella): non i fromImport
+            // I fromImport dal worktab JSON vengono sempre riscritti dal JSON aggiornato
             // Cerca per productId, ma anche per nHK/code in caso di reload anagrafica con id cambiati
             const manualOverrides: Record<string, any> = {};
-            prevLog.filter((l:any) => l.branch === "CAN" && (l._manualOverride || l.fromImport)).forEach((l:any) => {
+            prevLog.filter((l:any) => l.branch === "CAN" && l._manualOverride).forEach((l:any) => {
               manualOverrides[l.productId] = l;
               // Alias per nHK/code: così si trova anche se prod.id è diverso dal productId salvato
               const prod = canProds.find((p:any) => p.id === l.productId);
@@ -3116,7 +3116,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         const idx = {
           iNHK: fi(["nhk","n hk","n comit","comit","ncomit"]),
           iIFB: fi(["no_(ifb)","noifb","ifb","no_"]),
-          iUb: fi(["mts/mto","mtsmto","ubicazione","location","wh"]),
+          iUb: (()=>{ const e=fi(["mts/mto","mtsmto"]); return e>=0?e:fi(["ubicazione","location","wh"]); })(),
           iArea: fi(["area","zona","portoimbarco","porto imbarco","porto di partenza","nord/sud","nordsud"]),
           iPlt: fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt","palletpercontainer","numeropallet","pallet per container","npalletcontainer","palletcontainer"]),
           iDivUm: fi(["divisoreum","divisore um","divisore_um","divum","div um","kgxplt","kg x pallet"]),
@@ -3264,7 +3264,8 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   
       const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
       if (existIdx >= 0) {
-        next[existIdx] = { ...next[existIdx], ...entry };
+        // L'import Excel è autoritativo: sovrascrive anche _manualOverride (click cella UI)
+        next[existIdx] = { ...next[existIdx], ...entry, _manualOverride: false };
       } else {
         next.push(entry);
       }
@@ -4281,6 +4282,13 @@ const prodById = useMemo(() => {
   return m;
 }, [products]);
 
+// Lookup xrefs: IFB code → nHK (serve per CAN dove productId="BC_Z8460" ma xref mappa Z8460→100102)
+const xrByIfb = useMemo(() => {
+  const m: Record<string,string> = {};
+  xrefs.forEach((x: any) => { if(x.ifbNo && x.nHK) m[String(x.ifbNo)] = String(x.nHK); });
+  return m;
+}, [xrefs]);
+
 const filtered = useMemo(() => {
   const baseList = listiniMode === "excel"
     ? prices.filter((p: any) => p.branch === branch && p.month === month)
@@ -4297,16 +4305,18 @@ const displayed = useMemo(() => {
   return filtered.filter((p: any) => {
     const code = p.itemCode || p.rawNHK || p.n || "";
     const ifbCode = p.rawIfbCode || p.ifbCode || "";
-    const prod = prodById[String(p.productId)] || prodById[String(code)] || prodById[String(ifbCode)];
+    // Risolvi prodotto: prima per productId, poi per IFB code diretto, poi via xref (CAN: productId="BC_Z8460" → xrByIfb["Z8460"]="100102")
+    const resolvedNHK = xrByIfb[code] || xrByIfb[ifbCode] || (String(p.productId).startsWith("BC_") ? xrByIfb[String(p.productId).slice(3)] : "");
+    const prod = prodById[String(p.productId)] || prodById[String(code)] || prodById[String(ifbCode)] || (resolvedNHK ? prodById[resolvedNHK] : undefined);
+    const nHK = prod?.nHK || resolvedNHK || (p.nHK || "");
     return prod?.description?.toLowerCase().includes(q) ||
       prod?.code?.toLowerCase().includes(q) ||
-      prod?.nHK?.toLowerCase().includes(q) ||
+      nHK.toLowerCase().includes(q) ||
       code.toLowerCase().includes(q) ||
       ifbCode.toLowerCase().includes(q) ||
-      (p.nHK  || "").toLowerCase().includes(q) ||
       (p.bcDesc || p.d || "").toLowerCase().includes(q);
   });
-}, [filtered, search, prodById]);
+}, [filtered, search, prodById, xrByIfb]);
 
 const COLS = ["fcaPrice", "fcaDiscounted", "carriageCost", "dapPrice", "mtsPrice", "dapDiscounted", "dapFinal"];
 const LABELS = ["FCA Price", "FCA Disc.", "Carriage", "DAP Price", "MTS Price", "DAP Disc.", "DAP Final"];
