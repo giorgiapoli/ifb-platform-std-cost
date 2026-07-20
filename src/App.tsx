@@ -3238,9 +3238,8 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
       const isFUE_v = parseIsland(iFUE);
       const isLAN_v = parseIsland(iLAN);
 
-      // Se Area è valorizzata (NORD/SUD/CENTRO) → MARE; se vuota e transport non specificato → GOMMA
-      const effectiveTransport = transport || (area !== "NORD" || areaRaw ? (areaRaw ? "MARE" : "GOMMA") : "");
-      const finalTransport = areaRaw ? "MARE" : transport || "";
+      // Transport viene dalla colonna "Trasporto" (MARE/GOMMA); Area è zona geografica fornitore, non modo trasporto
+      const finalTransport = transport || "";
 
       const entry = {
         productId: prod.id,
