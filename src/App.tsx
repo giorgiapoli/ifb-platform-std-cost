@@ -4270,10 +4270,14 @@ if (prod) s.add(prod.id);
 return s;
 }, [salesRows, products, xrefs]);
 
-// Lookup map prodotti O(1) — costruita una volta sola
+// Lookup map prodotti O(1) — keyed per id, nHK e code (serve per CAN dove id="CAN_xxx" ma productId=nHK)
 const prodById = useMemo(() => {
   const m: Record<string,any> = {};
-  products.forEach((p: any) => { if(p.id) m[String(p.id)] = p; });
+  products.forEach((p: any) => {
+    if(p.id)   m[String(p.id)]   = p;
+    if(p.nHK)  m[String(p.nHK)]  = p;
+    if(p.code) m[String(p.code)] = p;
+  });
   return m;
 }, [products]);
 
