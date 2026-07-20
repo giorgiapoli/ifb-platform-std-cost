@@ -218,7 +218,9 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   else                  unitsPerPlt = (Number(qtyPerBox) * Number(boxPerPallet)) / cf / pm; // PCS
 
   // divisoreCollo (AC in modello): per MTS picking
-  const divisoreCollo = uom==="BOX" ? 1 : uom==="KG" ? Number(kgPerBox||qtyPerBox) : Number(qtyPerBox);
+  // KG: kg per collo = kgxplt / boxPerPallet (non kgPerBox da BC che può essere errato)
+  const kgPerCollo = (Number(kgxplt) > 0 && Number(boxPerPallet) > 0) ? Number(kgxplt) / Number(boxPerPallet) : Number(kgPerBox || qtyPerBox);
+  const divisoreCollo = uom==="BOX" ? 1 : uom==="KG" ? kgPerCollo : Number(qtyPerBox);
 
   const plt_n = Math.max(Number(pltPerContainer)||1, 1);
   const totalUnits = unitsPerPlt * plt_n;
