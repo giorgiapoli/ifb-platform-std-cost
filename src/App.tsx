@@ -813,7 +813,7 @@ export default function App() {
                 productId: prod.id,
                 nHK: prod.nHK,
                 branch: "CAN",
-                area: row.area || "NORD",
+                area: row.area || canAreaByVendor(row.vendor || ""),
                 ubicazione,
                 transport,
                 pltPerContainer: 0,
