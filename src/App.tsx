@@ -199,8 +199,9 @@ const CAN_SUD_VENDORS = [
   "SICA S.R.L.",
 ];
 const canAreaByVendor = (vendorName: string): "NORD"|"SUD" => {
-  const v = (vendorName||"").trim().toUpperCase();
-  return CAN_SUD_VENDORS.some(s => v === s.toUpperCase()) ? "SUD" : "NORD";
+  const norm = (s: string) => s.trim().toUpperCase().replace(/\./g, "").replace(/\s+/g, " ");
+  const v = norm(vendorName || "");
+  return CAN_SUD_VENDORS.some(s => norm(s) === v) ? "SUD" : "NORD";
 };
 
 function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMultiplier=1 }: any) {
