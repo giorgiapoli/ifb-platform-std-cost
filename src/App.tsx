@@ -311,6 +311,10 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
   if (isLAN === false) { step2.LAN = step2.GC; step1.LAN = step1.GC; }
   if (isFUE === false) { step2.FUE = step2.GC; step1.FUE = step1.GC; }
 
+  // Markup +2% su tutti i costi standard finali (decisione direzione)
+  const CAN_MARKUP = 1.02;
+  for (const isl of CAN_ISLANDS) step2[isl] = r2(step2[isl] * CAN_MARKUP);
+
   return {
     priceEur: pE, plt: pL, aiemUnit: aGC, tassaAlcolica: taE, wh: whE,
     transport: transport||"GOMMA", unitsPerPlt, pltPerContainer: plt_n,
