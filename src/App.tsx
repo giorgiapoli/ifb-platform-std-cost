@@ -1670,8 +1670,198 @@ export default function App() {
           </div>
         </div>
       )}
+      {/* Chatbot AI */}
+      <ChatBot costRows={costRows} branch={branch} month={month}/>
     </div>
     </ErrorBoundary>
+  );
+}
+
+// ─── CHATBOT AI ───────────────────────────────────────────────────────────────
+function ChatBot({ costRows=[], branch="HK", month="" }: any) {
+  const [open, setOpen]       = React.useState(false);
+  const [msgs, setMsgs]       = React.useState<{role:string,text:string}[]>([]);
+  const [input, setInput]     = React.useState("");
+  const [loading, setLoading] = React.useState(false);
+  const [apiKey, setApiKey]   = React.useState(()=>localStorage.getItem("ifb_gemini_key")||"");
+  const [keyDraft, setKeyDraft] = React.useState("");
+  const endRef = React.useRef<any>(null);
+  React.useEffect(()=>{ endRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs,loading]);
+
+  const currency = (BRANCH_CFG as any)[branch]?.currency || "HKD";
+
+  const scOf = (r:any) => {
+    if(!r?.cost) return null;
+    if(branch==="CAN") return r.cost.step2GC;
+    if(branch==="MAC") return r.cost.macNewSC;
+    return r.cost.step2Hkd;
+  };
+
+  const buildContext = (q: string) => {
+    const ql = q.toLowerCase();
+    const rows = (costRows||[]).filter((r:any)=>r.cost);
+
+    const relevant = rows.filter((r:any)=>
+      (r.code && ql.includes(r.code.toLowerCase())) ||
+      (r.nHK  && ql.includes(r.nHK.toLowerCase()))  ||
+      (r.description && ql.includes(r.description.toLowerCase().slice(0,12)))
+    ).slice(0,4);
+
+    let ctx = `FILIALE: ${branch} | MESE: ${month}\nProdotti con SC calcolato: ${rows.length}\n`;
+
+    if(relevant.length>0){
+      ctx+="\n--- PRODOTTI CITATI ---\n";
+      for(const r of relevant){
+        const sc=scOf(r), scPrev=scOf({cost:r.prevCost});
+        ctx+=`\nCodice: ${r.code||r.nHK} | ${r.description||""}\n`;
+        ctx+=`UOM: ${r.uom||""} | Temp: ${r.temperature||""}\n`;
+        ctx+=`SC attuale (${currency}): ${sc??'N/D'}\n`;
+        if(scPrev!=null&&sc!=null)
+          ctx+=`SC mese prec. (${currency}): ${scPrev} | Δ: ${(+sc-+scPrev).toFixed(2)} (${((+sc/+scPrev-1)*100).toFixed(1)}%)\n`;
+        const c=r.cost;
+        if(c){
+          if(branch==="HK")
+            ctx+=`Prezzo EUR: ${c.priceEur} | FOB: ${c.fob} | LIC: ${c.lic} | VGM: ${c.vgm} | HC: ${c.hc} | Pallet: ${c.plt} | AlcTax: ${c.alc} | WH: ${c.wh}\nStep1 EUR: ${c.step1Eur} | SC HKD: ${c.step2Hkd}\n`;
+          else if(branch==="CAN")
+            ctx+=`Prezzo EUR: ${c.priceEur} | Trasporto: ${c.transport} | VeronaBarc: ${c.veronaBarcUnit} | BarcGC: ${c.barcUnitGC} | Assic: ${c.assicUnit} | Pallet: ${c.plt} | AIEM: ${c.aiemGCTF} | WH: ${c.wh}\nStep1GC: ${c.step1GC} | SC GC (+2%): ${c.step2GC} | SC LAN: ${c.step2LAN}\n`;
+          else if(branch==="MAC")
+            ctx+=`SC BV HKD: ${c.scBvHkd} | isHoff: ${c.isHoff} | Markup: ${c.markup}% | Log/kg: ${c.logRate} MOP\nSC finale MOP: ${c.macNewSC}\n`;
+        }
+      }
+    } else {
+      const withPrev=rows.filter((r:any)=>scOf({cost:r.prevCost})!=null);
+      const up=withPrev.filter((r:any)=>{const a=scOf(r),b=scOf({cost:r.prevCost});return a!=null&&b!=null&&+a>+b;});
+      ctx+=`\n--- RIEPILOGO ---\nProdotti con confronto mese prec: ${withPrev.length}\n`;
+      if(withPrev.length>0) ctx+=`SC aumentati: ${up.length} | SC diminuiti: ${withPrev.length-up.length}\n`;
+    }
+    return ctx;
+  };
+
+  const send = async()=>{
+    if(!input.trim()||loading) return;
+    const userText=input.trim();
+    setInput("");
+    const newMsgs=[...msgs,{role:"user",text:userText}];
+    setMsgs(newMsgs);
+    setLoading(true);
+    try{
+      const ctx=buildContext(userText);
+      const sysPrompt=`Sei un analista costi senior per IFB (Inalca Food & Beverage), distributore italiano di prodotti alimentari.
+Rispondi SEMPRE in italiano, in modo conciso (max 4-5 frasi). Cita i valori numerici specifici quando disponibili.
+Spiega le variazioni di Standard Cost chiaramente (prezzo listino, logistica, cambi valuta, ecc).
+Dati contesto:\n${ctx}`;
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+      const body={
+        system_instruction:{parts:[{text:sysPrompt}]},
+        contents:newMsgs.map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]})),
+        generationConfig:{temperature:0.2,maxOutputTokens:600}
+      };
+      const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+      const data=await res.json();
+      if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
+      const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||"Nessuna risposta.";
+      setMsgs([...newMsgs,{role:"ai",text:reply}]);
+    }catch(e:any){
+      setMsgs([...newMsgs,{role:"ai",text:`❌ Errore: ${e.message}`}]);
+    }finally{ setLoading(false); }
+  };
+
+  // ── Key setup screen ──
+  const keyPanel=(
+    <div style={{position:"fixed",bottom:"80px",right:"20px",width:"340px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"12px",padding:"20px",zIndex:9999,boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}}>
+      <div style={{fontSize:"13px",fontWeight:"bold",marginBottom:"6px",color:T.gold}}>🤖 Configura Assistente AI</div>
+      <div style={{fontSize:"11px",color:T.muted,marginBottom:"12px",lineHeight:"1.6"}}>
+        Ottieni una API key gratuita su{" "}
+        <a href="https://aistudio.google.com" target="_blank" rel="noreferrer" style={{color:T.blue}}>aistudio.google.com</a>
+        {" "}→ "Get API key".<br/>Viene salvata solo nel tuo browser.
+      </div>
+      <input value={keyDraft} onChange={e=>setKeyDraft(e.target.value)}
+        placeholder="AIza..."
+        style={{width:"100%",padding:"8px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:"6px",color:T.text,fontSize:"12px",fontFamily:"monospace",boxSizing:"border-box"}}
+      />
+      <button onClick={()=>{localStorage.setItem("ifb_gemini_key",keyDraft);setApiKey(keyDraft);}}
+        disabled={!keyDraft.trim()}
+        style={{marginTop:"10px",width:"100%",padding:"8px",background:T.gold,border:"none",borderRadius:"6px",color:"#000",fontWeight:"bold",fontSize:"12px",cursor:keyDraft.trim()?"pointer":"default",opacity:keyDraft.trim()?1:0.5}}>
+        Salva e attiva
+      </button>
+      <button onClick={()=>setOpen(false)}
+        style={{marginTop:"6px",width:"100%",padding:"6px",background:"none",border:`1px solid ${T.border}`,borderRadius:"6px",color:T.muted,fontSize:"11px",cursor:"pointer"}}>
+        Annulla
+      </button>
+    </div>
+  );
+
+  return (
+    <>
+      {open && (apiKey ? (
+        <div style={{position:"fixed",bottom:"80px",right:"20px",width:"360px",height:"500px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"12px",display:"flex",flexDirection:"column",zIndex:9999,boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}}>
+          {/* Header */}
+          <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
+            <div>
+              <span style={{fontSize:"13px",fontWeight:"bold",color:T.gold}}>🤖 Assistente SC</span>
+              <span style={{fontSize:"10px",color:T.muted,marginLeft:"8px"}}>{branch} · {month}</span>
+            </div>
+            <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
+              <button title="Nuova chat" onClick={()=>setMsgs([])}
+                style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"11px",padding:"3px 6px"}}>🗑</button>
+              <button title="Cambia API key" onClick={()=>{localStorage.removeItem("ifb_gemini_key");setApiKey("");}}
+                style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"11px",padding:"3px 6px"}}>🔑</button>
+              <button onClick={()=>setOpen(false)}
+                style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"18px",lineHeight:1,padding:"3px 4px"}}>×</button>
+            </div>
+          </div>
+          {/* Messages */}
+          <div style={{flex:1,overflowY:"auto",padding:"12px",display:"flex",flexDirection:"column",gap:"10px"}}>
+            {msgs.length===0&&(
+              <div style={{color:T.muted,fontSize:"11px",textAlign:"center",marginTop:"40px",lineHeight:"1.9"}}>
+                Chiedimi dei costi standard di {branch}.<br/>
+                <span style={{color:T.dim}}>
+                  "Perché il SC di CRM014 è aumentato?"<br/>
+                  "Quanti prodotti hanno SC aumentato?"<br/>
+                  "Spiega i componenti del SC di ANS02"
+                </span>
+              </div>
+            )}
+            {msgs.map((m,i)=>(
+              <div key={i} style={{
+                alignSelf:m.role==="user"?"flex-end":"flex-start",maxWidth:"88%",
+                background:m.role==="user"?`${T.gold}22`:T.bg,
+                border:`1px solid ${m.role==="user"?T.gold+"44":T.border}`,
+                borderRadius:m.role==="user"?"12px 12px 2px 12px":"12px 12px 12px 2px",
+                padding:"8px 11px",fontSize:"12px",lineHeight:"1.6",color:T.text,whiteSpace:"pre-wrap",
+              }}>
+                {m.role==="ai"&&<div style={{fontSize:"9px",color:T.gold,marginBottom:"3px",letterSpacing:"1px",textTransform:"uppercase"}}>Gemini AI</div>}
+                {m.text}
+              </div>
+            ))}
+            {loading&&(
+              <div style={{alignSelf:"flex-start",color:T.muted,fontSize:"11px",padding:"8px 12px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:"12px 12px 12px 2px"}}>
+                ⏳ Analisi in corso...
+              </div>
+            )}
+            <div ref={endRef}/>
+          </div>
+          {/* Input */}
+          <div style={{padding:"10px 12px",borderTop:`1px solid ${T.border}`,display:"flex",gap:"8px",flexShrink:0}}>
+            <input value={input} onChange={e=>setInput(e.target.value)}
+              onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}}
+              placeholder="Chiedi dei costi standard..."
+              style={{flex:1,padding:"8px 10px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:"8px",color:T.text,fontSize:"12px",fontFamily:"inherit",outline:"none"}}
+            />
+            <button onClick={send} disabled={loading||!input.trim()}
+              style={{padding:"8px 14px",background:loading||!input.trim()?T.surface:T.gold,border:"none",borderRadius:"8px",color:loading||!input.trim()?T.muted:"#000",fontWeight:"bold",fontSize:"14px",cursor:loading||!input.trim()?"default":"pointer"}}>
+              ↑
+            </button>
+          </div>
+        </div>
+      ) : keyPanel)}
+      {/* FAB */}
+      <button onClick={()=>setOpen(o=>!o)}
+        title={apiKey?"Assistente AI":"Configura Assistente AI"}
+        style={{position:"fixed",bottom:"20px",right:"20px",width:"52px",height:"52px",borderRadius:"50%",background:open?T.surface:T.gold,border:`2px solid ${open?T.border:T.gold}`,color:open?T.text:"#000",fontSize:"22px",cursor:"pointer",boxShadow:"0 4px 16px rgba(0,0,0,0.35)",zIndex:10000,display:"flex",alignItems:"center",justifyContent:"center",transition:"background 0.2s"}}>
+        {open?"×":"🤖"}
+      </button>
+    </>
   );
 }
 
