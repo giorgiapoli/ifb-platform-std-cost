@@ -4291,13 +4291,14 @@ const displayed = useMemo(() => {
   if (!search) return filtered;
   const q = search.toLowerCase();
   return filtered.filter((p: any) => {
-    const prod = prodById[String(p.productId)];
+    const code = p.itemCode || p.n || "";
+    const prod = prodById[String(p.productId)] || prodById[String(code)];
     return prod?.description?.toLowerCase().includes(q) ||
       prod?.code?.toLowerCase().includes(q) ||
       prod?.nHK?.toLowerCase().includes(q) ||
-      (p.itemCode || "").toLowerCase().includes(q) ||
-      (p.nHK     || "").toLowerCase().includes(q) ||
-      (p.bcDesc  || "").toLowerCase().includes(q);
+      code.toLowerCase().includes(q) ||
+      (p.nHK  || "").toLowerCase().includes(q) ||
+      (p.bcDesc || p.d || "").toLowerCase().includes(q);
   });
 }, [filtered, search, prodById]);
 
