@@ -3264,10 +3264,10 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
   
       const existIdx = next.findIndex(l => l.productId === prod.id && l.branch === currentBranch);
       if (existIdx >= 0) {
-        // L'import Excel è autoritativo: sovrascrive anche _manualOverride (click cella UI)
-        next[existIdx] = { ...next[existIdx], ...entry, _manualOverride: false };
+        // L'import Excel è autoritativo: sovrascrive _manualOverride e sopravvive all'auto-load JSON
+        next[existIdx] = { ...next[existIdx], ...entry, _manualOverride: true };
       } else {
-        next.push(entry);
+        next.push({ ...entry, _manualOverride: true });
       }
       countLog++;
     });
