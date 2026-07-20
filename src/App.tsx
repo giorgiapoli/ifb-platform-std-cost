@@ -5034,6 +5034,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               <TH accent={T.blue} w={58}>Prezzo €</TH>
               {branch==="CAN" ? <>
                 <TH accent={T.blue} w={52}>Trasp.</TH>
+                <TH accent={T.blue} w={44}>Area</TH>
                 <TH accent={T.blue} w={48}>Pallet</TH>
                 <TH accent={T.blue} w={48}>AIEM</TH>
               </> : <>
@@ -5160,7 +5161,8 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                   {branch==="CAN"&&(()=>{
                     const logEntry = logistics?.find((l:any)=>l.productId===r.id&&l.branch===branch);
                     const tr = logEntry?.transport||"";
-                    return (
+                    const ar = logEntry?.area||"";
+                    return (<>
                       <td style={{...cell(),textAlign:"center"}}>
                         {tr==="MARE"
                           ? <Chip label="🚢 MARE" color={T.blue}/>
@@ -5168,7 +5170,10 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                           ? <Chip label="🚛 GOMMA" color={T.orange}/>
                           : <span style={{color:T.dim,fontSize:"9px"}}>—</span>}
                       </td>
-                    );
+                      <td style={{...cell(),textAlign:"center"}}>
+                        {ar ? <Chip label={ar} color={ar==="SUD"?T.green:T.muted}/> : <span style={{color:T.dim,fontSize:"9px"}}>—</span>}
+                      </td>
+                    </>);
                   })()}
 
                   {/* temperatura anagrafica */}
