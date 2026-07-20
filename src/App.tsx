@@ -3255,7 +3255,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         carriage,
         temperatureOverride,
         fromImport: true,
-        ...(finalTransport ? { transport: finalTransport } : {}),
+        transport: finalTransport || "GOMMA",
         ...(isGC_v  !== undefined ? { isGC:  isGC_v  } : {}),
         ...(isTF_v  !== undefined ? { isTF:  isTF_v  } : {}),
         ...(isFUE_v !== undefined ? { isFUE: isFUE_v } : {}),
@@ -3366,11 +3366,17 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
     
     {/* Bottone Svuota dati esistente */}
     <button
-      onClick={() => {
-        if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}?`)) {
+      onClick={async () => {
+        if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}? (incluso storico import)`)) {
           const newLogistics = logistics.filter((l:any) => l.branch !== branch);
           setLogistics(newLogistics);
           CLOUD.set("ifb_logistics", newLogistics);
+          // Cancella snapshot IDB dello storico per questo branch
+          const branchLogs = importLogs.filter((l:any) => l.type === "logistics" && l.branch === branch);
+          for (const snap of branchLogs) { try { await IDB.del(`ifb_log_data_${snap.id}`); } catch(_){} }
+          const newLogs = importLogs.filter((l:any) => !(l.type === "logistics" && l.branch === branch));
+          setImportLogs(newLogs);
+          LS.set("ifb_importlogs", newLogs);
           bumpImportTs();
           showToast(`Dati logistici per ${branch} cancellati ✓`, T.red);
         }
