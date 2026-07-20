@@ -429,10 +429,11 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
        + (COSTS.MTS_P[temperature] ?? 0) / divisoreCollo;
   }
 
-  // Arrotonda ogni componente a 2 decimali prima di sommare
+  // Arrotonda ogni componente (tranne prezzo) a 2 decimali — come modello Excel
+  // Il prezzo (priceEur) viene usato grezzo nel calcolo Step1, come AL6 in Excel
   const pE = roundN(priceEur,2), fE = roundN(fob,2), lE = roundN(lic,2), vE = roundN(vgm,2);
   const hE = roundN(hc,2), pL = roundN(plt,2), aE = roundN(alc,2), wE = roundN(wh,2);
-  const step1Eur = roundN(pE + fE + lE + vE + hE + pL + aE, 2);
+  const step1Eur = roundN(priceEur + fE + lE + vE + hE + pL + aE, 2);
   const step2Eur = roundN(step1Eur + wE, 2);
 
   return {
