@@ -1686,7 +1686,8 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
   const [msgs, setMsgs]       = React.useState<{role:string,text:string}[]>([]);
   const [input, setInput]     = React.useState("");
   const [loading, setLoading] = React.useState(false);
-  const [apiKey, setApiKey]   = React.useState(()=>localStorage.getItem("ifb_gemini_key")||"");
+  const [provider, setProvider] = React.useState<"groq"|"gemini">(()=>(localStorage.getItem("ifb_ai_provider")||"groq") as any);
+  const [apiKey, setApiKey]   = React.useState(()=>localStorage.getItem(`ifb_ai_key_${localStorage.getItem("ifb_ai_provider")||"groq"}`)||"");
   const [keyDraft, setKeyDraft] = React.useState("");
   const endRef = React.useRef<any>(null);
   React.useEffect(()=>{ endRef.current?.scrollIntoView({behavior:"smooth"}); },[msgs,loading]);
@@ -1848,16 +1849,27 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
 Rispondi SEMPRE in italiano, in modo conciso (max 4-5 frasi). Cita i valori numerici specifici quando disponibili.
 Spiega le variazioni di Standard Cost chiaramente (prezzo listino, logistica, cambi valuta, ecc).
 Dati contesto:\n${ctx}`;
-      const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
-      const body={
-        system_instruction:{parts:[{text:sysPrompt}]},
-        contents:newMsgs.map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]})),
-        generationConfig:{temperature:0.2,maxOutputTokens:600}
-      };
-      const res=await fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-      const data=await res.json();
-      if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
-      const reply=data.candidates?.[0]?.content?.parts?.[0]?.text||"Nessuna risposta.";
+      let reply="";
+      if(provider==="groq"){
+        const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
+          method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${apiKey}`},
+          body:JSON.stringify({model:"llama-3.3-70b-versatile",temperature:0.2,max_tokens:600,
+            messages:[{role:"system",content:sysPrompt},...newMsgs.map(m=>({role:m.role==="ai"?"assistant":m.role,content:m.text}))]})
+        });
+        const data=await res.json();
+        if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
+        reply=data.choices?.[0]?.message?.content||"Nessuna risposta.";
+      } else {
+        const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,{
+          method:"POST",headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({system_instruction:{parts:[{text:sysPrompt}]},
+            contents:newMsgs.map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]})),
+            generationConfig:{temperature:0.2,maxOutputTokens:600}})
+        });
+        const data=await res.json();
+        if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
+        reply=data.candidates?.[0]?.content?.parts?.[0]?.text||"Nessuna risposta.";
+      }
       setMsgs([...newMsgs,{role:"ai",text:reply}]);
     }catch(e:any){
       setMsgs([...newMsgs,{role:"ai",text:`❌ Errore: ${e.message}`}]);
@@ -1865,23 +1877,39 @@ Dati contesto:\n${ctx}`;
   };
 
   // ── Key setup screen ──
+  const providerInfo: Record<string,{label:string,url:string,urlLabel:string,placeholder:string,hint:string}> = {
+    groq:{label:"Groq (consigliato — gratis, veloce)",url:"https://console.groq.com/keys",urlLabel:"console.groq.com",placeholder:"gsk_...",hint:"Registrati → API Keys → Create API Key"},
+    gemini:{label:"Google Gemini",url:"https://aistudio.google.com/apikey",urlLabel:"aistudio.google.com",placeholder:"AIza...",hint:"Get API key → Create API key in new project"},
+  };
+  const pi=providerInfo[provider];
   const keyPanel=(
     <div style={{position:"fixed",bottom:"80px",right:"20px",width:"340px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"12px",padding:"20px",zIndex:9999,boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}}>
-      <div style={{fontSize:"13px",fontWeight:"bold",marginBottom:"6px",color:T.gold}}>🤖 Configura Assistente AI</div>
-      <div style={{fontSize:"11px",color:T.muted,marginBottom:"12px",lineHeight:"1.6"}}>
-        Ottieni una API key gratuita su{" "}
-        <a href="https://aistudio.google.com" target="_blank" rel="noreferrer" style={{color:T.blue}}>aistudio.google.com</a>
-        {" "}→ "Get API key".<br/>Viene salvata solo nel tuo browser.
+      <div style={{fontSize:"13px",fontWeight:"bold",marginBottom:"10px",color:T.gold}}>🤖 Configura Assistente AI</div>
+      {/* Provider selector */}
+      <div style={{display:"flex",gap:"6px",marginBottom:"12px"}}>
+        {(["groq","gemini"] as const).map(p=>(
+          <button key={p} onClick={()=>{setProvider(p);localStorage.setItem("ifb_ai_provider",p);setApiKey(localStorage.getItem(`ifb_ai_key_${p}`)||"");setKeyDraft("");}}
+            style={{flex:1,padding:"6px",background:provider===p?`${T.gold}22`:T.bg,border:`1px solid ${provider===p?T.gold:T.border}`,borderRadius:"6px",color:provider===p?T.gold:T.muted,fontSize:"11px",cursor:"pointer",fontWeight:provider===p?"bold":"normal"}}>
+            {p==="groq"?"⚡ Groq":"🔵 Gemini"}
+          </button>
+        ))}
+      </div>
+      <div style={{fontSize:"11px",color:T.muted,marginBottom:"10px",lineHeight:"1.7"}}>
+        <strong style={{color:T.text}}>{pi.label}</strong><br/>
+        Vai su{" "}<a href={pi.url} target="_blank" rel="noreferrer" style={{color:T.blue}}>{pi.urlLabel}</a><br/>
+        {pi.hint}<br/>
+        <span style={{color:T.dim}}>La chiave è salvata solo nel tuo browser.</span>
       </div>
       <input value={keyDraft} onChange={e=>setKeyDraft(e.target.value)}
         onPaste={e=>{ e.preventDefault(); const t=e.clipboardData.getData("text").trim(); setKeyDraft(t); }}
-        placeholder="Incolla qui la chiave API..."
+        placeholder={pi.placeholder}
         style={{width:"100%",padding:"8px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:"6px",color:T.text,fontSize:"12px",fontFamily:"monospace",boxSizing:"border-box"}}
       />
       <button onClick={()=>{
         const k=keyDraft.trim();
         if(!k){alert("Incolla prima la chiave API");return;}
-        localStorage.setItem("ifb_gemini_key",k);
+        localStorage.setItem(`ifb_ai_key_${provider}`,k);
+        localStorage.setItem("ifb_ai_provider",provider);
         setApiKey(k);
         setKeyDraft("");
       }}
@@ -1902,13 +1930,13 @@ Dati contesto:\n${ctx}`;
           {/* Header */}
           <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <div>
-              <span style={{fontSize:"13px",fontWeight:"bold",color:T.gold}}>🤖 Assistente SC</span>
+              <span style={{fontSize:"13px",fontWeight:"bold",color:T.gold}}>🤖 Assistente SC</span><span style={{fontSize:"9px",color:T.dim,marginLeft:"5px"}}>{provider==="groq"?"⚡Groq":"🔵Gemini"}</span>
               <span style={{fontSize:"10px",color:T.muted,marginLeft:"8px"}}>{branch} · {month}</span>
             </div>
             <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
               <button title="Nuova chat" onClick={()=>setMsgs([])}
                 style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"11px",padding:"3px 6px"}}>🗑</button>
-              <button title="Cambia API key" onClick={()=>{localStorage.removeItem("ifb_gemini_key");setApiKey("");}}
+              <button title="Cambia API key" onClick={()=>{localStorage.removeItem(`ifb_ai_key_${provider}`);setApiKey("");}}
                 style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"11px",padding:"3px 6px"}}>🔑</button>
               <button onClick={()=>setOpen(false)}
                 style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"18px",lineHeight:1,padding:"3px 4px"}}>×</button>
