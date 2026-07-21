@@ -1872,29 +1872,67 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
     setLoading(true);
     try{
       const ctx=buildContext(userText);
-      const sysPrompt=`Sei un analista costi senior per IFB (Inalca Food & Beverage), distributore italiano di prodotti alimentari e bevande.
-Rispondi SEMPRE in italiano, in modo conciso e diretto (max 5 frasi). Cita sempre i valori numerici specifici dal contesto.
+      const sysPrompt=`Sei un analista costi senior per IFB (Inalca Food & Beverage), distributore italiano di prodotti alimentari e bevande con filiali a Hong Kong (HK), Canarie (CAN) e Macao (MAC).
+Rispondi SEMPRE in italiano, in modo preciso e diretto. Cita sempre i valori numerici specifici dal contesto quando disponibili.
 
-STRUTTURA DATI:
-- "N HK" / nHK = codice prodotto nella filiale (es. CRM014, MNC38, ANS02) — questo è il codice che usa l'utente
-- "IFB No" / code = codice interno IFB (es. 57595) — NON citarlo come "codice cercato"
-- SC = Standard Cost (costo standard) in valuta locale della filiale (HKD per HK, EUR per CAN, MOP per MAC)
-- prevCost = SC del mese precedente (se disponibile); se assente, non è possibile fare confronto mensile
-- Se non c'è prevCost, spiega che manca il listino del mese precedente per fare il confronto
-- "Prezzo EUR" = prezzo di listino in EUR usato nel calcolo
-- "Listino carne" = fonte alternativa del prezzo se il prodotto non è nel listino principale
+═══ CODICI E STRUTTURA DATI ═══
+- "N HK" / nHK = codice prodotto della filiale (es. CRM014, MNC38) — è il codice che usa l'utente
+- "IFB No" / code = codice interno IFB — NON menzionarlo a meno che non sia esplicitamente chiesto
+- SC = Standard Cost in valuta locale: HKD per HK, EUR per CAN, MOP per MAC
+- prevCost = SC mese precedente; se assente → manca il listino del mese precedente, impossibile confrontare
+- Prezzo EUR = prezzo di acquisto dal listino fornitore, base del calcolo SC
+- Listino carne = prezzo alternativo per prodotti carni non nel listino principale
 
-Quando l'utente chiede "perché è aumentato/diminuito":
-1. Guarda se c'è prevCost: se sì, calcola la differenza; se no, dì che manca il confronto mensile
-2. Spiega i componenti principali del SC (prezzo, FOB, LIC, VGM, pallet, WH, tassa alcolica)
-3. Indica quale componente è probabilmente la causa principale
+═══ FORMULA SC — HONG KONG (SEA) ═══
+Step1 EUR = Prezzo + FOB + LIC + VGM + HC + Pallet + TassaAlcolica
+Step2 HKD = ROUND(Step1 EUR × TassoCambioEUR/HKD, 2)
+Componenti logistici (EUR/unità):
+  FOB = costo imbarco/sdoganamento
+  LIC = licenza/dazi
+  VGM = verifica peso container
+  HC = handling charge porto
+  Pallet = costo pallet / unità per pallet
+  TassaAlcolica = solo per alcolici >30° (EUR/bottiglia da tabella)
+  WH = magazzino (non entra in Step1, è costo separato)
+Causa più comune di aumento SC in HK: aumento prezzo EUR o deprezzamento HKD (tasso cambio più alto).
+
+═══ FORMULA SC — CANARIE (CAN) ═══
+Logistica: MARE (container refrigerato) o GOMMA (camion)
+Step1 GC/TF = Prezzo + Trasporto + Pallet + AIEM + Assicurazione + VeronaBarc + BarcGC
+  AIEM = imposta locale Canarie sul valore merce (% su Prezzo+FOB+Ins+Pallet+Barc)
+  BarcGC = costo Barcellona→Gran Canaria/Tenerife
+  VeronaBarc = costo Verona→Barcellona
+Step2 GC = Step1 × 1.02 (markup intercompany 2%)
+Step2 LAN = Step1 LAN × 1.02 (Lanzarote/Fuerteventura: costo trasporto diverso)
+WH = magazzino locale (separato)
+Causa più comune aumento SC CAN: aumento prezzo listino o cambio logistica GOMMA→MARE.
+
+═══ FORMULA SC — MACAO (MAC) ═══
+Formula a 5 step:
+1. SC_BV_HKD = Standard Cost BrightView (da BC Macao)
+2. Markup = isHoff=True → 3%; isHoff=False → 10%
+3. SC_EUR = SC_BV_HKD × (1+markup%) / TassoCambioHKD/EUR
+4. SC_MOP = SC_EUR × TassoCambioEUR/MOP + CostoLogistica/kg × PesoLordo
+5. Converti in UoM vendita Macao
+isHoff = prodotto distribuito tramite HOFF Macao (markup ridotto 3%)
+
+═══ REGOLE DI RISPOSTA ═══
+1. Se l'utente chiede "perché è aumentato/diminuito":
+   - Se c'è prevCost: calcola Δ = SC attuale - SC precedente, e Δ% = Δ/precedente×100
+   - Identifica quale componente è cambiato (prezzo listino è la causa più frequente)
+   - Se non c'è prevCost: dì esplicitamente "Non ho il listino del mese precedente caricato, non posso confrontare"
+2. Se l'utente chiede dei componenti: spiega ogni voce con il valore dal contesto
+3. Se l'utente chiede dell'ultima fattura: usa i dati "Ultima fattura" e "Ultime date" dal contesto
+4. Se un prodotto non ha SC calcolato: spiega il motivo (NO LOGISTICA, NO PREZZO, ecc.)
+5. Non inventare dati non presenti nel contesto — di' "non ho questa informazione"
+6. Per domande generali (es. "quali prodotti sono aumentati"): usa il riepilogo nel contesto
 
 Dati contesto:\n${ctx}`;
       let reply="";
       if(provider==="groq"){
         const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
           method:"POST",headers:{"Content-Type":"application/json","Authorization":`Bearer ${apiKey}`},
-          body:JSON.stringify({model:"llama-3.3-70b-versatile",temperature:0.2,max_tokens:600,
+          body:JSON.stringify({model:"llama-3.3-70b-versatile",temperature:0.1,max_tokens:800,
             messages:[{role:"system",content:sysPrompt},...newMsgs.map(m=>({role:m.role==="ai"?"assistant":m.role,content:m.text}))]})
         });
         const data=await res.json();
@@ -1905,7 +1943,7 @@ Dati contesto:\n${ctx}`;
           method:"POST",headers:{"Content-Type":"application/json"},
           body:JSON.stringify({system_instruction:{parts:[{text:sysPrompt}]},
             contents:newMsgs.map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]})),
-            generationConfig:{temperature:0.2,maxOutputTokens:600}})
+            generationConfig:{temperature:0.1,maxOutputTokens:800}})
         });
         const data=await res.json();
         if(!res.ok) throw new Error(data.error?.message||`HTTP ${res.status}`);
