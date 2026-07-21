@@ -365,8 +365,10 @@ function exportXLSX(rows: any[], sheetName: string, fileName: string, textCols?:
  */
 function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMultiplier=1 }: any) {
   const { uom, qtyPerBox, boxPerPallet, kgPerBox, kgxplt: kgxpltProd, temperature } = product;
-  const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor, kgxplt: kgxpltLog } = logistic || {};
+  const { pltPerContainer, area, hasCert, hasAlcTax, alcTax, convFactor, kgxplt: kgxpltLog, category } = logistic || {};
   const pm = Number(priceMultiplier||1) || 1;
+  // Wine/spirits sheet in Excel model does NOT round step1 before HKD conversion
+  const isWine = (category||"").toUpperCase().includes("WINE") || (category||"").toUpperCase().includes("SPIRIT");
 
   // Work Tab DIVISORE UM ha priorità su kgxplt BC anagrafica
   const kgxplt = Number(kgxpltLog) > 0 ? Number(kgxpltLog) : Number(kgxpltProd);
@@ -429,12 +431,15 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
        + (COSTS.MTS_P[temperature] ?? 0) / divisoreCollo;
   }
 
-  // Arrotonda ogni componente (tranne prezzo) a 2 decimali — come modello Excel
-  // Il prezzo (priceEur) viene usato grezzo nel calcolo Step1, come AL6 in Excel
+  // Arrotonda ogni componente a 2 decimali — come modello Excel.
+  // Per wine/spirits il foglio Excel NON arrotonda step1 prima di convertire in HKD:
+  // usa la somma a precisione piena e arrotonda solo il risultato finale.
   const pE = roundN(priceEur,2), fE = roundN(fob,2), lE = roundN(lic,2), vE = roundN(vgm,2);
   const hE = roundN(hc,2), pL = roundN(plt,2), aE = roundN(alc,2), wE = roundN(wh,2);
-  const step1Eur = roundN(priceEur + fE + lE + vE + hE + pL + aE, 2);
-  const step2Eur = roundN(step1Eur + wE, 2);
+  const sumStep1 = priceEur + fE + lE + vE + hE + pL + aE;
+  const step1Eur = isWine ? sumStep1 : roundN(sumStep1, 2);
+  const sumStep2 = step1Eur + wE;
+  const step2Eur = isWine ? sumStep2 : roundN(sumStep2, 2);
 
   return {
     priceEur: pE, fob: fE, lic: lE, vgm: vE, hc: hE, plt: pL, alc: aE,
