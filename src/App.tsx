@@ -1671,14 +1671,17 @@ export default function App() {
         </div>
       )}
       {/* Chatbot AI */}
-      <ChatBot costRows={costRows} salesRows={salesRows} branch={branch} month={month}/>
+      <ChatBot costRows={costRows} salesRows={salesRows} branch={branch} month={month}
+        prices={prices} meatPrices={meatPrices} priceExceptions={priceExceptions}
+        bevInfo={bevInfo} logistics={logistics} scAttuali={scAttuali} products={products}/>
     </div>
     </ErrorBoundary>
   );
 }
 
 // ─── CHATBOT AI ───────────────────────────────────────────────────────────────
-function ChatBot({ costRows=[], salesRows=[], branch="HK", month="" }: any) {
+function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
+  prices=[], meatPrices=[], priceExceptions=[], bevInfo=[], logistics=[], scAttuali=[], products=[] }: any) {
   const [open, setOpen]       = React.useState(false);
   const [msgs, setMsgs]       = React.useState<{role:string,text:string}[]>([]);
   const [input, setInput]     = React.useState("");
@@ -1767,12 +1770,56 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="" }: any) {
       }
     }
 
+    // Helper: trova prodotto per codice/nHK
+    const findProd = (code:string) =>
+      (products||[]).find((p:any)=>p.code===code||p.nHK===code||(p.id&&String(p.id)===code));
+
+    // Helper: aggiungi sezione dati extra per codice menzionato (eccezioni, carne, alc, logistica, scAttuali)
+    const addExtraCtx = (code:string, nHK?:string) => {
+      let ex="";
+      // Eccezione prezzo
+      const exc=(priceExceptions||[]).find((e:any)=>e.code===code||e.nHK===nHK||(e.productId&&e.productId===code));
+      if(exc) ex+=`⚡ ECCEZIONE PREZZO: ${exc.price} EUR (motivo: ${exc.note||exc.reason||"n/d"})\n`;
+      // Listino carne
+      const meat=(meatPrices||[]).find((m:any)=>m.code===code||(nHK&&m.code===nHK));
+      if(meat) ex+=`🥩 LISTINO CARNE: ${meat.pricePerKg} EUR/kg\n`;
+      // Tassa alcolica
+      const bev=(bevInfo||[]).find((b:any)=>b.ifbNo===code||(nHK&&b.nHK===nHK));
+      if(bev) ex+=`🍾 TASSA ALCOLICA: ${bev.totaleBottiglia??bev.alcTax??0} EUR/bottiglia | Gradi: ${bev.gradi||"n/d"}\n`;
+      // Logistica
+      const log=(logistics||[]).find((l:any)=>l.productId&&(l.productId===code||(nHK&&l.productId===nHK)||l.productId===(findProd(code)||{}).id));
+      if(log) ex+=`🚢 LOGISTICA: trasporto=${log.transport||"n/d"} | area=${log.area||"n/d"} | ubicazione=${log.ubicazione||"n/d"} | fob=${log.fob??0} | lic=${log.lic??0} | wh=${log.wh??0}\n`;
+      // SC Attuali
+      const sca=(scAttuali||[]).find((s:any)=>s.code===code||(nHK&&s.code===nHK));
+      if(sca) ex+=`📊 SC ATTUALI: GC=${sca.scGC??sca.scLan??sca.lastSC??'n/d'} | LAN=${sca.scLan??'n/d'}\n`;
+      // Prezzi listino corrente
+      const prs=(prices||[]).filter((p:any)=>p.month===month&&(p.productId===code||(nHK&&(p.productId===nHK||p.rawNHK===nHK||p.rawIfbCode===code))));
+      if(prs.length>0){
+        const best=prs.find((p:any)=>(p.dapFinal||p.dapPrice||p.fcaDiscounted||p.fcaPrice||0)>0)||prs[0];
+        ex+=`💰 LISTINO ${month}: DAP=${best.dapFinal??best.dapPrice??0} | FCA=${best.fcaDiscounted??best.fcaPrice??0} EUR\n`;
+      }
+      return ex;
+    };
+
+    if(relevant.length>0){
+      for(const r of relevant){
+        ctx+=addExtraCtx(r.code||"", r.nHK);
+      }
+    }
+    if(relevantSales.length>0 && relevant.length===0){
+      for(const s of relevantSales){
+        ctx+=addExtraCtx(s.itemCode||"", s.nHK);
+      }
+    }
+
     if(relevant.length===0 && relevantSales.length===0){
       const withPrev=rows.filter((r:any)=>scOf({cost:r.prevCost})!=null);
       const up=withPrev.filter((r:any)=>{const a=scOf(r),b=scOf({cost:r.prevCost});return a!=null&&b!=null&&+a>+b;});
       ctx+=`\n--- RIEPILOGO ---\nProdotti con confronto mese prec: ${withPrev.length}\n`;
       if(withPrev.length>0) ctx+=`SC aumentati: ${up.length} | SC diminuiti: ${withPrev.length-up.length}\n`;
-      // Top 5 fatturati per quantità
+      ctx+=`Eccezioni prezzo attive: ${(priceExceptions||[]).filter((e:any)=>!e.branch||e.branch===branch).length}\n`;
+      ctx+=`Prodotti con listino carne: ${(meatPrices||[]).length}\n`;
+      ctx+=`Prodotti con tassa alcolica: ${(bevInfo||[]).length}\n`;
       if(sales.length>0){
         const byCode: Record<string,{qty:number,desc:string,lastDate:string}> = {};
         for(const s of sales){
