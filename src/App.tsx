@@ -1713,10 +1713,11 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
       (q.match(/\b[A-Za-z]{1,4}\d{1,5}[A-Za-z0-9]*\b/g)||[]).map((s:string)=>s.toUpperCase())
     ));
 
-    const matchRow = (r:any) =>
-      codeTokens.some(t => r.code===t||r.nHK===t||(r.id&&String(r.id)===t)) ||
-      codeTokens.some(t => (r.code||"").toUpperCase()===t||(r.nHK||"").toUpperCase()===t) ||
-      (r.description && ql.includes((r.description||"").toLowerCase().slice(0,14)));
+    const matchRow = (r:any) => {
+      const rc=(r.code||"").toUpperCase(), rn=(r.nHK||"").toUpperCase(), rd=(r.description||"").toLowerCase();
+      return codeTokens.some(t=>rc===t||rn===t||(r.id&&String(r.id).toUpperCase()===t)) ||
+             (rd.length>4 && ql.includes(rd.slice(0,14)));
+    };
 
     // Match in costRows (con SC calcolato)
     const relevant = rows.filter(matchRow).slice(0,4);
@@ -1724,15 +1725,15 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
     const relevantNoSC = allRows.filter((r:any)=>!r.cost&&matchRow(r)).slice(0,2);
     // Match in anagrafica prodotti diretta
     const relevantProds = relevant.length===0
-      ? allProds.filter((p:any)=>codeTokens.some(t=>p.code===t||p.nHK===t)).slice(0,3)
+      ? allProds.filter((p:any)=>codeTokens.some(t=>(p.code||"").toUpperCase()===t||(p.nHK||"").toUpperCase()===t)).slice(0,3)
       : [];
 
     // Also match salesRows directly (codes not in costRows, e.g. new/unlisted)
-    const relevantSales = sales.filter((s:any)=>
-      (s.itemCode && ql.includes(s.itemCode.toLowerCase())) ||
-      (s.nHK && ql.includes(s.nHK.toLowerCase())) ||
-      (s.description && ql.includes((s.description||"").toLowerCase().slice(0,12)))
-    );
+    const relevantSales = sales.filter((s:any)=>{
+      const sc=(s.itemCode||"").toUpperCase(), sn=(s.nHK||"").toUpperCase();
+      return codeTokens.some(t=>sc===t||sn===t) ||
+             ((s.description||"").length>4 && ql.includes((s.description||"").toLowerCase().slice(0,12)));
+    });
 
     let ctx = `FILIALE: ${branch} | MESE: ${month}\nProdotti con SC calcolato: ${rows.length} | Prodotti totali: ${allRows.length} | Righe fatture: ${sales.length}\n`;
     if(codeTokens.length>0) ctx+=`Codici cercati: ${codeTokens.join(", ")}\n`;
