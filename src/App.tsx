@@ -1874,12 +1874,18 @@ Dati contesto:\n${ctx}`;
         {" "}→ "Get API key".<br/>Viene salvata solo nel tuo browser.
       </div>
       <input value={keyDraft} onChange={e=>setKeyDraft(e.target.value)}
-        placeholder="AIza..."
+        onPaste={e=>{ e.preventDefault(); const t=e.clipboardData.getData("text").trim(); setKeyDraft(t); }}
+        placeholder="Incolla qui la chiave API..."
         style={{width:"100%",padding:"8px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:"6px",color:T.text,fontSize:"12px",fontFamily:"monospace",boxSizing:"border-box"}}
       />
-      <button onClick={()=>{localStorage.setItem("ifb_gemini_key",keyDraft);setApiKey(keyDraft);}}
-        disabled={!keyDraft.trim()}
-        style={{marginTop:"10px",width:"100%",padding:"8px",background:T.gold,border:"none",borderRadius:"6px",color:"#000",fontWeight:"bold",fontSize:"12px",cursor:keyDraft.trim()?"pointer":"default",opacity:keyDraft.trim()?1:0.5}}>
+      <button onClick={()=>{
+        const k=keyDraft.trim();
+        if(!k){alert("Incolla prima la chiave API");return;}
+        localStorage.setItem("ifb_gemini_key",k);
+        setApiKey(k);
+        setKeyDraft("");
+      }}
+        style={{marginTop:"10px",width:"100%",padding:"8px",background:T.gold,border:"none",borderRadius:"6px",color:"#000",fontWeight:"bold",fontSize:"12px",cursor:"pointer"}}>
         Salva e attiva
       </button>
       <button onClick={()=>setOpen(false)}
