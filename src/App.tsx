@@ -1683,6 +1683,7 @@ export default function App() {
 function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
   prices=[], meatPrices=[], priceExceptions=[], bevInfo=[], logistics=[], scAttuali=[], products=[] }: any) {
   const [open, setOpen]       = React.useState(false);
+  const [maximized, setMaximized] = React.useState(false);
   const [msgs, setMsgs]       = React.useState<{role:string,text:string}[]>([]);
   const [input, setInput]     = React.useState("");
   const [loading, setLoading] = React.useState(false);
@@ -2005,7 +2006,13 @@ Dati contesto:\n${ctx}`;
   return (
     <>
       {open && (apiKey ? (
-        <div style={{position:"fixed",bottom:"80px",right:"20px",width:"360px",height:"500px",background:T.surface,border:`1px solid ${T.border}`,borderRadius:"12px",display:"flex",flexDirection:"column",zIndex:9999,boxShadow:"0 8px 32px rgba(0,0,0,0.4)"}}>
+        <div style={{position:"fixed",
+          bottom: maximized?"0":"80px", right: maximized?"0":"20px",
+          left: maximized?"0":"auto", top: maximized?"0":"auto",
+          width: maximized?"100vw":"360px", height: maximized?"100vh":"500px",
+          background:T.surface,border:`1px solid ${T.border}`,
+          borderRadius: maximized?"0":"12px",display:"flex",flexDirection:"column",
+          zIndex:9999,boxShadow:"0 8px 32px rgba(0,0,0,0.4)",transition:"all 0.2s"}}>
           {/* Header */}
           <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <div>
@@ -2013,6 +2020,8 @@ Dati contesto:\n${ctx}`;
               <span style={{fontSize:"10px",color:T.muted,marginLeft:"8px"}}>{branch} · {month}</span>
             </div>
             <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
+              <button title={maximized?"Riduci":"Espandi a schermo intero"} onClick={()=>setMaximized(m=>!m)}
+                style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"13px",padding:"3px 6px"}}>{maximized?"⊡":"⊞"}</button>
               <button title="Nuova chat" onClick={()=>setMsgs([])}
                 style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"11px",padding:"3px 6px"}}>🗑</button>
               <button title="Cambia API key" onClick={()=>{localStorage.removeItem(`ifb_ai_key_${provider}`);setApiKey("");}}
