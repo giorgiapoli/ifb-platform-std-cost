@@ -1671,14 +1671,14 @@ export default function App() {
         </div>
       )}
       {/* Chatbot AI */}
-      <ChatBot costRows={costRows} branch={branch} month={month}/>
+      <ChatBot costRows={costRows} salesRows={salesRows} branch={branch} month={month}/>
     </div>
     </ErrorBoundary>
   );
 }
 
 // ─── CHATBOT AI ───────────────────────────────────────────────────────────────
-function ChatBot({ costRows=[], branch="HK", month="" }: any) {
+function ChatBot({ costRows=[], salesRows=[], branch="HK", month="" }: any) {
   const [open, setOpen]       = React.useState(false);
   const [msgs, setMsgs]       = React.useState<{role:string,text:string}[]>([]);
   const [input, setInput]     = React.useState("");
@@ -1700,17 +1700,26 @@ function ChatBot({ costRows=[], branch="HK", month="" }: any) {
   const buildContext = (q: string) => {
     const ql = q.toLowerCase();
     const rows = (costRows||[]).filter((r:any)=>r.cost);
+    const sales = (salesRows||[]);
 
+    // Match products mentioned in the question
     const relevant = rows.filter((r:any)=>
       (r.code && ql.includes(r.code.toLowerCase())) ||
       (r.nHK  && ql.includes(r.nHK.toLowerCase()))  ||
       (r.description && ql.includes(r.description.toLowerCase().slice(0,12)))
     ).slice(0,4);
 
-    let ctx = `FILIALE: ${branch} | MESE: ${month}\nProdotti con SC calcolato: ${rows.length}\n`;
+    // Also match salesRows directly (codes not in costRows, e.g. new/unlisted)
+    const relevantSales = sales.filter((s:any)=>
+      (s.itemCode && ql.includes(s.itemCode.toLowerCase())) ||
+      (s.nHK && ql.includes(s.nHK.toLowerCase())) ||
+      (s.description && ql.includes((s.description||"").toLowerCase().slice(0,12)))
+    );
+
+    let ctx = `FILIALE: ${branch} | MESE: ${month}\nProdotti con SC calcolato: ${rows.length} | Righe fatture: ${sales.length}\n`;
 
     if(relevant.length>0){
-      ctx+="\n--- PRODOTTI CITATI ---\n";
+      ctx+="\n--- PRODOTTI CITATI (SC) ---\n";
       for(const r of relevant){
         const sc=scOf(r), scPrev=scOf({cost:r.prevCost});
         ctx+=`\nCodice: ${r.code||r.nHK} | ${r.description||""}\n`;
@@ -1727,12 +1736,54 @@ function ChatBot({ costRows=[], branch="HK", month="" }: any) {
           else if(branch==="MAC")
             ctx+=`SC BV HKD: ${c.scBvHkd} | isHoff: ${c.isHoff} | Markup: ${c.markup}% | Log/kg: ${c.logRate} MOP\nSC finale MOP: ${c.macNewSC}\n`;
         }
+        // Fatture per questo prodotto
+        const prodSales = sales.filter((s:any)=>
+          (r.code && s.itemCode===r.code) || (r.nHK && (s.itemCode===r.nHK||s.nHK===r.nHK))
+        );
+        if(prodSales.length>0){
+          const sorted = [...prodSales].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+          ctx+=`Fatture: ${prodSales.length} righe | Ultima fattura: ${sorted[0]?.date||"N/D"}\n`;
+          ctx+=`Qtà totale fatturata: ${prodSales.reduce((s:number,x:any)=>s+(Number(x.qty)||0),0).toFixed(0)} | Prezzo ultimo: ${sorted[0]?.unitPrice??'N/D'}\n`;
+          // Show last 3 dates
+          ctx+=`Ultime date: ${sorted.slice(0,3).map((s:any)=>s.date).join(", ")}\n`;
+        } else {
+          ctx+=`Fatture: nessuna trovata per questo codice\n`;
+        }
       }
-    } else {
+    }
+
+    if(relevantSales.length>0 && relevant.length===0){
+      ctx+="\n--- PRODOTTI CITATI (FATTURE) ---\n";
+      const seen=new Set<string>();
+      for(const s of relevantSales){
+        const key=s.itemCode||s.nHK;
+        if(seen.has(key)) continue; seen.add(key);
+        const allForItem = sales.filter((x:any)=>x.itemCode===s.itemCode||(s.nHK&&x.nHK===s.nHK));
+        const sorted=[...allForItem].sort((a,b)=>(b.date||"").localeCompare(a.date||""));
+        ctx+=`\nCodice: ${s.itemCode} | ${s.description||""}\n`;
+        ctx+=`Righe fattura: ${allForItem.length} | Ultima: ${sorted[0]?.date||"N/D"}\n`;
+        ctx+=`Qtà totale: ${allForItem.reduce((t:number,x:any)=>t+(Number(x.qty)||0),0).toFixed(0)}\n`;
+        ctx+=`Ultime date: ${sorted.slice(0,3).map((x:any)=>x.date).join(", ")}\n`;
+      }
+    }
+
+    if(relevant.length===0 && relevantSales.length===0){
       const withPrev=rows.filter((r:any)=>scOf({cost:r.prevCost})!=null);
       const up=withPrev.filter((r:any)=>{const a=scOf(r),b=scOf({cost:r.prevCost});return a!=null&&b!=null&&+a>+b;});
       ctx+=`\n--- RIEPILOGO ---\nProdotti con confronto mese prec: ${withPrev.length}\n`;
       if(withPrev.length>0) ctx+=`SC aumentati: ${up.length} | SC diminuiti: ${withPrev.length-up.length}\n`;
+      // Top 5 fatturati per quantità
+      if(sales.length>0){
+        const byCode: Record<string,{qty:number,desc:string,lastDate:string}> = {};
+        for(const s of sales){
+          const k=s.itemCode||"?";
+          if(!byCode[k]) byCode[k]={qty:0,desc:s.description||"",lastDate:s.date||""};
+          byCode[k].qty+=(Number(s.qty)||0);
+          if((s.date||"")>(byCode[k].lastDate)) byCode[k].lastDate=s.date;
+        }
+        const top=Object.entries(byCode).sort((a,b)=>b[1].qty-a[1].qty).slice(0,5);
+        ctx+=`\nTop 5 prodotti fatturati (qtà):\n`+top.map(([c,v])=>`  ${c} ${v.desc}: ${v.qty.toFixed(0)} | Ultima: ${v.lastDate}`).join("\n")+"\n";
+      }
     }
     return ctx;
   };
