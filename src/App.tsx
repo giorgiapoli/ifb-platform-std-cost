@@ -1742,7 +1742,7 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
       ctx+="\n--- PRODOTTI CITATI (SC) ---\n";
       for(const r of relevant){
         const sc=scOf(r), scPrev=scOf({cost:r.prevCost});
-        ctx+=`\nCodice: ${r.code||r.nHK} | ${r.description||""}\n`;
+        ctx+=`\nN HK: ${r.nHK||r.code} | IFB No: ${r.code||""} | ${r.description||""}\n`;
         ctx+=`UOM: ${r.uom||""} | Temp: ${r.temperature||""}\n`;
         ctx+=`SC attuale (${currency}): ${sc??'N/D'}\n`;
         if(scPrev!=null&&sc!=null)
