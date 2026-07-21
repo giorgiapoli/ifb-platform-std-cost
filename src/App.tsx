@@ -1703,15 +1703,29 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
 
   const buildContext = (q: string) => {
     const ql = q.toLowerCase();
-    const rows = (costRows||[]).filter((r:any)=>r.cost);
+    const allRows = (costRows||[]);           // tutti, anche senza SC
+    const rows = allRows.filter((r:any)=>r.cost);
     const sales = (salesRows||[]);
+    const allProds = (products||[]);
 
-    // Match products mentioned in the question
-    const relevant = rows.filter((r:any)=>
-      (r.code && ql.includes(r.code.toLowerCase())) ||
-      (r.nHK  && ql.includes(r.nHK.toLowerCase()))  ||
-      (r.description && ql.includes(r.description.toLowerCase().slice(0,12)))
-    ).slice(0,4);
+    // Estrai parole che sembrano codici prodotto (3-8 char alfanumerici, es. CRM014, MNC38, ANS02)
+    const codeTokens = Array.from(new Set(
+      (q.match(/\b[A-Za-z]{1,4}\d{1,5}[A-Za-z0-9]*\b/g)||[]).map((s:string)=>s.toUpperCase())
+    ));
+
+    const matchRow = (r:any) =>
+      codeTokens.some(t => r.code===t||r.nHK===t||(r.id&&String(r.id)===t)) ||
+      codeTokens.some(t => (r.code||"").toUpperCase()===t||(r.nHK||"").toUpperCase()===t) ||
+      (r.description && ql.includes((r.description||"").toLowerCase().slice(0,14)));
+
+    // Match in costRows (con SC calcolato)
+    const relevant = rows.filter(matchRow).slice(0,4);
+    // Match anche in prodotti senza SC (es. NO LOGISTICA, NO PREZZO)
+    const relevantNoSC = allRows.filter((r:any)=>!r.cost&&matchRow(r)).slice(0,2);
+    // Match in anagrafica prodotti diretta
+    const relevantProds = relevant.length===0
+      ? allProds.filter((p:any)=>codeTokens.some(t=>p.code===t||p.nHK===t)).slice(0,3)
+      : [];
 
     // Also match salesRows directly (codes not in costRows, e.g. new/unlisted)
     const relevantSales = sales.filter((s:any)=>
@@ -1720,7 +1734,8 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
       (s.description && ql.includes((s.description||"").toLowerCase().slice(0,12)))
     );
 
-    let ctx = `FILIALE: ${branch} | MESE: ${month}\nProdotti con SC calcolato: ${rows.length} | Righe fatture: ${sales.length}\n`;
+    let ctx = `FILIALE: ${branch} | MESE: ${month}\nProdotti con SC calcolato: ${rows.length} | Prodotti totali: ${allRows.length} | Righe fatture: ${sales.length}\n`;
+    if(codeTokens.length>0) ctx+=`Codici cercati: ${codeTokens.join(", ")}\n`;
 
     if(relevant.length>0){
       ctx+="\n--- PRODOTTI CITATI (SC) ---\n";
@@ -1803,17 +1818,28 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
     };
 
     if(relevant.length>0){
-      for(const r of relevant){
+      for(const r of relevant) ctx+=addExtraCtx(r.code||"", r.nHK);
+    }
+    if(relevantNoSC.length>0){
+      ctx+="\n--- PRODOTTI SENZA SC (motivo) ---\n";
+      for(const r of relevantNoSC){
+        ctx+=`Codice: ${r.code||r.nHK} | ${r.description||""}\n`;
+        ctx+=`Motivo: ${r.skipReason||"sconosciuto"}\n`;
         ctx+=addExtraCtx(r.code||"", r.nHK);
       }
     }
-    if(relevantSales.length>0 && relevant.length===0){
-      for(const s of relevantSales){
-        ctx+=addExtraCtx(s.itemCode||"", s.nHK);
+    if(relevantProds.length>0){
+      ctx+="\n--- DALL'ANAGRAFICA (nessun SC calcolato) ---\n";
+      for(const p of relevantProds){
+        ctx+=`Codice: ${p.code||p.nHK} | ${p.description||""} | UOM: ${p.uom||""} | Temp: ${p.temperature||""}\n`;
+        ctx+=addExtraCtx(p.code||"", p.nHK);
       }
     }
+    if(relevantSales.length>0 && relevant.length===0 && relevantNoSC.length===0 && relevantProds.length===0){
+      for(const s of relevantSales) ctx+=addExtraCtx(s.itemCode||"", s.nHK);
+    }
 
-    if(relevant.length===0 && relevantSales.length===0){
+    if(relevant.length===0 && relevantNoSC.length===0 && relevantProds.length===0 && relevantSales.length===0){
       const withPrev=rows.filter((r:any)=>scOf({cost:r.prevCost})!=null);
       const up=withPrev.filter((r:any)=>{const a=scOf(r),b=scOf({cost:r.prevCost});return a!=null&&b!=null&&+a>+b;});
       ctx+=`\n--- RIEPILOGO ---\nProdotti con confronto mese prec: ${withPrev.length}\n`;
