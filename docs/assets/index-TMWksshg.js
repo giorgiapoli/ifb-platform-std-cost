@@ -155,7 +155,7 @@ Prodotti con SC calcolato: ${L.length} | Prodotti totali: ${W.length} | Righe fa
 `),H.length>0){_+=`
 --- PRODOTTI CITATI (SC) ---
 `;for(const ye of H){const be=de(ye),Ie=de({cost:ye.prevCost});_+=`
-Codice: ${ye.code||ye.nHK} | ${ye.description||""}
+N HK: ${ye.nHK||ye.code} | IFB No: ${ye.code||""} | ${ye.description||""}
 `,_+=`UOM: ${ye.uom||""} | Temp: ${ye.temperature||""}
 `,_+=`SC attuale (${Ae}): ${be??"N/D"}
 `,Ie!=null&&be!=null&&(_+=`SC mese prec. (${Ae}): ${Ie} | Δ: ${(+be-+Ie).toFixed(2)} (${((+be/+Ie-1)*100).toFixed(1)}%)
