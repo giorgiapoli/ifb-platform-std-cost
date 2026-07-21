@@ -1872,9 +1872,23 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
     setLoading(true);
     try{
       const ctx=buildContext(userText);
-      const sysPrompt=`Sei un analista costi senior per IFB (Inalca Food & Beverage), distributore italiano di prodotti alimentari.
-Rispondi SEMPRE in italiano, in modo conciso (max 4-5 frasi). Cita i valori numerici specifici quando disponibili.
-Spiega le variazioni di Standard Cost chiaramente (prezzo listino, logistica, cambi valuta, ecc).
+      const sysPrompt=`Sei un analista costi senior per IFB (Inalca Food & Beverage), distributore italiano di prodotti alimentari e bevande.
+Rispondi SEMPRE in italiano, in modo conciso e diretto (max 5 frasi). Cita sempre i valori numerici specifici dal contesto.
+
+STRUTTURA DATI:
+- "N HK" / nHK = codice prodotto nella filiale (es. CRM014, MNC38, ANS02) — questo è il codice che usa l'utente
+- "IFB No" / code = codice interno IFB (es. 57595) — NON citarlo come "codice cercato"
+- SC = Standard Cost (costo standard) in valuta locale della filiale (HKD per HK, EUR per CAN, MOP per MAC)
+- prevCost = SC del mese precedente (se disponibile); se assente, non è possibile fare confronto mensile
+- Se non c'è prevCost, spiega che manca il listino del mese precedente per fare il confronto
+- "Prezzo EUR" = prezzo di listino in EUR usato nel calcolo
+- "Listino carne" = fonte alternativa del prezzo se il prodotto non è nel listino principale
+
+Quando l'utente chiede "perché è aumentato/diminuito":
+1. Guarda se c'è prevCost: se sì, calcola la differenza; se no, dì che manca il confronto mensile
+2. Spiega i componenti principali del SC (prezzo, FOB, LIC, VGM, pallet, WH, tassa alcolica)
+3. Indica quale componente è probabilmente la causa principale
+
 Dati contesto:\n${ctx}`;
       let reply="";
       if(provider==="groq"){
