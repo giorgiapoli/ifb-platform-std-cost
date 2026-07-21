@@ -1848,7 +1848,7 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
 Rispondi SEMPRE in italiano, in modo conciso (max 4-5 frasi). Cita i valori numerici specifici quando disponibili.
 Spiega le variazioni di Standard Cost chiaramente (prezzo listino, logistica, cambi valuta, ecc).
 Dati contesto:\n${ctx}`;
-      const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+      const url=`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`;
       const body={
         system_instruction:{parts:[{text:sysPrompt}]},
         contents:newMsgs.map(m=>({role:m.role==="user"?"user":"model",parts:[{text:m.text}]})),
