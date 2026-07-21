@@ -1678,7 +1678,7 @@ export default function App() {
       {/* Chatbot AI */}
       <ChatBot costRows={costRows} salesRows={salesRows} branch={branch} month={month}
         prices={prices} meatPrices={meatPrices} priceExceptions={priceExceptions}
-        bevInfo={bevInfo} logistics={logistics} scAttuali={scAttuali} products={products}/>
+        bevInfo={bevInfo} logistics={logistics} scAttuali={scAttuali} products={products} airList={airList}/>
     </div>
     </ErrorBoundary>
   );
@@ -1686,7 +1686,7 @@ export default function App() {
 
 // ─── CHATBOT AI ───────────────────────────────────────────────────────────────
 function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
-  prices=[], meatPrices=[], priceExceptions=[], bevInfo=[], logistics=[], scAttuali=[], products=[] }: any) {
+  prices=[], meatPrices=[], priceExceptions=[], bevInfo=[], logistics=[], scAttuali=[], products=[], airList=[] }: any) {
   const [open, setOpen]       = React.useState(false);
   const [maximized, setMaximized] = React.useState(false);
   const [msgs, setMsgs]       = React.useState<{role:string,text:string}[]>([]);
@@ -1714,10 +1714,11 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
     const sales = (salesRows||[]);
     const allProds = (products||[]);
 
-    // Estrai parole che sembrano codici prodotto (3-8 char alfanumerici, es. CRM014, MNC38, ANS02)
-    const codeTokens = Array.from(new Set(
-      (q.match(/\b[A-Za-z]{1,4}\d{1,5}[A-Za-z0-9]*\b/g)||[]).map((s:string)=>s.toUpperCase())
-    ));
+    // Estrai codici prodotto: alfanumerici (MNC38, CRM014) O puramente numerici IFB (44018, 57595)
+    const codeTokens = Array.from(new Set([
+      ...(q.match(/\b[A-Za-z]{1,4}\d{1,5}[A-Za-z0-9]*\b/g)||[]),
+      ...(q.match(/\b\d{4,6}\b/g)||[]),
+    ].map((s:string)=>s.toUpperCase())));
 
     const matchRow = (r:any) => {
       const rc=(r.code||"").toUpperCase(), rn=(r.nHK||"").toUpperCase(), rd=(r.description||"").toLowerCase();
@@ -1740,6 +1741,15 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
       return codeTokens.some(t=>sc===t||sn===t) ||
              ((s.description||"").length>4 && ql.includes((s.description||"").toLowerCase().slice(0,12)));
     });
+
+    // Match in AIR list (products transported by air — excluded from SC calculation)
+    const relevantAir = (airList||[]).filter((a:any)=>{
+      const ac=(a.productId||a.code||"").toUpperCase(), an=(a.nHK||"").toUpperCase();
+      return codeTokens.some(t=>ac===t||an===t) ||
+             ((a.description||"").length>4 && ql.includes((a.description||"").toLowerCase().slice(0,12)));
+    });
+    // Also check costRows flagged isAir
+    const relevantAirRows = allRows.filter((r:any)=>r.isAir && matchRow(r)).slice(0,3);
 
     let ctx = `FILIALE: ${branch} | MESE: ${month}\nProdotti con SC calcolato: ${rows.length} | Prodotti totali: ${allRows.length} | Righe fatture: ${sales.length}\n`;
     if(codeTokens.length>0) ctx+=`Codici cercati: ${codeTokens.join(", ")}\n`;
@@ -1774,6 +1784,22 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
           ctx+=`Ultime date: ${sorted.slice(0,3).map((s:any)=>s.date).join(", ")}\n`;
         } else {
           ctx+=`Fatture: nessuna trovata per questo codice\n`;
+        }
+      }
+    }
+
+    // AIR products section
+    const airMatches = [...relevantAirRows, ...relevantAir.filter((a:any)=>!relevantAirRows.some((r:any)=>r.code===(a.productId||a.code)))];
+    if(airMatches.length>0){
+      ctx+="\n--- PRODOTTI AIR (trasporto aereo, esclusi da calcolo SC) ---\n";
+      for(const a of airMatches.slice(0,4)){
+        const code=a.productId||a.code||a.id||"";
+        ctx+=`\n✈ ARTICOLO AIR: IFB No ${code} | N HK: ${a.nHK||""} | ${a.description||a.name||""}\n`;
+        ctx+=`Trasporto: AIR — Standard Cost NON calcolato (solo via mare è in scope)\n`;
+        const prodSales=sales.filter((s:any)=>s.itemCode===code||(a.nHK&&s.nHK===a.nHK));
+        if(prodSales.length>0){
+          const sorted=[...prodSales].sort((x:any,y:any)=>(y.date||"").localeCompare(x.date||""));
+          ctx+=`Fatture: ${prodSales.length} righe | Ultima: ${sorted[0]?.date||"N/D"} | Ultimo prezzo: ${sorted[0]?.unitPrice??'N/D'}\n`;
         }
       }
     }
