@@ -3583,7 +3583,7 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           iPlt: fi(["npltxcontainer","pltxcontainer","plt x container","nplt","pltpercontainer","n plt","palletpercontainer","numeropallet","pallet per container","npalletcontainer","palletcontainer"]),
           iDivUm: fi(["divisoreum","divisore um","divisore_um","divum","div um","kgxplt","kg x pallet"]),
           iCert: fi(["healthcertificate","health certificate","cert"]),
-          iTemp: fi(["rettificata","temperature","temp","trettificata","camion"]),
+          iTemp: fi(["t° rettificata","t°rettificata","t rettificata","temperatura rettificata","rettificata","temperature","temp","trettificata","camion"]),
           iCarriage: fi(["pltcostmedio","plt cost medio","pltcost","carriage"]),
           iAirSea: fi(["air/sea","airsea"]),
           iTransport: fi(["trasporto","transport","air/sea","airsea","air","sea"]),
@@ -3667,9 +3667,9 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
       let temperatureOverride = null;
       if (iTemp >= 0) {
         const tempRaw = String(row[iTemp] || "").trim().toUpperCase();
-        if (tempRaw === "DRY" || tempRaw === "SECCO") temperatureOverride = "DRY";
-        else if (tempRaw === "FRESH" || tempRaw === "FRESCO") temperatureOverride = "FRESH";
-        else if (tempRaw === "FROZEN" || tempRaw === "SURGELATO") temperatureOverride = "FROZEN";
+        if (["DRY","SECCO","ASCIUTTO","+18°C","18°C"].some(v=>tempRaw===v||tempRaw.startsWith("+18")||tempRaw.startsWith("18°"))) temperatureOverride = "DRY";
+        else if (["FRESH","FRESCO","REFRIGERATO","+4°C","4°C"].some(v=>tempRaw===v||tempRaw.startsWith("+4")||tempRaw.startsWith("4°"))) temperatureOverride = "FRESH";
+        else if (["FROZEN","SURGELATO","CONGELATO","-18°C"].some(v=>tempRaw===v||tempRaw.startsWith("-18")||tempRaw.startsWith("SURGEL"))) temperatureOverride = "FROZEN";
       }
   
       // Carriage
