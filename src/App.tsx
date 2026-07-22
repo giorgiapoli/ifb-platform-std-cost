@@ -1063,7 +1063,7 @@ export default function App() {
       if(!prod) return p;
       const r=calcDAPFinal({
         dapDiscounted:p.dapDiscounted||0, fcaPrice:p.fcaPrice||0, fcaDiscounted:p.fcaDiscounted||0,
-        vendorName:prod.vendorName||prod.vendorName2||"",
+        vendorName:prod.vendorName2||prod.vendorName||"",
         section:prod.category||"", products, code:prod.code||"",
       });
       if(r.dapFinal>0||r.carriageUnit>0) return {...p, carriageCost:r.carriageUnit, dapFinal:r.dapFinal};
@@ -1290,7 +1290,7 @@ export default function App() {
         if(dapHK === 0 && fcaHK > 0) {
           const secHK = (prod.category || "").toUpperCase();
           const isWineHK = secHK.includes("WINE") || secHK.includes("SPIRIT");
-          const vendorHK = prod.vendorName || prod.vendorName2 || "";
+          const vendorHK = prod.vendorName2 || prod.vendorName || "";
           const isForVendHK = FOR_VENDORS.has(vendorHK);
           if(isWineHK || isForVendHK) {
             const pltCostHK = isWineHK ? 60 : (COSTS.VENDOR_CARRIAGE[vendorHK]||0);
