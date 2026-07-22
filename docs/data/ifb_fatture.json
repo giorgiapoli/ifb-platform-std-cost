@@ -59070,15 +59070,37 @@
     "Branch": "HK"
   },
   {
-    "No_": "FL112",
-    "Description": "FARINA 00 PER PIZZA W240 DALLARI 25 KG",
+    "No_": "FREIGHT",
+    "Description": "FREIGHT",
     "Vendor Name": "",
-    "Last Posting Date": "2025-07-21",
-    "Quantity": 24000.0,
-    "Price": 0.641,
-    "Location Code": "FOR",
+    "Last Posting Date": "2026-07-21",
+    "Quantity": 1.0,
+    "Price": 744.66,
+    "Location Code": "",
     "Section Description": "",
-    "Branch": "CAN"
+    "Branch": "HK"
+  },
+  {
+    "No_": "FREIGHT",
+    "Description": "FREIGHT",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-21",
+    "Quantity": 1.0,
+    "Price": 965.27,
+    "Location Code": "",
+    "Section Description": "",
+    "Branch": "HK"
+  },
+  {
+    "No_": "FREIGHT",
+    "Description": "FREIGHT",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-21",
+    "Quantity": 1.0,
+    "Price": 1179.25,
+    "Location Code": "",
+    "Section Description": "",
+    "Branch": "HK"
   },
   {
     "No_": "Z4808",
@@ -150223,6 +150245,72 @@
     "Quantity": 1.0,
     "Price": 1600.0,
     "Location Code": "",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "MAD05",
+    "Description": "SEMOLA RIMACINATA GIALLO ORO 13R25 25KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-22",
+    "Quantity": 120.0,
+    "Price": 14.54,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "LVC17",
+    "Description": "FARINA DI GRANO TENERO TIPO 0 CON GERME DI GRANO W300-350 LA VERACE LA CONTEMPORANEA 12,5 KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-22",
+    "Quantity": 240.0,
+    "Price": 8.42,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "LVC18",
+    "Description": "FARINA DI GRANO TENERO TIPO 00 W300-350 LA VERACE LA FORTE 12,5 KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-22",
+    "Quantity": 800.0,
+    "Price": 7.78,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "MAD01",
+    "Description": "FARINA 00 LA PIZZA REGINA 25KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-22",
+    "Quantity": 40.0,
+    "Price": 16.330000000000002,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "MAD02",
+    "Description": "FARINA 00 LA PIZZA PULCINELLA 25KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-22",
+    "Quantity": 240.0,
+    "Price": 16.57,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "MAD12",
+    "Description": "SEMOLA DI GRANO DURO 13S25 25KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-22",
+    "Quantity": 40.0,
+    "Price": 14.030000000000001,
+    "Location Code": "FOR",
     "Section Description": "",
     "Branch": "CAN"
   }
