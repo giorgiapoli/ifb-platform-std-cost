@@ -595,10 +595,10 @@ function calcDAPFinal({ dapDiscounted, fcaPrice, fcaDiscounted, vendorName, sect
   const pltCost = isWine ? 60 : (COSTS.VENDOR_CARRIAGE[vendorName]||0);
   const cu = unitsPerPlt>0 ? pltCost/unitsPerPlt : 0;
   const dd=dapDiscounted||0, fp=fcaPrice||0, fd=fcaDiscounted||0;
-  if(dd!==0) return { dapFinal:dd, carriageUnit:cu, note:"DAP Disc." };
-  if(!isX)   return { dapFinal:0,  carriageUnit:0,  note:"non-X" };
-  if(isWine) return { dapFinal:fd!==0?fd+cu:0, carriageUnit:cu, note:"Wine FCA Disc+C" };
-  return { dapFinal:fd!==0?fd+cu:0, carriageUnit:cu, note:"FCA Disc+C" };
+  if(dd!==0) return { dapFinal:roundN(dd), carriageUnit:roundN(cu), note:"DAP Disc." };
+  if(!isX)   return { dapFinal:0,         carriageUnit:0,          note:"non-X" };
+  if(isWine) return { dapFinal:fd!==0?roundN(fd+cu):0, carriageUnit:roundN(cu), note:"Wine FCA Disc+C" };
+  return { dapFinal:fd!==0?roundN(fd+cu):0, carriageUnit:roundN(cu), note:"FCA Disc+C" };
 }
 
 const LS = {
