@@ -1284,6 +1284,22 @@ export default function App() {
           }
           return selectPrice(p, ub);
         }
+        // HK: wine/spirits e FOR vendors senza DAP → aggiungi carriage (60€/plt o vendor-specifico)
+        const dapHK = p.dapFinal || 0;
+        const fcaHK = p.fcaDiscounted || p.fcaPrice || 0;
+        if(dapHK === 0 && fcaHK > 0) {
+          const secHK = (prod.category || "").toUpperCase();
+          const isWineHK = secHK.includes("WINE") || secHK.includes("SPIRIT");
+          const vendorHK = prod.vendorName || prod.vendorName2 || "";
+          const isForVendHK = FOR_VENDORS.has(vendorHK);
+          if(isWineHK || isForVendHK) {
+            const pltCostHK = isWineHK ? 60 : (COSTS.VENDOR_CARRIAGE[vendorHK]||0);
+            const upmHK = prod.uom==="BOX" ? (Number(prod.boxPerPallet)||1)
+                        : prod.uom==="KG"  ? (Number(prod.kgxplt)||300)
+                        : (Number(prod.qtyPerBox)||1)*(Number(prod.boxPerPallet)||1);
+            return fcaHK + (upmHK > 0 ? pltCostHK/upmHK : 0);
+          }
+        }
         const sel = selectPrice(p, ub);
         if(sel > 0) return sel;
         // fallback: fca + carriage da logistica / unitsPerPlt
