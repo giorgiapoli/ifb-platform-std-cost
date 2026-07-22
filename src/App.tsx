@@ -3873,6 +3873,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         ["iTransport", "Trasporto (MARE/GOMMA)"],
         ...(branch==="CAN" ? [["iGC","GC"],["iTF","TF"],["iFUE","FUE"],["iLAN","LAN"]] as any[] : []),
         ["iPlt",  "PLT/Container"],
+        ["iTemp",  "T° Rettificata"],
         ["iAlcTax","Tassa Alcolica"],
         ["iCert", "Health Cert"],
         ["iCarriage","Carriage"],
