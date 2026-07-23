@@ -317,7 +317,8 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
 
   // Markup +2% su tutti i costi standard finali (decisione direzione)
   const CAN_MARKUP = 1.02;
-  for (const isl of CAN_ISLANDS) step2[isl] = r2(step2[isl] * CAN_MARKUP);
+  const step2Raw: Record<string,number> = {};
+  for (const isl of CAN_ISLANDS) { step2Raw[isl] = step2[isl]; step2[isl] = r2(step2[isl] * CAN_MARKUP); }
 
   return {
     priceEur: pE, plt: pL, aiemUnit: aGC, tassaAlcolica: taE, wh: whE,
@@ -327,6 +328,7 @@ function calcCAN({ priceInput, ubicazione, product, logistic, bevData, priceMult
     aiemGCTF: aGC, aiemLANFUE: aLAN,
     isMARE,
     step1GC: step1.GC, step1TF: step1.TF, step1LAN: step1.LAN, step1FUE: step1.FUE,
+    step2RawGC: step2Raw.GC, step2RawFUE: step2Raw.FUE,
     step2GC: step2.GC, step2TF: step2.TF, step2LAN: step2.LAN, step2FUE: step2.FUE,
     step1Eur: step1.GC, step1Hkd: step1.GC,
     step2Eur: step2.GC, step2Hkd: step2.GC, rate:1,
@@ -5524,8 +5526,9 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
               </>}
               <TH accent={T.purple} w={52}>WH €</TH>
               {branch==="CAN" ? <>
-                <TH accent={T.gold} w={68}>New SC GC/TF</TH>
-                <TH accent={T.gold} w={72}>New SC FUE/LAN ✓</TH>
+                <TH accent={T.green} w={68}>Step 2 GC/TF</TH>
+                <TH accent={T.gold} w={72}>+2% GC/TF ✓</TH>
+                <TH accent={T.gold} w={76}>+2% FUE/LAN ✓</TH>
               </> : <>
                 <TH accent={T.green} w={65}>New SC €</TH>
                 <TH accent={T.green} w={78}>New SC HKD ✓</TH>
@@ -5690,8 +5693,11 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
                   {/* step 2 */}
                   {branch==="CAN" ? <>
-                    <td style={cell(T.gold,true)}>{c?`€${c.step2GC.toFixed(4)}`:"—"}</td>
-                    <td style={cell(T.gold,true)}>
+                    <td style={cell(T.green,true)}>{c?`€${c.step2RawGC.toFixed(4)}`:"—"}</td>
+                    <td style={{...cell(T.gold,true),borderLeft:`2px solid ${T.gold}`}}>
+                      <span style={{fontWeight:"bold"}}>{c?`€${c.step2GC.toFixed(4)}`:"—"}</span>
+                    </td>
+                    <td style={{...cell(T.gold,true)}}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
                         {c?`€${c.step2FUE.toFixed(4)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                       </span>
@@ -5728,7 +5734,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                 {/* ── riga dettaglio espansa ── */}
                 {isSelected&&c&&(
                   <tr key={r.id+"_detail"}>
-                    <td colSpan={branch==="CAN"?19:19} style={{padding:"10px 20px",background:`${T.gold}06`,
+                    <td colSpan={branch==="CAN"?20:19} style={{padding:"10px 20px",background:`${T.gold}06`,
                       borderBottom:`1px solid ${T.gold}33`}}>
                       {branch==="CAN" ? (() => {
                         const isMARE = c.isMARE || c.transport==="MARE";
@@ -5783,26 +5789,37 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                                   {sep("Magazzino")}
                                   {row("WH / unit",c.wh>0?f4(c.wh):"—",c.wh>0?f4(c.wh):"—",
                                     r.ubicazione==="MTO"?"MTO[temp] ÷ u/plt":r.ubicazione==="MTS"?"MTS-D + MTS-I ÷ u/plt + MTS-P ÷ collo":"—",T.purple)}
-                                  {sep("New Standard Cost")}
+                                  {sep("Step 2 (ante +2%)")}
                                   <tr>
-                                    <td style={{padding:"4px 10px 4px 0",fontSize:"12px",color:T.green,fontWeight:"bold"}}>NEW SC GC</td>
-                                    <td colSpan={2} style={{padding:"4px 8px",fontSize:"13px",color:T.green,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2GC)}</td>
+                                    <td style={{padding:"4px 10px 4px 0",fontSize:"11px",color:T.green}}>Step 2 GC/TF</td>
+                                    <td colSpan={2} style={{padding:"4px 8px",fontSize:"12px",color:T.green,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2RawGC)}</td>
                                     <td style={{padding:"4px 0 4px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>Prezzo + Trasp.GC + Pallet + AIEM + WH</td>
                                   </tr>
                                   <tr>
-                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.green}}>NEW SC TF</td>
-                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.green,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2TF)}</td>
-                                    <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>= GC (stesse tariffe)</td>
-                                  </tr>
-                                  <tr>
-                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.green}}>NEW SC LAN</td>
-                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.green,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2LAN)}</td>
+                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.green}}>Step 2 FUE/LAN</td>
+                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.green,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2RawFUE)}</td>
                                     <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>Prezzo + Trasp.LAN + Pallet + AIEM + WH</td>
                                   </tr>
-                                  <tr>
-                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.green}}>NEW SC FUE</td>
-                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.green,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2FUE)}</td>
-                                    <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.dim,fontStyle:"italic"}}>= LAN (stesse tariffe)</td>
+                                  {sep("New SC + 2% Concordato")}
+                                  <tr style={{background:`${T.gold}18`}}>
+                                    <td style={{padding:"5px 10px 5px 0",fontSize:"13px",color:T.gold,fontWeight:"bold"}}>NEW SC GC ✓</td>
+                                    <td colSpan={2} style={{padding:"5px 8px",fontSize:"14px",color:T.gold,fontWeight:"bold",fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2GC)}</td>
+                                    <td style={{padding:"5px 0 5px 14px",fontSize:"10px",color:T.gold,fontStyle:"italic"}}>Step2 GC × 1.02</td>
+                                  </tr>
+                                  <tr style={{background:`${T.gold}18`}}>
+                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.gold}}>NEW SC TF</td>
+                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.gold,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2TF)}</td>
+                                    <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.gold,fontStyle:"italic"}}>= GC</td>
+                                  </tr>
+                                  <tr style={{background:`${T.gold}18`}}>
+                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.gold}}>NEW SC LAN ✓</td>
+                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.gold,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2LAN)}</td>
+                                    <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.gold,fontStyle:"italic"}}>Step2 LAN × 1.02</td>
+                                  </tr>
+                                  <tr style={{background:`${T.gold}18`}}>
+                                    <td style={{padding:"2px 10px 2px 0",fontSize:"11px",color:T.gold}}>NEW SC FUE</td>
+                                    <td colSpan={2} style={{padding:"2px 8px",fontSize:"11px",color:T.gold,fontFamily:"monospace",textAlign:"right"}}>{f4(c.step2FUE)}</td>
+                                    <td style={{padding:"2px 0 2px 14px",fontSize:"10px",color:T.gold,fontStyle:"italic"}}>= LAN</td>
                                   </tr>
                                 </tbody>
                               </table>
