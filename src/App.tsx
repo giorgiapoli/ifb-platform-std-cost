@@ -2568,7 +2568,10 @@ function ImportPrices({prices,setPrices,products,xrefs,branch,month,importLogs,s
       const fcaDiscounted = parseFloat(get(row, "fcaDiscounted")) || (fcaPrice - (fcaDiscount * fcaPrice / 100)) || 0;
       const dapPrice = parseFloat(get(row, "dapPrice")) || 0;
       const dapDiscount = parseFloat(get(row, "dapDiscount")) || 0;
-      const dapDiscounted = parseFloat(get(row, "dapDiscounted")) || (dapPrice - (dapDiscount * dapPrice / 100)) || 0;
+      // Ricalcola sempre da dapPrice × discount se disponibili (evita pre-arrotondamenti del file Excel)
+      const dapDiscounted = (dapPrice > 0 && dapDiscount > 0)
+        ? dapPrice * (1 - dapDiscount / 100)
+        : parseFloat(get(row, "dapDiscounted")) || 0;
       const dapFinalDirect = parseFloat(get(row, "dapFinalDirect")) || 0;
       const carriageCost = parseFloat(get(row, "carriageCost")) || 0;
 
