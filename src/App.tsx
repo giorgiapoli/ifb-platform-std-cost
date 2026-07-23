@@ -3931,7 +3931,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           <table style={{width:"100%", borderCollapse:"collapse", fontSize:"12px"}}>
             <thead>
               <tr>
-              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto","PLT/Cont","GC","TF","FUE","LAN"]:[]),...(branch!=="CAN"?["Cert."]:[]),"Alcol >30°",...(branch!=="CAN"?["Carriage"]:[]),"Conv.",""].map(c=>(
+              {["IFB No",branchN(branch),"Descrizione","Ubicaz.","Area",...(branch==="CAN"?["Trasporto","PLT/Cont","GC","TF","FUE","LAN"]:[]),...(branch!=="CAN"?["Temp.","T° Rettif.","Cert."]:[]),"Alcol >30°",...(branch!=="CAN"?["Carriage"]:[]),"Conv.",""].map(c=>(
                 <th key={c} style={{padding:"7px 12px",background:T.card,color:T.muted,textAlign:"left",borderBottom:`1px solid ${T.border}`,fontSize:"11px",fontWeight:"normal",position:"sticky",top:0,zIndex:10}}>{c}</th>
               ))}
               </tr>
@@ -3966,6 +3966,12 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                             <td key={k} style={{padding:"4px 8px",textAlign:"center",fontSize:"13px"}}>{l[k]?"✓":"—"}</td>
                           ))}
                         </>}
+                        {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{prod.temperature||"—"}</td>}
+                        {branch!=="CAN"&&<td style={{padding:"7px 12px", textAlign:"center"}}>
+                          {l.temperatureOverride
+                            ? <Chip label={l.temperatureOverride} color={l.temperatureOverride==="FROZEN"?T.blue:l.temperatureOverride==="FRESH"?T.green:T.muted}/>
+                            : <span style={{color:T.dim,fontSize:"9px"}}>—</span>}
+                        </td>}
                         {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasCert?"Sì":"No"}</td>}
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
                         {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>}
