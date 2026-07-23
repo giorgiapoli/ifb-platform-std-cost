@@ -19,7 +19,7 @@ const BRANCH_CFG = {
 const IFB_VENDOR = "INALCA FOOD & BEVERAGE";
 
 const NOW = () => new Date().toISOString().slice(0,7);
-const roundN = (n:number, d=2) => { const v=parseFloat((+(n||0)).toPrecision(12)); return Number(Math.round(Number(v+'e'+d))+'e-'+d); };
+const roundN = (n:number, d=2) => Number(Math.round(Number(((n||0)+'e'+d)))+'e-'+d);
 // Persistent page-state helpers (search / filter survive navigation)
 const psGet = (k: string, def: any) => { try { const v = localStorage.getItem(k); return v != null ? JSON.parse(v) : def; } catch { return def; } };
 const psSet = (k: string, v: any) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
@@ -1285,21 +1285,26 @@ export default function App() {
           }
           return selectPrice(p, ub);
         }
-        // HK: wine/spirits e FOR vendors senza DAP → aggiungi carriage (60€/plt o vendor-specifico)
+        // HK: wine/spirits → SEMPRE FCA + carriage (formula modello Excel, ignora DAP da BC)
+        //     FOR vendors senza DAP → aggiungi vendor carriage
         const dapHK = p.dapFinal || 0;
         const fcaHK = p.fcaDiscounted || p.fcaPrice || 0;
-        if(dapHK === 0 && fcaHK > 0) {
-          const secHK = (prod.category || "").toUpperCase();
-          const isWineHK = secHK.includes("WINE") || secHK.includes("SPIRIT");
-          const vendorHK = prod.vendorName2 || prod.vendorName || "";
-          const isForVendHK = FOR_VENDORS.has(vendorHK);
-          if(isWineHK || isForVendHK) {
-            const pltCostHK = isWineHK ? 60 : (COSTS.VENDOR_CARRIAGE[vendorHK]||0);
-            const upmHK = prod.uom==="BOX" ? (Number(prod.boxPerPallet)||1)
-                        : prod.uom==="KG"  ? (Number(prod.kgxplt)||300)
-                        : (Number(prod.qtyPerBox)||1)*(Number(prod.boxPerPallet)||1);
-            return fcaHK + (upmHK > 0 ? pltCostHK/upmHK : 0);
-          }
+        const secHK = (prod.category || "").toUpperCase();
+        const isWineHK = secHK.includes("WINE") || secHK.includes("SPIRIT");
+        const vendorHK = prod.vendorName2 || prod.vendorName || "";
+        const isForVendHK = FOR_VENDORS.has(vendorHK);
+        if(isWineHK && fcaHK > 0) {
+          const upmHK = prod.uom==="BOX" ? (Number(prod.boxPerPallet)||1)
+                      : prod.uom==="KG"  ? (Number(prod.kgxplt)||300)
+                      : (Number(prod.qtyPerBox)||1)*(Number(prod.boxPerPallet)||1);
+          return fcaHK + (upmHK > 0 ? 60/upmHK : 0);
+        }
+        if(dapHK === 0 && fcaHK > 0 && isForVendHK) {
+          const pltCostHK = COSTS.VENDOR_CARRIAGE[vendorHK]||0;
+          const upmHK = prod.uom==="BOX" ? (Number(prod.boxPerPallet)||1)
+                      : prod.uom==="KG"  ? (Number(prod.kgxplt)||300)
+                      : (Number(prod.qtyPerBox)||1)*(Number(prod.boxPerPallet)||1);
+          return fcaHK + (upmHK > 0 ? pltCostHK/upmHK : 0);
         }
         const sel = selectPrice(p, ub);
         if(sel > 0) return sel;
