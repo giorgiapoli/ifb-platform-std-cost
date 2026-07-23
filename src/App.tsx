@@ -5648,7 +5648,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
                   {/* temperatura rettificata (Work_tab) */}
                   <td style={{...cell(),textAlign:"center"}}>
-                    {r.temperatureOverride && r.temperatureOverride!==r.temperature
+                    {r.temperatureOverride
                       ? <Chip label={r.temperatureOverride}
                           color={r.temperatureOverride==="FROZEN"?T.blue:r.temperatureOverride==="FRESH"?T.green:T.muted}/>
                       : <span style={{color:T.dim,fontSize:"9px"}}>—</span>}
