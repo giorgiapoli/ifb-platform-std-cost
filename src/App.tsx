@@ -437,9 +437,10 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   const pE = roundN(priceEur,2), fE = roundN(fob,2), lE = roundN(lic,2), vE = roundN(vgm,2);
   const hE = roundN(hc,2), pL = roundN(plt,2), aE = roundN(alc,2), wE = roundN(wh,2);
   const sumStep1 = priceEur + fE + lE + vE + hE + pL + aE;
+  // Wine: step1 NON arrotondato (foglio Excel wine usa precisione piena)
+  // Ma step2 sempre arrotondato a 2dp prima della conversione HKD
   const step1Eur = isWine ? sumStep1 : roundN(sumStep1, 2);
-  const sumStep2 = step1Eur + wE;
-  const step2Eur = isWine ? sumStep2 : roundN(sumStep2, 2);
+  const step2Eur = roundN(step1Eur + wE, 2);
 
   return {
     priceEur: pE, fob: fE, lic: lE, vgm: vE, hc: hE, plt: pL, alc: aE,
