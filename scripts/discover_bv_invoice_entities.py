@@ -41,8 +41,31 @@ if __name__ == "__main__":
         if any(k in e.lower() for k in keywords):
             print(f"  {e}")
 
-    # Prova le candidate più probabili su BrightView
-    print("\n=== Test entity candidate su BrightView ===")
+    # Entità promettenti: mostra TUTTI i campi
+    print("\n=== Dettaglio campi entità promettenti ===")
+    detail_candidates = [
+        "IFB_Item_Ledger_Entry",
+        "Posted_Sales_Invoice_ExcelSalesInvLines",
+        "Item_Ledger_Entries_Excel",
+        "IFB_Customer_Ledger_Entries",
+        "IFB_Value_Entry",
+        "IFB_Sales_Invoice_Header",
+    ]
+    for entity in detail_candidates:
+        url = f"{BASE}/{entity}?$top=2"
+        r2 = requests.get(url, headers=headers)
+        if r2.ok:
+            rows = r2.json().get("value", [])
+            print(f"\n  ✓ {entity} ({len(rows)} righe)")
+            if rows:
+                clean = {k: v for k, v in rows[0].items() if not k.startswith("@")}
+                print(f"     Campi: {list(clean.keys())}")
+                print(f"     Esempio: {clean}")
+        else:
+            print(f"\n  ✗ {entity} — {r2.status_code}")
+
+    # Test vecchi candidati
+    print("\n=== Test entity candidate (vecchi) ===")
     candidates = [
         "IFB_Invoice_Line", "IFB_Invoice_Lines", "IFB_SalesInvoiceLine",
         "IFB_Sales_Invoice_Line", "IFB_Posted_Invoice_Line",
