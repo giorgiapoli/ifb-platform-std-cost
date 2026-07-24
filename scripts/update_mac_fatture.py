@@ -51,15 +51,20 @@ def bc_get(token, endpoint):
 
 
 def get_mac_invoice_headers(token, customer_no):
-    """Ritorna dict {doc_no: postingdate} per il customer MAC dato."""
-    rows = bc_get(token, (
-        f"IFB_Sales_Invoice_Header"
-        f"?$filter=postingdate ge {DATE_FROM}"
-        f" and (billtocustomerno eq '{customer_no}' or selltocustomerno eq '{customer_no}')"
-        f"&$select=no,postingdate,billtocustomerno,selltocustomerno"
-        f"&$top=5000"
-    ))
-    result = {r["no"]: r["postingdate"] for r in rows if r.get("no")}
+    """Ritorna dict {doc_no: postingdate} per il customer MAC dato.
+    Due chiamate separate (BC non supporta OR su campi diversi)."""
+    result = {}
+    for field in ["billtocustomerno", "selltocustomerno"]:
+        rows = bc_get(token, (
+            f"IFB_Sales_Invoice_Header"
+            f"?$filter=postingdate ge {DATE_FROM}"
+            f" and {field} eq '{customer_no}'"
+            f"&$select=no,postingdate"
+            f"&$top=5000"
+        ))
+        for r in rows:
+            if r.get("no"):
+                result[r["no"]] = r["postingdate"]
     print(f"    {len(result)} fatture header trovate per {customer_no}")
     return result
 
