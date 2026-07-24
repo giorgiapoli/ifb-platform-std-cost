@@ -67,7 +67,7 @@ jobs:
       - name: Update MAC Fatture (BrightView → Macao)
         env:
           BC_CLIENT_SECRET: ${{ secrets.BC_CLIENT_SECRET }}
-        run: python scripts/update_mac_fatture.py || true
+        run: python scripts/update_mac_fatture.py
 
       - name: Commit and push JSON
         run: |

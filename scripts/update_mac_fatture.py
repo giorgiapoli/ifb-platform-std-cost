@@ -1,8 +1,12 @@
 """
 Aggiorna docs/data/mac_fatture.json con le fatture BrightView → MACAO da BC.
 Company: BRIGHT VIEW TRADING HK LIMITED (Production_HK).
-Clienti Macao in BC BrightView Sales Invoice Line: CUST-00715 e CUST-02012.
-Usato da GitHub Actions. CLIENT_SECRET letto da variabile d'ambiente BC_CLIENT_SECRET.
+Clienti Macao: CUST-00715, CUST-02012.
+
+Flusso:
+1. IFB_Sales_Invoice_Header  → filtra per customer MAC → ottieni Document_No + postingdate
+2. Posted_Sales_Invoice_ExcelSalesInvLines → filtra per Document_No → righe articolo
+   Campo AltICMOld_Item_No = codice IFB (ex-IFB_Invoice_Line.no)
 """
 import os, json, requests
 from pathlib import Path
@@ -18,6 +22,7 @@ OUT_PATH      = Path(__file__).parent.parent / "docs" / "data" / "mac_fatture.js
 
 MAC_CUSTOMERS = ["CUST-00715", "CUST-02012"]
 DATE_FROM     = (datetime.today() - timedelta(days=365)).strftime("%Y-%m-%d")
+BATCH_SIZE    = 30  # max Document_No per chiamata OData
 
 
 def get_token():
@@ -45,43 +50,37 @@ def bc_get(token, endpoint):
     return results
 
 
-CANDIDATE_ENTITIES = ["IFB_Invoice_Line", "IFB_SalesInvoiceLine", "SalesInvoiceLine", "Posted_Sales_Invoice_Lines"]
-
-def probe_entity(token):
-    """Trova la prima entità disponibile tra i candidati."""
-    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
-    for name in CANDIDATE_ENTITIES:
-        url = f"{BASE}/{name}?$top=1"
-        r = requests.get(url, headers=headers)
-        if r.ok:
-            print(f"  Entità fatture trovata: {name}")
-            return name
-        print(f"  {name} → {r.status_code}")
-    raise RuntimeError(f"Nessuna entità fatture trovata tra: {CANDIDATE_ENTITIES}")
-
-
-def get_fatture(token, customer_no, entity):
-    """Legge righe fattura BV per customer Macao."""
-    print(f"  Leggo '{entity}' per customer {customer_no}...")
+def get_mac_invoice_headers(token, customer_no):
+    """Ritorna dict {doc_no: postingdate} per il customer MAC dato."""
     rows = bc_get(token, (
-        f"{entity}"
+        f"IFB_Sales_Invoice_Header"
         f"?$filter=postingdate ge {DATE_FROM}"
-        f" and type eq 'Item'"
-        f" and billtocustomerno eq '{customer_no}'"
-        f"&$top=50000"
+        f" and (billtocustomerno eq '{customer_no}' or selltocustomerno eq '{customer_no}')"
+        f"&$select=no,postingdate,billtocustomerno,selltocustomerno"
+        f"&$top=5000"
     ))
-    print(f"    bill-to: {len(rows)} righe")
-    rows2 = bc_get(token, (
-        f"{entity}"
-        f"?$filter=postingdate ge {DATE_FROM}"
-        f" and type eq 'Item'"
-        f" and selltocustomerno eq '{customer_no}'"
-        f"&$top=50000"
-    ))
-    seen = {(r.get("documentno",""), r.get("no","")) for r in rows}
-    extra = [r for r in rows2 if (r.get("documentno",""), r.get("no","")) not in seen]
-    print(f"    sell-to extra: {len(extra)}, totale: {len(rows)+len(extra)}")
-    return rows + extra
+    result = {r["no"]: r["postingdate"] for r in rows if r.get("no")}
+    print(f"    {len(result)} fatture header trovate per {customer_no}")
+    return result
+
+
+def get_lines_for_docs(token, doc_nos_with_dates):
+    """Fetch righe articolo per i document_no dati, in batch."""
+    doc_list = list(doc_nos_with_dates.items())
+    all_lines = []
+    for i in range(0, len(doc_list), BATCH_SIZE):
+        batch = doc_list[i:i+BATCH_SIZE]
+        doc_filter = " or ".join(f"Document_No eq '{d}'" for d, _ in batch)
+        rows = bc_get(token, (
+            f"Posted_Sales_Invoice_ExcelSalesInvLines"
+            f"?$filter=({doc_filter}) and Type eq 'Item'"
+            f"&$top=10000"
+        ))
+        # Aggiunge postingdate dall'header
+        for r in rows:
+            r["_postingdate"] = doc_nos_with_dates.get(r.get("Document_No", ""), "")
+        all_lines.extend(rows)
+    return all_lines
 
 
 if __name__ == "__main__":
@@ -92,40 +91,45 @@ if __name__ == "__main__":
     token = get_token()
 
     print(f"Leggo fatture BV→MAC da BC ({BC_ENV}, da {DATE_FROM})...")
-    entity = probe_entity(token)
     all_rows = []
     seen_keys = set()
 
     for customer_no in MAC_CUSTOMERS:
-        rows = get_fatture(token, customer_no, entity)
-        if not rows:
-            print(f"  ATTENZIONE: nessuna fattura trovata per customer {customer_no}.")
+        print(f"\n  Customer: {customer_no}")
+        doc_map = get_mac_invoice_headers(token, customer_no)
+        if not doc_map:
+            print(f"  ATTENZIONE: nessuna fattura trovata per {customer_no}.")
             continue
 
-        for item in rows:
-            no  = str(item.get("no") or "").strip()
-            doc = str(item.get("documentno") or "").strip()
-            key = (doc, no)
-            if not no or key in seen_keys:
+        lines = get_lines_for_docs(token, doc_map)
+        print(f"    {len(lines)} righe articolo totali")
+
+        for item in lines:
+            bv_code  = str(item.get("No") or "").strip()
+            ifb_code = str(item.get("AltICMOld_Item_No") or bv_code).strip()
+            doc      = str(item.get("Document_No") or "").strip()
+            key      = (doc, bv_code)
+            if not bv_code or key in seen_keys:
                 continue
             seen_keys.add(key)
-            qty = float(item.get("quantity") or 0)
-            amt = float(item.get("amount") or 0)
+            qty      = float(item.get("Quantity") or 0)
+            price    = float(item.get("Unit_Price") or 0)
             all_rows.append({
-                "No_":               no,
-                "Description":       str(item.get("description") or "").strip(),
+                "No_":               ifb_code,         # codice IFB (AltICMOld_Item_No)
+                "BV_No":             bv_code,           # codice BrightView
+                "Description":       str(item.get("Description") or "").strip(),
                 "Vendor Name":       "BRIGHT VIEW TRADING HK LTD",
-                "Last Posting Date": str(item.get("postingdate") or ""),
+                "Last Posting Date": item.get("_postingdate", ""),
                 "Quantity":          qty,
-                "Price":             amt / qty if qty != 0 else 0,
-                "Location Code":     str(item.get("locationcode") or "").strip(),
-                "Section Description": str(item.get("sectiondescription") or "").strip(),
+                "Price":             price,
+                "Location Code":     str(item.get("Location_Code") or "").strip(),
+                "Section Description": "",
                 "Document No":       doc,
                 "Customer No":       customer_no,
                 "Branch":            "MAC",
             })
 
-    print(f"Totale {len(all_rows)} righe fattura MAC")
+    print(f"\nTotale {len(all_rows)} righe fattura MAC")
     if all_rows:
         print(f"  Esempio: {json.dumps(all_rows[0], ensure_ascii=False)}")
 
