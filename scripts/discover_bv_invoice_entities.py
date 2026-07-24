@@ -44,15 +44,13 @@ if __name__ == "__main__":
     # Prova le candidate più probabili su BrightView
     print("\n=== Test entity candidate su BrightView ===")
     candidates = [
-        "Sales_Invoice_Line",
-        "IFB_Sales_Invoice_Line",
-        "BV_Sales_Invoice_Line",
-        "Posted_Sales_Invoice_Line",
-        "SalesInvoiceLine",
-        "salesInvoiceLines",
-        "Item_Ledger_Entry",
-        "Item_Ledger_Entries_Excel",
-        "Value_Entry",
+        "IFB_Invoice_Line", "IFB_Invoice_Lines", "IFB_SalesInvoiceLine",
+        "IFB_Sales_Invoice_Line", "IFB_Posted_Invoice_Line",
+        "Sales_Invoice_Line", "BV_Sales_Invoice_Line",
+        "Posted_Sales_Invoice_Line", "Posted_Sales_Invoice_Lines",
+        "SalesInvoiceLine", "salesInvoiceLines",
+        "Item_Ledger_Entry", "Item_Ledger_Entries_Excel",
+        "Value_Entry", "Cust__Ledger_Entry",
     ]
     for entity in candidates:
         url = f"{BASE}/{entity}?$top=1"
