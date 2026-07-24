@@ -45,9 +45,23 @@ def bc_get(token, endpoint):
     return results
 
 
-def get_fatture(token, customer_no):
-    """Legge righe fattura BV per customer Macao da IFB_Invoice_Line."""
-    entity = "IFB_Invoice_Line"
+CANDIDATE_ENTITIES = ["IFB_Invoice_Line", "IFB_SalesInvoiceLine", "SalesInvoiceLine", "Posted_Sales_Invoice_Lines"]
+
+def probe_entity(token):
+    """Trova la prima entità disponibile tra i candidati."""
+    headers = {"Authorization": f"Bearer {token}", "Accept": "application/json"}
+    for name in CANDIDATE_ENTITIES:
+        url = f"{BASE}/{name}?$top=1"
+        r = requests.get(url, headers=headers)
+        if r.ok:
+            print(f"  Entità fatture trovata: {name}")
+            return name
+        print(f"  {name} → {r.status_code}")
+    raise RuntimeError(f"Nessuna entità fatture trovata tra: {CANDIDATE_ENTITIES}")
+
+
+def get_fatture(token, customer_no, entity):
+    """Legge righe fattura BV per customer Macao."""
     print(f"  Leggo '{entity}' per customer {customer_no}...")
     rows = bc_get(token, (
         f"{entity}"
@@ -78,11 +92,12 @@ if __name__ == "__main__":
     token = get_token()
 
     print(f"Leggo fatture BV→MAC da BC ({BC_ENV}, da {DATE_FROM})...")
+    entity = probe_entity(token)
     all_rows = []
     seen_keys = set()
 
     for customer_no in MAC_CUSTOMERS:
-        rows = get_fatture(token, customer_no)
+        rows = get_fatture(token, customer_no, entity)
         if not rows:
             print(f"  ATTENZIONE: nessuna fattura trovata per customer {customer_no}.")
             continue
