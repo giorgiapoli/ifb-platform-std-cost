@@ -119,8 +119,9 @@ export async function getUserRole(email: string): Promise<'admin' | 'viewer' | n
   if (!supabase) return 'admin'; // no Supabase → local mode, full access
   try {
     const { data } = await supabase.from('user_roles').select('role').eq('email', email).maybeSingle();
-    return (data?.role as 'admin' | 'viewer') ?? null;
-  } catch { return null; }
+    // se email autenticata non trovata in tabella → viewer di default (non bloccato)
+    return (data?.role as 'admin' | 'viewer') ?? 'viewer';
+  } catch { return 'viewer'; }
 }
 
 export async function listUsers(): Promise<{email: string, role: string, created_at: string}[]> {
