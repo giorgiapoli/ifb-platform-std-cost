@@ -7,22 +7,9 @@ export const supabase = SUPA_URL && SUPA_KEY
   ? createClient(SUPA_URL, SUPA_KEY)
   : null;
 
-// Keys condivisi su cloud (tutto il resto rimane solo su IDB locale)
-const CLOUD_KEYS = new Set([
-  'ifb_logistics',
-  'ifb_meatprices',
-  'ifb_bevinfo',
-  ...(["HK","CAN","MAC"] as const).flatMap(b => [
-    `ifb_products_${b}`,
-    `ifb_xrefs_${b}`,
-    `ifb_airlist_${b}`,
-    `ifb_sales_invoice_${b}`,
-    `ifb_scattuali_${b}`,
-    `ifb_prices_${b}`,
-    `ifb_priceexceptions_${b}`,
-    `ifb_fx`,
-  ]),
-]);
+// Nessun dato condiviso su Supabase — tutto rimane in IDB locale
+// Supabase è usato solo per autenticazione (user_roles)
+const CLOUD_KEYS = new Set<string>();
 
 // ── Wrapper IDB ────────────────────────────────────────────────────────────────
 let dbP: Promise<IDBDatabase> | null = null;
