@@ -1424,12 +1424,14 @@ export default function App() {
             </button>
           </div>
         )}
+        {new URLSearchParams(window.location.search).get("dev")==="giorgia" && (
         <div style={{marginTop:"24px",borderTop:`1px solid ${T.border}`,paddingTop:"16px"}}>
           <button onClick={()=>{ localStorage.setItem('ifb_local_admin','1'); window.location.reload(); }}
             style={{background:"none",border:"none",color:T.border,cursor:"pointer",fontSize:"10px",letterSpacing:"1px"}}>
             accesso dispositivo
           </button>
         </div>
+        )}
       </div>
     </div>
   );
@@ -2022,10 +2024,10 @@ Dati contesto:\n${ctx}`;
       <div style={{fontSize:"13px",fontWeight:"bold",marginBottom:"10px",color:T.gold}}>🤖 Configura Assistente AI</div>
       {/* Provider selector */}
       <div style={{display:"flex",gap:"6px",marginBottom:"12px"}}>
-        {(["groq","gemini"] as const).map(p=>(
+        {(["groq"] as const).map(p=>(
           <button key={p} onClick={()=>{setProvider(p);localStorage.setItem("ifb_ai_provider",p);setApiKey(localStorage.getItem(`ifb_ai_key_${p}`)||"");setKeyDraft("");}}
             style={{flex:1,padding:"6px",background:provider===p?`${T.gold}22`:T.bg,border:`1px solid ${provider===p?T.gold:T.border}`,borderRadius:"6px",color:provider===p?T.gold:T.muted,fontSize:"11px",cursor:"pointer",fontWeight:provider===p?"bold":"normal"}}>
-            {p==="groq"?"⚡ Groq":"🔵 Gemini"}
+            {"⚡ Groq"}
           </button>
         ))}
       </div>
@@ -2071,7 +2073,7 @@ Dati contesto:\n${ctx}`;
           {/* Header */}
           <div style={{padding:"11px 14px",borderBottom:`1px solid ${T.border}`,display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0}}>
             <div>
-              <span style={{fontSize:"13px",fontWeight:"bold",color:T.gold}}>🤖 Assistente SC</span><span style={{fontSize:"9px",color:T.dim,marginLeft:"5px"}}>{provider==="groq"?"⚡Groq":"🔵Gemini"}</span>
+              <span style={{fontSize:"13px",fontWeight:"bold",color:T.gold}}>🤖 Assistente SC</span><span style={{fontSize:"9px",color:T.dim,marginLeft:"5px"}}>⚡Groq</span>
               <span style={{fontSize:"10px",color:T.muted,marginLeft:"8px"}}>{branch} · {month}</span>
             </div>
             <div style={{display:"flex",gap:"4px",alignItems:"center"}}>
@@ -2105,7 +2107,7 @@ Dati contesto:\n${ctx}`;
                 borderRadius:m.role==="user"?"12px 12px 2px 12px":"12px 12px 12px 2px",
                 padding:"8px 11px",fontSize:"12px",lineHeight:"1.6",color:T.text,whiteSpace:"pre-wrap",
               }}>
-                {m.role==="ai"&&<div style={{fontSize:"9px",color:T.gold,marginBottom:"3px",letterSpacing:"1px",textTransform:"uppercase"}}>Gemini AI</div>}
+                {m.role==="ai"&&<div style={{fontSize:"9px",color:T.gold,marginBottom:"3px",letterSpacing:"1px",textTransform:"uppercase"}}>Groq AI</div>}
                 {m.text}
               </div>
             ))}
