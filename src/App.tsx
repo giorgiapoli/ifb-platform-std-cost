@@ -1362,6 +1362,7 @@ export default function App() {
   const isMAC = branch === "MAC";
 
   const NAV_ALL = [
+    {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
     {id:"dashboard",  icon:"⬡", label:"Dashboard"},
     {id:"products",   icon:"◈", label:"Anagrafica", badge:"⇪"},
     {id:"xref",       icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
@@ -1378,7 +1379,6 @@ export default function App() {
     {id:"scattuali", icon:"📊", label: isMAC ? "SC Attuali MAC" : "SC Attuali", badge:scAttuali.length>0?String(scAttuali.length):undefined},
     {id:"storico",    icon:"⧖", label:"Storico & Diff"},
     ...(!isMAC ? [{id:"check", icon:"📅", label:"Check Mensile"}] : []),
-    {id:"notes",      icon:"📝", label:"Guida & Istruzioni"},
   ];
   const NAV = NAV_ALL;
 
