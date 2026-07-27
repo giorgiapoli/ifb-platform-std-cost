@@ -1638,7 +1638,7 @@ export default function App() {
               </button>
             )}
             {supabaseEnabled && authSession && (
-              <button onClick={()=>{ if(window.confirm("Esci dall'account?")) signOut(); }}
+              <button onClick={()=>{ if(window.confirm("Esci dall'account?")){ signOut(); window.location.reload(); } }}
                 style={{padding:"5px 10px",background:"none",border:`1px solid ${T.border}`,borderRadius:"5px",color:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>
                 Esci
               </button>
@@ -2315,81 +2315,50 @@ function XRefPage({xrefs,setXrefs,branch,products=[],snapshots,setSnapshots,impo
 
 // ─── NOTES PAGE ───────────────────────────────────────────────────────────────
 function NotesPage() {
-  const pages = [
-    { icon:"⬡", label:"Dashboard", desc:"Panoramica generale con i dati principali della filiale selezionata." },
-    { icon:"◈", label:"Anagrafica", desc:"Lista di tutti i prodotti con le loro caratteristiche (peso, pallet, temperatura, ecc.)." },
-    { icon:"⇄", label:"XRef", desc:"Tabella che collega il codice prodotto della filiale al codice IFB." },
-    { icon:"◎", label:"Work Tab (Logistica)", desc:"Parametri logistici di ogni prodotto: come viene spedito, in quale area, quanti pallet per container." },
-    { icon:"◉", label:"Listini", desc:"Prezzi di acquisto dei prodotti per il mese selezionato (FCA e DAP)." },
-    { icon:"⚖", label:"Confronto Listini", desc:"Confronto tra i prezzi del listino BC e quelli caricati manualmente." },
-    { icon:"🥩", label:"Listino Carne", desc:"Prezzi specifici per i prodotti di carne — usati come alternativa al listino principale." },
-    { icon:"🍷", label:"Beverage Info", desc:"Informazioni sugli alcolici: tipo, gradazione, usati per calcolare la tassa alcolica (AIEM per le Canarie)." },
-    { icon:"✈", label:"AIR Transport", desc:"Lista degli articoli spediti via aereo (esclusi dal calcolo standard cost via mare)." },
-    { icon:"⚡", label:"Eccezioni Prezzi", desc:"Prezzi speciali impostati manualmente per singoli articoli, con priorità su tutti gli altri listini." },
-    { icon:"◆", label:"Standard Cost", desc:"Il cuore dell'app: mostra il costo standard calcolato per ogni prodotto, con il dettaglio di tutte le voci di costo." },
-    { icon:"📋", label:"Fatture & Costi", desc:"Fatture di vendita del periodo, con i costi e margini associati a ogni articolo venduto." },
-    { icon:"📊", label:"SC Attuali", desc:"Gli standard cost attualmente registrati nel sistema gestionale (BC / Navision)." },
-    { icon:"⧖", label:"Storico & Diff", desc:"Confronto tra i costi standard di periodi diversi — utile per vedere l'evoluzione nel tempo." },
-    { icon:"📅", label:"Check Mensile", desc:"Riepilogo mensile: mostra quali articoli hanno uno standard cost da aggiornare (variazione > 3%) e quali sono nuovi." },
-  ];
-
   return(
     <div>
-      <PageHeader title="📝 Guida alla piattaforma" sub="Cosa puoi vedere e come leggere i dati"/>
+      <PageHeader title="📝 Guida" sub="IFB Cost Intelligence Platform"/>
 
-      <Section title="Come funziona" accent={T.gold}>
-        <div style={{fontSize:"13px",color:T.muted,lineHeight:"2",padding:"4px 0"}}>
-          Questa piattaforma calcola il <strong style={{color:T.text}}>Costo Standard</strong> dei prodotti venduti dalle filiali IFB (Hong Kong, Canarie, Macao).<br/>
-          Il costo standard tiene conto di: <strong style={{color:T.text}}>prezzo di acquisto + trasporto + dazi + pallet + tasse locali</strong>.<br/>
-          Ogni mese viene aggiornato e confrontato con i valori precedenti per capire se i prezzi sono cambiati significativamente.
+      <Section title="" accent={T.gold}>
+        <div style={{fontSize:"13px",color:T.muted,lineHeight:"2"}}>
+          Questa piattaforma calcola il <strong style={{color:T.text}}>Costo Standard</strong> dei prodotti IFB venduti nelle filiali (Hong Kong · Canarie · Macao).<br/>
+          Il costo include: <strong style={{color:T.text}}>acquisto + trasporto + dazi + pallet + tasse locali</strong>.<br/>
+          Ogni mese viene confrontato con i valori precedenti: variazioni &gt; 3% vengono segnalate.
         </div>
       </Section>
 
-      <Section title="Come navigare" accent={T.blue}>
-        <div style={{fontSize:"13px",color:T.muted,lineHeight:"1.8",padding:"4px 0"}}>
-          — Usa il <strong style={{color:T.text}}>menu a sinistra</strong> per spostarti tra le sezioni.<br/>
-          — In alto a sinistra scegli la <strong style={{color:T.text}}>filiale</strong> (Hong Kong, Canarie, Macao) e il <strong style={{color:T.text}}>mese</strong>.<br/>
-          — Puoi cercare un prodotto specifico usando la barra di ricerca presente in ogni pagina.<br/>
-          — Clicca su una riga della tabella Standard Cost per vedere il <strong style={{color:T.text}}>dettaglio completo</strong> del calcolo.
+      <Section title="Come usarla" accent={T.blue}>
+        <div style={{fontSize:"13px",color:T.muted,lineHeight:"2"}}>
+          1. Scegli <strong style={{color:T.text}}>filiale</strong> e <strong style={{color:T.text}}>mese</strong> in alto a sinistra.<br/>
+          2. Naviga con il <strong style={{color:T.text}}>menu a sinistra</strong>.<br/>
+          3. Apri <strong style={{color:T.text}}>Standard Cost</strong> per vedere i costi calcolati — clicca una riga per il dettaglio.<br/>
+          4. Apri <strong style={{color:T.text}}>Check Mensile</strong> per vedere cosa è cambiato rispetto al mese scorso.
         </div>
       </Section>
 
-      <Section title="Cosa significa ogni sezione" accent={T.muted}>
-        <div style={{display:"flex",flexDirection:"column",gap:"8px"}}>
-          {pages.map(({icon,label,desc},i)=>(
-            <div key={i} style={{display:"flex",gap:"12px",alignItems:"flex-start",padding:"10px 14px",background:T.card,borderRadius:"8px",border:`1px solid ${T.border}`}}>
-              <span style={{fontSize:"16px",marginTop:"1px",minWidth:"22px",textAlign:"center"}}>{icon}</span>
+      <Section title="Sezioni principali" accent={T.muted}>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
+          {[
+            {icon:"◆", l:"Standard Cost", d:"Costo calcolato per ogni prodotto, con dettaglio voce per voce."},
+            {icon:"📅", l:"Check Mensile", d:"Articoli DA AGGIORNARE (var. >3%) e NUOVI articoli del mese."},
+            {icon:"📋", l:"Fatture & Costi", d:"Vendite del periodo con costi e margini per articolo."},
+            {icon:"📊", l:"SC Attuali", d:"Standard cost registrati nel sistema (BC/Navision)."},
+            {icon:"◉", l:"Listini", d:"Prezzi di acquisto FCA/DAP del mese."},
+            {icon:"⧖", l:"Storico & Diff", d:"Evoluzione dei costi nel tempo."},
+          ].map(({icon,l,d},i)=>(
+            <div key={i} style={{display:"flex",gap:"10px",alignItems:"flex-start",padding:"10px 12px",background:T.card,borderRadius:"8px",border:`1px solid ${T.border}`}}>
+              <span style={{fontSize:"15px",minWidth:"20px"}}>{icon}</span>
               <div>
-                <div style={{fontSize:"12px",fontWeight:"bold",color:T.text,marginBottom:"2px"}}>{label}</div>
-                <div style={{fontSize:"12px",color:T.muted,lineHeight:"1.6"}}>{desc}</div>
+                <div style={{fontSize:"12px",fontWeight:"bold",color:T.text,marginBottom:"2px"}}>{l}</div>
+                <div style={{fontSize:"11px",color:T.muted,lineHeight:"1.5"}}>{d}</div>
               </div>
             </div>
           ))}
         </div>
       </Section>
 
-      <Section title="Glossario rapido" accent={T.green}>
-        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"8px"}}>
-          {[
-            {t:"Standard Cost (SC)",d:"Il costo totale stimato di un prodotto, comprensivo di acquisto e tutti i costi accessori."},
-            {t:"FCA / DAP",d:"Termini di consegna: FCA = il compratore paga il trasporto, DAP = il venditore include il trasporto nel prezzo."},
-            {t:"DA AGGIORNARE",d:"Il costo standard è cambiato di più del 3% rispetto al valore attuale nel sistema."},
-            {t:"NUOVO ARTICOLO",d:"Prodotto che non aveva ancora uno standard cost registrato nel sistema."},
-            {t:"AIEM",d:"Tassa sugli alcolici applicata alle Canarie. Varia in base alla gradazione del prodotto."},
-            {t:"MTS / MTO / FOR",d:"Tipo di ubicazione: MTS = a magazzino, MTO = su ordine, FOR = in conto deposito fornitore."},
-            {t:"MARE / GOMMA",d:"Modalità di trasporto verso le Canarie: MARE = via nave container, GOMMA = via camion."},
-            {t:"PLT",d:"Pallet: unità di misura per il trasporto. Il numero di pallet per container influenza il costo."},
-          ].map(({t,d},i)=>(
-            <div key={i} style={{background:T.card,borderRadius:"8px",padding:"10px 14px",border:`1px solid ${T.border}`}}>
-              <div style={{fontSize:"11px",fontWeight:"bold",color:T.gold,marginBottom:"4px"}}>{t}</div>
-              <div style={{fontSize:"11px",color:T.muted,lineHeight:"1.6"}}>{d}</div>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Hai domande?" accent={T.dim}>
-        <div style={{fontSize:"12px",color:T.muted,lineHeight:"2"}}>
+      <Section title="Domande?" accent={T.dim}>
+        <div style={{fontSize:"12px",color:T.muted}}>
           Contatta <strong style={{color:T.text}}>Giorgia Poli</strong> — giorgia.poli@inalcafb.com
         </div>
       </Section>
