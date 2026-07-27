@@ -1491,6 +1491,7 @@ export default function App() {
 />,
   
     xref:        <XRefPage
+      isViewer={authRole==="viewer"}
       xrefs={xrefs}
       setXrefs={setXrefs}
       branch={branch}
@@ -1502,8 +1503,9 @@ export default function App() {
       showToast={showToast}
       bumpImportTs={bumpImportTs}
     />,
-    logistics: <Logistics 
-  logistics={logistics} 
+    logistics: <Logistics
+  isViewer={authRole==="viewer"}
+  logistics={logistics}
   setLogistics={setLogistics} 
   products={products} 
   branch={branch} 
@@ -1515,6 +1517,7 @@ export default function App() {
   xrefs={xrefs}  
 />,
     prices: <Prices
+  isViewer={authRole==="viewer"}
   prices={prices}
   setPrices={setPrices}
   bcListini={bcListiniEnriched}
@@ -1537,14 +1540,14 @@ export default function App() {
 
     
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
-    air:         <AirListPage airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    air:         <AirListPage isViewer={authRole==="viewer"} airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     pricecompare: <PriceComparePage bcListini={bcListiniEnriched} prices={prices} products={products} xrefs={xrefs} branch={branch} month={month}/>,
-    meatlist: <MeatPriceListPage meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    meatlist: <MeatPriceListPage isViewer={authRole==="viewer"} meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} xrefs={xrefs} showToast={showToast} branch={branch}/>,
     exceptions:  <PriceExceptions branch={branch} products={products} xrefs={xrefs} priceExceptions={priceExceptions} setPriceExceptions={setPriceExceptions} canConvFactors={canConvFactors} setCanConvFactors={setCanConvFactors} hkConvFactors={hkConvFactors} setHkConvFactors={setHkConvFactors}/>,
     costs:       <CostTable costRows={costRows} branch={branch} month={month} logistics={logistics} lastImportTs={lastImportTs} lastCalcTs={lastCalcTs} setLastCalcTs={setLastCalcTs} setCostHistory={setCostHistory} initFilter={pageFilter} salesRows={salesRows} products={products} xrefs={xrefs} listiniMode={listiniMode} setListiniMode={setListiniMode} reloadListini={()=>{ setBcListini([]); setListiniReloadKey(k=>k+1); }}/>,
-    invoice: <InvoiceAndCosts rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali} onRefreshCosts={()=>setCostRefreshKey(k=>k+1)}/>,
-    scattuali: <ScAttualiPage scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast} xrefs={xrefs}/>,
+    invoice: <InvoiceAndCosts isViewer={authRole==="viewer"} rows={salesRows} setRows={setSalesRows} branch={branch} airList={airList} products={products} xrefs={xrefs} costRows={costRows} logistics={logistics} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs} scAttuali={scAttuali} onRefreshCosts={()=>setCostRefreshKey(k=>k+1)}/>,
+    scattuali: <ScAttualiPage isViewer={authRole==="viewer"} scAttuali={scAttuali} setScAttuali={setScAttuali} scHistory={scHistory} setScHistory={setScHistory} branch={branch} showToast={showToast} xrefs={xrefs}/>,
     storico: <Storico
       snapshots={snapshots}
       setSnapshots={setSnapshots}
@@ -2143,7 +2146,7 @@ Dati contesto:\n${ctx}`;
 }
 
 // ─── XREF PAGE ────────────────────────────────────────────────────────────────
-function XRefPage({xrefs,setXrefs,branch,products=[],snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+function XRefPage({xrefs,setXrefs,branch,products=[],snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,isViewer=false}) {
   const branchCode = branch === "CAN" ? "N COMIT" : "N HK";
   const[step,setStep]=useState("main");
   const[rawRows,setRawRows]=useState([]);
@@ -3083,7 +3086,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
 
 
 // ─── AIR LIST PAGE ────────────────────────────────────────────────────────────
-function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs}) {
+function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,isViewer=false}) {
   const[step,setStep]=useState("main");
   const[headers,setHeaders]=useState([]);
   const[rawRows,setRawRows]=useState([]);
@@ -3495,7 +3498,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
 // ─── LOGISTICS ────────────────────────────────────────────────────────────────
 
-function Logistics({ logistics, setLogistics, products, branch, showToast, bumpImportTs, initFilter, importLogs, setImportLogs, xrefs = [] }) {
+function Logistics({ logistics, setLogistics, products, branch, showToast, bumpImportTs, initFilter, importLogs, setImportLogs, xrefs = [], isViewer = false }) {
   const[search,setSearchRaw]=useState(()=>psGet(`pg_${branch}_logistics_search`,""));
   const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_logistics_search`,v);};
   const[showOnlyMissing,setShowOnlyMissing]=useState(initFilter==="missing");
@@ -3796,12 +3799,12 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
 
       {mapStep === "idle" ? (
   <div style={{marginBottom:"16px", display:"flex", gap:"10px", alignItems:"center", flexWrap:"wrap"}}>
-    <label style={{display:"inline-block", padding:"8px 16px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", color:T.text}}>
+    {!isViewer && <label style={{display:"inline-block", padding:"8px 16px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", color:T.text}}>
       📂 Carica Work_tab (08_Work_Tab.xlsx)
       <input type="file" accept=".xlsx,.xls,.csv" onChange={parseLogFile} style={{display:"none"}}/>
-    </label>
-    
-    <select
+    </label>}
+
+    {!isViewer && <select
       onChange={async e => {
         if (e.target.value) {
           const snap = importLogs.find((l:any) => String(l.id) === e.target.value);
@@ -3836,10 +3839,9 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
             ))}
           </>
       }
-    </select>
-    
-    {/* Bottone Svuota dati esistente */}
-    <button
+    </select>}
+
+    {!isViewer && <button
       onClick={async () => {
         if(window.confirm(`⚠️ ATTENZIONE: Eliminare TUTTI i dati logistici per ${branch}? (incluso storico import)`)) {
           const newLogistics = logistics.filter((l:any) => l.branch !== branch);
@@ -3869,8 +3871,8 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
       }}
     >
       🗑 Svuota tutti i dati ({logistics.filter((l:any)=>l.branch===branch).length} righe)
-    </button>
-    
+    </button>}
+
     <span style={{fontSize:"11px", color:T.muted}}>Colonne: {branchN(branch)} / No_(IFB) / Ubicazione / Area / Cert / Carriage / TASSA ALCOLICA / AIR/SEA</span>
   </div>
 ) : mapStep === "ready" ? (
@@ -3928,7 +3930,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
         </div>
       )}
 
-      <div style={{marginBottom:"12px"}}>
+      {!isViewer && <div style={{marginBottom:"12px"}}>
         <button
           onClick={()=>{
             CLOUD.set("ifb_logistics", logistics);
@@ -3937,7 +3939,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
           style={{padding:"8px 18px",background:`${T.green}20`,border:`1px solid ${T.green}66`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"12px",fontWeight:"bold"}}>
           💾 Salva dati logistici
         </button>
-      </div>
+      </div>}
 
       {displayed.length > 0 && (
         <div style={{overflowX:"auto"}}>
@@ -3989,7 +3991,7 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
                         {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>}
                         <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.dim}}>{l.convFactor||1}</td>
-                        <td style={{padding:"7px 12px"}}><button style={btnS(T.gold)} onClick={()=>toggleEdit(prod.id)}>✏️ Modifica</button></td>
+                        <td style={{padding:"7px 12px"}}>{!isViewer && <button style={btnS(T.gold)} onClick={()=>toggleEdit(prod.id)}>✏️ Modifica</button>}</td>
                       </>
                     ) : (
                       <>
@@ -4406,7 +4408,7 @@ function PriceComparePage({ bcListini, prices, products, xrefs, branch, month }:
 
 // ─── PRICES (con import integrato e storico) ─────────────────────────────────
 function Prices({ prices, setPrices, bcListini = [], setBcListini, products, branch, month, setPrices: setPricesParent, salesRows = [], xrefs = [],
-  importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs, reloadListini, listiniMode = "bc", setListiniMode = (_:any)=>{} }) {
+  importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs, reloadListini, listiniMode = "bc", setListiniMode = (_:any)=>{}, isViewer = false }) {
 const [search, setSearchRaw] = useState(()=>psGet(`pg_${branch}_prices_search`,""));
 const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_prices_search`,v);};
 const [invoiceOnly, setInvoiceOnly] = useState(false);
@@ -5899,7 +5901,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
 
 
-function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,logistics,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,scAttuali,onRefreshCosts}) {
+function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,logistics,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,scAttuali,onRefreshCosts,isViewer=false}) {
   const [step,setStep]         = useState(()=>rows?.length?"view":"upload");
   const [preview,setPreview]   = useState<any[]>([]);
   const [headers,setHeaders]   = useState<string[]>([]);
@@ -7051,7 +7053,7 @@ function CanConvFactorForm({canConvFactors, setCanConvFactors, xrefs, products}:
 // ─── MAIL GEN ─────────────────────────────────────────────────────────────────
 // Only shows items with |delta| > 3% (point 7)
 // ─── SC ATTUALI ───────────────────────────────────────────────────────────────
-function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch, showToast}) {
+function ScAttualiPage({scAttuali, setScAttuali, scHistory, setScHistory, branch, showToast, isViewer=false}) {
   const isCAN = branch === "CAN";
   const [step, setStep] = useState<"main"|"map"|"preview">("main");
   const [fileName, setFileName] = useState("");
@@ -9265,7 +9267,7 @@ function BeverageInfoPage({bevInfo, setBevInfo, products, xrefs=[], showToast, b
 }
 
 // ─── MEAT PRICE LIST ──────────────────────────────────────────────────────────
-function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs}) {
+function MeatPriceListPage({meatPrices,setMeatPrices,products,xrefs,importLogs,setImportLogs,snapshots,setSnapshots,showToast,bumpImportTs,isViewer=false}) {
   const [step, setStep] = useState<"main"|"map"|"preview">("main");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rawRows, setRawRows] = useState<any[]>([]);
