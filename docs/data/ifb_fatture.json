@@ -59686,6 +59686,39 @@
     "Branch": "HK"
   },
   {
+    "No_": "CS667",
+    "Description": "MASCARPONE 35% NATURA 500GR FRESCO",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-27",
+    "Quantity": 894.0,
+    "Price": 2.55,
+    "Location Code": "NCJ",
+    "Section Description": "",
+    "Branch": "HK"
+  },
+  {
+    "No_": "FGM27",
+    "Description": "MASCARPONE FRESCO GOURMET 500GR",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-27",
+    "Quantity": 900.0,
+    "Price": 2.35,
+    "Location Code": "NCJ",
+    "Section Description": "",
+    "Branch": "HK"
+  },
+  {
+    "No_": "DISCOUNT",
+    "Description": "DISCOUNT",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-27",
+    "Quantity": 1.0,
+    "Price": -2000.0,
+    "Location Code": "NCJ",
+    "Section Description": "",
+    "Branch": "HK"
+  },
+  {
     "No_": "FLDGRAC",
     "Description": "GRAPPA CHIARA 38% 1L",
     "Vendor Name": "",
@@ -150630,6 +150663,28 @@
     "Quantity": 1.0,
     "Price": 2347.0,
     "Location Code": "",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "FL112",
+    "Description": "FARINA 00 PER PIZZA W240 DALLARI 25 KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-28",
+    "Quantity": 10000.0,
+    "Price": 0.64,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "FL118",
+    "Description": "SEMOLA DI GRANO DURO DALLARI 1 KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-07-28",
+    "Quantity": 990.0,
+    "Price": 1.01,
+    "Location Code": "FOR",
     "Section Description": "",
     "Branch": "CAN"
   }
