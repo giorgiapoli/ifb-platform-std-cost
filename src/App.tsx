@@ -14,7 +14,7 @@ const BRANCH_CFG = {
   HK:  { label:"Hong Kong", flag:"🇭🇰", color:T.gold,   currency:"HKD", defaultRate:9.1437, active:true  },
   MAC: { label:"Macao",     flag:"🇲🇴", color:T.green,  currency:"MOP", defaultRate:9.08,   active:true  },
   CAN: { label:"Canarie",   flag:"🇮🇨", color:T.blue,   currency:"EUR", defaultRate:1,      active:true },
-  AUS: { label:"Australia", flag:"🇦🇺", color:T.orange, currency:"AUD", defaultRate:1.6420, active:false },
+  AUS: { label:"Australia", flag:"🇦🇺", color:T.orange, currency:"AUD", defaultRate:1.78, active:true },
 };
 const IFB_VENDOR = "INALCA FOOD & BEVERAGE";
 
@@ -459,6 +459,100 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   };
 }
 
+// ─── AUSTRALIA CONSTANTS & CALC ──────────────────────────────────────────────
+// Source: MODELLO STDCOST_AGOSTO26.xlsx — COSTS (LOG) sheet
+const COSTS_AU = {
+  EUR_AUD: 1.78,
+  // FOB per container (EUR) by product type and area
+  FOB: {
+    DRY:    { NORD:1340, CENTRO:1340, SUD:1340, PORXAS:0 },
+    FRESH:  { NORD:1755, CENTRO:1755, SUD:1170, PORXAS:1120 },
+    FROZEN: { NORD:1755, CENTRO:1755, SUD:1170, PORXAS:1120 },
+  } as Record<string,Record<string,number>>,
+  // NOLO (freight) per container (EUR) by product type and area
+  NOLO: {
+    DRY:    { NORD:1226.5, CENTRO:1226.5, SUD:1226.5, PORXAS:0 },
+    FRESH:  { NORD:3233.33, CENTRO:3233.33, SUD:2316.24, PORXAS:4918.80 },
+    FROZEN: { NORD:3233.33, CENTRO:3233.33, SUD:2316.24, PORXAS:4918.80 },
+  } as Record<string,Record<string,number>>,
+  // Local Import Charges per container (EUR) — all areas same, by product type
+  LIC: { DRY:1907.81, FLOUR:1956.80, FRESH:2000.58, FROZEN:2000.58 } as Record<string,number>,
+  VGM: 100,     // EUR per container
+  HC:  150,     // EUR per container (Health Certificate, if Certificato=SI)
+  PLT: 15,      // EUR per pallet
+  // MTO: Cross Docking In+Stock+Out per pallet (EUR)
+  MTO: { DRY:8.16, FRESH:10.2, FROZEN:12.24 } as Record<string,number>,
+  // MTS breakdown per pallet (EUR)
+  MTS_D: { DRY:14.4228, FRESH:16.4832, FROZEN:24.7248 } as Record<string,number>,
+  MTS_I: { DRY:2.5755,  FRESH:3.6057,  FROZEN:3.6057  } as Record<string,number>,
+  MTS_P: { DRY:0.303,   FRESH:0.3434,  FROZEN:0.3535  } as Record<string,number>,
+  EXCISE_RATE: 101.85, // AUD per liter of pure alcohol (spirits)
+};
+
+function calcAU({ priceInput, ubicazione, product, area, hasCert, exciseDutyBtl=0, percDuties=0, amtDutiesKgAud=0, fattoreConvKg=0, section="", eurAud=1.78 }: any) {
+  const { uom, qtyPerBox, pcsxplt, divisoreCollo, pltPerContainer, temperature } = product;
+  const rate = eurAud || COSTS_AU.EUR_AUD;
+  const tempKey = (temperature||"DRY").toUpperCase();
+  const areaKey = (area||"NORD").toUpperCase();
+  const isFlour = (section||"").toUpperCase().includes("FLOUR");
+
+  // Units per pallet (Divisore_UM) and total units per container
+  const unitsPerPlt = Number(pcsxplt) || 1;
+  const pltCnt = Number(pltPerContainer) > 0 ? Number(pltPerContainer) : 25;
+  const totalUnits = unitsPerPlt * pltCnt;
+  if (!totalUnits || !priceInput) return null;
+
+  const divCollo = Number(divisoreCollo) || Number(qtyPerBox) || 1;
+  const priceEur = Number(priceInput || 0);
+  if (priceEur === 0) return null;
+
+  // Transport costs per unit (EUR)
+  const fobEur   = (COSTS_AU.FOB[tempKey]?.[areaKey]  ?? 0) / totalUnits;
+  const noloEur  = (COSTS_AU.NOLO[tempKey]?.[areaKey] ?? 0) / totalUnits;
+  const licKey   = isFlour ? "FLOUR" : (tempKey === "DRY" ? "DRY" : tempKey);
+  const licEur   = (COSTS_AU.LIC[licKey] ?? COSTS_AU.LIC.DRY) / totalUnits;
+  const vgmEur   = COSTS_AU.VGM / totalUnits;
+  const hcEur    = hasCert ? COSTS_AU.HC / totalUnits : 0;
+  const pltEur   = COSTS_AU.PLT / unitsPerPlt;
+
+  // Duties (EUR)
+  const dutiesPct    = priceEur * (percDuties / 100);
+  const dutiesKgEur  = (fattoreConvKg > 0 && uom === "PCS")
+    ? (fattoreConvKg * amtDutiesKgAud) / rate
+    : amtDutiesKgAud / rate;
+  const totalDuties  = dutiesPct + (amtDutiesKgAud > 0 ? dutiesKgEur : 0);
+
+  // Excise (spirits) — exciseDutyBtl is in AUD, convert to EUR
+  const exciseEur = exciseDutyBtl > 0 ? exciseDutyBtl / rate : 0;
+
+  // Step 1: purchase + transport + duties + excise
+  const step1Eur = roundN(priceEur + fobEur + noloEur + licEur + vgmEur + hcEur + pltEur + totalDuties + exciseEur, 2);
+  const step1Aud = roundN(step1Eur * rate, 2);
+
+  // Step 2: add warehouse handling
+  let whEur = 0;
+  if (ubicazione === "MTS") {
+    whEur = (COSTS_AU.MTS_D[tempKey] ?? 0) / unitsPerPlt
+          + (COSTS_AU.MTS_I[tempKey] ?? 0) / unitsPerPlt
+          + (COSTS_AU.MTS_P[tempKey] ?? 0) / divCollo;
+  } else if (ubicazione === "MTO") {
+    whEur = (COSTS_AU.MTO[tempKey] ?? 0) / unitsPerPlt;
+  }
+  whEur = roundN(whEur, 2);
+
+  const step2Eur = roundN(step1Eur + whEur, 2);
+  const step2Aud = roundN(step2Eur * rate, 2);
+
+  return {
+    priceEur: roundN(priceEur,2), fob: roundN(fobEur,2), nolo: roundN(noloEur,2),
+    lic: roundN(licEur,2), vgm: roundN(vgmEur,2), hc: roundN(hcEur,2), plt: roundN(pltEur,2),
+    duties: roundN(totalDuties,2), excise: roundN(exciseEur,2),
+    step1Eur, step1Aud,
+    wh: whEur, step2Eur, step2Aud,
+    rate, unitsPerPlt, pltCnt, totalUnits,
+  };
+}
+
 // ─── MACAO CONSTANTS & CALC ───────────────────────────────────────────────────
 const HKD_TO_MOP = 1.03;          // fixed exchange rate HKD → MOP
 const MAC_MARKUP = { hoff: 0.03, nonHoff: 0.10 };  // 3% HOFF, 10% non-HOFF
@@ -641,6 +735,7 @@ class ErrorBoundary extends React.Component<{children:any},{err:any}> {
 
 export default function App() {
   const[products,setProducts]   = useState<any[]>([]);
+  const[auModel,setAuModel]     = useState<{products:any[],prices:any[],excise:any[]}>({products:[],prices:[],excise:[]});
   const[logistics,setLogistics] = useState<any[]>(SEED_LOGISTIC);
   const[prices,setPrices]       = useState<any[]>([]);
   const[bcListini,setBcListini] = useState<any[]>([]); // prezzi BC listini — separati da prices per evitare re-render globali
@@ -721,6 +816,8 @@ export default function App() {
     (async()=>{
       setLogistics(await CLOUD.get("ifb_logistics", SEED_LOGISTIC));
       setMeatPrices(await CLOUD.get("ifb_meatprices", []));
+      const savedAu = await IDB.get("ifb_au_model", null);
+      if (savedAu) setAuModel(savedAu);
       globalLoadedRef.current = true;
     })();
   },[]);
@@ -1087,6 +1184,47 @@ export default function App() {
   const costRows = useMemo(()=>{
     if(!branch) return [];
 
+    // AUS: calcolo da MODELLO STDCOST Excel caricato manualmente
+    if (branch === "AUS") {
+      const { products: auProds, prices: auPrices, excise: auExcise } = auModel;
+      if (!auProds.length) return [];
+      return auProds.map((prod: any) => {
+        const code = String(prod.code || "").trim();
+        const priceRow = auPrices.find((p: any) =>
+          String(p.ifbNo||"").trim() === code || String(p.code||"").trim() === code
+        );
+        const ubicazione = String(prod.ubicazione || "MTO").trim();
+        let priceEur = 0;
+        if (ubicazione === "FOR") priceEur = Number(priceRow?.fcaNet || 0);
+        else if (ubicazione === "MTO") priceEur = Number(priceRow?.dapNet || 0);
+        else priceEur = Number(priceRow?.mtsPrice || 0) || Number(priceRow?.dapNet || 0);
+        const exciseRow = auExcise.find((e: any) => String(e.code||"").trim() === code);
+        const tempKey = String(prod.productType || "DRY").toUpperCase();
+        const cost = calcAU({
+          priceInput: priceEur, ubicazione,
+          product: { uom: prod.uom, qtyPerBox: prod.qtyPerBox, pcsxplt: prod.divisoreUM,
+            divisoreCollo: prod.divisoreCollo,
+            pltPerContainer: prod.pltPerContainerReale || prod.pltPerContainer,
+            temperature: tempKey },
+          area: String(prod.area || "NORD").trim(),
+          hasCert: String(prod.certificato || "").toUpperCase() === "SI",
+          exciseDutyBtl: Number(exciseRow?.dutiesXBtl || 0),
+          percDuties: Number(prod.percDuties || 0),
+          amtDutiesKgAud: Number(prod.amtDutiesKgAud || 0),
+          section: String(prod.section || ""),
+          eurAud: COSTS_AU.EUR_AUD,
+        });
+        return {
+          id: code, code, nHK: code,
+          description: prod.description, section: prod.section, uom: prod.uom,
+          temperature: tempKey, ubicazione, area: prod.area,
+          vendorName: prod.vendor1 || "",
+          cost, prevCost: null, priceInput: priceEur,
+          skipReason: cost ? undefined : (priceEur === 0 ? "NO PREZZO" : "CALC=0"),
+        };
+      });
+    }
+
     // MAC: 5-step formula (ASSUNZIONI).
     // SC BV (HKD) viene direttamente da mac_anagrafica.json → standardCostHkd,
     // che è già il join HOFF Macau × BrightView Standard_Cost fatto in update_mac_anagrafica.py.
@@ -1353,7 +1491,7 @@ export default function App() {
         area:log.area||"NORD", pltPerContainer:plt,
         temperatureOverride: log.temperatureOverride||null };
     });
-  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali,xrefs,canConvFactors,hkConvFactors,bcListiniEnriched,costRefreshKey]);
+  }, [products,logistics,prices,fx,airList,meatPrices,priceExceptions,branch,month,bevInfo,scAttuali,xrefs,canConvFactors,hkConvFactors,bcListiniEnriched,costRefreshKey,auModel]);
 
   // MAC: save HK costRows to IDB whenever they're computed (declared after costRows useMemo to avoid TDZ)
   useEffect(()=>{ if(branch==="HK" && costRows.length>0) IDB.set("ifb_hk_costrows_for_mac", costRows); },[costRows,branch]);
@@ -1506,15 +1644,17 @@ export default function App() {
     logistics: <Logistics
   isViewer={authRole==="viewer"}
   logistics={logistics}
-  setLogistics={setLogistics} 
-  products={products} 
-  branch={branch} 
-  showToast={showToast} 
-  bumpImportTs={bumpImportTs} 
-  initFilter={pageFilter} 
-  importLogs={importLogs} 
+  setLogistics={setLogistics}
+  products={products}
+  branch={branch}
+  showToast={showToast}
+  bumpImportTs={bumpImportTs}
+  initFilter={pageFilter}
+  importLogs={importLogs}
   setImportLogs={setImportLogs}
-  xrefs={xrefs}  
+  xrefs={xrefs}
+  auModel={auModel}
+  setAuModel={setAuModel}
 />,
     prices: <Prices
   isViewer={authRole==="viewer"}
@@ -3423,7 +3563,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
 // ─── LOGISTICS ────────────────────────────────────────────────────────────────
 
-function Logistics({ logistics, setLogistics, products, branch, showToast, bumpImportTs, initFilter, importLogs, setImportLogs, xrefs = [], isViewer = false }) {
+function Logistics({ logistics, setLogistics, products, branch, showToast, bumpImportTs, initFilter, importLogs, setImportLogs, xrefs = [], isViewer = false, auModel = null, setAuModel = null }) {
   const[search,setSearchRaw]=useState(()=>psGet(`pg_${branch}_logistics_search`,""));
   const setSearch=(v:string)=>{setSearchRaw(v);psSet(`pg_${branch}_logistics_search`,v);};
   const[showOnlyMissing,setShowOnlyMissing]=useState(initFilter==="missing");
@@ -3712,6 +3852,207 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
       : allProds.filter(p => !!getLog(p.id));
   const missingCount = allIFBProducts.filter(p => !getLog(p.id)).length;
   const withCount = allIFBProducts.filter(p => getLog(p.id) !== null).length;
+
+  // ── Australia: pagina dedicata upload modello ─────────────────────────────
+  if (branch === "AUS") {
+    const auProds  = auModel?.products ?? [];
+    const auPrices = auModel?.prices   ?? [];
+    const auExcise = auModel?.excise   ?? [];
+
+    function parseAuFile(e: any) {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev: any) => {
+        try {
+          const wb = XLSX.read(ev.target.result, { type: "binary" });
+
+          // ── Sheet 1: ITEM STD COST IFB ────────────────────────────────
+          const wsItem = wb.Sheets["ITEM STD COST IFB"];
+          if (!wsItem) throw new Error("Sheet 'ITEM STD COST IFB' non trovato");
+          const rawItem: any[][] = XLSX.utils.sheet_to_json(wsItem, { header: 1, defval: "" });
+          // Riga header = riga 5 (0-indexed: 4); dati da riga 6 (0-indexed: 5)
+          const hdrItem = rawItem[4] ?? [];
+          const fi = (aliases: string[]) => hdrItem.findIndex((h: any) =>
+            aliases.some(a => String(h||"").toLowerCase().replace(/[\s_°]/g,"").includes(a.replace(/[\s_°]/g,""))));
+          const iCode    = fi(["ifbno","ifb no","codice ifb","ifb"]);
+          const iDesc    = fi(["description","descrizione"]);
+          const iSection = fi(["section","settore"]);
+          const iUom     = fi(["uom","um"]);
+          const iVendor  = fi(["supplier","vendor","fornitore"]);
+          const iQtyBox  = fi(["qtàpercollo","qtyperbox","qtapercollo","qty per collo"]);
+          const iDivUm   = fi(["divisoreum","divisore um","div um"]);
+          const iDivCol  = fi(["divisorecollo","divisore collo","div collo"]);
+          const iPltCont = fi(["pltpercontainerreale","plt per container reale","pltreale"]);
+          const iPltBase = fi(["pltpercontainer","plt per container"]);
+          const iArea    = fi(["area","porto imbarco","portoimbarco"]);
+          const iUbic    = fi(["ubicazione","mts/mto","mtsmto"]);
+          const iCert    = fi(["certificato","health cert","cert"]);
+          const iPerc    = fi(["percdazioeuro","perc dazio","% dazio"]);
+          const iAmtKg   = fi(["amtdutieskg","dutieskg","amt duties kg"]);
+          const iTemp    = fi(["temperatura","producttype","temp"]);
+
+          const products: any[] = [];
+          for (let i = 5; i < rawItem.length; i++) {
+            const r = rawItem[i];
+            const code = String(r[iCode] ?? "").trim();
+            if (!code) continue;
+            products.push({
+              code,
+              description:  String(r[iDesc]    ?? "").trim(),
+              section:      String(r[iSection]  ?? "").trim(),
+              uom:          String(r[iUom]      ?? "PCS").trim(),
+              vendor1:      String(r[iVendor]   ?? "").trim(),
+              qtyPerBox:    Number(r[iQtyBox]   ?? 0),
+              divisoreUM:   Number(r[iDivUm]    ?? 0),
+              divisoreCollo:Number(r[iDivCol]   ?? 0),
+              pltPerContainerReale: Number(r[iPltCont] ?? 0),
+              pltPerContainer:      Number(r[iPltBase] ?? 0),
+              area:         String(r[iArea]     ?? "NORD").trim().toUpperCase(),
+              ubicazione:   String(r[iUbic]     ?? "MTO").trim().toUpperCase(),
+              certificato:  String(r[iCert]     ?? "").trim(),
+              percDuties:   Number(r[iPerc]     ?? 0),
+              amtDutiesKgAud: Number(r[iAmtKg] ?? 0),
+              productType:  String(r[iTemp]     ?? "DRY").trim().toUpperCase() || "DRY",
+            });
+          }
+
+          // ── Sheet 2: CURRENT PRICELIST (ACQ) ──────────────────────────
+          const wsPL = wb.Sheets["CURRENT PRICELIST (ACQ)"];
+          if (!wsPL) throw new Error("Sheet 'CURRENT PRICELIST (ACQ)' non trovato");
+          const rawPL: any[][] = XLSX.utils.sheet_to_json(wsPL, { header: 1, defval: "" });
+          const hdrPL = rawPL[1] ?? [];  // riga 2 = header (0-indexed: 1)
+          const fp = (aliases: string[]) => hdrPL.findIndex((h: any) =>
+            aliases.some(a => String(h||"").toLowerCase().replace(/[\s_°]/g,"").includes(a)));
+          const ipCode   = fp(["ifbno","ifb no","code"]);
+          const ipMTS    = fp(["mtsprice","mts price"]);
+          const ipFCA    = fp(["fcanet","fca net"]);
+          const ipDAP    = fp(["dapnet","dap net"]);
+
+          const prices: any[] = [];
+          for (let i = 2; i < rawPL.length; i++) {
+            const r = rawPL[i];
+            const code = String(r[ipCode] ?? "").trim();
+            if (!code) continue;
+            prices.push({
+              code,
+              ifbNo:    code,
+              mtsPrice: Number(r[ipMTS] ?? 0),
+              fcaNet:   Number(r[ipFCA] ?? 0),
+              dapNet:   Number(r[ipDAP] ?? 0),
+            });
+          }
+
+          // ── Sheet 3: ALCOL TAX ─────────────────────────────────────────
+          const wsAlc = wb.Sheets["ALCOL TAX"];
+          const excise: any[] = [];
+          if (wsAlc) {
+            const rawAlc: any[][] = XLSX.utils.sheet_to_json(wsAlc, { header: 1, defval: "" });
+            const hdrAlc = rawAlc[1] ?? [];
+            const fa = (aliases: string[]) => hdrAlc.findIndex((h: any) =>
+              aliases.some(a => String(h||"").toLowerCase().replace(/[\s_°]/g,"").includes(a)));
+            const iaCode  = fa(["ifbno","ifb no","code","codice"]);
+            const iaDuty  = fa(["dutiesxbtl","duties x btl","dutiesbtl","excise","duty x btl"]);
+            for (let i = 2; i < rawAlc.length; i++) {
+              const r = rawAlc[i];
+              const code = String(r[iaCode] ?? "").trim();
+              if (!code) continue;
+              excise.push({ code, dutiesXBtl: Number(r[iaDuty] ?? 0) });
+            }
+          }
+
+          const parsed = { products, prices, excise };
+          setAuModel?.(parsed);
+          IDB.set("ifb_au_model", parsed);
+          showToast(`✓ Modello AU caricato: ${products.length} prodotti, ${prices.length} prezzi, ${excise.length} voci alcol`, T.green);
+        } catch (err: any) {
+          showToast("Errore: " + err.message, T.red);
+        }
+      };
+      reader.readAsBinaryString(file);
+      e.target.value = "";
+    }
+
+    function clearAuModel() {
+      setAuModel?.({ products: [], prices: [], excise: [] });
+      IDB.del("ifb_au_model");
+      showToast("Modello AU rimosso", T.muted);
+    }
+
+    return (
+      <div>
+        <PageHeader title="Work Tab · Australia" sub="Carica il modello Excel Standard Cost AU" srcKey="logistics_AUS"/>
+        <Section title="Modello Excel Australia" accent={T.gold}>
+          <p style={{fontSize:"13px", color:T.muted, marginBottom:"12px"}}>
+            Carica <strong>MODELLO STDCOST_AGOSTO26.xlsx</strong> (o aggiornamento). Il file deve contenere i fogli:<br/>
+            <code>ITEM STD COST IFB</code> · <code>CURRENT PRICELIST (ACQ)</code> · <code>ALCOL TAX</code>
+          </p>
+          {!isViewer && (
+            <label style={{display:"inline-block", padding:"10px 20px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"6px", cursor:"pointer", fontSize:"13px", color:T.text, marginRight:"10px"}}>
+              📂 Carica Modello AU (.xlsx)
+              <input type="file" accept=".xlsx,.xls" onChange={parseAuFile} style={{display:"none"}}/>
+            </label>
+          )}
+          {auProds.length > 0 && !isViewer && (
+            <button onClick={clearAuModel} style={{padding:"10px 16px", background:"transparent", border:`1px solid ${T.red}`, borderRadius:"6px", cursor:"pointer", fontSize:"12px", color:T.red}}>
+              🗑 Rimuovi modello
+            </button>
+          )}
+          {auProds.length > 0 ? (
+            <div style={{marginTop:"16px"}}>
+              <div style={{display:"flex", gap:"20px", flexWrap:"wrap", marginBottom:"12px"}}>
+                <div style={{padding:"12px 20px", background:`${T.green}15`, border:`1px solid ${T.green}44`, borderRadius:"8px", fontSize:"13px"}}>
+                  <strong style={{color:T.green}}>{auProds.length}</strong> <span style={{color:T.muted}}>prodotti</span>
+                </div>
+                <div style={{padding:"12px 20px", background:`${T.blue}15`, border:`1px solid ${T.blue}44`, borderRadius:"8px", fontSize:"13px"}}>
+                  <strong style={{color:T.blue}}>{auPrices.length}</strong> <span style={{color:T.muted}}>prezzi</span>
+                </div>
+                <div style={{padding:"12px 20px", background:`${T.gold}15`, border:`1px solid ${T.gold}44`, borderRadius:"8px", fontSize:"13px"}}>
+                  <strong style={{color:T.gold}}>{auExcise.length}</strong> <span style={{color:T.muted}}>voci alcol/excise</span>
+                </div>
+              </div>
+              <div style={{fontSize:"11px", color:T.muted, marginBottom:"8px"}}>Anteprima prodotti (prime 10 righe):</div>
+              <div style={{overflowX:"auto"}}>
+                <table style={{width:"100%", borderCollapse:"collapse", fontSize:"11px"}}>
+                  <thead>
+                    <tr style={{background:T.surface}}>
+                      {["Code","Description","Section","UOM","Area","Ubicazione","Temp","% Duties","Prezzo"].map(h=>(
+                        <th key={h} style={{padding:"6px 8px", textAlign:"left", color:T.muted, borderBottom:`1px solid ${T.border}`, whiteSpace:"nowrap"}}>{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {auProds.slice(0,10).map((p:any, i:number) => {
+                      const pr = auPrices.find((x:any)=>x.code===p.code||x.ifbNo===p.code);
+                      const price = p.ubicazione==="FOR" ? pr?.fcaNet : p.ubicazione==="MTO" ? pr?.dapNet : pr?.mtsPrice||pr?.dapNet;
+                      return (
+                        <tr key={i} style={{borderBottom:`1px solid ${T.border}22`}}>
+                          <td style={{padding:"4px 8px", fontFamily:"monospace", color:T.text}}>{p.code}</td>
+                          <td style={{padding:"4px 8px", color:T.text, maxWidth:"180px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.description}</td>
+                          <td style={{padding:"4px 8px", color:T.muted}}>{p.section}</td>
+                          <td style={{padding:"4px 8px", color:T.muted}}>{p.uom}</td>
+                          <td style={{padding:"4px 8px", color:T.muted}}>{p.area}</td>
+                          <td style={{padding:"4px 8px", color:T.muted}}>{p.ubicazione}</td>
+                          <td style={{padding:"4px 8px", color:T.muted}}>{p.productType}</td>
+                          <td style={{padding:"4px 8px", color:T.muted}}>{p.percDuties>0?`${p.percDuties}%`:"-"}</td>
+                          <td style={{padding:"4px 8px", color:T.green, fontFamily:"monospace"}}>{price>0?`€${Number(price).toFixed(2)}`:"-"}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          ) : (
+            <div style={{marginTop:"16px", padding:"20px", background:`${T.surface}`, borderRadius:"8px", border:`1px dashed ${T.border}`, textAlign:"center", color:T.muted, fontSize:"13px"}}>
+              Nessun modello caricato · clicca "Carica Modello AU" per iniziare
+            </div>
+          )}
+        </Section>
+      </div>
+    );
+  }
+  // ── Fine branch AUS ────────────────────────────────────────────────────────
 
   return (
     <div>
