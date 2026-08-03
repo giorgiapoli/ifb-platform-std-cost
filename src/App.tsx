@@ -5667,7 +5667,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                       borderBottom:`1px solid ${T.gold}33`}}>
                       {branch==="CAN" ? (() => {
                         const isMARE = c.isMARE || c.transport==="MARE";
-                        const f4=(v:number)=>`€ ${v.toFixed(2)}`;
+                        const f4=(v:number|undefined)=>v!=null?`€ ${v.toFixed(2)}`:"—";
                         const row=(label:string,gcTf:string,lanFue:string,formula:string,color=T.text)=>(
                           <tr key={label}>
                             <td style={{padding:"3px 10px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{label}</td>
@@ -5759,7 +5759,7 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                           </div>
                         );
                       })() : (() => {
-                        const f4=(v:number)=>`€ ${v.toFixed(2)}`;
+                        const f4=(v:number|undefined)=>v!=null?`€ ${v.toFixed(2)}`:"—";
                         const row=(label:string,val:string,formula:string,color=T.text,bold=false)=>(
                           <tr key={label}>
                             <td style={{padding:"3px 12px 3px 0",fontSize:"11px",color:T.muted,whiteSpace:"nowrap"}}>{label}</td>
