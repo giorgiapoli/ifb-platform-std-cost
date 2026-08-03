@@ -990,8 +990,8 @@ export default function App() {
         } catch(_) { /* offline — usa dati IDB */ }
       }
 
-      // Auto-fetch fatture IFB da GitHub (HK + CAN, filtrate per branch/customer)
-      if(["HK","CAN"].includes(branch)) {
+      // Auto-fetch fatture IFB da GitHub (HK + CAN + AUS, filtrate per branch/customer)
+      if(["HK","CAN","AUS"].includes(branch)) {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         try {
           const r = await fetch(`${base}data/ifb_fatture.json?t=${Date.now()}`);

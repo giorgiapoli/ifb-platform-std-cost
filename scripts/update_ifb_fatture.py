@@ -21,6 +21,7 @@ DATE_FROM = (datetime.today() - timedelta(days=365)).strftime("%Y-%m-%d")
 CUSTOMERS = {
     "HK":  "40000854",  # BRIGHT VIEW TRADING HK LIMITED
     "CAN": "40000175",  # COMERCIAL ITALIANA DE ALIMENTACION S.
+    "AUS": "40000312",  # FRESCO GOURMET PTY LTD
 }
 
 
@@ -105,8 +106,9 @@ if __name__ == "__main__":
 
     print(f"Totale {len(rows)} righe valide")
     if rows:
-        print(f"  Esempio HK: {next((r for r in rows if r['Branch']=='HK'), None)}")
+        print(f"  Esempio HK:  {next((r for r in rows if r['Branch']=='HK'),  None)}")
         print(f"  Esempio CAN: {next((r for r in rows if r['Branch']=='CAN'), None)}")
+        print(f"  Esempio AUS: {next((r for r in rows if r['Branch']=='AUS'), None)}")
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
