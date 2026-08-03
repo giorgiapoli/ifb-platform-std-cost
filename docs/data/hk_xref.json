@@ -192,6 +192,10 @@
     "ifbNo": "34855"
   },
   {
+    "nHK": "BFFR34867-V1",
+    "ifbNo": "34867"
+  },
+  {
     "nHK": "BFFR34958",
     "ifbNo": "34958"
   },
@@ -528,6 +532,38 @@
     "ifbNo": "CRB27"
   },
   {
+    "nHK": "CRM001",
+    "ifbNo": "35757"
+  },
+  {
+    "nHK": "CRM002",
+    "ifbNo": "35758"
+  },
+  {
+    "nHK": "CRM003",
+    "ifbNo": "35759"
+  },
+  {
+    "nHK": "CRM004",
+    "ifbNo": "35760"
+  },
+  {
+    "nHK": "CRM005",
+    "ifbNo": "35755"
+  },
+  {
+    "nHK": "CRM006",
+    "ifbNo": "35756"
+  },
+  {
+    "nHK": "CRM006-FRZ",
+    "ifbNo": "35756"
+  },
+  {
+    "nHK": "CRM007",
+    "ifbNo": "35764"
+  },
+  {
     "nHK": "CRM008",
     "ifbNo": "FIO28"
   },
@@ -582,6 +618,14 @@
   {
     "nHK": "CW0002-2KG",
     "ifbNo": "LSM18"
+  },
+  {
+    "nHK": "CW0002-FM",
+    "ifbNo": "LSM13"
+  },
+  {
+    "nHK": "CW0002-L",
+    "ifbNo": "LSM13"
   },
   {
     "nHK": "CW0004",
@@ -810,6 +854,10 @@
   {
     "nHK": "FGL02-V1",
     "ifbNo": "FGL02"
+  },
+  {
+    "nHK": "FGM25",
+    "ifbNo": "FGM25-HK"
   },
   {
     "nHK": "FGM28-F",
@@ -1500,6 +1548,10 @@
     "ifbNo": "TOR01"
   },
   {
+    "nHK": "GC9128",
+    "ifbNo": "RLG07"
+  },
+  {
     "nHK": "GC9136",
     "ifbNo": "RLG10"
   },
@@ -2164,6 +2216,22 @@
     "ifbNo": "SA372"
   },
   {
+    "nHK": "HA7009-IB",
+    "ifbNo": "Y3133"
+  },
+  {
+    "nHK": "HA7015",
+    "ifbNo": "SA561"
+  },
+  {
+    "nHK": "HA7016-IB",
+    "ifbNo": "PL00979"
+  },
+  {
+    "nHK": "HA7017-IB",
+    "ifbNo": "ITA44"
+  },
+  {
     "nHK": "HA7021-IB",
     "ifbNo": "HA7021-IB"
   },
@@ -2240,6 +2308,10 @@
     "ifbNo": "ITA33"
   },
   {
+    "nHK": "HA8013-IB",
+    "ifbNo": "SA522"
+  },
+  {
     "nHK": "HA8014-IB",
     "ifbNo": "Y1665"
   },
@@ -2302,6 +2374,10 @@
   {
     "nHK": "HA8038-IB",
     "ifbNo": "ITA45"
+  },
+  {
+    "nHK": "HA8039-IB",
+    "ifbNo": "PL00982"
   },
   {
     "nHK": "HA8058-IB",
@@ -2958,6 +3034,10 @@
   {
     "nHK": "MT0037-TRL",
     "ifbNo": "TRD15"
+  },
+  {
+    "nHK": "MT0041-IF",
+    "ifbNo": "ESC065"
   },
   {
     "nHK": "MT0052",
@@ -6362,6 +6442,14 @@
   {
     "nHK": "WSAT05-21",
     "ifbNo": "SATCAV-21"
+  },
+  {
+    "nHK": "WSAT06-05",
+    "ifbNo": "SATCAST"
+  },
+  {
+    "nHK": "WSAT06-13M",
+    "ifbNo": "SATCASTM"
   },
   {
     "nHK": "WSAT10-18",

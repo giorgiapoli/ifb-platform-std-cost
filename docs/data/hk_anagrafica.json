@@ -1240,8 +1240,8 @@
     "aiem": 0
   },
   {
-    "id": "BFFR34867-V1",
-    "code": "",
+    "id": "34867",
+    "code": "34867",
     "nHK": "BFFR34867-V1",
     "description": "FRZ Beef Ribeye (Entrecote) +/- 4kg",
     "category": "BEEF",
@@ -2840,8 +2840,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM001",
-    "code": "",
+    "id": "35757",
+    "code": "35757",
     "nHK": "CRM001",
     "description": "FRZ Spencer Roll B.A. Carima S/V 5.5/6.0 Kg",
     "category": "BEEF",
@@ -2860,8 +2860,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM002",
-    "code": "",
+    "id": "35758",
+    "code": "35758",
     "nHK": "CRM002",
     "description": "FRZ Flap Meat (Bavetta Aloyau) Carima S/V approx. 2 Kg",
     "category": "BEEF",
@@ -2880,8 +2880,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM003",
-    "code": "",
+    "id": "35759",
+    "code": "35759",
     "nHK": "CRM003",
     "description": "FRZ Flank Steak (Bavetta Flanchet) Carima S/V 0.4 Kg",
     "category": "BEEF",
@@ -2900,8 +2900,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM004",
-    "code": "",
+    "id": "35760",
+    "code": "35760",
     "nHK": "CRM004",
     "description": "FRZ D-Rump (Scamone) BA Carima S/V 3.5 Kg",
     "category": "BEEF",
@@ -2920,8 +2920,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM005",
-    "code": "",
+    "id": "35755",
+    "code": "35755",
     "nHK": "CRM005",
     "description": "FRZ Flat Iron Steak Carima S/V 1.4 Kg",
     "category": "BEEF",
@@ -2940,8 +2940,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM006",
-    "code": "",
+    "id": "35756",
+    "code": "35756",
     "nHK": "CRM006",
     "description": "FRZ Picanha BA Carima S/V 1.4 Kg",
     "category": "BEEF",
@@ -2960,8 +2960,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM006-FRZ",
-    "code": "",
+    "id": "35756",
+    "code": "35756",
     "nHK": "CRM006-FRZ",
     "description": "FRZ Carima - Picanha - Selection - Approx. 1.4 kg / pc",
     "category": "BEEF",
@@ -2969,7 +2969,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 216.0,
     "temperature": "FROZEN",
     "bcTransportation": "FR SEA",
     "standardCostHkd": 230.6,
@@ -2980,8 +2980,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM007",
-    "code": "",
+    "id": "35764",
+    "code": "35764",
     "nHK": "CRM007",
     "description": "FRZ Chuck Eye Roll B.A \"Carima\" 4.5/5.0 Kg",
     "category": "BEEF",
@@ -3420,8 +3420,8 @@
     "aiem": 0
   },
   {
-    "id": "CW0002-FM",
-    "code": "",
+    "id": "LSM13",
+    "code": "LSM13",
     "nHK": "CW0002-FM",
     "description": "Parmigiano Reggiano 24 Months Full Moon Cut",
     "category": "COW CHEESE",
@@ -3440,8 +3440,8 @@
     "aiem": 0
   },
   {
-    "id": "CW0002-L",
-    "code": "",
+    "id": "LSM13",
+    "code": "LSM13",
     "nHK": "CW0002-L",
     "description": "WHEEL Parmigiano Reggiano 24Months",
     "category": "COW CHEESE",
@@ -4880,8 +4880,8 @@
     "aiem": 0
   },
   {
-    "id": "FGM25",
-    "code": "",
+    "id": "FGM25-HK",
+    "code": "FGM25-HK",
     "nHK": "FGM25",
     "description": "Grana Style \"Fresco Gourmet\" approx. 2KG (8)",
     "category": "COW CHEESE",
@@ -4889,7 +4889,7 @@
     "qtyPerBox": 8.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 828.0,
     "temperature": "FRESH",
     "bcTransportation": "CH SEA",
     "standardCostHkd": 79.45,
@@ -8660,8 +8660,8 @@
     "aiem": 0
   },
   {
-    "id": "GC9128",
-    "code": "",
+    "id": "RLG07",
+    "code": "RLG07",
     "nHK": "GC9128",
     "description": "*Hazelnut Toasted IGP 1KG (4)",
     "category": "FRUIT",
@@ -12020,8 +12020,8 @@
     "aiem": 0
   },
   {
-    "id": "HA7009-IB",
-    "code": "",
+    "id": "Y3133",
+    "code": "Y3133",
     "nHK": "HA7009-IB",
     "description": "Spicy Spianata Calabra approx. 2kg (2)",
     "category": "OTHER CURED MEATS",
@@ -12040,8 +12040,8 @@
     "aiem": 0
   },
   {
-    "id": "HA7015",
-    "code": "",
+    "id": "SA561",
+    "code": "SA561",
     "nHK": "HA7015",
     "description": "Salame Spicy 1Kg x2 Ø45mm(10)",
     "category": "OTHER CURED MEATS",
@@ -12060,8 +12060,8 @@
     "aiem": 0
   },
   {
-    "id": "HA7016-IB",
-    "code": "",
+    "id": "PL00979",
+    "code": "PL00979",
     "nHK": "HA7016-IB",
     "description": "Parma Ham 18M DOP Deboned Tied 9kg(2)",
     "category": "HAM",
@@ -12080,8 +12080,8 @@
     "aiem": 0
   },
   {
-    "id": "HA7017-IB",
-    "code": "",
+    "id": "ITA44",
+    "code": "ITA44",
     "nHK": "HA7017-IB",
     "description": "Parma Ham 24M DOP Deboned Tied 9kg(2)",
     "category": "HAM",
@@ -12520,8 +12520,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8013-IB",
-    "code": "",
+    "id": "SA522",
+    "code": "SA522",
     "nHK": "HA8013-IB",
     "description": "Guanciale with Pepper +/- 1.5kg (2)",
     "category": "OTHER CURED MEATS",
@@ -12860,8 +12860,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8039-IB",
-    "code": "",
+    "id": "PL00982",
+    "code": "PL00982",
     "nHK": "HA8039-IB",
     "description": "San Daniele Ham DOP Deboned 7.3Kg (2)",
     "category": "HAM",
@@ -18620,8 +18620,8 @@
     "aiem": 0
   },
   {
-    "id": "MT0041-IF",
-    "code": "",
+    "id": "ESC065",
+    "code": "ESC065",
     "nHK": "MT0041-IF",
     "description": "FRZ Spanish Carabineros 1KG N2 8-10pc/tray",
     "category": "SHELLFISH",
@@ -36840,8 +36840,8 @@
     "aiem": 0
   },
   {
-    "id": "WSAT06-05",
-    "code": "",
+    "id": "SATCAST",
+    "code": "SATCAST",
     "nHK": "WSAT06-05",
     "description": "Bolgheri Superiore I CASTAGNI DOC 2005",
     "category": "WINE",
@@ -36920,8 +36920,8 @@
     "aiem": 0
   },
   {
-    "id": "WSAT06-13M",
-    "code": "",
+    "id": "SATCASTM",
+    "code": "SATCASTM",
     "nHK": "WSAT06-13M",
     "description": "Bolgheri Superiore I CASTAGNI DOC 2013 Magnum",
     "category": "WINE",
