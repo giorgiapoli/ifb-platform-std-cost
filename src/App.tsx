@@ -7760,7 +7760,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     return m;
   },[logistics]);
 
-  const [rollingDays, setRollingDays] = useState(30);
+  const [rollingDays, setRollingDays] = useState(branch === "AUS" ? 90 : 30);
   const [checkSearch, setCheckSearch] = useState("");
   const monthRows = useMemo(()=>{
     const cutoff = new Date();
@@ -8005,7 +8005,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           <div>
             <label style={{fontSize:"10px",color:T.muted,display:"block",marginBottom:"4px",letterSpacing:"1px",textTransform:"uppercase"}}>Ultimi giorni</label>
             <select value={rollingDays} onChange={e=>setRollingDays(Number(e.target.value))} style={{...inputStyle(),minWidth:"140px",cursor:"pointer"}}>
-              {[15,30,45,60,90].map(d=><option key={d} value={d}>Ultimi {d} giorni</option>)}
+              {[15,30,45,60,90,120].map(d=><option key={d} value={d}>Ultimi {d} giorni</option>)}
             </select>
           </div>
           <div>
