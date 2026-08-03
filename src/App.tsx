@@ -1626,6 +1626,7 @@ export default function App() {
   setSnapshots={setSnapshots}
   showToast={showToast}
   bumpImportTs={bumpImportTs}
+  auModel={auModel}
 />,
   
     xref:        <XRefPage
@@ -8546,7 +8547,55 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
 }
 
 // ─── PRODUCTS (con import integrato e storico) ─────────────────────────────
-function Products({ products, setProducts, branch, xrefs=[], importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs }) {
+function Products({ products, setProducts, branch, xrefs=[], importLogs, setImportLogs, snapshots, setSnapshots, showToast, bumpImportTs, auModel=null }) {
+  // ── Australia: anagrafica viene dal modello Excel AU, non da BC ────────────
+  if (branch === "AUS") {
+    const auProds = (auModel as any)?.products ?? [];
+    const [search, setSearch] = useState("");
+    const filtered = auProds.filter((p: any) =>
+      !search || String(p.code+p.description+p.section).toLowerCase().includes(search.toLowerCase())
+    );
+    return (
+      <div>
+        <PageHeader title="Anagrafica · Australia" sub={`${auProds.length} prodotti dal Modello SC AU`} srcKey="anagrafica_AUS"/>
+        {auProds.length === 0 ? (
+          <div style={{padding:"20px", color:T.muted, fontSize:"13px", textAlign:"center"}}>
+            Nessun prodotto — carica prima il Modello Excel AU dalla sezione <strong>Logistica</strong>.
+          </div>
+        ) : (
+          <>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 Cerca..." style={{marginBottom:"12px", padding:"8px 12px", background:T.surface, border:`1px solid ${T.border}`, borderRadius:"6px", color:T.text, fontSize:"12px", width:"260px"}}/>
+            <div style={{overflowX:"auto"}}>
+              <table style={{width:"100%", borderCollapse:"collapse", fontSize:"11px"}}>
+                <thead>
+                  <tr style={{background:T.surface}}>
+                    {["Code","Description","Section","UOM","Area","Ubicazione","Temp","% Duties","Kg Duties"].map(h=>(
+                      <th key={h} style={{padding:"6px 8px", textAlign:"left", color:T.muted, borderBottom:`1px solid ${T.border}`, whiteSpace:"nowrap"}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((p: any, i: number) => (
+                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`}}>
+                      <td style={{padding:"5px 8px", fontFamily:"monospace", color:T.text}}>{p.code}</td>
+                      <td style={{padding:"5px 8px", color:T.text, maxWidth:"220px", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap"}}>{p.description}</td>
+                      <td style={{padding:"5px 8px", color:T.muted}}>{p.section}</td>
+                      <td style={{padding:"5px 8px", color:T.muted}}>{p.uom}</td>
+                      <td style={{padding:"5px 8px", color:T.muted}}>{p.area}</td>
+                      <td style={{padding:"5px 8px", color:T.muted}}>{p.ubicazione}</td>
+                      <td style={{padding:"5px 8px", color:T.muted}}>{p.productType}</td>
+                      <td style={{padding:"5px 8px", color:T.muted}}>{p.percDuties>0?`${p.percDuties}%`:"-"}</td>
+                      <td style={{padding:"5px 8px", color:T.muted}}>{p.amtDutiesKgAud>0?p.amtDutiesKgAud:"-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+    );
+  }
   const [search, setSearch] = useState("");
   const [onlyIFB, setOnlyIFB] = useState(true);
   const [sortAna, setSortAna] = useState<"default"|"az"|"za">("default");
