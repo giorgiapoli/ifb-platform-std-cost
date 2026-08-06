@@ -5991,11 +5991,11 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
                     </td>
                     <td style={{...cell(T.gold,true)}}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
-                        {c?`€${c.step2FUE.toFixed(4)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
+                        {c?.step2FUE!=null?`€${c.step2FUE.toFixed(4)}`:<span style={{color:T.dim,fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
                       </span>
                     </td>
                   </> : <>
-                    <td style={cell(T.green,true)}>{c?`€${c.step2Eur.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.green,true)}>{c?.step2Eur!=null?`€${c.step2Eur.toFixed(4)}`:"—"}</td>
                     <td style={{...cell(undefined,true),background:hkd!=null?`${T.gold}33`:undefined}}>
                       <span style={{fontSize:"11px",fontWeight:"bold",color:hkd!=null?T.gold:T.dim}}>
                         {hkd!=null?`${hkd.toFixed(2)}`:<span style={{fontWeight:"normal",fontSize:"9px"}}>{r.skipReason||"—"}</span>}
