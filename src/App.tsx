@@ -31,8 +31,8 @@ const EXCLUDED_INVOICE_DESC = [
 const isExcludedDesc = (d: string) =>
   EXCLUDED_INVOICE_DESC.some(ex => String(d||"").toLowerCase().includes(ex));
 
-// Codici contabili tipo 51.9020.25 (cifre con punti)
-const isAccountingCode = (c: string) => /^\d+\.\d+(\.\d+)+$/.test(String(c||"").trim());
+// Codici contabili tipo 51.9020.25 (cifre con punti), o pseudo-codici intestazione (ITEM, FREIGHT)
+const isAccountingCode = (c: string) => /^\d+\.\d+(\.\d+)+$/.test(String(c||"").trim()) || /^(ITEM|FREIGHT)$/i.test(String(c||"").trim());
 const branchN = (branch: string) => branch === "CAN" ? "N COMIT" : "N HK";
 
 const AIR_TYPES = ["air","sea"];
