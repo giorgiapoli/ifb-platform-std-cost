@@ -7875,7 +7875,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     const netQtyByCode: Record<string, number> = {};
     for (const inv of monthRows) {
       if(!inv.itemCode) continue;
-      if(/^FREIGHT$/i.test(String(inv.itemCode))) continue;
+      if(/^(FREIGHT|ITEM)$/i.test(String(inv.itemCode))) continue;
       const k = String(inv.itemCode);
       netQtyByCode[k] = (netQtyByCode[k]||0) + (inv.qty||0);
     }
@@ -7888,7 +7888,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
       if(!inv.qty || inv.qty <= 0) continue;
       if(inv.unitPrice===0||inv.unitPrice===0.01) continue;
       if(isAirTransport(String(inv.transport||""))) continue;
-      if(/^FREIGHT$/i.test(String(nFiliale))) continue;
+      if(/^(FREIGHT|ITEM)$/i.test(String(nFiliale))) continue;
       // Escludi articoli completamente stornati (qty netta <= 0 nel periodo)
       if((netQtyByCode[String(nFiliale)]||0) <= 0) continue;
       const sCode = String(nFiliale);
