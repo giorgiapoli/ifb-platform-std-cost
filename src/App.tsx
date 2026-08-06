@@ -1505,7 +1505,7 @@ export default function App() {
     {id:"xref",       icon:"⇄", label:isCAN?"XRef N COMIT / IFB":"XRef N / IFB"},
     ...(!isMAC ? [{id:"logistics", icon:"◎", label:isCAN?"Work Tab (Logistica)":"Logistica"}] : []),
     ...(!isMAC ? [{id:"prices",    icon:"◉", label:"Listini", badge:"💶"}] : []),
-    ...(!isMAC ? [{id:"pricecompare", icon:"⚖", label:"🔬 Confronto Listini"}] : []),
+    ...(!isMAC ? [] : []),
     ...(!isMAC ? [{id:"meatlist",  icon:"🥩", label:"Listino Carne"}] : []),
     ...(!isMAC ? [{id:"bevinfo", icon:"🍷", label: isCAN ? "Beverage Info (Alcol Tax CAN)" : "Beverage Info (Alcol Tax)"}] : []),
     ...(!isCAN&&!isMAC ? [{id:"fx",  icon:"◌", label:"Cambi"}] : []),
@@ -4756,22 +4756,29 @@ setRawRows(rows);
 
 // Auto-mapping dei campi — priorità al codice filiale (nHK/nComit) sull'IFB code
 const am: any = {};
-const branchCodeAliases2 = ["n hk", "nhk", "n comit", "ncomit", "comit"];
-const ifbCodeAliases2 = ["ifb item", "ifb no", "ifb n", "no_", "item no.", "codice", "code"];
-let foundBranchCode2 = false;
+const branchCodeAliases2 = ["n hk", "nhk", "n comit", "ncomit", "comit", "no_", "item no."];
+const ifbCodeAliases2 = ["ifb item", "ifb no", "ifb n"];
+// 1. Cerca codice filiale (No_, N COMIT, N HK)
 for (const h of hdrs) {
 const hl = h.toLowerCase().trim();
 if (branchCodeAliases2.some(a => hl === a || hl.includes(a))) {
 am["code"] = h;
-foundBranchCode2 = true;
 break;
 }
 }
+// 2. Cerca IFB Item separatamente — va sempre in ifbCode se branch code già trovato
 for (const h of hdrs) {
 const hl = h.toLowerCase().trim();
 if (ifbCodeAliases2.some(a => hl === a || hl.includes(a))) {
-if (foundBranchCode2) { am["ifbCode"] = h; } else { am["code"] = h; }
+if (am["code"]) { am["ifbCode"] = h; } else { am["code"] = h; }
 break;
+}
+}
+// 3. Fallback generico se ancora nulla
+if (!am["code"] && !am["ifbCode"]) {
+for (const h of hdrs) {
+const hl = h.toLowerCase().trim();
+if (["codice","code"].some(a => hl === a || hl.includes(a))) { am["code"] = h; break; }
 }
 }
 
