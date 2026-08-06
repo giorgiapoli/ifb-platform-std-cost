@@ -18540,8 +18540,8 @@
     "aiem": 0
   },
   {
-    "id": "MT0025-TR",
-    "code": "",
+    "id": "TRD02",
+    "code": "TRD02",
     "nHK": "MT0025-TR",
     "description": "FRZ Cuttlefish Slices 400g/tray (10)",
     "category": "FISH PROCESSING",
@@ -18552,8 +18552,8 @@
     "kgxplt": 216.0,
     "temperature": "FROZEN",
     "bcTransportation": "FR SEA",
-    "standardCostHkd": 0.0,
-    "isHoff": true,
+    "standardCostHkd": 82.11,
+    "isHoff": false,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
     "vendorName2": "TRIDA SRL",
