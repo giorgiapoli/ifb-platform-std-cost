@@ -7,8 +7,14 @@ export const supabase = SUPA_URL && SUPA_KEY
   ? createClient(SUPA_URL, SUPA_KEY)
   : null;
 
+// Accesso consentito solo al personale Inalca Food & Beverage
+const COMPANY_DOMAIN = 'inalcafb.com';
+export function isCompanyEmail(email: string): boolean {
+  return email.trim().toLowerCase().endsWith(`@${COMPANY_DOMAIN}`);
+}
+
 // Nessun dato condiviso su Supabase — tutto rimane in IDB locale
-// Supabase è usato solo per autenticazione (user_roles)
+// Supabase è usato solo per autenticazione (user_roles = solo ruoli Admin)
 const CLOUD_KEYS = new Set<string>();
 
 // ── Wrapper IDB ────────────────────────────────────────────────────────────────
@@ -117,9 +123,11 @@ export async function getSession() {
 
 export async function getUserRole(email: string): Promise<'admin' | 'viewer' | null> {
   if (!supabase) return 'admin'; // no Supabase → local mode, full access
+  // Solo email aziendali @inalcafb.com possono accedere
+  if (!isCompanyEmail(email)) return null;
   try {
     const { data } = await supabase.from('user_roles').select('role').eq('email', email).maybeSingle();
-    // se email autenticata non trovata in tabella → viewer di default (non bloccato)
+    // user_roles contiene solo gli Admin; tutti gli altri @inalcafb.com sono Viewer automaticamente
     return (data?.role as 'admin' | 'viewer') ?? 'viewer';
   } catch { return 'viewer'; }
 }
@@ -130,9 +138,10 @@ export async function listUsers(): Promise<{email: string, role: string, created
   return data ?? [];
 }
 
-export async function inviteUser(email: string, role: 'viewer' | 'admin' = 'viewer') {
+export async function inviteUser(email: string, role: 'viewer' | 'admin' = 'admin') {
   if (!supabase) return;
-  // Aggiunge il ruolo (la persona riceverà il magic link quando fa login)
+  if (!isCompanyEmail(email)) throw new Error(`Solo email @inalcafb.com consentite`);
+  // user_roles gestisce solo il ruolo Admin; il Viewer è automatico per tutti @inalcafb.com
   await supabase.from('user_roles').upsert({ email, role }, { onConflict: 'email' });
 }
 
@@ -143,6 +152,7 @@ export async function removeUser(email: string) {
 
 export async function signInWithOtp(email: string) {
   if (!supabase) throw new Error('Supabase non configurato');
+  if (!isCompanyEmail(email)) throw new Error(`Accesso riservato al personale Inalca. Usa la tua email @inalcafb.com`);
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: window.location.href },

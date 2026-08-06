@@ -1531,11 +1531,11 @@ export default function App() {
       <div style={{textAlign:"center",maxWidth:"420px",padding:"40px",background:T.card,border:`1px solid ${T.border}`,borderRadius:"20px"}}>
         <div style={{fontSize:"10px",letterSpacing:"4px",color:T.gold,textTransform:"uppercase",marginBottom:"8px"}}>IFB Platform</div>
         <h2 style={{color:T.text,margin:"0 0 6px",fontSize:"24px"}}>Cost Intelligence</h2>
-        <div style={{color:T.muted,fontSize:"12px",marginBottom:"32px"}}>Accesso riservato al personale autorizzato</div>
+        <div style={{color:T.muted,fontSize:"12px",marginBottom:"32px"}}>Accesso riservato al personale Inalca Food &amp; Beverage</div>
         {!authSent ? (
           <>
             <input
-              type="email" placeholder="La tua email aziendale" value={authEmail}
+              type="email" placeholder="nome.cognome@inalcafb.com" value={authEmail}
               onChange={e=>setAuthEmail(e.target.value)}
               onKeyDown={e=>{ if(e.key==="Enter") {
                 setAuthLoading(true); setAuthError("");
@@ -1574,9 +1574,13 @@ export default function App() {
   );
 
   if(supabaseEnabled && !localBypass && authSession && authRole===null) return (
-    <div style={{display:"flex",height:"100vh",alignItems:"center",justifyContent:"center",background:T.bg,color:T.red,fontFamily:"inherit",fontSize:"13px",flexDirection:"column",gap:"12px"}}>
-      <div>⛔ Accesso non autorizzato per <strong>{authSession.user.email}</strong></div>
-      <button onClick={signOut} style={{padding:"8px 16px",background:"none",border:`1px solid ${T.border}`,borderRadius:"6px",color:T.muted,cursor:"pointer",fontSize:"12px"}}>Esci</button>
+    <div style={{display:"flex",height:"100vh",alignItems:"center",justifyContent:"center",background:T.bg,fontFamily:"inherit",flexDirection:"column",gap:"12px"}}>
+      <div style={{color:T.red,fontSize:"14px"}}>⛔ Accesso non consentito</div>
+      <div style={{color:T.muted,fontSize:"12px",textAlign:"center",maxWidth:"360px",lineHeight:"1.6"}}>
+        L'email <strong style={{color:T.text}}>{authSession.user.email}</strong> non appartiene al dominio Inalca Food &amp; Beverage.<br/>
+        Usa la tua email <strong>@inalcafb.com</strong> per accedere.
+      </div>
+      <button onClick={signOut} style={{marginTop:"8px",padding:"8px 16px",background:"none",border:`1px solid ${T.border}`,borderRadius:"6px",color:T.muted,cursor:"pointer",fontSize:"12px"}}>Esci e riprova</button>
     </div>
   );
 
@@ -1798,23 +1802,30 @@ export default function App() {
               <h3 style={{margin:0,color:T.text,fontSize:"16px"}}>Gestione Accessi</h3>
               <button onClick={()=>setShowUserMgmt(false)} style={{background:"none",border:"none",color:T.muted,cursor:"pointer",fontSize:"18px"}}>✕</button>
             </div>
+            <div style={{background:`${T.green}11`,border:`1px solid ${T.green}33`,borderRadius:"8px",padding:"10px 12px",marginBottom:"16px",fontSize:"11px",color:T.muted,lineHeight:"1.6"}}>
+              ✅ <strong style={{color:T.text}}>Tutti i dipendenti @inalcafb.com</strong> possono accedere automaticamente come <span style={{color:T.green}}>Viewer</span>.<br/>
+              La tabella sotto gestisce solo i ruoli <span style={{color:T.gold}}>Admin</span> (chi può modificare dati).
+            </div>
             <div style={{marginBottom:"16px"}}>
-              <div style={{fontSize:"11px",color:T.muted,marginBottom:"6px"}}>Invita utente</div>
+              <div style={{fontSize:"11px",color:T.muted,marginBottom:"6px"}}>Assegna ruolo Admin</div>
               <div style={{display:"flex",gap:"8px"}}>
-                <input type="email" placeholder="email@inalcafb.com" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}
+                <input type="email" placeholder="nome.cognome@inalcafb.com" value={inviteEmail} onChange={e=>setInviteEmail(e.target.value)}
                   style={{flex:1,padding:"8px 10px",background:T.bg,border:`1px solid ${T.border}`,borderRadius:"6px",color:T.text,fontSize:"13px",outline:"none"}}/>
                 <button onClick={async()=>{
                     if(!inviteEmail) return;
-                    await inviteUser(inviteEmail,"viewer");
-                    setUserList(await listUsers());
-                    setInviteEmail("");
-                    showToast(`${inviteEmail} aggiunto come viewer`, T.green);
+                    try {
+                      await inviteUser(inviteEmail,"admin");
+                      setUserList(await listUsers());
+                      setInviteEmail("");
+                      showToast(`${inviteEmail} è ora Admin`, T.green);
+                    } catch(e:any){ showToast(e.message, T.red); }
                   }}
                   style={{padding:"8px 14px",background:T.gold,border:"none",borderRadius:"6px",color:"#000",fontSize:"12px",fontWeight:"bold",cursor:"pointer"}}>
-                  Aggiungi
+                  Rendi Admin
                 </button>
               </div>
             </div>
+            <div style={{fontSize:"11px",color:T.muted,marginBottom:"6px"}}>Admin attivi</div>
             <table style={{width:"100%",borderCollapse:"collapse"}}>
               <thead><tr style={{borderBottom:`1px solid ${T.border}`}}>
                 <th style={{textAlign:"left",padding:"6px",color:T.muted,fontSize:"11px",fontWeight:"normal"}}>Email</th>
@@ -1830,12 +1841,12 @@ export default function App() {
                   <td style={{padding:"8px 6px",textAlign:"right"}}>
                     {u.email!==authSession?.user?.email&&(
                       <button onClick={async()=>{
-                          if(!window.confirm(`Rimuovere accesso per ${u.email}?`)) return;
+                          if(!window.confirm(`Rimuovere ruolo Admin per ${u.email}?\nL'utente manterrà accesso Viewer.`)) return;
                           await removeUser(u.email);
                           setUserList(await listUsers());
-                          showToast(`${u.email} rimosso`, T.red);
+                          showToast(`${u.email} tornato Viewer`, T.muted);
                         }}
-                        style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:"12px"}}>✕ Rimuovi</button>
+                        style={{background:"none",border:"none",color:T.red,cursor:"pointer",fontSize:"12px"}}>↓ Rimuovi Admin</button>
                     )}
                   </td>
                 </tr>
