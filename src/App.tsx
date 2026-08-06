@@ -1255,10 +1255,7 @@ export default function App() {
     const fxRate = fx.find(f=>f.branch===branch&&f.month===month)?.rate || BRANCH_CFG[branch]?.defaultRate || 9.1437;
     const [yr,mo] = month.split("-").map(Number);
     const prevM = mo===1 ? `${yr-1}-12` : `${yr}-${String(mo-1).padStart(2,"0")}`;
-    // CAN: l'anagrafica è già filtrata (solo prodotti filiale), non filtrare per vendor
-    const eligible = branch === "CAN"
-      ? products.filter((p:any) => p.active !== false)
-      : products.filter(p => isIFBVendor(p.vendorName));
+    const eligible = products.filter(p => isIFBVendor(p.vendorName));
 
     return eligible.map(prod => {
       // Eccezione prezzo manuale: ha priorità assoluta su listino e carne
@@ -1278,7 +1275,9 @@ export default function App() {
       if(branch!=="CAN" && ((airEntry && isAirTransport(airEntry.transportation)) || isAirTransport(prod.bcTransportation)))
         return { ...prod, cost:null, prevCost:null, priceInput:null, isAir:true, skipReason:"AIR" };
 
-      const logRaw = logistics.find(l=>l.productId===prod.id&&l.branch===branch);
+      const logRaw = logistics.find(l=>l.productId===prod.id&&l.branch===branch)
+        || (prod.nHK  ? logistics.find(l=>l.branch===branch&&l.productId===prod.nHK)  : null)
+        || (prod.code ? logistics.find(l=>l.branch===branch&&l.productId===prod.code) : null);
       if(!logRaw) return { ...prod, cost:null, prevCost:null, priceInput:null, skipReason:"NO LOGISTICA" };
 
       // Apply pltPerContainer default: CAN uses fixed values (MARE=24, GOMMA=32); other branches use temp-based formula
