@@ -886,8 +886,8 @@ export default function App() {
           ]);
           let canProds: any[] = [];
           let canXrefs: any[] = [];
-          if(rana.ok)  { canProds=await rana.json();  if(canProds.length>0){setProducts(canProds);CLOUD.set(`ifb_products_${branch}`,canProds);setDataSource(`anagrafica_${branch}`,"bc");} }
-          if(rxref.ok) { canXrefs=await rxref.json(); if(canXrefs.length>0){setXrefs(canXrefs);CLOUD.set(`ifb_xrefs_${branch}`,canXrefs);setDataSource(`xref_${branch}`,"bc");} }
+          if(rana.ok)  { canProds=await rana.json();  if(canProds.length>0){setProducts(canProds);CLOUD.set(`ifb_products_${branch}`,canProds);setDataSource(`anagrafica_${branch}`,"nav");} }
+          if(rxref.ok) { canXrefs=await rxref.json(); if(canXrefs.length>0){setXrefs(canXrefs);CLOUD.set(`ifb_xrefs_${branch}`,canXrefs);setDataSource(`xref_${branch}`,"nav");} }
           // SC Attuali CAN: NON auto-caricata da JSON — gestita manualmente dalla pagina SC Attuali
           // Auto-build logistica CAN da worktab: converte nComit/ifbNo → productId
           if(rwt.ok && canProds.length > 0) {
@@ -3665,10 +3665,14 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
         const hdrs = raw[headerRowIdx].map(h => String(h||"").trim());
         const dataRows = raw.slice(headerRowIdx+1).filter(r => r.some(c => c !== ""));
         
-        const fi = aliases => hdrs.findIndex(h => aliases.some(a => h.toLowerCase().replace(/[\s_°]/g,"").includes(a.replace(/[\s_°]/g,""))));
-        
+        const fi = aliases => hdrs.findIndex(h => aliases.some(a => {
+          const clean = h.toLowerCase().replace(/[\s_°]/g,"");
+          if(a.startsWith("=")) return clean === a.slice(1).toLowerCase().replace(/[\s_°]/g,"");
+          return clean.includes(a.replace(/[\s_°]/g,""));
+        }));
+
         const idx = {
-          iNHK: fi(["nhk","n hk","n comit","comit","ncomit"]),
+          iNHK: fi(["=n","nhk","n hk","n comit","comit","ncomit"]),
           iIFB: fi(["no_(ifb)","noifb","ifb","no_"]),
           iUb: (()=>{ const e=fi(["mts/mto","mtsmto"]); return e>=0?e:fi(["ubicazione","location","wh"]); })(),
           iArea: fi(["area","zona","portoimbarco","porto imbarco","porto di partenza","nord/sud","nordsud"]),
@@ -3681,9 +3685,9 @@ function Logistics({ logistics, setLogistics, products, branch, showToast, bumpI
           iTransport: fi(["trasporto","transport","air/sea","airsea","air","sea"]),
           iAlcTax: fi(["tassa alcolica","tassaalcolica","alcolica","alctax","alc tax","aiem"]),
           iGC:  fi(["gc","gran canaria","grancanaria"]),
-          iTF:  fi(["tf","tenerife","fuerteventura tf"]),
-          iFUE: fi(["fue","fuerteventura","fuerte"]),
-          iLAN: fi(["lan","lanzarote"]),
+          iTF:  fi(["=t","tf","tenerife","fuerteventura tf"]),
+          iFUE: fi(["=f","fue","fuerteventura","fuerte"]),
+          iLAN: fi(["=l","lan","lanzarote"]),
         };
         setColIdx(idx);
         setLogHeaders(hdrs);
@@ -5981,9 +5985,9 @@ else if(initFilter==="errors") filtered=filtered.filter((r:any)=>!r.cost&&!r.isA
 
                   {/* step 2 */}
                   {branch==="CAN" ? <>
-                    <td style={cell(T.green,true)}>{c?`€${c.step2RawGC.toFixed(4)}`:"—"}</td>
+                    <td style={cell(T.green,true)}>{c?.step2RawGC!=null?`€${c.step2RawGC.toFixed(4)}`:"—"}</td>
                     <td style={{...cell(T.gold,true),borderLeft:`2px solid ${T.gold}`}}>
-                      <span style={{fontWeight:"bold"}}>{c?`€${c.step2GC.toFixed(4)}`:"—"}</span>
+                      <span style={{fontWeight:"bold"}}>{c?.step2GC!=null?`€${c.step2GC.toFixed(4)}`:"—"}</span>
                     </td>
                     <td style={{...cell(T.gold,true)}}>
                       <span style={{fontSize:"11px",fontWeight:"bold"}}>
