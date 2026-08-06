@@ -8001,7 +8001,7 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
   },[monthRows, xrefByNFiliale, scMap, costMap, products, logMap, isCAN, threshold]);
 
   // Priorità rigida: ogni articolo appartiene a UNA SOLA categoria
-  const alert1 = analysisRows.filter(r=>r.isNuovo || (r.noCalc && !r.isKeepOld && !r.isDelta && r.skipReason!=="PREZZO ZERO"));
+  const alert1 = analysisRows.filter(r=>r.isNuovo || (r.noCalc && !r.isKeepOld && !r.isDelta && r.skipReason!=="PREZZO ZERO" && r.oldSC===0 && r.oldScGC===0 && r.oldScLan===0));
   const alert2 = analysisRows.filter(r=>r.isDelta && !r.isNuovo).sort((a:any,b:any)=>{
     const pa = isCAN ? a.deltaPctGC : a.deltaPct;
     const pb = isCAN ? b.deltaPctGC : b.deltaPct;
