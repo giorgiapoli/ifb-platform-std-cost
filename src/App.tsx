@@ -1781,10 +1781,10 @@ export default function App() {
                 👥 Utenti
               </button>
             )}
-            {supabaseEnabled && authSession && (
-              <button onClick={()=>{ if(window.confirm("Esci dall'account?")){ signOut(); window.location.reload(); } }}
+            {supabaseEnabled && (
+              <button onClick={()=>{ if(window.confirm(authSession ? "Esci dall'account?" : "Cambia account? Verrai reindirizzato alla schermata di login.")){ signOut(); window.location.reload(); } }}
                 style={{padding:"5px 10px",background:"none",border:`1px solid ${T.border}`,borderRadius:"5px",color:T.muted,cursor:"pointer",fontFamily:"inherit",fontSize:"10px"}}>
-                Esci
+                {authSession ? "Esci" : "Cambia account"}
               </button>
             )}
             <button onClick={()=>setPage("mail")} style={{padding:"5px 12px",background:T.gold,border:"none",borderRadius:"5px",color:T.bg,cursor:"pointer",fontFamily:"inherit",fontSize:"10px",fontWeight:"bold"}}>✉ Mail</button>
