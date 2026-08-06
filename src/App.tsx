@@ -8687,7 +8687,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
 
   const FLABELS: any = {
     nHK: branch==="MAC" ? "MACAO No (No_)" : branch==="CAN" ? "N COMIT (No_)" : "N HK (No_)",
-    code: "IFB Item / BV No *",
+    code: "IFB Item *",
     description: "Descrizione *",
     category: "Section",
     uom: branch==="MAC" ? "UOM vendita MACAO" : "UOM vendita IFB (Sales UOM)",
