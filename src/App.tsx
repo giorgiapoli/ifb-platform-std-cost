@@ -34,6 +34,7 @@ const isExcludedDesc = (d: string) =>
 // Codici contabili tipo 51.9020.25 (cifre con punti), o pseudo-codici intestazione (ITEM, FREIGHT)
 const isAccountingCode = (c: string) => /^\d+\.\d+(\.\d+)+$/.test(String(c||"").trim()) || /^(ITEM|FREIGHT)$/i.test(String(c||"").trim());
 const branchN = (branch: string) => branch === "CAN" ? "N COMIT" : "N HK";
+const ifbNoLabel = (branch: string) => branch === "MAC" ? "N Macao" : "IFB No";
 
 const AIR_TYPES = ["air","sea"];
 const isAirTransport = t => {
@@ -1887,7 +1888,7 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
     return r.cost.step2Hkd;
   };
 
-  const buildContext = (q: string) => {
+  const buildContext = async (q: string) => {
     const ql = q.toLowerCase();
     const allRows = (costRows||[]);           // tutti, anche senza SC
     const rows = allRows.filter((r:any)=>r.cost);
@@ -2072,6 +2073,26 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
         ctx+=`\nTop 5 prodotti fatturati (qtà):\n`+top.map(([c,v])=>`  ${c} ${v.desc}: ${v.qty.toFixed(0)} | Ultima: ${v.lastDate}`).join("\n")+"\n";
       }
     }
+    // Cross-branch: cerca SC in altre filiali se menzionate nella domanda o se trovato nei token
+    const allBranches = ["HK","CAN","MAC"] as const;
+    const otherBranches = allBranches.filter(b=>b!==branch);
+    const mentionedBranches = otherBranches.filter(b=>q.toUpperCase().includes(b));
+    const branchesToSearch = mentionedBranches.length>0 ? mentionedBranches : (codeTokens.length>0 ? otherBranches : []);
+    for(const b of branchesToSearch){
+      const otherSC: any[] = await CLOUD.get(`ifb_scattuali_${b}`,[]);
+      if(!otherSC.length) continue;
+      const matches = otherSC.filter((sc:any)=>
+        codeTokens.some(t=>(sc.code||"").toUpperCase()===t||(sc.ifbCode||"").toUpperCase()===t)
+      ).slice(0,5);
+      if(matches.length>0){
+        const curr = b==="HK"?"HKD":b==="CAN"?"EUR":"MOP";
+        ctx+=`\n--- SC FILIALE ${b} (da BC) ---\n`;
+        for(const sc of matches){
+          const scVal = b==="CAN"?(sc.scGC??sc.scLan??sc.lastSC):(sc.lastSC??sc.sc);
+          ctx+=`${sc.code||sc.ifbCode} | ${sc.description||""} | SC attuale: ${scVal!=null?scVal+" "+curr:"N/D"}\n`;
+        }
+      }
+    }
     return ctx;
   };
 
@@ -2083,7 +2104,7 @@ function ChatBot({ costRows=[], salesRows=[], branch="HK", month="",
     setMsgs(newMsgs);
     setLoading(true);
     try{
-      const ctx=buildContext(userText);
+      const ctx=await buildContext(userText);
       const sysPrompt=`Sei un analista costi senior per IFB (Inalca Food & Beverage), distributore italiano di prodotti alimentari e bevande con filiali a Hong Kong (HK), Canarie (CAN) e Macao (MAC).
 Rispondi SEMPRE in italiano, in modo preciso e diretto. Cita sempre i valori numerici specifici dal contesto quando disponibili.
 
@@ -2138,6 +2159,7 @@ isHoff = prodotto distribuito tramite HOFF Macao (markup ridotto 3%)
 4. Se un prodotto non ha SC calcolato: spiega il motivo (NO LOGISTICA, NO PREZZO, ecc.)
 5. Non inventare dati non presenti nel contesto — di' "non ho questa informazione"
 6. Per domande generali (es. "quali prodotti sono aumentati"): usa il riepilogo nel contesto
+7. Se nel contesto trovi sezioni "SC FILIALE HK/CAN/MAC", usale per rispondere a domande cross-filiale — puoi rispondere su qualsiasi filiale se i dati sono presenti
 
 Dati contesto:\n${ctx}`;
       let reply="";
@@ -3483,7 +3505,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="ok"||activePanel==="flagged") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={[branchN(branch),"IFB No","Descrizione","Ubicaz.",isCAN?"Area":"",costLabel,prevLabel,"Δ%"]}sticky/>
+        <THead cols={[branchN(branch),ifbNoLabel(branch),"Descrizione","Ubicaz.",isCAN?"Area":"",costLabel,prevLabel,"Δ%"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>{
           const cv = r.cost?.[costKey];
           const pv = r.prevCost?.[costKey];
@@ -3511,7 +3533,7 @@ function Dashboard({costRows, branch, month, navigate}) {
 
     if(activePanel==="air") return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={[branchN(branch),"IFB No","Descrizione"]}sticky/>
+        <THead cols={[branchN(branch),ifbNoLabel(branch),"Descrizione"]}sticky/>
         <tbody>{panel.rows.map((r:any,i:number)=>(
           <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
             <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -3525,7 +3547,7 @@ function Dashboard({costRows, branch, month, navigate}) {
     // noPrice, noLog, calc0
     return (
       <table style={{width:"100%",borderCollapse:"collapse"}}>
-        <THead cols={[branchN(branch),"IFB No","Descrizione","Motivo"]} sticky />
+        <THead cols={[branchN(branch),ifbNoLabel(branch),"Descrizione","Motivo"]} sticky />
         <tbody>{panel.rows.map((r:any,i:number)=>(
           <tr key={r.id} style={{borderBottom:`1px solid ${T.border}`,background:i%2===0?T.bg:T.surface}}>
             <TD mono><span style={{color:T.muted}}>{r.nHK||"—"}</span></TD>
@@ -6674,7 +6696,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
         )}
         <button onClick={()=>exportXLSX(
           displayed.map((r:any)=>({
-            "Data":r.date||"",[branchN(branch)]:r.nHK||"","IFB No":r.ifbNo||"","Descrizione":r.description||"",
+            "Data":r.date||"",[branchN(branch)]:r.nHK||"",[ifbNoLabel(branch)]:r.ifbNo||"","Descrizione":r.description||"",
             "Qty":r.qty||"","Prezzo Unit.":r.unitPrice||"",
             ...(branch==="CAN"?{"UOM IFB":r.uomVendita||"","UOM Acq.":r.uomAcquisto||""}:{}),
             "Location":r.location||"",
@@ -6692,7 +6714,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
             "Δ%":r.pct!=null?roundN(r.pct,1):"","Motivo":r.skipReason||"",
           })),
           "Fatture & Costi",`Fatture_${branch}.xlsx`,
-          branch==="CAN" ? ["N COMIT","IFB No"] : [branchN(branch),"IFB No"]
+          branch==="CAN" ? ["N COMIT","IFB No"] : [branchN(branch),ifbNoLabel(branch)]
         )} style={{padding:"6px 14px",background:`${T.green}20`,border:`1px solid ${T.green}44`,borderRadius:"6px",color:T.green,cursor:"pointer",fontSize:"11px"}}>
           ⬇ Export Excel
         </button>
@@ -6806,7 +6828,7 @@ function InvoiceAndCosts({rows,setRows,branch,airList,products,xrefs,costRows,lo
                   <th key={c} style={{padding:"4px 4px",background:T.card,borderBottom:`1px solid ${T.border}`,position:"sticky",top:0,zIndex:10,width:"54px",maxWidth:"54px"}}>
                     <select value={filterIFBNo} onChange={e=>setFilterIFBNo(e.target.value)}
                       style={{background:filterIFBNo?`${T.gold}22`:T.card,color:filterIFBNo?T.gold:T.muted,border:`1px solid ${filterIFBNo?T.gold:T.border}`,borderRadius:"4px",padding:"2px 4px",fontSize:"10px",cursor:"pointer",fontFamily:"inherit",outline:"none",maxWidth:"52px",width:"52px"}}>
-                      <option value="">IFB No ▾</option>
+                      <option value="">{ifbNoLabel(branch)} ▾</option>
                       {uniqueIFBNo.map(v=><option key={v} value={v}>{v}</option>)}
                     </select>
                   </th>
