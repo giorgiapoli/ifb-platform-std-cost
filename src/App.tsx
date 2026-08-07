@@ -745,6 +745,7 @@ export default function App() {
   const[fx,setFx]               = useState(()=>LS.get("ifb_fx",SEED_FX));
   const[xrefs,setXrefs]         = useState<any[]>([]);
   const[airList,setAirList]     = useState<any[]>([]);
+  const[hkAirBcData,setHkAirBcData] = useState<any[]>([]);
   const[salesRows,setSalesRows] = useState<any[]>([]);
   const[importLogs,setImportLogs] = useState(()=>LS.get("ifb_importlogs",[]));
   const[snapshots,setSnapshots]   = useState(()=>LS.get("ifb_snapshots",[]));
@@ -865,14 +866,16 @@ export default function App() {
         const base = import.meta.env.BASE_URL || "/ifb-platform-std-cost/";
         const t = Date.now();
         try {
-          const [rxref, rsc, rana] = await Promise.all([
+          const [rxref, rsc, rana, rair] = await Promise.all([
             fetch(`${base}data/hk_xref.json?t=${t}`),
             fetch(`${base}data/hk_sc.json?t=${t}`),
             fetch(`${base}data/hk_anagrafica.json?t=${t}`),
+            fetch(`${base}data/hk_air.json?t=${t}`),
           ]);
           if(rxref.ok) { const d=await rxref.json(); if(Array.isArray(d)&&d.length>0){setXrefs(d);CLOUD.set(`ifb_xrefs_${branch}`,d);setDataSource(`xref_${branch}`,"bc");} }
           if(rsc.ok)  { const d=await rsc.json();  if(Array.isArray(d)&&d.length>0){setScAttuali(d);CLOUD.set(`ifb_scattuali_${branch}`,d);setDataSource(`scattuali_${branch}`,"bc");} }
           if(rana.ok) { const d=await rana.json(); if(Array.isArray(d)&&d.length>0){setProducts(d);CLOUD.set(`ifb_products_${branch}`,d);setDataSource(`anagrafica_${branch}`,"bc");} }
+          if(rair.ok) { const d=await rair.json(); if(Array.isArray(d)&&d.length>0) setHkAirBcData(d); }
         } catch(_) { /* offline o errore fetch — usa dati IDB */ }
       }
       // CAN: dati da file NAV/COMIT committati in docs/data/ (rigenerati da sync_json_data.py)
@@ -1685,7 +1688,7 @@ export default function App() {
 
     
     fx:          <FxRates fx={fx} setFx={setFx} branch={branch} month={month}/>,
-    air:         <AirListPage isViewer={authRole==="viewer"} airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
+    air:         <AirListPage isViewer={authRole==="viewer"} airList={airList} setAirList={setAirList} products={products} xrefs={xrefs} branch={branch} hkAirBcData={hkAirBcData} snapshots={snapshots} setSnapshots={setSnapshots} importLogs={importLogs} setImportLogs={setImportLogs} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     pricecompare: <PriceComparePage bcListini={bcListiniEnriched} prices={prices} products={products} xrefs={xrefs} branch={branch} month={month}/>,
     meatlist: <MeatPriceListPage isViewer={authRole==="viewer"} meatPrices={meatPrices} setMeatPrices={setMeatPrices} products={products} xrefs={xrefs} importLogs={importLogs} setImportLogs={setImportLogs} snapshots={snapshots} setSnapshots={setSnapshots} showToast={showToast} bumpImportTs={bumpImportTs}/>,
     bevinfo: <BeverageInfoPage bevInfo={bevInfo} setBevInfo={setBevInfo} products={products} xrefs={xrefs} showToast={showToast} branch={branch}/>,
@@ -3184,7 +3187,7 @@ function ImportBC({products,setProducts,branch,importLogs,setImportLogs,snapshot
 
 
 // ─── AIR LIST PAGE ────────────────────────────────────────────────────────────
-function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,isViewer=false}) {
+function AirListPage({airList,setAirList,products,xrefs,branch,hkAirBcData=[],snapshots,setSnapshots,importLogs,setImportLogs,showToast,bumpImportTs,isViewer=false}) {
   const[step,setStep]=useState("main");
   const[headers,setHeaders]=useState([]);
   const[rawRows,setRawRows]=useState([]);
@@ -3248,15 +3251,23 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
 
   const branchAir = airList;
 
-  // Item classificati AIR automaticamente da BC (bcTransportation contiene "air"), esclusi i bloccati
-  const bcAirItems = useMemo(()=>
-    products
+  // Item classificati AIR automaticamente da BC (tutti i vendor per HK via hk_air.json)
+  const bcAirItems = useMemo(()=>{
+    if(branch==="HK" && hkAirBcData.length>0) {
+      return hkAirBcData.map((p:any)=>({
+        productId: p.code||p.nHK, code: p.code, nHK: p.nHK,
+        description: p.description, transportation: p.bcTransportation,
+        vendorName: p.vendorName||"", _fromBC: true,
+      }));
+    }
+    return products
       .filter((p:any)=>isAirTransport(p.bcTransportation) && p.active !== false)
       .map((p:any)=>({
         productId: p.id, code: p.code, nHK: p.nHK,
-        description: p.description, transportation: p.bcTransportation, _fromBC: true,
-      }))
-  , [products]);
+        description: p.description, transportation: p.bcTransportation,
+        vendorName: p.vendorName||"", _fromBC: true,
+      }));
+  }, [branch, hkAirBcData, products]);
   const bcAirCount = bcAirItems.length;
 
   // Lista unificata: BC auto + manuali (senza duplicati)
@@ -3448,12 +3459,13 @@ function AirListPage({airList,setAirList,products,xrefs,branch,snapshots,setSnap
               <SearchBar value={search} onChange={setSearch} placeholder="🔍 Cerca articolo AIR…"/>
               <Section title={`${displayed.length} articoli AIR · ${bcAirCount} da BC · ${manualOnlyAir.length} manuali`}>
                 <table style={{width:"100%",borderCollapse:"collapse"}}>
-                  <THead cols={["Codice",branchN(branch),"Descrizione","Sorgente","Azioni"]}sticky/>
+                  <THead cols={["Codice",branchN(branch),"Descrizione","Vendor","Sorgente","Azioni"]}sticky/>
                   <tbody>{displayed.map((a:any,i:number)=>(
                     <tr key={a.productId||i} style={{borderBottom:`1px solid ${T.border}`}}>
                       <TD mono><span style={{color:T.gold}}>{a.code}</span></TD>
                       <TD mono><span style={{color:T.muted}}>{a.nHK||"—"}</span></TD>
                       <TD>{a.description}</TD>
+                      <TD><span style={{color:T.muted,fontSize:"11px"}}>{a.vendorName||"—"}</span></TD>
                       <TD>
                         {a._fromBC
                           ? <Chip label={`BC: ${a.transportation}`} color={T.blue}/>
