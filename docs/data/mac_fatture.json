@@ -21210,6 +21210,48 @@
     "Branch": "MAC"
   },
   {
+    "No_": "VH13054",
+    "BV_No": "VH13054",
+    "Description": "TOMATOES HEIRLOOM FR 3,5 Kg PRI DE BRET.",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-08-11",
+    "Quantity": 1.0,
+    "Price": 207.0,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA260802063",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "VH04006",
+    "BV_No": "VH04006",
+    "Description": "CRESS BASIL GREEN 16x",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-08-11",
+    "Quantity": 7.0,
+    "Price": 137.0,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA260802063",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "VH11002",
+    "BV_No": "VH11002",
+    "Description": "POTATOES AGRIA  25 Kg",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-08-11",
+    "Quantity": 2.0,
+    "Price": 631.0,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA260802063",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
     "No_": "TRF13",
     "BV_No": "TF0001",
     "Description": "White Truffle",

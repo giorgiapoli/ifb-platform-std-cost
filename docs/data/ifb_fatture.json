@@ -56804,6 +56804,17 @@
     "Branch": "HK"
   },
   {
+    "No_": "CS667",
+    "Description": "MASCARPONE 35% NATURA 500GR FRESCO",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-08-10",
+    "Quantity": 900.0,
+    "Price": 2.55,
+    "Location Code": "NCJ",
+    "Section Description": "",
+    "Branch": "HK"
+  },
+  {
     "No_": "GRI04",
     "Description": "GRISSINI TORINESI RISTORANTE 8X480G",
     "Vendor Name": "",
@@ -148419,6 +148430,39 @@
     "Quantity": 576.0,
     "Price": 3.31,
     "Location Code": "AM CROSS",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "FREIGHT",
+    "Description": "FREIGHT",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-08-10",
+    "Quantity": 1.0,
+    "Price": 2347.0,
+    "Location Code": "",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "FREIGHT",
+    "Description": "FREIGHT",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-08-10",
+    "Quantity": 1.0,
+    "Price": 1771.25,
+    "Location Code": "",
+    "Section Description": "",
+    "Branch": "CAN"
+  },
+  {
+    "No_": "FREIGHT",
+    "Description": "FREIGHT",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-08-10",
+    "Quantity": 1.0,
+    "Price": 1291.85,
+    "Location Code": "",
     "Section Description": "",
     "Branch": "CAN"
   },
