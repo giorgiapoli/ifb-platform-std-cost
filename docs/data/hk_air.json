@@ -1044,6 +1044,13 @@
   },
   {
     "code": "",
+    "nHK": "BUI022",
+    "description": "Raclette  Pasteurize  - 6,5kg (1)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "BUISSON S.A.S."
+  },
+  {
+    "code": "",
     "nHK": "BUI025",
     "description": "Reblochon De Savoie  AOP -500g (12)",
     "bcTransportation": "CH AIR",
@@ -1303,6 +1310,13 @@
   },
   {
     "code": "",
+    "nHK": "CF9007-A",
+    "description": "♦Braid Bufala Mozz IL PARCO DOP 1Kg(2)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "SOCIETA' AGRICOLA IL PARCO DI CASTIGLIEGO MARIA&C."
+  },
+  {
+    "code": "",
     "nHK": "CF9008-A",
     "description": "♦Braid Buf Mozz IL PARCO DOP 500gr(6)",
     "bcTransportation": "CH AIR",
@@ -1452,6 +1466,13 @@
     "code": "",
     "nHK": "CFS0703",
     "description": "*PecorinoRomano DOP Crosta Nera +/-3.5kg",
+    "bcTransportation": "CH AIR",
+    "vendorName": "VALSANA SRL"
+  },
+  {
+    "code": "",
+    "nHK": "CFS0703-W",
+    "description": "*PecorinoRomano DOP Crosta Nera 28KG",
     "bcTransportation": "CH AIR",
     "vendorName": "VALSANA SRL"
   },
@@ -3160,6 +3181,13 @@
     "code": "",
     "nHK": "MF2142",
     "description": "Chilled Boneless Beef YP Striploin 3.6 kg IW/VAC",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Midfield Meat International Pty Ltd"
+  },
+  {
+    "code": "",
+    "nHK": "MF2160",
+    "description": "Chilled Boneless Beef YP Tenderloin 2-2.5 kg  IW/VAC",
     "bcTransportation": "CH AIR",
     "vendorName": "Midfield Meat International Pty Ltd"
   },
