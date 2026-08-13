@@ -11934,7 +11934,7 @@
     "bcTransportation": "CH AIR",
     "standardCostHkd": 810.0,
     "isHoff": false,
-    "active": true,
+    "active": false,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
     "vendorName2": "CONSORZIO GOURM.IT",
     "aiem": 0

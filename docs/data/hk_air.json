@@ -1330,6 +1330,13 @@
     "vendorName": "SOCIETA' AGRICOLA IL PARCO DI CASTIGLIEGO MARIA&C."
   },
   {
+    "code": "",
+    "nHK": "CF9011",
+    "description": "MOZZARELLA DI BUFALA CAMPANA 1kg  IL PARCO ZIZZONA DOP",
+    "bcTransportation": "CH AIR",
+    "vendorName": "SOCIETA' AGRICOLA IL PARCO DI CASTIGLIEGO MARIA&C."
+  },
+  {
     "code": "VSN06",
     "nHK": "CFB0103",
     "description": "*Butter \"Valsana\" 8G X 125Pk (1KG)",
@@ -2511,13 +2518,6 @@
     "description": "FRZ USDA Shortloin 0x1 GO1881 approx. 10 kg/pc",
     "bcTransportation": "CH AIR",
     "vendorName": "SMARTKINGS INSURANCE MANAGEMENT LTD."
-  },
-  {
-    "code": "GOU11",
-    "nHK": "GOU11",
-    "description": "CULATELLO DI ZIBELLO DOP GOLD 24+ MONTHS",
-    "bcTransportation": "CH AIR",
-    "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "",
