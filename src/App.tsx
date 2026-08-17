@@ -373,8 +373,8 @@ function calcHK({ priceInput, ubicazione, product, logistic, eurToHkd, priceMult
   // Wine/spirits sheet in Excel model does NOT round step1 before HKD conversion
   const isWine = (category||"").toUpperCase().includes("WINE") || (category||"").toUpperCase().includes("SPIRIT");
 
-  // Work Tab DIVISORE UM ha priorità su kgxplt BC anagrafica
-  const kgxplt = Number(kgxpltLog) > 0 ? Number(kgxpltLog) : Number(kgxpltProd);
+  // BC anagrafica ha priorità; Work Tab DIVISORE UM come fallback
+  const kgxplt = Number(kgxpltProd) > 0 ? Number(kgxpltProd) : Number(kgxpltLog);
 
   // ── Units per pallet ── (formula modello Excel) / conv factor item
   // PCS: qtyPerBox × boxPerPallet  |  BOX: boxPerPallet  |  KG: kgxplt (kg per pallet da Work Tab o BC)
