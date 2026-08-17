@@ -4306,7 +4306,14 @@ const log = { id: now, type: "logistics", date: new Date(now).toISOString(), bra
                         <td style={{padding:"7px 12px", fontSize:"12px", color:T.muted}}>{l.hasAlcTax?"Sì":"No"}</td>
                         {branch!=="CAN"&&<td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.muted}}>{l.carriage||0}</td>}
                         <td style={{padding:"7px 12px", fontSize:"12px", fontFamily:"monospace", color:T.dim}}>{l.convFactor||1}</td>
-                        <td style={{padding:"7px 12px"}}>{!isViewer && <button style={btnS(T.gold)} onClick={()=>toggleEdit(prod.id)}>✏️ Modifica</button>}</td>
+                        <td style={{padding:"7px 12px"}}>
+                          {!isViewer && (
+                            <span style={{display:"flex",gap:"5px",alignItems:"center"}}>
+                              <button style={btnS(T.gold)} onClick={()=>toggleEdit(prod.id)}>✏️ Modifica</button>
+                              {hasEntry && <MiniBtn label="✕" onClick={()=>{const next=logistics.filter((l:any)=>!(l.productId===prod.id&&l.branch===branch));setLogistics(next);CLOUD.set("ifb_logistics",next);showToast("Rimosso ✓",T.red);}} color={T.red}/>}
+                            </span>
+                          )}
+                        </td>
                       </>
                     ) : (
                       <>
@@ -5367,7 +5374,7 @@ return (
 <Section title={`${displayed.length} prezzi${invoiceOnly ? " (solo Sales Invoice)" : ""}`}>
 <div style={{ overflowX: "auto" }}>
 <table style={{ width: "100%", borderCollapse: "collapse" }}>
-<THead cols={[branchN(branch),"IFB No","Descrizione (Base UoM)","Purchase UoM","FCA Price","FCA Disc.","Carriage","DAP Price","MTS Price","DAP Disc.","DAP Final"]} sticky />
+<THead cols={[branchN(branch),"IFB No","Descrizione (Base UoM)","Purchase UoM","FCA Price","FCA Disc.","Carriage","DAP Price","MTS Price","DAP Disc.","DAP Final",""]} sticky />
 <tbody>
 {displayed.slice(0, 150).map((p: any, i: number) => {
 const prod = prodById[String(p.productId)];
@@ -5413,6 +5420,7 @@ return (
       </TD>
     );
     })}
+    <TD>{setPricesParent && <MiniBtn label="✕" onClick={()=>{setPricesParent(prices.filter((q:any)=>!(q.branch===branch&&q.month===month&&q.productId===p.productId)));}} color={T.red}/>}</TD>
   </tr>
 );
 })}
@@ -9181,6 +9189,7 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
                   ["Temp","left","muted","",""],
                   ...(branch==="CAN"?[["AIEM%","right","orange","",""]]:[] as any),
                   ["Attivo","left","muted","",""],
+                  ["","left","muted","",""],
                 ] as [string,string,string,string,string][]).map(([label,align,col,mark,tip])=>(
                   <th key={label} title={tip||undefined} style={{padding:"3px 6px",background:T.card,color:(T as any)[col]||T.muted,textAlign:align as any,borderBottom:`1px solid ${T.border}`,fontSize:"10px",fontWeight:"normal",whiteSpace:"nowrap",cursor:tip?"help":"default"}}>
                     {mark && <span style={{color:T.blue,marginRight:"2px",fontSize:"9px"}}>{mark}</span>}{label}
@@ -9227,6 +9236,9 @@ function Products({ products, setProducts, branch, xrefs=[], importLogs, setImpo
                     <td style={tdS}><Chip label={p.temperature || "—"} color={p.temperature === "FROZEN" ? T.blue : p.temperature === "FRESH" ? T.green : T.muted} /></td>
                     {branch==="CAN" && <td style={{...tdM,textAlign:"right",color:p.aiem>0?T.orange:T.dim}}>{p.aiem>0?`${p.aiem}%`:"—"}</td>}
                     <td style={tdS}><Chip label={p.active ? "Sì" : "No"} color={p.active ? T.green : T.red} /></td>
+                    <td style={{padding:"3px 6px"}}>
+                      <MiniBtn label="✕" onClick={()=>{const next=products.filter((q:any)=>q.id!==p.id);setProducts(next);CLOUD.set(`ifb_products_${branch}`,next);showToast("Rimosso ✓",T.red);}} color={T.red}/>
+                    </td>
                   </tr>
                 );
               })}
