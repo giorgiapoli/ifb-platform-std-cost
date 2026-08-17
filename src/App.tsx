@@ -8294,6 +8294,43 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
   const[selCostSnap,setSelCostSnap]=useState<any>(null);
   const[macProds,setMacProds]=useState<any[]>([]);
   const[typeFilter,setTypeFilter]=useState("all");
+  const[selA,setSelA]=useState<any>(null);
+  const[selB,setSelB]=useState<any>(null);
+  const[compareRows,setCompareRows]=useState<any[]|null>(null);
+  const[compareSearch,setCompareSearch]=useState("");
+  const[compareLoading,setCompareLoading]=useState(false);
+
+  useEffect(()=>{
+    if(!selA||!selB){setCompareRows(null);return;}
+    setCompareLoading(true);
+    Promise.all([
+      IDB.get(`ifb_price_snap_${selA.id}`,[]),
+      IDB.get(`ifb_price_snap_${selB.id}`,[])
+    ]).then(([rowsA,rowsB]:[any[],any[]])=>{
+      const mapA=new Map(rowsA.map((r:any)=>[r.productId,r]));
+      const mapB=new Map(rowsB.map((r:any)=>[r.productId,r]));
+      const allIds=new Set([...mapA.keys(),...mapB.keys()]);
+      const PRICE_FIELDS=["fcaDiscounted","dapFinal","mtsPrice","dapPrice","fcaPrice"];
+      const rows:any[]=[];
+      allIds.forEach(id=>{
+        const a=mapA.get(id);
+        const b=mapB.get(id);
+        const status=!a?"new":!b?"removed":"both";
+        const changes:any[]=[];
+        if(status==="both"){
+          PRICE_FIELDS.forEach(f=>{
+            const av=roundN(a?.[f]||0),bv=roundN(b?.[f]||0);
+            if(Math.abs(av-bv)>=0.005) changes.push({field:f,a:av,b:bv});
+          });
+        }
+        if(status!=="both"||changes.length>0){
+          rows.push({productId:id,a,b,status,changes});
+        }
+      });
+      setCompareRows(rows);
+      setCompareLoading(false);
+    });
+  },[selA,selB]);
 
   // Per HK: carica prodotti MAC (servono HOFF flag e macToHkConv per derivare costi MAC affianco)
   useEffect(()=>{
@@ -8462,6 +8499,87 @@ function Storico({snapshots,setSnapshots,costHistory,setCostHistory,branch,showT
     )}
   </Section>
 )}
+
+      {/* ── CONFRONTA LISTINI ── */}
+      {(()=>{
+        const priceSnaps=snapshots.filter((s:any)=>s.type==="prices"&&(!s.branch||s.branch===branch||s.branch==="ALL"));
+        const fmtSnap=(s:any)=>(s.month||"?")+" · "+new Date(s.date||s.id).toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit",year:"2-digit"});
+        const filteredCompare=(compareRows||[]).filter((r:any)=>!compareSearch||String(r.productId).toLowerCase().includes(compareSearch.toLowerCase()));
+        const cntNew=(compareRows||[]).filter((r:any)=>r.status==="new").length;
+        const cntRem=(compareRows||[]).filter((r:any)=>r.status==="removed").length;
+        const cntMod=(compareRows||[]).filter((r:any)=>r.status==="both").length;
+        return(
+          <Section title="⇄ Confronta Listini" accent={T.blue}>
+            <div style={{display:"flex",gap:"16px",marginBottom:"12px"}}>
+              {[{label:"Listino A",sel:selA,setSel:setSelA},{label:"Listino B",sel:selB,setSel:setSelB}].map(({label,sel:curSel,setSel:setCur})=>(
+                <div key={label} style={{flex:1}}>
+                  <div style={{fontSize:"11px",color:T.muted,marginBottom:"6px",fontWeight:"bold"}}>{label}</div>
+                  {priceSnaps.length===0
+                    ? <div style={{fontSize:"11px",color:T.dim}}>Nessun listino importato.</div>
+                    : <div style={{display:"flex",flexDirection:"column",gap:"4px",maxHeight:"180px",overflowY:"auto"}}>
+                        {priceSnaps.map((s:any)=>{
+                          const active=curSel?.id===s.id;
+                          return(
+                            <button key={s.id} onClick={()=>setCur(active?null:s)}
+                              style={{padding:"6px 10px",background:active?T.blue:T.card,
+                                color:active?"#fff":T.text,border:`1px solid ${active?T.blue:T.border}`,
+                                borderRadius:"4px",cursor:"pointer",fontSize:"11px",textAlign:"left"}}>
+                              {fmtSnap(s)}
+                            </button>
+                          );
+                        })}
+                      </div>
+                  }
+                </div>
+              ))}
+            </div>
+            {(!selA||!selB)&&(
+              <div style={{color:T.dim,fontSize:"12px",padding:"12px 0"}}>Seleziona un listino A e un listino B per confrontare</div>
+            )}
+            {compareLoading&&<div style={{color:T.muted,fontSize:"12px"}}>Caricamento...</div>}
+            {compareRows!==null&&selA&&selB&&!compareLoading&&(
+              <div>
+                <div style={{display:"flex",gap:"12px",marginBottom:"10px",flexWrap:"wrap"}}>
+                  <span style={{fontSize:"12px",color:T.green}}>+{cntNew} nuovi</span>
+                  <span style={{fontSize:"12px",color:T.red}}>−{cntRem} rimossi</span>
+                  <span style={{fontSize:"12px",color:T.orange}}>{cntMod} modificati</span>
+                </div>
+                <input value={compareSearch} onChange={e=>setCompareSearch(e.target.value)}
+                  placeholder="Cerca IFB No…"
+                  style={{padding:"5px 8px",background:T.surface,border:`1px solid ${T.border}`,
+                    borderRadius:"4px",color:T.text,fontSize:"11px",marginBottom:"8px",width:"200px"}}/>
+                <div style={{overflowX:"auto"}}>
+                  <table style={{width:"100%",borderCollapse:"collapse"}}>
+                    <THead cols={["IFB No","Descr.",selA.month||"A",selB.month||"B","Δ% DAP"]} sticky/>
+                    <tbody>
+                      {filteredCompare.map((r:any,i:number)=>{
+                        const bg=r.status==="new"?`${T.green}18`:r.status==="removed"?`${T.red}18`:i%2===0?T.bg:T.surface;
+                        const desc=r.b?.description||r.a?.description||r.productId;
+                        const dapA=r.a?.dapFinal!=null?`€ ${roundN(r.a.dapFinal).toFixed(2)}`:"—";
+                        const dapB=r.b?.dapFinal!=null?`€ ${roundN(r.b.dapFinal).toFixed(2)}`:"—";
+                        let delta:any=null;
+                        if(r.status==="both"&&r.a?.dapFinal!=null&&r.b?.dapFinal!=null&&Math.abs(r.a.dapFinal)>=0.005){
+                          const pct=((r.b.dapFinal-r.a.dapFinal)/Math.abs(r.a.dapFinal))*100;
+                          delta=<span style={{color:pct>0?T.red:T.green,fontWeight:"bold"}}>{pct>0?"+":""}{pct.toFixed(1)}%</span>;
+                        }
+                        return(
+                          <tr key={String(r.productId)} style={{borderBottom:`1px solid ${T.border}`,background:bg}}>
+                            <TD mono><span style={{color:T.gold}}>{r.productId}</span></TD>
+                            <TD><span style={{fontSize:"11px"}}>{desc}</span></TD>
+                            <TD mono>{r.status==="new"?"—":dapA}</TD>
+                            <TD mono>{r.status==="removed"?"—":dapB}</TD>
+                            <TD mono>{r.status==="new"?<span style={{color:T.green,fontWeight:"bold"}}>+NEW</span>:r.status==="removed"?<span style={{color:T.red,fontWeight:"bold"}}>−RIM</span>:delta||"—"}</TD>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </Section>
+        );
+      })()}
 
       {/* ── IMPORT SNAPSHOTS LIST ── */}
       <Section title="📥 Storico Import">
