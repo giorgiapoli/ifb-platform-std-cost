@@ -389,7 +389,7 @@
     "nHK": "AN5006-SKCUT",
     "description": "W BLACK *S* OX MB8-9 CUBE ROLL MW/VAC 330g CUT",
     "bcTransportation": "CH AIR",
-    "vendorName": "SEA CROWN INVESTMENT"
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
   {
     "code": "",
@@ -1656,7 +1656,7 @@
     "nHK": "CH0018-C",
     "description": "*Parmigiano Reggiano DOP 300G (33)",
     "bcTransportation": "CH AIR",
-    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+    "vendorName": "CIRESA S.R.L."
   },
   {
     "code": "CRS08",
@@ -3180,7 +3180,7 @@
   {
     "code": "",
     "nHK": "MF2142",
-    "description": "Chilled Boneless Beef YP Striploin 3.6 kg IW/VAC",
+    "description": "Chilled Boneless Grass Beef YP Striploin 3.6 kg IW/VAC",
     "bcTransportation": "CH AIR",
     "vendorName": "Midfield Meat International Pty Ltd"
   },
@@ -4057,6 +4057,13 @@
     "nHK": "TF7012",
     "description": "Natural Black Truffle Seasoning 20ml x 80pcs",
     "bcTransportation": "DRY AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
+    "nHK": "TFB001",
+    "description": "WHITE TRUFFLE",
+    "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {

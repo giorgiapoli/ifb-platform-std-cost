@@ -2520,26 +2520,6 @@
     "aiem": 0
   },
   {
-    "id": "CRS07",
-    "code": "CRS07",
-    "nHK": "CH0018-C",
-    "description": "*Parmigiano Reggiano DOP 300G (33)",
-    "category": "COW CHEESE",
-    "uom": "PCS",
-    "qtyPerBox": 33.0,
-    "boxPerPallet": 45.0,
-    "kgPerBox": 0.3,
-    "kgxplt": 445.5,
-    "temperature": "FRESH",
-    "bcTransportation": "CH AIR",
-    "standardCostHkd": 71.24301272727274,
-    "isHoff": false,
-    "active": true,
-    "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "CIRESA S.R.L.",
-    "aiem": 0
-  },
-  {
     "id": "CRS05",
     "code": "CRS05",
     "nHK": "CH0021-C",
@@ -25334,7 +25314,7 @@
     "bcTransportation": "CH AIR",
     "standardCostHkd": 29.12,
     "isHoff": false,
-    "active": false,
+    "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
     "vendorName2": "",
     "aiem": 0
