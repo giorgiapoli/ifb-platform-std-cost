@@ -8068,7 +8068,6 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
     const today = new Date(); const monthFmt = `${today.getFullYear()}_${String(today.getMonth()+1).padStart(2,"0")}`;
     const all = [
       ...alert1.map((r:any)=>({...r,tipo:"NUOVI ARTICOLI"})),
-      ...alert5.map((r:any)=>({...r,tipo:"DELISTATI"})),
       ...alert2.map((r:any)=>({...r,tipo:"TO UPDATE (Delta%)"})),
     ];
     const data = all.map((r:any)=>({
@@ -8160,7 +8159,6 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
         <div style={{display:"flex",gap:"14px",flexWrap:"wrap",padding:"0 0 18px"}}>
           {([
             {label:"NUOVI ARTICOLI",n:alert1.length,c:T.blue,icon:"🆕"},
-            {label:"DELISTATI",n:alert5.length,c:T.dim,icon:"🗑"},
             {label:"TO UPDATE (Δ%)",n:alert2.length,c:T.orange,icon:"⬆"},
           ] as {label:string,n:number,c:string,icon:string}[]).map(({label,n,c,icon})=>(
             <div key={label} style={{background:`${c}11`,border:`1px solid ${c}44`,borderRadius:"8px",padding:"10px 18px",minWidth:"140px"}}>
@@ -8192,30 +8190,8 @@ function CheckMensile({costRows, branch, salesRows, xrefs, scAttuali, products, 
           </div>
         </Section>
 
-        {/* ALERT 5 — DELISTATI (prezzo zero) */}
-        <Section title={`🗑 2. DELISTATI — Prezzo zero (${alert5.length})`} accent={T.dim}>
-          <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>Articoli con prezzo zero — potenzialmente delistati.</div>
-          <div style={{overflowX:"auto"}}>
-            <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
-              <thead><tr>{thCodes}<TH h="Descrizione"/><TH h="SC in macchina"/><TH h="Skip Reason"/><TH h="Last Date"/></tr></thead>
-              <tbody>
-                {alert5.filter(checkFilter).length===0
-                  ? <tr><td colSpan={5+(hasDualCode?1:0)} style={{padding:"10px",fontSize:"11px",color:T.dim,textAlign:"center"}}>{alert5.length===0?"Nessun articolo ✓":"Nessun risultato per la ricerca"}</td></tr>
-                  : alert5.filter(checkFilter).map((r:any,i:number)=>(
-                    <tr key={i} style={{borderBottom:`1px solid ${T.border}22`,background:`${T.dim}07`}}>
-                      {tdCodes(r)}{tdD(r.description)}
-                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"right",whiteSpace:"nowrap"}}>{r.oldSC>0?`${cur} ${r.oldSC.toFixed(2)}`:"—"}</td>
-                      <td style={{padding:"3px 8px",fontSize:"10px",color:T.muted,textAlign:"left"}}>{r.skipReason||"—"}</td>
-                      {tdM(r.lastDate)}
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-
         {/* ALERT 2 */}
-        <Section title={`⬆ 3. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
+        <Section title={`⬆ 2. TO UPDATE — delta >${threshold}% (${alert2.length})`} accent={T.orange}>
           <div style={{fontSize:"11px",color:T.muted,marginBottom:"8px"}}>SC in macchina vs SC calcolato: variazione oltre la soglia.</div>
           <div style={{overflowX:"auto"}}>
             <table style={{borderCollapse:"collapse",width:"max-content",minWidth:"100%"}}>
