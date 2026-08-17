@@ -173,7 +173,7 @@ const COSTS_CAN = {
   MARE: {
     NORD:   { GC:2580.72, TF:2580.72, LAN:3521.44, FUE:3521.44 },
     CENTRO: { GC:0,       TF:0,       LAN:0,       FUE:0       },
-    SUD:    { GC:2258.53, TF:2258.53, LAN:0,       FUE:0       },
+    SUD:    { GC:2258.53, TF:2258.53, LAN:2258.53, FUE:2258.53 },
   },
   // MARE: Inland + Custom Clearance per container per island (COSTS(LOG) rows 27-30)
   // Formula Excel: D27 / (Y6 * AA6) = rate / totalUnits
