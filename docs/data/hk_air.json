@@ -2843,6 +2843,41 @@
   },
   {
     "code": "",
+    "nHK": "ITEM35-LL",
+    "description": "Butter Unsalted  20g",
+    "bcTransportation": "CH AIR",
+    "vendorName": "L&L PLAQUETTE"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM36-LL",
+    "description": "Butter with Fleur de Sel  20g",
+    "bcTransportation": "CH AIR",
+    "vendorName": "L&L PLAQUETTE"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM37-LL",
+    "description": "Butter with Seaweed  20g",
+    "bcTransportation": "CH AIR",
+    "vendorName": "L&L PLAQUETTE"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM38-LL",
+    "description": "Butter with Smoked Salt 20g",
+    "bcTransportation": "CH AIR",
+    "vendorName": "L&L PLAQUETTE"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM39-LL",
+    "description": "Butter with Chimichurri 20g",
+    "bcTransportation": "CH AIR",
+    "vendorName": "L&L PLAQUETTE"
+  },
+  {
+    "code": "",
     "nHK": "ITEM3-VOL",
     "description": "Caviar Oscietra V20 30g Acispenser gueldenstaedtil",
     "bcTransportation": "CH AIR",
@@ -8011,6 +8046,13 @@
     "code": "",
     "nHK": "WB2100-8/9",
     "description": "W BLACK CHILLED D-RUMP MS8-9 (6-8kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
+    "nHK": "WB2141-5/6",
+    "description": "W BLACK WAGYU CHILLED *S* STRIPLOIN 1 RIB M5/6 - approx. 7kg pc",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
