@@ -2226,6 +2226,13 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
+    "code": "",
+    "nHK": "GC1023",
+    "description": "Aguglia 280gr",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
     "code": "MND02",
     "nHK": "GC4102-IF-V1",
     "description": "Marinat White Anchovies Fillet 650g (4)",
@@ -2490,6 +2497,13 @@
     "description": "FRZ OMUGI Beef Trimming 65CL ~25kg/box",
     "bcTransportation": "FR AIR",
     "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
+  },
+  {
+    "code": "",
+    "nHK": "GM0000-SK",
+    "description": "Greenmountain Trading Co Pty Ltd",
+    "bcTransportation": "CH AIR",
+    "vendorName": "GREENMOUNTAIN TRADING CO. PTY LTD"
   },
   {
     "code": "",
@@ -2844,35 +2858,35 @@
   {
     "code": "",
     "nHK": "ITEM35-LL",
-    "description": "Butter Unsalted  20g",
+    "description": "Butter Unsalted  20g x 100 pc",
     "bcTransportation": "CH AIR",
     "vendorName": "L&L PLAQUETTE"
   },
   {
     "code": "",
     "nHK": "ITEM36-LL",
-    "description": "Butter with Fleur de Sel  20g",
+    "description": "Butter with Fleur de Sel 20g x 100 pc",
     "bcTransportation": "CH AIR",
     "vendorName": "L&L PLAQUETTE"
   },
   {
     "code": "",
     "nHK": "ITEM37-LL",
-    "description": "Butter with Seaweed  20g",
+    "description": "Butter with Seaweed 20g x 100 pc",
     "bcTransportation": "CH AIR",
     "vendorName": "L&L PLAQUETTE"
   },
   {
     "code": "",
     "nHK": "ITEM38-LL",
-    "description": "Butter with Smoked Salt 20g",
+    "description": "Butter with Smoked Salt 20g x 100 pc",
     "bcTransportation": "CH AIR",
     "vendorName": "L&L PLAQUETTE"
   },
   {
     "code": "",
     "nHK": "ITEM39-LL",
-    "description": "Butter with Chimichurri 20g",
+    "description": "Butter with Chimichurri 20g x 100 pc",
     "bcTransportation": "CH AIR",
     "vendorName": "L&L PLAQUETTE"
   },
