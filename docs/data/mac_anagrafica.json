@@ -5909,6 +5909,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "HA8092-IB",
+    "nHK": "HA8092-IB",
+    "code": "HA8092-IB",
+    "description": "Mortadella w/Pistacchio Grand Ducato Gourmet +/- 4Kg",
+    "category": "OTHER CURED MEATS",
+    "producttype": "FRESH",
+    "temperature": "FRESH",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 0.0,
+    "qtyPerBox": 2.0,
+    "standardCostHkd": 106.80423,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "bv",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "HA8097-IB",
     "nHK": "HA8097-IB",
     "code": "HA8097-IB",
@@ -6818,6 +6837,25 @@
     "isHoff": true,
     "active": true,
     "_bvScSource": "bv",
+    "_entity": "Item_Card_Excel"
+  },
+  {
+    "id": "MF2210-SK-FRZ",
+    "nHK": "MF2210-SK-FRZ",
+    "code": "MF2210-SK-FRZ",
+    "description": "Frozen CHILLED BONELESS A FLANK STEAK GRASS FED",
+    "category": "BEEF",
+    "producttype": "FROZEN",
+    "temperature": "FROZEN",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 0.0,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "hoff",
     "_entity": "Item_Card_Excel"
   },
   {
