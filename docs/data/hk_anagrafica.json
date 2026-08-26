@@ -254,7 +254,7 @@
     "bcTransportation": "CH AIR",
     "standardCostHkd": 319.0,
     "isHoff": true,
-    "active": true,
+    "active": false,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
     "vendorName2": "INALCA S.P.A. A SOCIO UNICO",
     "aiem": 0
@@ -18881,7 +18881,7 @@
   },
   {
     "id": "MT155",
-    "code": "",
+    "code": "MT155",
     "nHK": "MT155",
     "description": "POMACE OIL MAMMA TINA 5LT PET",
     "category": "OIL AND FATS",
@@ -18891,7 +18891,7 @@
     "kgPerBox": 4.58,
     "kgxplt": 732.8,
     "temperature": "DRY",
-    "bcTransportation": "",
+    "bcTransportation": "DRY SEA",
     "standardCostHkd": 0.0,
     "isHoff": false,
     "active": true,

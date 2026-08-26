@@ -22750,6 +22750,48 @@
     "Branch": "MAC"
   },
   {
+    "No_": "12080103006",
+    "BV_No": "PT9002",
+    "Description": "#6 Linguine LM Chef 1kg (12)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-08-27",
+    "Quantity": 30.0,
+    "Price": 15.73,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA260805397",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "DIL04",
+    "BV_No": "GC0312",
+    "Description": "Stuffed Chili Pepper with TUNA 950g (6)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-08-27",
+    "Quantity": 12.0,
+    "Price": 69.59,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA260805397",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "NAR02",
+    "BV_No": "WNAR02",
+    "Description": "Acqua Di Cedro 29° 70CL",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-08-27",
+    "Quantity": 12.0,
+    "Price": 96.56,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA260805397",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
     "No_": "TRF13",
     "BV_No": "TF0001",
     "Description": "White Truffle",

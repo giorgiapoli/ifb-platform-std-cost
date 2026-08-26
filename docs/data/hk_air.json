@@ -78,13 +78,6 @@
   },
   {
     "code": "",
-    "nHK": "40844",
-    "description": "LOMBATA S/O 1/C S/V CARIMA RARE",
-    "bcTransportation": "CH AIR",
-    "vendorName": "INALCA FOOD & BEVERAGE SRL"
-  },
-  {
-    "code": "",
     "nHK": "44018",
     "description": "COSTATA C/O C/F 7/C CARIMA UNIQUE SV",
     "bcTransportation": "CH AIR",
@@ -1465,7 +1458,7 @@
   {
     "code": "",
     "nHK": "CFS0410",
-    "description": "*Pecorino Frmano Bio Semistagionato",
+    "description": "*Pecorino Formano Bio Semistagionato",
     "bcTransportation": "CH AIR",
     "vendorName": "VALSANA SRL"
   },
