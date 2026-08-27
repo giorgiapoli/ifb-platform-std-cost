@@ -3242,6 +3242,13 @@
   },
   {
     "code": "",
+    "nHK": "MF2210-FRZSK",
+    "description": "FRZ Boneless Beef A Flank Steak - Grass Fed",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Midfield Meat International Pty Ltd"
+  },
+  {
+    "code": "",
     "nHK": "MF2210-SK",
     "description": "Chilled Boneless Beef A Flank Steak - Grass Fed",
     "bcTransportation": "CH AIR",
@@ -8027,13 +8034,6 @@
     "description": "FRZ Pre-sliced Norvegian Smoked Salmon D Cut ( Skin-On ) 1.5/1.8kg",
     "bcTransportation": "CH AIR",
     "vendorName": "VICTORIA ISLAND LTD"
-  },
-  {
-    "code": "",
-    "nHK": "VITFRAC",
-    "description": "Veal French Rack 6 Ribs - \"VITULUS\" - 2-3 kgs / pc",
-    "bcTransportation": "CH AIR",
-    "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "",
