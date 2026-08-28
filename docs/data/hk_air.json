@@ -462,6 +462,13 @@
     "vendorName": "Atron Enterprises Pty. Ltd"
   },
   {
+    "code": "",
+    "nHK": "AV9/11",
+    "description": "Frozen Suckling pig whole 9–11 kg",
+    "bcTransportation": "FR AIR",
+    "vendorName": "AVIGROS"
+  },
+  {
     "code": "BLS37",
     "nHK": "BA0001-IN",
     "description": "Balsamic Vinegar 25 Years DOP 100ml (1)",
@@ -2417,7 +2424,7 @@
   {
     "code": "",
     "nHK": "GF5008-OMCUT",
-    "description": "OMUGI Aus OP Ribs MB1+ 1kg Cut",
+    "description": "FRZ OMUGI Aus OP Ribs MB1+ 1kg Cut",
     "bcTransportation": "CH AIR",
     "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
   },

@@ -920,20 +920,12 @@
     "ifbNo": "FONVS-15"
   },
   {
-    "nHK": "FRAAMA-20",
-    "ifbNo": "FRAAMA-20"
-  },
-  {
     "nHK": "FRACUS-23",
     "ifbNo": "FRACUS-23"
   },
   {
     "nHK": "FRASOA-25",
     "ifbNo": "FRASOA-25"
-  },
-  {
-    "nHK": "FRAVALS-23",
-    "ifbNo": "FRAVALS-23"
   },
   {
     "nHK": "FRI02",
@@ -2782,10 +2774,6 @@
   {
     "nHK": "MEN10",
     "ifbNo": "MEN10"
-  },
-  {
-    "nHK": "MESGIUN-24",
-    "ifbNo": "MESGIUN-24"
   },
   {
     "nHK": "MMT95",
@@ -4792,6 +4780,10 @@
     "ifbNo": "MESGIUN-23"
   },
   {
+    "nHK": "WCMS02-24",
+    "ifbNo": "MESGIUN-24"
+  },
+  {
     "nHK": "WCMS03-20",
     "ifbNo": "MESSCU-20"
   },
@@ -6004,8 +5996,16 @@
     "ifbNo": "FRAVALS-21"
   },
   {
+    "nHK": "WMDF04-23",
+    "ifbNo": "FRAVALS-23"
+  },
+  {
     "nHK": "WMDF05-19",
     "ifbNo": "FRAAMA-19"
+  },
+  {
+    "nHK": "WMDF05-20",
+    "ifbNo": "FRAAMA-20"
   },
   {
     "nHK": "WMG02",
