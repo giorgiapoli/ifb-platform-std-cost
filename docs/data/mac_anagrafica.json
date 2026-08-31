@@ -6441,6 +6441,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "JC2240-3/130-FRZ",
+    "nHK": "JC2240-3/130-FRZ",
+    "code": "JC2240-3/130-FRZ",
+    "description": "JACK'S CREEK CUBE ROLL M3- 130 DAYS BLACK ANGUS Frozen",
+    "category": "BEEF",
+    "producttype": "FROZEN",
+    "temperature": "FROZEN",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 0.0,
+    "qtyPerBox": 3.0,
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "hoff",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "JC2240-5/180",
     "nHK": "JC2240-5/180",
     "code": "JC2240-5/180",

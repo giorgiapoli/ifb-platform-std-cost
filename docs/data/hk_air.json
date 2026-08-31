@@ -1526,6 +1526,13 @@
     "vendorName": "VALSANA SRL"
   },
   {
+    "code": "VSN35",
+    "nHK": "CFS1315",
+    "description": "Robiola Roccaverano DOP \"Presidio\"",
+    "bcTransportation": "CH AIR",
+    "vendorName": "VALSANA SRL"
+  },
+  {
     "code": "VSN37",
     "nHK": "CFS1501",
     "description": "*IL Bleu Di Nicoletta 1/2 2.5kg",
@@ -1613,6 +1620,13 @@
     "code": "",
     "nHK": "CFS3015",
     "description": "*Chevre Buche Lucay - Goat Cheese 1kg (1)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "VALSANA SRL"
+  },
+  {
+    "code": "",
+    "nHK": "CFS3019",
+    "description": "*#Robiola 3 milk La Tur Langa 230g (6)",
     "bcTransportation": "CH AIR",
     "vendorName": "VALSANA SRL"
   },
@@ -4881,7 +4895,7 @@
   {
     "code": "",
     "nHK": "VH03004",
-    "description": "LEMONS  BERGAMOT  8 kg",
+    "description": "LEMONS  LINONCELLO 7KG",
     "bcTransportation": "CH AIR",
     "vendorName": "RD PRODUCE BV"
   },
