@@ -93,7 +93,7 @@
   {
     "code": "",
     "nHK": "ABG1550-2",
-    "description": "Chilled BONE IN Grain Fed MB2+ Short Loin",
+    "description": "Chilled BONE IN Grain Fed MB2+ Short Loin(10/12 kg PC)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
@@ -1351,6 +1351,13 @@
     "vendorName": "VALSANA SRL"
   },
   {
+    "code": "VSN07",
+    "nHK": "CFB0104-FRZ",
+    "description": "FRZ Butter - Italian \"Valsana\" 1KG  (10)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "VALSANA SRL"
+  },
+  {
     "code": "",
     "nHK": "CFS0112",
     "description": "Goat Caciottona in Nut Leaves 2.5KG",
@@ -1768,6 +1775,13 @@
     "nHK": "DE4205",
     "description": "FRZ Farmed Seabass Fillet Skin On Without Boneless",
     "bcTransportation": "FR AIR",
+    "vendorName": "DEMARNE"
+  },
+  {
+    "code": "",
+    "nHK": "DE6817270",
+    "description": "LA SPECIALE DE BRETAGNE N4 (270 PC PER CASE)",
+    "bcTransportation": "CH AIR",
     "vendorName": "DEMARNE"
   },
   {
@@ -3664,6 +3678,13 @@
     "code": "",
     "nHK": "OLS0004EL",
     "description": "Farmed Turbot - 3/4 Kg (2 Pc box)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLS0005ED",
+    "description": "CHILLED RAINBOW TROUT FILLET 700/1000 KG (4 KG BOX FRANCE)",
     "bcTransportation": "CH AIR",
     "vendorName": "Ocean's Link Fresh and Frozen Seafood"
   },

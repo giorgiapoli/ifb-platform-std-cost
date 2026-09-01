@@ -57002,6 +57002,28 @@
     "Branch": "HK"
   },
   {
+    "No_": "PTG06",
+    "Description": "SPAGHETTI DI GRAGNANO I.G.P. 4 MIN 500 G",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-08-31",
+    "Quantity": 204.0,
+    "Price": 2.04,
+    "Location Code": "NCJ",
+    "Section Description": "",
+    "Branch": "HK"
+  },
+  {
+    "No_": "SCR39",
+    "Description": "BASE PIZZA 300 G",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-08-31",
+    "Quantity": 36.0,
+    "Price": 28.919999999999998,
+    "Location Code": "NCJ",
+    "Section Description": "",
+    "Branch": "HK"
+  },
+  {
     "No_": "FREIGHT",
     "Description": "FREIGHT TRUCK WEEK 34-2",
     "Vendor Name": "",
@@ -174049,6 +174071,50 @@
     "Quantity": 18.0,
     "Price": 0.0,
     "Location Code": "AM CROSS",
+    "Section Description": "",
+    "Branch": "AUS"
+  },
+  {
+    "No_": "AGC02",
+    "Description": "POMODORI PELATI STRIANESE 6X2,5KG LATTA",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-09-01",
+    "Quantity": 680.0,
+    "Price": 13.159999999999998,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "AUS"
+  },
+  {
+    "No_": "AGC10",
+    "Description": "POMODORI PELATI PREMIUM STRIANESE 6X2,5KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-09-01",
+    "Quantity": 200.0,
+    "Price": 13.67,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "AUS"
+  },
+  {
+    "No_": "LVC26",
+    "Description": "POMODORI PELATI SAN MARZANO AGRO SARNESE-NOCERINO LA VERACE 6 X 2,5 KG LATTA",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-09-01",
+    "Quantity": 250.0,
+    "Price": 27.55,
+    "Location Code": "FOR",
+    "Section Description": "",
+    "Branch": "AUS"
+  },
+  {
+    "No_": "AGC18",
+    "Description": "POLPA FINE DI POMODORO 3X4KG",
+    "Vendor Name": "",
+    "Last Posting Date": "2026-09-01",
+    "Quantity": 165.0,
+    "Price": 11.219999999999999,
+    "Location Code": "FOR",
     "Section Description": "",
     "Branch": "AUS"
   }
