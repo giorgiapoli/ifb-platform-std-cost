@@ -3091,7 +3091,7 @@
     "nHK": "LB5002-WP",
     "description": "FRZ Lamb Rack Cap On +/- 800g AUS",
     "bcTransportation": "FR AIR",
-    "vendorName": "WAVES PACIFIC LTD."
+    "vendorName": ""
   },
   {
     "code": "LVC10",
@@ -8003,14 +8003,14 @@
   {
     "code": "",
     "nHK": "VIPRWHB",
-    "description": "Scottish Salmon D-scliced with Beetroot",
+    "description": "Scottish Salmon D-sliced with Beetroot",
     "bcTransportation": "CH AIR",
     "vendorName": "VICTORIA ISLAND LTD"
   },
   {
     "code": "",
     "nHK": "VIPRWHB-FRZ",
-    "description": "FRZ Scottish Salmon D-scliced with Beetroot",
+    "description": "FRZ Scottish Salmon D-sliced with Beetroot",
     "bcTransportation": "CH AIR",
     "vendorName": "VICTORIA ISLAND LTD"
   },

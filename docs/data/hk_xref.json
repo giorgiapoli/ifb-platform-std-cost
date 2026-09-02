@@ -3908,20 +3908,12 @@
     "ifbNo": "SMBRTKT-23"
   },
   {
-    "nHK": "SMCHAKT-25",
-    "ifbNo": "SMCHAKT-25"
-  },
-  {
     "nHK": "SMPGKT-24",
     "ifbNo": "SMPGKT-24"
   },
   {
     "nHK": "SMPNKT-24",
     "ifbNo": "SMPNKT-24"
-  },
-  {
-    "nHK": "SMROCOPNS-22",
-    "ifbNo": "SMROCOPNS-22"
   },
   {
     "nHK": "SMROS-25",
@@ -4534,6 +4526,10 @@
   {
     "nHK": "WALT09-24",
     "ifbNo": "SMCHAKT-24"
+  },
+  {
+    "nHK": "WALT09-25",
+    "ifbNo": "SMCHAKT-25"
   },
   {
     "nHK": "WALT10-15",
@@ -6262,6 +6258,10 @@
   {
     "nHK": "WROC02-21",
     "ifbNo": "SMROCOPNS-21"
+  },
+  {
+    "nHK": "WROC02-22",
+    "ifbNo": "SMROCOPNS-22"
   },
   {
     "nHK": "WROC03-23",
