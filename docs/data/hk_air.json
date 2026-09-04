@@ -99,6 +99,13 @@
   },
   {
     "code": "",
+    "nHK": "ABG1550-3",
+    "description": "Chilled BONE IN Grain Fed MB3+ Short Loin(10/12 kg PC)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ABG Australian Beef Group"
+  },
+  {
+    "code": "",
     "nHK": "ABG1592-2",
     "description": "Chilled BONE IN Grain Fed MB2+ Tomahawk",
     "bcTransportation": "CH AIR",
@@ -8093,6 +8100,13 @@
   },
   {
     "code": "",
+    "nHK": "WB2040 - 4/5",
+    "description": "W BLACK CHILLED EYE ROUND MS4-5 (2-3kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
     "nHK": "WB2091-6/7",
     "description": "W.BLACK RUMP CAP M6/7",
     "bcTransportation": "CH AIR",
@@ -8116,6 +8130,13 @@
     "code": "",
     "nHK": "WB2160FRZ-4/5",
     "description": "FRZ W BLACK TENDERLOIN MS4-5 (2-3kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
+    "nHK": "WB2210 - 4/5",
+    "description": "W BLACK CHILLED FLANK MS4-5 (2-3kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
