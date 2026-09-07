@@ -107,7 +107,7 @@
   {
     "code": "",
     "nHK": "ABG1592-2",
-    "description": "Chilled BONE IN Grain Fed MB2+ Tomahawk",
+    "description": "Chilled BONE IN Grain Fed MB2+ Tomahawk (approx 7 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
@@ -2814,6 +2814,13 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
+    "code": "ITA88",
+    "nHK": "ITA88",
+    "description": "MORTADELLA FAVORITA WITH PISTACHIOS 5 KG DIAM 22CM SV",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
     "code": "",
     "nHK": "ITEM10-MAR",
     "description": "Orleans Red Wine Vinegar aged 12 months 25cl(6)",
@@ -2938,6 +2945,13 @@
     "description": "Caviar Oscietra V20 30g Acispenser gueldenstaedtil",
     "bcTransportation": "CH AIR",
     "vendorName": "Volzhenka"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM49-INA",
+    "description": "BURRATA CONGELATA SENZA CIUFFO CIOFFI",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "",
