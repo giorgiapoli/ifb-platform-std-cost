@@ -13,7 +13,7 @@
   },
   {
     "nHK": "26659",
-    "ifbNo": "26537"
+    "ifbNo": "26659"
   },
   {
     "nHK": "26661",
@@ -2770,6 +2770,18 @@
   {
     "nHK": "MBBRICR-24",
     "ifbNo": "MBBRICR-24"
+  },
+  {
+    "nHK": "MBCPR-U",
+    "ifbNo": "26657"
+  },
+  {
+    "nHK": "MBCRB-R",
+    "ifbNo": "40845"
+  },
+  {
+    "nHK": "MBCSTR-R",
+    "ifbNo": "40844"
   },
   {
     "nHK": "MBCSTR-S-FRZ",

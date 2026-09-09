@@ -49,7 +49,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "26537",
+    "code": "26659",
     "nHK": "26659",
     "description": "TENDERLOIN CHAIN OFF CARIMA RARE",
     "bcTransportation": "CH AIR",
@@ -338,7 +338,7 @@
   {
     "code": "",
     "nHK": "AN0009-SK",
-    "description": "W BLACK CHILLED STRIPLOIN MS8-9 (5-7kg)",
+    "description": "W BLACK CHILLED STRIPLOIN MS8-9 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -1464,6 +1464,13 @@
   },
   {
     "code": "",
+    "nHK": "CFS0404",
+    "description": "*PecorinoBio Delle Balze Volterrane 1.3k",
+    "bcTransportation": "CH AIR",
+    "vendorName": "VALSANA SRL"
+  },
+  {
+    "code": "",
     "nHK": "CFS0405",
     "description": "*Pecorino Riserva Del Fondatore  2.5KG",
     "bcTransportation": "CH AIR",
@@ -1884,37 +1891,9 @@
   },
   {
     "code": "",
-    "nHK": "DUN002",
-    "description": "Scallops - Hand Dived 13/14 35pcs/box  10 kg/box",
-    "bcTransportation": "CH AIR",
-    "vendorName": "Dundrun Seafood"
-  },
-  {
-    "code": "",
-    "nHK": "DUN003",
-    "description": "Scallops - Hand Dived 14+ 30pcs/box  10 kg/box",
-    "bcTransportation": "CH AIR",
-    "vendorName": "Dundrun Seafood"
-  },
-  {
-    "code": "",
-    "nHK": "DUN004",
-    "description": "Sea Urchin - Hand Dived 70-80g/pce (12-14pcs / kg) 5kg/box",
-    "bcTransportation": "CH AIR",
-    "vendorName": "Dundrun Seafood"
-  },
-  {
-    "code": "",
     "nHK": "DUN005",
     "description": "FRZ Hyra Prawn /Arctic Prawn (40-50pcs/box) 500g/box",
     "bcTransportation": "FR AIR",
-    "vendorName": "Dundrun Seafood"
-  },
-  {
-    "code": "",
-    "nHK": "DUN006",
-    "description": "Scallops - Hand Dived 15+ (3pcs / kg)  10 kg/box",
-    "bcTransportation": "CH AIR",
     "vendorName": "Dundrun Seafood"
   },
   {
@@ -2949,7 +2928,7 @@
   {
     "code": "",
     "nHK": "ITEM49-INA",
-    "description": "BURRATA CONGELATA SENZA CIUFFO CIOFFI",
+    "description": "FRZ BURRATA LA VERACE TUB 125 G (8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -3213,14 +3192,14 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "26657",
     "nHK": "MBCPR-U",
     "description": "Carima Bone-in Prime Rib 9.5-10kg (from 23-28 kgs loin) \"UNIQUE\" (M10-M12)[26657]",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "40845",
     "nHK": "MBCRB-R",
     "description": "Carima Boneless Ribeye 4-5 kgs (From 23-28 Kg loin) \"RARE\" (M7-M9)",
     "bcTransportation": "CH AIR",
@@ -3241,7 +3220,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "40844",
     "nHK": "MBCSTR-R",
     "description": "Carima Boneless Striploin 5-6 kgs (From 23-28 Kg loin) \"RARE\" (M7-M9)[40844]",
     "bcTransportation": "CH AIR",
@@ -3747,7 +3726,7 @@
   {
     "code": "",
     "nHK": "OLS0049EL",
-    "description": "Farmed Seabass 600/800 (6Kg)",
+    "description": "Farmed Seabass 600/800 (6Kg Spain))",
     "bcTransportation": "CH AIR",
     "vendorName": "Ocean's Link Fresh and Frozen Seafood"
   },
@@ -3995,6 +3974,13 @@
     "description": "Carima Bone-in Loin \"UNIQUE\" (M10-M12) 23-28 Kgs/pc",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
+    "nHK": "SH0000-SK",
+    "description": "Southern Highlands Brewing Pty Ltd Powder Monkey Group",
+    "bcTransportation": "CH AIR",
+    "vendorName": "SOUTHERN HIGHLANDS BREWING PTY LTD"
   },
   {
     "code": "",
