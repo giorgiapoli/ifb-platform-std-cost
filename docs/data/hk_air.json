@@ -1304,7 +1304,7 @@
   {
     "code": "",
     "nHK": "CF9001-FZ",
-    "description": "*Mozzarella Buffalo IL PARCO-125grx2 (12)",
+    "description": "FRZ *Mozzarella Buffalo IL PARCO-125grx2 (12)",
     "bcTransportation": "CH AIR",
     "vendorName": "SOCIETA' AGRICOLA IL PARCO DI CASTIGLIEGO MARIA&C."
   },
@@ -6882,8 +6882,8 @@
   },
   {
     "code": "",
-    "nHK": "VH15036-14",
-    "description": "ZUCCHINE GREEN  14x",
+    "nHK": "VH15036-16",
+    "description": "ZUCCHINE GREEN  16x",
     "bcTransportation": "CH AIR",
     "vendorName": "RD PRODUCE BV"
   },
