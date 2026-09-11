@@ -183,6 +183,13 @@
   },
   {
     "code": "",
+    "nHK": "ABG2210-2FRZ",
+    "description": "FRZ Boneless Grain Fed MB1-2+Flank Steak",
+    "bcTransportation": "FR AIR",
+    "vendorName": "ABG Australian Beef Group"
+  },
+  {
+    "code": "",
     "nHK": "ABG2243-2",
     "description": "Chilled Boneless Grain Fed MB2+ Cube Roll",
     "bcTransportation": "CH AIR",
@@ -2971,6 +2978,13 @@
     "code": "",
     "nHK": "JC1600-3/130",
     "description": "JACK'S CREEK OP RIB M3 -130 DAYS BLACK ANGUS",
+    "bcTransportation": "CH AIR",
+    "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
+  },
+  {
+    "code": "",
+    "nHK": "JC1600-3/180",
+    "description": "JACK'S CREEK OP RIB M3 -180 DAYS BLACK ANGUS",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
