@@ -1,13 +1,13 @@
 [
   {
-    "code": "",
+    "code": "16657",
     "nHK": "16657",
     "description": "BONE IN RIB 7/RIB CARIMA UNIQUE",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "16658",
     "nHK": "16658",
     "description": "BONE IN SHORT LOIN 1/RIB CARIMA UNIQUE STO.",
     "bcTransportation": "CH AIR",
@@ -35,7 +35,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "26537",
     "nHK": "26537",
     "description": "TENDERLOIN (approx 3 kg/pcs) - from Carima Loin \"RARE\"",
     "bcTransportation": "CH AIR",
@@ -2948,6 +2948,27 @@
   },
   {
     "code": "",
+    "nHK": "ITEM50-INA",
+    "description": "LATTICINI ORCHIDEA",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM51-INA",
+    "description": "CART. BRICIOLO MIX KG.1 (STAMPATO)- ZARPELLON",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM52-INA",
+    "description": "CT.PARM.REGG.DOP GRATT.1 KG.OLTRE 12M",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
     "nHK": "ITEM5-VOL",
     "description": "Caviar Siberian V15 30g Acispenser Baeri",
     "bcTransportation": "CH AIR",
@@ -3199,7 +3220,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "26655",
     "nHK": "MBCPR-R",
     "description": "Carima Bone-in Prime Rib 9.5-10kg (from 23-28 kgs loin) \"RARE\" (M7-M9)[26655]",
     "bcTransportation": "CH AIR",
@@ -3706,6 +3727,13 @@
     "code": "",
     "nHK": "OLS0009CO",
     "description": "COQUE (3KG)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLS0036EL",
+    "description": "Farmed Seabass 600/800 (6 Kg France)",
     "bcTransportation": "CH AIR",
     "vendorName": "Ocean's Link Fresh and Frozen Seafood"
   },

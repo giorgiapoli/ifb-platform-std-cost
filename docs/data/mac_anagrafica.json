@@ -95,6 +95,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "ABG2091-2-FRZ",
+    "nHK": "ABG2091-2-FRZ",
+    "code": "ABG2091-2-FRZ",
+    "description": "Frozen Chilled Boneless Grain Fed MB2+ Rump Cap",
+    "category": "BEEF",
+    "producttype": "FROZEN",
+    "temperature": "FROZEN",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 0.0,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "hoff",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "ABG2142-2",
     "nHK": "ABG2142-2",
     "code": "ABG2142-2",
@@ -171,6 +190,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "ABG2210-2-FRZ",
+    "nHK": "ABG2210-2-FRZ",
+    "code": "ABG2210-2-FRZ",
+    "description": "Frozen Chilled Boneless Grain Fed MB1-2+ Flank Steak",
+    "category": "BEEF",
+    "producttype": "FROZEN",
+    "temperature": "FROZEN",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 0.0,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "hoff",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "ABG2243-3",
     "nHK": "ABG2243-3",
     "code": "ABG2243-3",
@@ -206,6 +244,25 @@
     "isHoff": false,
     "active": true,
     "_bvScSource": "bv",
+    "_entity": "Item_Card_Excel"
+  },
+  {
+    "id": "ABG2351-2-FRZ",
+    "nHK": "ABG2351-2-FRZ",
+    "code": "ABG2351-2-FRZ",
+    "description": "Frozen Chilled Boneless Grain Fed MB2+ Point End Brisket Deckle Off",
+    "category": "BEEF",
+    "producttype": "FROZEN",
+    "temperature": "FROZEN",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 0.0,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "hoff",
     "_entity": "Item_Card_Excel"
   },
   {
@@ -413,7 +470,7 @@
     "qtyPerBox": 2.0,
     "standardCostHkd": 420.0,
     "isHoff": false,
-    "active": false,
+    "active": true,
     "_bvScSource": "hoff",
     "_entity": "Item_Card_Excel"
   },
@@ -7196,7 +7253,7 @@
     "qtyPerBox": 1.0,
     "standardCostHkd": 245.0,
     "isHoff": false,
-    "active": false,
+    "active": true,
     "_bvScSource": "hoff",
     "_entity": "Item_Card_Excel"
   },
