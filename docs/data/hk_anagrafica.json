@@ -11960,8 +11960,8 @@
     "aiem": 0
   },
   {
-    "id": "HA0058-IB",
-    "code": "",
+    "id": "ITA34",
+    "code": "ITA34",
     "nHK": "HA0058-IB",
     "description": "Mortadella \"BLU\" 3Kg - Ø14cm (2)",
     "category": "",
@@ -12000,8 +12000,8 @@
     "aiem": 0
   },
   {
-    "id": "HA7009-IB",
-    "code": "",
+    "id": "Y3133",
+    "code": "Y3133",
     "nHK": "HA7009-IB",
     "description": "Spicy Spianata Calabra approx. 2kg (2)",
     "category": "",
@@ -12320,8 +12320,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8002-IB",
-    "code": "",
+    "id": "ITA30",
+    "code": "ITA30",
     "nHK": "HA8002-IB",
     "description": "Prosciutto Crudo BOSCO  +/- 6kg (2)",
     "category": "",
@@ -12380,8 +12380,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8005-IB",
-    "code": "",
+    "id": "Y1495",
+    "code": "Y1495",
     "nHK": "HA8005-IB",
     "description": "Coppa half 1.25kg (4)",
     "category": "",
@@ -12780,8 +12780,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8036-IB",
-    "code": "",
+    "id": "SA521",
+    "code": "SA521",
     "nHK": "HA8036-IB",
     "description": "Cooked Ham \"BACIO\"1/2   4.4kg(4)",
     "category": "",
@@ -14506,9 +14506,9 @@
     "description": "LATTICINI ORCHIDEA",
     "category": "STRETCHED-CURD CHEESE",
     "uom": "PCS",
-    "qtyPerBox": 1.0,
+    "qtyPerBox": 6.0,
     "boxPerPallet": 0.0,
-    "kgPerBox": 3.0,
+    "kgPerBox": 1.0,
     "kgxplt": 0.0,
     "temperature": "FRESH",
     "bcTransportation": "CH AIR",
@@ -14526,9 +14526,9 @@
     "description": "CART. BRICIOLO MIX KG.1 (STAMPATO)- ZARPELLON",
     "category": "STRETCHED-CURD CHEESE",
     "uom": "PCS",
-    "qtyPerBox": 12.0,
+    "qtyPerBox": 10.0,
     "boxPerPallet": 0.0,
-    "kgPerBox": 1.05,
+    "kgPerBox": 1.0,
     "kgxplt": 0.0,
     "temperature": "FRESH",
     "bcTransportation": "CH AIR",
@@ -14546,9 +14546,9 @@
     "description": "CT.PARM.REGG.DOP GRATT.1 KG.OLTRE 12M",
     "category": "COW CHEESE",
     "uom": "PCS",
-    "qtyPerBox": 12.0,
+    "qtyPerBox": 10.0,
     "boxPerPallet": 0.0,
-    "kgPerBox": 1.05,
+    "kgPerBox": 1.0,
     "kgxplt": 0.0,
     "temperature": "FRESH",
     "bcTransportation": "CH AIR",

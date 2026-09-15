@@ -2232,6 +2232,14 @@
     "ifbNo": "GOU11"
   },
   {
+    "nHK": "HA0058-IB",
+    "ifbNo": "ITA34"
+  },
+  {
+    "nHK": "HA7009-IB",
+    "ifbNo": "Y3133"
+  },
+  {
     "nHK": "HA7021-IB",
     "ifbNo": "HA7021-IB"
   },
@@ -2276,6 +2284,14 @@
     "ifbNo": "ITA39"
   },
   {
+    "nHK": "HA8002-IB",
+    "ifbNo": "ITA30"
+  },
+  {
+    "nHK": "HA8005-IB",
+    "ifbNo": "Y1495"
+  },
+  {
     "nHK": "HA8006-IB",
     "ifbNo": "ITA36"
   },
@@ -2314,6 +2330,10 @@
   {
     "nHK": "HA8030-IB",
     "ifbNo": "Y5157"
+  },
+  {
+    "nHK": "HA8036-IB",
+    "ifbNo": "SA521"
   },
   {
     "nHK": "HA8037-IB",
