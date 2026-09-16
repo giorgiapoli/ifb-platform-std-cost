@@ -24836,6 +24836,34 @@
     "Branch": "MAC"
   },
   {
+    "No_": "ELT07",
+    "BV_No": "WG3004",
+    "Description": "Gin Primo  43%  700ml",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-09-15",
+    "Quantity": 1.0,
+    "Price": 415.0,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA260903908",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "ELT05",
+    "BV_No": "WG3003",
+    "Description": "\"Big Gino\" Gin  40% 1Lt(6)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-09-15",
+    "Quantity": 1.0,
+    "Price": 285.0,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA260903908",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
     "No_": "TRF13",
     "BV_No": "TF0001",
     "Description": "White Truffle",
