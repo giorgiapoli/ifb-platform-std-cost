@@ -10329,7 +10329,7 @@
     "hkUom": "KG",
     "pcsgrossweight": 0.0,
     "qtyPerBox": 25.0,
-    "standardCostHkd": 0.0,
+    "standardCostHkd": 103.145,
     "isHoff": false,
     "active": true,
     "_bvScSource": "hoff",
