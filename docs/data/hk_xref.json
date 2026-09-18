@@ -112,6 +112,10 @@
     "ifbNo": "BLS38"
   },
   {
+    "nHK": "BA0011-IN",
+    "ifbNo": "INA15"
+  },
+  {
     "nHK": "BA1001",
     "ifbNo": "ALC01"
   },
@@ -3126,10 +3130,6 @@
   {
     "nHK": "MT391",
     "ifbNo": "MT391"
-  },
-  {
-    "nHK": "MT392",
-    "ifbNo": "MT392"
   },
   {
     "nHK": "MTSCLACRYB-24",

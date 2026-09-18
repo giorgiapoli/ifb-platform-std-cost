@@ -2465,6 +2465,13 @@
   },
   {
     "code": "",
+    "nHK": "GF5009-OM-FRZ",
+    "description": "FRZ OMUGI Aus Flap Meat MB1+ approx. 2 kg",
+    "bcTransportation": "CH AIR",
+    "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
+  },
+  {
+    "code": "",
     "nHK": "GF5010-OMN",
     "description": "OMUGI Aus Chuck Eye Roll MB1+ approx 4.5 kg",
     "bcTransportation": "CH AIR",
@@ -2803,13 +2810,6 @@
     "code": "ITA55",
     "nHK": "ITA55",
     "description": "HALAL BRESAOLA BRH 1,5KG",
-    "bcTransportation": "CH AIR",
-    "vendorName": "INALCA FOOD & BEVERAGE SRL"
-  },
-  {
-    "code": "ITA88",
-    "nHK": "ITA88",
-    "description": "MORTADELLA FAVORITA WITH PISTACHIOS 5 KG DIAM 22CM SV",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -4313,8 +4313,22 @@
   },
   {
     "code": "",
+    "nHK": "TJ2040-4/5",
+    "description": "TAJMA CHILLED EYE ROUD MS4-5 (2-3 kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
     "nHK": "TJ2141-5/6",
     "description": "TAJIMA WAGYU CHILLED *S* STRIPLOIN 1 RIB M5/6 - approx. 7kg pc",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
+    "nHK": "TJ2143-4/5",
+    "description": "TAJIMA CHILLED STRIPLOIN MS4-5 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -8149,13 +8163,6 @@
   },
   {
     "code": "",
-    "nHK": "WB2040 - 4/5",
-    "description": "W BLACK CHILLED EYE ROUND MS4-5 (2-3kg)",
-    "bcTransportation": "CH AIR",
-    "vendorName": "ANDREWS MEAT INDUSTRIES"
-  },
-  {
-    "code": "",
     "nHK": "WB2091-6/7",
     "description": "W.BLACK RUMP CAP M6/7",
     "bcTransportation": "CH AIR",
@@ -8170,8 +8177,8 @@
   },
   {
     "code": "",
-    "nHK": "WB2141-5/6",
-    "description": "W BLACK WAGYU CHILLED *S* STRIPLOIN 1 RIB M5/6 - approx. 7kg pc",
+    "nHK": "WB2143-5/6",
+    "description": "W BLACK CHILLED STRIPLOIN MS5-6 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -8184,8 +8191,15 @@
   },
   {
     "code": "",
-    "nHK": "WB2210 - 4/5",
-    "description": "W BLACK CHILLED FLANK MS4-5 (2-3kg)",
+    "nHK": "WB2210-4/5",
+    "description": "W BLACK CHILLED FLANK MS4-5 (2-3 kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
+    "nHK": "WB2243-5/6",
+    "description": "W BLACK CHILLEDCUBE ROLL MS5-6 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
