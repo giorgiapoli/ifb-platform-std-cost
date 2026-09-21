@@ -77,6 +77,27 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
+    "code": "40957",
+    "nHK": "40957",
+    "description": "BONELESS STRIPLOIN 1/C MAZURA M7/M9+ SUBLIME",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "40959",
+    "nHK": "40959",
+    "description": "BONELESS RIBEYE 7/C MAZURA M7/M9+SUBLIME",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "40961",
+    "nHK": "40961",
+    "description": "FILLET MAZURA SUBLIME M7/M9+ WITHOUT CORD. S/V",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
     "code": "",
     "nHK": "44018",
     "description": "COSTATA C/O C/F 7/C CARIMA UNIQUE SV",
@@ -3711,6 +3732,13 @@
   },
   {
     "code": "",
+    "nHK": "OLS000118EL",
+    "description": "Irish Organic Salmon Fillet TD 1.5/2 Kg (12 Kg Box)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
     "nHK": "OLS0002EL",
     "description": "Farmed Turbot - 1/1.5 Kg (3 Pc box)",
     "bcTransportation": "CH AIR",
@@ -3734,6 +3762,13 @@
     "code": "",
     "nHK": "OLS0009CO",
     "description": "COQUE (3KG)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLS0030ED",
+    "description": "Omble Chevalier Entire/ Whole Artic Char 2/3 Kg (10 Kg Box)",
     "bcTransportation": "CH AIR",
     "vendorName": "Ocean's Link Fresh and Frozen Seafood"
   },
