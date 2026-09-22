@@ -2997,6 +2997,13 @@
   },
   {
     "code": "",
+    "nHK": "ITEM53-INA",
+    "description": "JULIENNE UE IN BUSTA DA 2 KG GIFFONIELLO",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
     "nHK": "ITEM5-VOL",
     "description": "Caviar Siberian V15 30g Acispenser Baeri",
     "bcTransportation": "CH AIR",
@@ -8067,6 +8074,13 @@
     "code": "",
     "nHK": "VI8003",
     "description": "Pistachio BRONTE  1 kg",
+    "bcTransportation": "CH AIR",
+    "vendorName": "FUMAGALLI DANILO SRL"
+  },
+  {
+    "code": "",
+    "nHK": "VI8004",
+    "description": "Bergamot",
     "bcTransportation": "CH AIR",
     "vendorName": "FUMAGALLI DANILO SRL"
   },
