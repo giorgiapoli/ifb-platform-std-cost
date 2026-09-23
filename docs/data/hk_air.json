@@ -3816,8 +3816,36 @@
   },
   {
     "code": "",
+    "nHK": "OLS0048LC",
+    "description": "QUEUE DE LOTTE / MONK FISH TAIL 500/1000  (3 Kg Box Origin France)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
     "nHK": "OLS0049EL",
     "description": "Farmed Seabass 600/800 (6Kg Spain))",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLS0049LC",
+    "description": "QUEUE DE LOTTE / MONK FISH TAIL 1/2 (2X PC Box Origin France)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLS0050LC",
+    "description": "QUEUE DE LOTTE / MONK FISH TAIL 2/4 (1X PC Box Origin France)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLS0051LC",
+    "description": "QUEUE DE LOTTE / MONK FISH TAIL 4 +(1X PC Box Origin France)",
     "bcTransportation": "CH AIR",
     "vendorName": "Ocean's Link Fresh and Frozen Seafood"
   },
