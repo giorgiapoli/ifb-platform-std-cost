@@ -14,7 +14,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "GRAIN FED BLACK ANGUS CUBE ROLL MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -28,7 +28,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "GRAIN FED BLACK ANGUS CUBE ROLL MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -42,7 +42,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0006",
+    "No_": "TM0006|1821420",
     "BV_No": "TM0006-SK",
     "Description": "GRAIN FED BLACK ANGUS STRIPLOIN MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -56,7 +56,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "GRAIN FED BLACK ANGUS CUBE ROLL MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -406,7 +406,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0001",
+    "No_": "TM0001|1726070",
     "BV_No": "TM1014-SK",
     "Description": "GRAIN FED SHORT RIB BONELESS AP *YP* MS2+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -854,7 +854,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM5005-SK",
+    "No_": "TM5005-SK|1720917",
     "BV_No": "TM5005-SK",
     "Description": "YP Rump Cap AP GF 2+ MSA - [2 Boxes]",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -952,7 +952,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM5005-SK",
+    "No_": "TM5005-SK|1720917",
     "BV_No": "TM5005-SK",
     "Description": "YP Rump Cap AP GF 2+ MSA - [2 Boxes]",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -1190,7 +1190,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "PACH1",
+    "No_": "PACH1|PAC01",
     "BV_No": "GC9106",
     "Description": "Panettone Classic  1kg (6)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2128,7 +2128,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "CRS06",
+    "No_": "CRS06|395.65",
     "BV_No": "CH0022-C",
     "Description": "*Pecorino Romano DOP Grated 1kg  (5)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2352,7 +2352,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0008",
+    "No_": "TM0008|1722430",
     "BV_No": "TM0008-SK",
     "Description": "GRAIN FED BLACK ANGUS CUBE ROLL MS2+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2366,7 +2366,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0012",
+    "No_": "TM0012|1822060",
     "BV_No": "TM0012-SK",
     "Description": "GRAIN FED BLACK ANGUS FLAP MEAT MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2380,7 +2380,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0011",
+    "No_": "TM0011|1825529",
     "BV_No": "TM0011-SK",
     "Description": "GRAIN FED BLACK ANGUS SHORTLOIN MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2408,7 +2408,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0003",
+    "No_": "TM0003|1726020",
     "BV_No": "TM0003-SK",
     "Description": "GRAIN FED BLACK ANGUS OP RIBS MS2+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2422,7 +2422,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0006",
+    "No_": "TM0006|1821420",
     "BV_No": "TM0006-SK",
     "Description": "GRAIN FED BLACK ANGUS STRIPLOIN MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2450,7 +2450,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0009-SK",
+    "No_": "TM0009-SK|1821600",
     "BV_No": "TM0009-SK",
     "Description": "GRAIN FED BLACK ANGUS TENDERLOIN SM OFF MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2548,7 +2548,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "46747F16",
+    "No_": "46747F16|46747",
     "BV_No": "CFS3007-VL",
     "Description": "*Comte 16-24mth AOP Fort St Antoine +/- 2kg",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -3080,7 +3080,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -3444,7 +3444,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -4256,7 +4256,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -5152,7 +5152,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0010",
+    "No_": "TM0010|1826020",
     "BV_No": "TM0010-SK",
     "Description": "GRAIN FED BLACK ANGUS OP RIBS MS4+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -5208,7 +5208,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0002",
+    "No_": "TM0002|1721420",
     "BV_No": "TM0002-SK",
     "Description": "GRAIN FED BLACK ANGUS STRIPLOIN MS2+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -5278,7 +5278,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -5908,7 +5908,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "46747F16",
+    "No_": "46747F16|46747",
     "BV_No": "CFS3007-VL",
     "Description": "*Comte 16-24mth AOP Fort St Antoine +/- 2kg",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -6258,7 +6258,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -6706,7 +6706,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -6720,7 +6720,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "ANGUS PURE CUBE ROLL MS4+(6/7kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -7308,7 +7308,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0018-SK",
+    "No_": "TM0018-SK|1726021",
     "BV_No": "TM0018-SK",
     "Description": "ANGUS PURE TOMAHAWK MS2+ (7/8KG)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -7812,7 +7812,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -7910,7 +7910,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0018-SK",
+    "No_": "TM0018-SK|1726021",
     "BV_No": "TM0018-SK",
     "Description": "ANGUS PURE TOMAHAWK MS2+ (7/8KG)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -8050,7 +8050,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "EMDP00025-B-00500",
+    "No_": "EMNDP00025-B-00500",
     "BV_No": "CF9009",
     "Description": "*#Mozza Buffalo Mini 20g*25 500G (6)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -8694,7 +8694,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0012",
+    "No_": "TM0012|1822060",
     "BV_No": "TM0012-SK",
     "Description": "ANGUS PURE FLAP MEAT MS4+(2/3kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -8890,7 +8890,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "CRS06",
+    "No_": "CRS06|395.65",
     "BV_No": "CH0022-C",
     "Description": "*Pecorino Romano DOP Grated 1kg  (5)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -8960,7 +8960,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "ANGUS PURE CUBE ROLL MS4+(6/7kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -9002,7 +9002,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -9086,7 +9086,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "ANGUS PURE CUBE ROLL MS4+(6/7kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -9170,7 +9170,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -9352,7 +9352,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "ERNNP00250-O-00250",
+    "No_": "ERNNP00250-0-00250",
     "BV_No": "CF5040-A",
     "Description": "*#Ricotta Bufalo  \"IL PARCO\"  250G (8)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -9940,7 +9940,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0012",
+    "No_": "TM0012|1822060",
     "BV_No": "TM0012-SK",
     "Description": "ANGUS PURE FLAP MEAT MS4+(2/3kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -11368,7 +11368,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -11494,7 +11494,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -11886,7 +11886,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -12040,7 +12040,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -12768,7 +12768,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "12080103030",
+    "No_": "12080103030|01080103",
     "BV_No": "PT9007",
     "Description": "#30 Orecchiette Pugl. Lm Chef 1kg (12)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -12894,7 +12894,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "31213/31234",
+    "No_": "31213|31234",
     "BV_No": "CFS0302",
     "Description": "*Occelli al Barolo +/- 1.7kg",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -12908,7 +12908,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "31031-F04",
+    "No_": "31031-F04|31031F04",
     "BV_No": "CFS0301-S",
     "Description": "*Castelmagno DOP Aged +/- 1.5kg",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13048,7 +13048,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0006",
+    "No_": "TM0006|1821420",
     "BV_No": "TM0006-SK",
     "Description": "ANGUS PURE STRIPLOIN MS4+ (6/7KG)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13062,7 +13062,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "ANGUS PURE CUBE ROLL MS4+(6/7kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13510,7 +13510,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13636,7 +13636,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -14980,7 +14980,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "CRS06",
+    "No_": "CRS06|395.65",
     "BV_No": "CH0022-C",
     "Description": "*Pecorino Romano DOP Grated 1kg  (5)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -16366,7 +16366,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -16604,7 +16604,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -16716,7 +16716,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "12080103031",
+    "No_": "12080103031|01080103",
     "BV_No": "PT9005",
     "Description": "#31 Rigatoni LM Chef 1kg (12)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -17808,7 +17808,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -18494,7 +18494,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -18886,7 +18886,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "ANGUS PURE CUBE ROLL MS4+(6/7kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -18900,7 +18900,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0006",
+    "No_": "TM0006|1821420",
     "BV_No": "TM0006-SK",
     "Description": "ANGUS PURE STRIPLOIN MS4+ (6/7KG)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -19460,7 +19460,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0007",
+    "No_": "TM0007|1822430",
     "BV_No": "TM0007-SK",
     "Description": "ANGUS PURE CUBE ROLL MS4+(6/7kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -19502,7 +19502,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -19824,7 +19824,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -20370,7 +20370,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0006",
+    "No_": "TM0006|1821420",
     "BV_No": "TM0006-SK",
     "Description": "ANGUS PURE STRIPLOIN MS4+ (6/7KG)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -21140,7 +21140,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -21392,7 +21392,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "CRS06",
+    "No_": "CRS06|395.65",
     "BV_No": "CH0022-C",
     "Description": "*Pecorino Romano DOP Grated 1kg  (5)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -21504,7 +21504,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -22036,7 +22036,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -22750,7 +22750,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "12080103006",
+    "No_": "12080103006|01080103",
     "BV_No": "PT9002",
     "Description": "#6 Linguine LM Chef 1kg (12)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -23156,7 +23156,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -23324,7 +23324,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "12080103006",
+    "No_": "12080103006|01080103",
     "BV_No": "PT9002",
     "Description": "#6 Linguine LM Chef 1kg (12)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -24052,7 +24052,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -24304,7 +24304,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -24542,7 +24542,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "CRS06",
+    "No_": "CRS06|395.65",
     "BV_No": "CH0022-C",
     "Description": "*Pecorino Romano DOP Grated 1kg  (5)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -25088,7 +25088,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "VIPRBAL-H",
+    "No_": "VIPRBAL400",
     "BV_No": "VIPRBAL-H",
     "Description": "Pure Prestige Salmon Fillet - 400g (Scotland)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -25214,7 +25214,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "CRS06",
+    "No_": "CRS06|395.65",
     "BV_No": "CH0022-C",
     "Description": "*Pecorino Romano DOP Grated 1kg  (5)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",

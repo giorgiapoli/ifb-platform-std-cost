@@ -1982,8 +1982,15 @@
   },
   {
     "code": "",
+    "nHK": "FA2128 - 4/5",
+    "description": "CHILLED THICK SKIRT(HANGING TENDER) (1-2kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "FORAGER AGRIBUSINESS PTY LTD"
+  },
+  {
+    "code": "",
     "nHK": "FA2140-4/5",
-    "description": "BEEF STRIPLOIN WAGYU M4-5",
+    "description": "CHILLED STRIPLOIN WAGYU M4-5(7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "FORAGER AGRIBUSINESS PTY LTD"
   },
@@ -2433,6 +2440,13 @@
     "nHK": "GF5001-OM",
     "description": "OMUGI Aus Striploin MB1+ 5-7 kg",
     "bcTransportation": "CH AIR",
+    "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
+  },
+  {
+    "code": "",
+    "nHK": "GF5001-OM-FRZ",
+    "description": "FRZ OMUGI Aus Striploin MB1+ 5-7 kg",
+    "bcTransportation": "FR AIR",
     "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
   },
   {
@@ -3683,13 +3697,6 @@
   },
   {
     "code": "",
-    "nHK": "OB0027",
-    "description": "Salmon Whole 4-5kg   Gutted - Scottish Label Rouge - 20/22kg/box",
-    "bcTransportation": "CH AIR",
-    "vendorName": "OYSTER BAR"
-  },
-  {
-    "code": "",
     "nHK": "OB0030",
     "description": "Farmed Seabass - 4-5KG (9kg/box)",
     "bcTransportation": "CH AIR",
@@ -3874,6 +3881,13 @@
     "code": "",
     "nHK": "OLS0073LC",
     "description": "Swordfish Fillet 2/5 kg (FA051)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLS0083EL",
+    "description": "Filet De Saumon TD/Salmon Fillet TD 1.5/2 Salmo Salar",
     "bcTransportation": "CH AIR",
     "vendorName": "Ocean's Link Fresh and Frozen Seafood"
   },
@@ -4523,7 +4537,7 @@
   },
   {
     "code": "",
-    "nHK": "TM0013-SKFRE",
+    "nHK": "TM0013-SKFRZ",
     "description": "FRZ ANGUS PURE BONE-IN SHORT RIB MEAT MS4+(2/3kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "THOMAS FOODS INTERNATIONAL PTY LTD"
