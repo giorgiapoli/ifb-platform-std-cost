@@ -9434,7 +9434,7 @@
     "bcTransportation": "FR SEA",
     "standardCostHkd": 53.01,
     "isHoff": false,
-    "active": true,
+    "active": false,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
     "vendorName2": "FIORANI & C. S.R.L.",
     "aiem": 0

@@ -1983,7 +1983,7 @@
   {
     "code": "",
     "nHK": "FA2128 - 4/5",
-    "description": "CHILLED THICK SKIRT(HANGING TENDER) (1-2kg)",
+    "description": "CHILLED THICK SKIRT(HANGING TENDER) (2kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "FORAGER AGRIBUSINESS PTY LTD"
   },
@@ -4399,20 +4399,6 @@
     "code": "",
     "nHK": "TJ2040-4/5",
     "description": "TAJMA CHILLED EYE ROUD MS4-5 (2-3 kg)",
-    "bcTransportation": "CH AIR",
-    "vendorName": "ANDREWS MEAT INDUSTRIES"
-  },
-  {
-    "code": "",
-    "nHK": "TJ2141-5/6",
-    "description": "TAJIMA WAGYU CHILLED *S* STRIPLOIN 1 RIB M5/6 - approx. 7kg pc",
-    "bcTransportation": "CH AIR",
-    "vendorName": "ANDREWS MEAT INDUSTRIES"
-  },
-  {
-    "code": "",
-    "nHK": "TJ2143-4/5",
-    "description": "TAJIMA CHILLED STRIPLOIN MS4-5 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -8122,7 +8108,7 @@
   {
     "code": "",
     "nHK": "VI8004",
-    "description": "Bergamot",
+    "description": "BERGAMOTTO CAT I",
     "bcTransportation": "CH AIR",
     "vendorName": "FUMAGALLI DANILO SRL"
   },
