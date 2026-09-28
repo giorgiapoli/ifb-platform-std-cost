@@ -77,6 +77,13 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
+    "code": "27691",
+    "nHK": "27691",
+    "description": "LOMBATA B.A. C/O S/V 1C CARIMA RARE",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
     "code": "40957",
     "nHK": "40957",
     "description": "BONELESS STRIPLOIN 1/C MAZURA M7/M9+ SUBLIME",
@@ -135,8 +142,15 @@
   {
     "code": "",
     "nHK": "ABG1602-3",
-    "description": "Chilled Boneless Grain Fed MB3+ Op Ribs (Short Bone)",
+    "description": "Chilled Bon in Grain Fed MB3+ Op Ribs (Short Bone)",
     "bcTransportation": "CH AIR",
+    "vendorName": "ABG Australian Beef Group"
+  },
+  {
+    "code": "",
+    "nHK": "ABG1602-3CUT-FRZ",
+    "description": "FRZ 1 KG  Bon In Op Ribs Grain Fed MB3+ Op Ribs",
+    "bcTransportation": "FR AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
@@ -151,6 +165,13 @@
     "nHK": "ABG1696-2",
     "description": "Chilled BONE IN Grain Fed MB2+Chuck Rib",
     "bcTransportation": "CH AIR",
+    "vendorName": "ABG Australian Beef Group"
+  },
+  {
+    "code": "",
+    "nHK": "ABG1696-2-FRZ",
+    "description": "FRZ BONE IN Grain Fed MB2+Chuck Rib",
+    "bcTransportation": "FR AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
@@ -4202,7 +4223,7 @@
   {
     "code": "TAM42",
     "nHK": "TAM42",
-    "description": "STRAWBERRIES DIPPED IN 55% DARK CHOCOLATE 60 G",
+    "description": "FRAGOLE INTINTE IN CIOCCOLATO FONDENTE 55% 60 G",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -6806,7 +6827,7 @@
   {
     "code": "",
     "nHK": "VH14035-P",
-    "description": "RADISHES RED/WHITE 150g WITH LEAVES",
+    "description": "RADISHES RED/WHITE 10 X 150g WITH LEAVES",
     "bcTransportation": "CH AIR",
     "vendorName": "RD PRODUCE BV"
   },

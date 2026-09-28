@@ -220,6 +220,26 @@
     "aiem": 0
   },
   {
+    "id": "27691",
+    "code": "27691",
+    "nHK": "27691",
+    "description": "LOMBATA B.A. C/O S/V 1C CARIMA RARE",
+    "category": "BEEF",
+    "uom": "KG",
+    "qtyPerBox": 1.0,
+    "boxPerPallet": 36.0,
+    "kgPerBox": 0.0,
+    "kgxplt": 504.0,
+    "temperature": "FRESH",
+    "bcTransportation": "CH AIR",
+    "standardCostHkd": 0.0,
+    "isHoff": true,
+    "active": true,
+    "vendorName": "INALCA FOOD & BEVERAGE SRL",
+    "vendorName2": "INALCA S.P.A. A SOCIO UNICO",
+    "aiem": 0
+  },
+  {
     "id": "35754",
     "code": "",
     "nHK": "35754",
@@ -12040,8 +12060,8 @@
     "aiem": 0
   },
   {
-    "id": "HA0060-IB",
-    "code": "",
+    "id": "SA372",
+    "code": "SA372",
     "nHK": "HA0060-IB",
     "description": "Mortadella PISTACHIO 2,5Kg - Ø14cm (2)",
     "category": "",
@@ -24963,7 +24983,7 @@
     "id": "TAM42",
     "code": "TAM42",
     "nHK": "TAM42",
-    "description": "STRAWBERRIES DIPPED IN 55% DARK CHOCOLATE 60 G",
+    "description": "FRAGOLE INTINTE IN CIOCCOLATO FONDENTE 55% 60 G",
     "category": "DESSERTS AND PREPARATIONS",
     "uom": "PCS",
     "qtyPerBox": 12.0,
