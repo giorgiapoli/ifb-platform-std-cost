@@ -525,6 +525,13 @@
     "vendorName": "AVIGROS"
   },
   {
+    "code": "",
+    "nHK": "AVCOTE",
+    "description": "PORK CHOP WITH TENDERLOIN (5 kg Box )",
+    "bcTransportation": "CH AIR",
+    "vendorName": "AVIGROS"
+  },
+  {
     "code": "BLS37",
     "nHK": "BA0001-IN",
     "description": "Balsamic Vinegar 25 Years DOP 100ml (1)",
@@ -1366,13 +1373,6 @@
   },
   {
     "code": "",
-    "nHK": "CF9003",
-    "description": "MOZZ.BUFALIA DI LATTE DI BUFALA (AFF.) 125/250",
-    "bcTransportation": "CH AIR",
-    "vendorName": "SOCIETA' AGRICOLA IL PARCO DI CASTIGLIEGO MARIA&C."
-  },
-  {
-    "code": "",
     "nHK": "CF9007-A",
     "description": "♦Braid Bufala Mozz IL PARCO DOP 1Kg(2)",
     "bcTransportation": "CH AIR",
@@ -1396,6 +1396,13 @@
     "code": "",
     "nHK": "CF9011",
     "description": "MOZZARELLA DI BUFALA CAMPANA 1kg  IL PARCO ZIZZONA DOP",
+    "bcTransportation": "CH AIR",
+    "vendorName": "SOCIETA' AGRICOLA IL PARCO DI CASTIGLIEGO MARIA&C."
+  },
+  {
+    "code": "",
+    "nHK": "CF9012",
+    "description": "Smoked Buffalo Milk Mozzarella 125gx2 IL PARCO",
     "bcTransportation": "CH AIR",
     "vendorName": "SOCIETA' AGRICOLA IL PARCO DI CASTIGLIEGO MARIA&C."
   },
@@ -2592,7 +2599,7 @@
   {
     "code": "",
     "nHK": "GF702-OM",
-    "description": "OMUGI Chilled BONE IN Grain Fed MB1+ Short Loin",
+    "description": "OMUGI Chilled BONE IN Grain Fed MB1+ Short Loin (approx. 12 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
   },
@@ -3606,6 +3613,13 @@
   },
   {
     "code": "",
+    "nHK": "NOBOL/50",
+    "description": "NOTTER BOLIVIAN SALT  50GR TIN (120 UNIT BOX )",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
+  },
+  {
+    "code": "",
     "nHK": "NOHA3/5",
     "description": "Nordic Halibut - Chilled - Whole Head-on gutted - 3-5 Kgs / pc",
     "bcTransportation": "CH AIR",
@@ -3645,6 +3659,41 @@
     "description": "Nordic Halibut - Chilled - Whole Head-on gutted - 9+ Kgs / pc",
     "bcTransportation": "CH AIR",
     "vendorName": "NORDIC HALIBUT AS"
+  },
+  {
+    "code": "",
+    "nHK": "NONOR/50",
+    "description": "NOTTER NORI CASHEW MIX 50GR TIN (120 UNIT BOX )",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
+  },
+  {
+    "code": "",
+    "nHK": "NONOR/80",
+    "description": "NOTTER NORI CASHEW MIX 80GR TIN (60 UNIT BOX )",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
+  },
+  {
+    "code": "",
+    "nHK": "NOREJ/50",
+    "description": "NOTTER REJUVENATE MIX 50GR TIN (120 UNIT BOX )",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
+  },
+  {
+    "code": "",
+    "nHK": "NOREJ/80",
+    "description": "NOTTER REJUVENATE MIX 80GR TIN (60 UNIT BOX )",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
+  },
+  {
+    "code": "",
+    "nHK": "NOSEA/50",
+    "description": "NOTTER SEAWEED TRAIL MIX 50GR TIN (120 UNIT BOX )",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
   },
   {
     "code": "",
