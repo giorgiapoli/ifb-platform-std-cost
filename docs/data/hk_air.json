@@ -1744,6 +1744,13 @@
   },
   {
     "code": "",
+    "nHK": "CFS5019",
+    "description": "UBRIACO CHEESE RED WINE MORO 6.7 KG",
+    "bcTransportation": "CH AIR",
+    "vendorName": "VALSANA SRL"
+  },
+  {
+    "code": "",
     "nHK": "CFY3010",
     "description": "Greek Yogurt 1kg",
     "bcTransportation": "CH AIR",
@@ -3430,6 +3437,13 @@
     "vendorName": "MARIE-LUXE"
   },
   {
+    "code": "MNC39",
+    "nHK": "MNC39",
+    "description": "CHICKPEAS 500 G BAG",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
     "code": "",
     "nHK": "MW0000-SK",
     "description": "Mulwarra Export PTY LTD",
@@ -3614,7 +3628,14 @@
   {
     "code": "",
     "nHK": "NOBOL/50",
-    "description": "NOTTER BOLIVIAN SALT  50GR TIN (120 UNIT BOX )",
+    "description": "NOTTER BOLIVIAN SALT  50GR TIN (120)",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
+  },
+  {
+    "code": "",
+    "nHK": "NOBOL/80",
+    "description": "NOTTER BOLIVIAN SALT  80GR TIN (60)",
     "bcTransportation": "DRY AIR",
     "vendorName": "ARTISAN SUPER FOOD PTE LTD"
   },
@@ -3663,35 +3684,49 @@
   {
     "code": "",
     "nHK": "NONOR/50",
-    "description": "NOTTER NORI CASHEW MIX 50GR TIN (120 UNIT BOX )",
+    "description": "NOTTER NORI CASHEW MIX 50GR TIN (120)",
     "bcTransportation": "DRY AIR",
     "vendorName": "ARTISAN SUPER FOOD PTE LTD"
   },
   {
     "code": "",
     "nHK": "NONOR/80",
-    "description": "NOTTER NORI CASHEW MIX 80GR TIN (60 UNIT BOX )",
+    "description": "NOTTER NORI CASHEW MIX 80GR TIN (60)",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
+  },
+  {
+    "code": "",
+    "nHK": "NOORI/80",
+    "description": "NOTTER THE ORIENTAL CRUNCH 80GR TIN (60)",
     "bcTransportation": "DRY AIR",
     "vendorName": "ARTISAN SUPER FOOD PTE LTD"
   },
   {
     "code": "",
     "nHK": "NOREJ/50",
-    "description": "NOTTER REJUVENATE MIX 50GR TIN (120 UNIT BOX )",
+    "description": "NOTTER REJUVENATE MIX 50GR TIN (120)",
     "bcTransportation": "DRY AIR",
     "vendorName": "ARTISAN SUPER FOOD PTE LTD"
   },
   {
     "code": "",
     "nHK": "NOREJ/80",
-    "description": "NOTTER REJUVENATE MIX 80GR TIN (60 UNIT BOX )",
+    "description": "NOTTER REJUVENATE MIX 80GR TIN (60)",
     "bcTransportation": "DRY AIR",
     "vendorName": "ARTISAN SUPER FOOD PTE LTD"
   },
   {
     "code": "",
     "nHK": "NOSEA/50",
-    "description": "NOTTER SEAWEED TRAIL MIX 50GR TIN (120 UNIT BOX )",
+    "description": "NOTTER SEAWEED TRAIL MIX 50GR TIN (120)",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "ARTISAN SUPER FOOD PTE LTD"
+  },
+  {
+    "code": "",
+    "nHK": "NOSEA/80",
+    "description": "NOTTER SEAWEED TRAIL MIX 80GR TIN (60)",
     "bcTransportation": "DRY AIR",
     "vendorName": "ARTISAN SUPER FOOD PTE LTD"
   },
@@ -3942,6 +3977,13 @@
   },
   {
     "code": "",
+    "nHK": "OLS0071EL",
+    "description": "Farmed Seabass 1400/1800 (12Kg Spain)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
     "nHK": "OLS0072EL",
     "description": "Farmed Seabass 1800/2600 (12Kg Spain)",
     "bcTransportation": "CH AIR",
@@ -3965,6 +4007,13 @@
     "code": "",
     "nHK": "OLS0083EL",
     "description": "Filet De Saumon TD/Salmon Fillet TD 1.5/2 Salmo Salar",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLSHU0138",
+    "description": "LA SPECIALE DE BRETAGNE N4 (270 PC PER CASE)",
     "bcTransportation": "CH AIR",
     "vendorName": "Ocean's Link Fresh and Frozen Seafood"
   },
@@ -4272,14 +4321,14 @@
   {
     "code": "TAM41",
     "nHK": "TAM41",
-    "description": "STRAWBERRIES DIPPED IN 55% DARK CHOCOLATE 350 G",
+    "description": "FRAGOLE INTINTE IN CIOCCOLATO FONDENTE 55% 350 G",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "TAM42",
     "nHK": "TAM42",
-    "description": "FRAGOLE INTINTE IN CIOCCOLATO FONDENTE 55% 60 G",
+    "description": "FRAGOLE INTINTE IN CIOCCOLATO FONDENTE 55% 60 G X 12",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },

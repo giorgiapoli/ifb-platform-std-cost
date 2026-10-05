@@ -2876,6 +2876,10 @@
     "ifbNo": "MNC38"
   },
   {
+    "nHK": "MNC39",
+    "ifbNo": "MNC39"
+  },
+  {
     "nHK": "MNP13",
     "ifbNo": "MNP13"
   },
@@ -4020,6 +4024,30 @@
     "ifbNo": "SUABORDB-24"
   },
   {
+    "nHK": "TA100",
+    "ifbNo": "TA100"
+  },
+  {
+    "nHK": "TA101",
+    "ifbNo": "TA101"
+  },
+  {
+    "nHK": "TA102",
+    "ifbNo": "TA102"
+  },
+  {
+    "nHK": "TA103",
+    "ifbNo": "TA103"
+  },
+  {
+    "nHK": "TA104",
+    "ifbNo": "TA104"
+  },
+  {
+    "nHK": "TA105",
+    "ifbNo": "TA105"
+  },
+  {
     "nHK": "TAM01",
     "ifbNo": "TAM01"
   },
@@ -4150,6 +4178,30 @@
   {
     "nHK": "TAM63",
     "ifbNo": "TAM63"
+  },
+  {
+    "nHK": "TAM91",
+    "ifbNo": "TAM91"
+  },
+  {
+    "nHK": "TAM92",
+    "ifbNo": "TAM92"
+  },
+  {
+    "nHK": "TAM96",
+    "ifbNo": "TAM96"
+  },
+  {
+    "nHK": "TAM97",
+    "ifbNo": "TAM97"
+  },
+  {
+    "nHK": "TAM98",
+    "ifbNo": "TAM98"
+  },
+  {
+    "nHK": "TAM99",
+    "ifbNo": "TAM99"
   },
   {
     "nHK": "TASPIANOPLBOMB-21",
@@ -4630,6 +4682,26 @@
   {
     "nHK": "WALT13-20",
     "ifbNo": "SMPADOSKT-20"
+  },
+  {
+    "nHK": "WAZE01-22",
+    "ifbNo": "AZEBARO-22"
+  },
+  {
+    "nHK": "WAZE02-22",
+    "ifbNo": "AZEBFIA-22"
+  },
+  {
+    "nHK": "WAZE03-22",
+    "ifbNo": "AZEBSRO-22"
+  },
+  {
+    "nHK": "WAZE04-22",
+    "ifbNo": "AZEBMAR-22"
+  },
+  {
+    "nHK": "WAZE05-22",
+    "ifbNo": "AZEBCER-22"
   },
   {
     "nHK": "WB1001",
