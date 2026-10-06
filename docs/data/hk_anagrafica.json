@@ -136,7 +136,7 @@
     "isHoff": true,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "INALCA S.P.A. A SOCIO UNICO",
     "aiem": 0
   },
   {
@@ -296,7 +296,7 @@
     "isHoff": true,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "INALCA S.P.A. A SOCIO UNICO",
     "aiem": 0
   },
   {
@@ -316,7 +316,7 @@
     "isHoff": true,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "INALCA S.P.A. A SOCIO UNICO",
     "aiem": 0
   },
   {
@@ -336,7 +336,7 @@
     "isHoff": true,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "INALCA S.P.A. A SOCIO UNICO",
     "aiem": 0
   },
   {
@@ -356,7 +356,7 @@
     "isHoff": true,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "INALCA S.P.A. A SOCIO UNICO",
     "aiem": 0
   },
   {
@@ -776,7 +776,7 @@
     "isHoff": false,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "INALCA S.P.A. A SOCIO UNICO",
     "aiem": 0
   },
   {
@@ -1896,7 +1896,7 @@
     "isHoff": false,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "CASEARIA CIOFFI SPA",
     "aiem": 0
   },
   {
@@ -18292,7 +18292,7 @@
     "kgxplt": 540.0,
     "temperature": "DRY",
     "bcTransportation": "DRY AIR",
-    "standardCostHkd": 0.0,
+    "standardCostHkd": 45.0,
     "isHoff": false,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
@@ -23696,7 +23696,7 @@
     "isHoff": false,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "ITALIA ALIMENTARI S.P.A.",
     "aiem": 0
   },
   {
@@ -40596,7 +40596,7 @@
     "isHoff": false,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "",
+    "vendorName2": "MARR S.P.A.",
     "aiem": 0
   },
   {
