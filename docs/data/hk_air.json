@@ -142,91 +142,91 @@
   {
     "code": "",
     "nHK": "ABG1602-3",
-    "description": "Chilled Bon in Grain Fed MB3+ Op Ribs (Short Bone)",
+    "description": "Chilled Bon in Grain Fed MB3+ Op Ribs (Short Bone)(10/12KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG1615-2",
-    "description": "Chilled Grain Fed MB2+ Chuck Roll Bon - in",
+    "description": "Chilled Grain Fed MB2+ Chuck Roll Bon - In(10/12 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG1696-2",
-    "description": "Chilled BONE IN Grain Fed MB2+Chuck Rib",
+    "description": "Chilled BONE IN Grain Fed MB2+Chuck Rib(2/3KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2040-2",
-    "description": "Chilled Boneless Grain Fed MB2+ Eye Round",
+    "description": "Chilled Boneless Grain Fed MB2+ Eye Round(2 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2091-2",
-    "description": "Chilled Boneless Grain Fed MB2+ Rump Cap",
+    "description": "Chilled Boneless Grain Fed MB2+ Rump Cap(2/3KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2141-3",
-    "description": "Chilled Boneless Grain Fed MB3+ Striploin",
+    "description": "Chilled Boneless Grain Fed MB3+ Striploin(6/7 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2142-2",
-    "description": "Chilled Boneless Grain Fed MB2+ Striploin",
+    "description": "Chilled Boneless Grain Fed MB2+ Striploin (6/7 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2206-2",
-    "description": "Chilled Boneless Grain Fed MB2+ Flap Meat",
+    "description": "Chilled Boneless Grain Fed MB2+ Flap Meat(2/3 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2206-3",
-    "description": "Chilled Boneless Grain Fed MB3+ Flap Meat",
+    "description": "Chilled Boneless Grain Fed MB3+ Flap Meat(2/3KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2210-2",
-    "description": "Chilled Boneless Grain Fed MB1-2+Flank Steak",
+    "description": "Chilled Boneless Grain Fed MB1-2+Flank Steak(2/3 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2243-2",
-    "description": "Chilled Boneless Grain Fed MB2+ Cube Roll",
+    "description": "Chilled Boneless Grain Fed MB2+ Cube Roll(6/7 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2243-3",
-    "description": "Chilled Boneless Grain Fed MB3+ Cube Roll",
+    "description": "Chilled Boneless Grain Fed MB3+ Cube Roll(7/8KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
   {
     "code": "",
     "nHK": "ABG2351-2",
-    "description": "Chilled Boneless Grain Fed MB2+ Point End Brisket Deckle Off",
+    "description": "Chilled Boneless Grain Fed MB2+ Point End Brisket Deckle Off(2/3 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
@@ -324,7 +324,7 @@
   {
     "code": "",
     "nHK": "AN0005-SK",
-    "description": "W BLACK CHILLED THICK SKIRT(HANGING TENDER) (1-2kg)",
+    "description": "W BLACK CHILLED THICK SKIRT(HANGING TENDER) (2-3kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -352,7 +352,7 @@
   {
     "code": "",
     "nHK": "AN0008-SK",
-    "description": "W BLACK CHILLED CUBE ROLL MS8-9 (5-7kg)",
+    "description": "W BLACK CHILLED CUBE ROLL MS8-9 (6-8kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -422,7 +422,7 @@
   {
     "code": "",
     "nHK": "AN5007-SK",
-    "description": "TAJIMA CHILLED THICK SKIRT(HANGING TENDER) MS4-5",
+    "description": "TAJIMA CHILLED THICK SKIRT(HANGING TENDER)2/3 KG  MS4-5",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -2709,6 +2709,13 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
+    "code": "HA7023-IB",
+    "nHK": "HA7023-IB",
+    "description": "*#♦Sliced Coppa di Parma IGT 80gx10",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
     "code": "HA7024-IB",
     "nHK": "HA7024-IB",
     "description": "Sliced Antipasto Emiliano 120g x 10 / Ctn",
@@ -3082,105 +3089,105 @@
   {
     "code": "",
     "nHK": "JC1552-5/180",
-    "description": "JACK'S CREEK SHORTLOIN M5 - 180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK SHORTLOIN M5 - 180 DAYS BLACK ANGUS(10/12 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC1592-3/180",
-    "description": "JACK'S CREEK TOMAHAW M3 - 180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK TOMAHAW M3 - 180 DAYS BLACK ANGUS(7/8 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC1600-3/130",
-    "description": "JACK'S CREEK OP RIB M3 -130 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK OP RIB M3 -130 DAYS BLACK ANGUS(10/12 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC1600-3/180",
-    "description": "JACK'S CREEK OP RIB M3 -180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK OP RIB M3 -180 DAYS BLACK ANGUS(10/12 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2091-3/130",
-    "description": "JACK'S CREEK RUMP CAP M3 -130 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK RUMP CAP M3 -130 DAYS BLACK ANGUS(2/3KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2100-5/180",
-    "description": "JACK'S CREEK D-RUMP M5 - 180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK D-RUMP M5 - 180 DAYS BLACK ANGUS(8/10 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2140-3/130",
-    "description": "JACK'S CREEK STRIPLOIN M3 - 130 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK STRIPLOIN M3 - 130 DAYS BLACK ANGUS(7/8 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2140-3/180",
-    "description": "JACK'S CREEK STRIPLOIN M3 -180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK STRIPLOIN M3 -180 DAYS BLACK ANGUS(7/8 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2140-5/180",
-    "description": "JACK'S CREEK STRIPLOIN M5 - 180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK STRIPLOIN M5 - 180 DAYS BLACK ANGUS(7/8 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2206-3/180",
-    "description": "JACK'S CREEK FLAP MEAT M3 -180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK FLAP MEAT M3 -180 DAYS BLACK ANGUS(2/3 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2210-3/180",
-    "description": "JACK'S CREEK FLANK STEAK M3 - 180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK FLANK STEAK M3 - 180 DAYS BLACK ANGUS(2/3 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2240-3/130",
-    "description": "JACK'S CREEK CUBE ROLL M3- 130 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK CUBE ROLL M3- 130 DAYS BLACK ANGUS(7/8 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2240-5/180",
-    "description": "JACK'S CREEK CUBE ROLL M5- 180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK CUBE ROLL M5- 180 DAYS BLACK ANGUS(7/8 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2303-5/180",
-    "description": "JACK'S CREEK OYSTER BLADE M5 - 180 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK OYSTER BLADE M5 - 180 DAYS BLACK ANGUS(10/12 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2350-3/130",
-    "description": "JACK'S CREEK POINT END BRISKET DECKLE OFF M3-130 DAYS BLACK ANGUS",
+    "description": "JACK'S CREEK POINT END BRISKET DECKLE OFF M3-130 DAYS BLACK ANGUS(2/3 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
