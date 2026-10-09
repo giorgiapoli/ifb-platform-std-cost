@@ -23,7 +23,7 @@
   {
     "code": "26369",
     "nHK": "26369",
-    "description": "BONE-IN SHORT LOIN MAZURA DIVINE VS",
+    "description": "BONE-IN SHORT LOIN Mazura Divine Vs",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -44,7 +44,7 @@
   {
     "code": "26656",
     "nHK": "26656",
-    "description": "BONE IN SHORT LOIN 1/RIB CARIMA RARE",
+    "description": "Bone In SHORT LOIN 1/Rib Carima Rare",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -65,7 +65,7 @@
   {
     "code": "26674",
     "nHK": "26674",
-    "description": "BON-IN 7 RIBS ENTRECOTE MAZURA DIVINE VS",
+    "description": "Bon-In 7 Ribs Entrecote Mazura Divine Vs",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -105,7 +105,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "44018",
     "nHK": "44018",
     "description": "COSTATA C/O C/F 7/C CARIMA UNIQUE SV",
     "bcTransportation": "CH AIR",
@@ -310,7 +310,7 @@
   {
     "code": "",
     "nHK": "AN0002-SK",
-    "description": "W BLACK CHILLED CUBE ROLL  MS4-5 (5-7kg)",
+    "description": "W BLACK Chilled CUBE ROLL  MS4-5 (5-7kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -331,7 +331,7 @@
   {
     "code": "",
     "nHK": "AN0006-SK",
-    "description": "W BLACK CHILLED STRIPLOIN MS6-7 (7-8.5 kg)",
+    "description": "W BLACK Chilled  STRIPLOIN MS6-7 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -359,7 +359,7 @@
   {
     "code": "",
     "nHK": "AN0009-SK",
-    "description": "W BLACK CHILLED STRIPLOIN MS8-9 (7-8.5 kg)",
+    "description": "W BLACK Chilled STRIPLOIN MS8-9 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -422,7 +422,7 @@
   {
     "code": "",
     "nHK": "AN5007-SK",
-    "description": "TAJIMA CHILLED THICK SKIRT(HANGING TENDER)2/3 KG  MS4-5",
+    "description": "TAJIMA Chilled THICK SKIRT(Hanging Tender)2/3 KG  MS4-5",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -450,42 +450,42 @@
   {
     "code": "",
     "nHK": "AP2091-4-FRZ",
-    "description": "FRZ ANGUS PURE RUMP CAP MS4+(2/3kg)",
+    "description": "FRZ Angus Pure RUMP CAP MS4+(2/3kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "THOMAS FOODS INTERNATIONAL PTY LTD"
   },
   {
     "code": "",
     "nHK": "AP2160FRZ-2",
-    "description": "FRZ ANGUS PURE TENDERLOIN MS2+ (3/4KG)",
+    "description": "FRZ Angus Pure TENDERLOIN MS2+ (3/4KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "THOMAS FOODS INTERNATIONAL PTY LTD"
   },
   {
     "code": "",
     "nHK": "AP2206FRZ-2",
-    "description": "FRZ ANGUS PURE FLAP MEAT MS2+(2/3kg)",
+    "description": "FRZ Angus Pure FLAP MEAT MS2+(2/3kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "THOMAS FOODS INTERNATIONAL PTY LTD"
   },
   {
     "code": "APF68",
     "nHK": "APF68",
-    "description": "LIOPHILIZED CHANTERELLE MUSHROOMS CREAM 80GR TIN",
+    "description": "Liophilized Chanterelle Mushrooms Cream 80gr(6)",
     "bcTransportation": "DRY AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "APF69",
     "nHK": "APF69",
-    "description": "LIOPHILIZED GENOVESE PESTO 80GR TIN",
+    "description": "Liophilized Genovese Pesto 80gr(6)",
     "bcTransportation": "DRY AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "APF70",
     "nHK": "APF70",
-    "description": "LIOPHILIZED GENOVESE PESTO AND SUMMER TRUFFLE 80GR TIN",
+    "description": "Liophilized Genovese Pesto And Summer Truffle 80gr (6)",
     "bcTransportation": "DRY AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -1787,7 +1787,7 @@
   {
     "code": "CPS03-HK",
     "nHK": "CPS03-HKFRZ",
-    "description": "FRZ BURRATA FRESCO GOURMET 2X125 G HK (8)",
+    "description": "FRZ Burrata Fresco Gourmet 2x125 G Hk (8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -1806,7 +1806,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "24439",
     "nHK": "CRM015-FRZ",
     "description": "FRZ Carima - Heart of Rump - Selection - Approx 3.5 Kgs / pc",
     "bcTransportation": "CH AIR",
@@ -2011,7 +2011,7 @@
   {
     "code": "",
     "nHK": "FA2128 - 4/5",
-    "description": "W BLACK CHILLED THICK SKIRT(HANGING TENDER) (1-2kg)",
+    "description": "W BLACK Chilled THICK SKIRT(Hanging Tender) (1-2kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "FORAGER AGRIBUSINESS PTY LTD"
   },
@@ -2598,6 +2598,13 @@
   },
   {
     "code": "",
+    "nHK": "GF5020-OM/FRZ",
+    "description": "FRZ OMUGI Aus Bone-in Chuck Short Ribs approx. 3KG",
+    "bcTransportation": "CH AIR",
+    "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
+  },
+  {
+    "code": "",
     "nHK": "GF5021-OM",
     "description": "FRZ OMUGI Beef Trimming 50CL ~25kg/box",
     "bcTransportation": "FR AIR",
@@ -2751,7 +2758,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "ITA70",
     "nHK": "HA8004-IB",
     "description": "Coppa di Parma IGP half 900gr (4)",
     "bcTransportation": "CH AIR",
@@ -2863,7 +2870,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "IGR01",
     "nHK": "IGR01",
     "description": "SWEET GORGONZOLA DOP CHEESE CASA LEONARDI 1/8 1,5KG EXPORT",
     "bcTransportation": "CH AIR",
@@ -3103,7 +3110,7 @@
   {
     "code": "",
     "nHK": "JC1600-3/130",
-    "description": "JACK'S CREEK OP RIB M3 -130 DAYS BLACK ANGUS(10/12 KG)",
+    "description": "Jack's Creek Op Rib M3 -130 Days Black Angus(10/12 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3117,7 +3124,7 @@
   {
     "code": "",
     "nHK": "JC2091-3/130",
-    "description": "JACK'S CREEK RUMP CAP M3 -130 DAYS BLACK ANGUS(2/3KG)",
+    "description": "Jack's Creek Rump Cap M3 -130 Days Black Angus(2/3kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3131,7 +3138,7 @@
   {
     "code": "",
     "nHK": "JC2140-3/130",
-    "description": "JACK'S CREEK STRIPLOIN M3 - 130 DAYS BLACK ANGUS(7/8 KG)",
+    "description": "Jack's Creek Striploin M3 - 130 Days Black Angus(7/8 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3145,7 +3152,7 @@
   {
     "code": "",
     "nHK": "JC2140-5/180",
-    "description": "JACK'S CREEK STRIPLOIN M5 - 180 DAYS BLACK ANGUS(7/8 KG)",
+    "description": "Jack's Creek STRIPLOIN M5 - 180 Days Black Angus(7/8 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3243,7 +3250,7 @@
   {
     "code": "LVC11-EN",
     "nHK": "LVC11-EN-DEF",
-    "description": "BURRATA WITH TOP KNOT LA VERACE TUB 125 G (8)",
+    "description": "Burrata With Top Knot La Verace Tub 125 G (8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -4608,7 +4615,7 @@
   {
     "code": "",
     "nHK": "TJ2160FRZ-4/5",
-    "description": "FRZ TAJIMA WAGYU *S* OX TENDERLOIN SS/OFF IW/VAC MB4-5",
+    "description": "FRZ TAJIMA Wagyu *S* OX TENDERLOIN Ss/Off Iw/Vac Mb4-5",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -4769,7 +4776,7 @@
   {
     "code": "",
     "nHK": "TM0016-SKFRZ",
-    "description": "FRZ BONELESS BEEF *YP-ISK* INSIDE SKIRT IW/VAC GRAIN FED ANGUS PURE MB:4+ MC:1B-4 FC:0-3",
+    "description": "Frz Boneless Beef *Yp-Isk* Inside Skirt Iw/Vac Grain Fed Angus Pure Mb:4+ Mc:1b-4 Fc:0-3",
     "bcTransportation": "CH AIR",
     "vendorName": "THOMAS FOODS INTERNATIONAL PTY LTD"
   },
@@ -8444,21 +8451,21 @@
   {
     "code": "",
     "nHK": "WB2100-8/9",
-    "description": "W BLACK CHILLED D-RUMP MS8-9 (6-8kg)",
+    "description": "W BLACK Chilled D-RUMP MS8-9 (6-8kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
   {
     "code": "",
     "nHK": "WB2143-5/6",
-    "description": "W BLACK CHILLED STRIPLOIN MS5-6 (7-8.5 kg)",
+    "description": "W BLACK Chilled STRIPLOIN MS5-6 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
   {
     "code": "",
     "nHK": "WB2160FRZ-4/5",
-    "description": "FRZ W BLACK TENDERLOIN MS4-5 (2-3kg)",
+    "description": "FRZ W Black Tenderloin Ms4-5 (2-3kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
@@ -8528,70 +8535,70 @@
   {
     "code": "Z2618",
     "nHK": "Z2618",
-    "description": "MONTASIO CHEESE PDO WHEEL",
+    "description": "Montasio Cheese Pdo Wheel",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "Z3301",
     "nHK": "Z3301",
-    "description": "MOZZARELLA CHERRIES MORO 10GR 2X1KG",
+    "description": "Mozzarella Cherries Moro 10gr 2x1kg",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "Z4555",
     "nHK": "Z4555",
-    "description": "GRANA PADANO 300GR VP",
+    "description": "Grana Padano 300gr Vp",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "ZAR02",
     "nHK": "ZAR02",
-    "description": "PARMIGIANO REGGIANO OVER 22M 2 KG 1/16 SV(8)",
+    "description": "Parmigiano Reggiano Over 22m 2 Kg 1/16 Sv(8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "ZAR03",
     "nHK": "ZAR03",
-    "description": "FORMAGGIO DURO NOSTRALE  2 KG 1/16 SV(8)",
+    "description": "Formaggio Duro Nostrale 2 Kg 1/16 Sv(8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "ZAR04",
     "nHK": "ZAR04",
-    "description": "GRANA PADANO DOP 14M 2 KG 1/16 SV(8)",
+    "description": "Grana Padano Dop 14m 2 Kg 1/16 Sv(8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "",
     "nHK": "ZAR12",
-    "description": "GRANA PADANO PDO 16M 1/2 TRASV.BOX SV",
+    "description": "Grana Padano Pdo 16m 1/2 Trasv.Box Sv",
     "bcTransportation": "CH AIR",
     "vendorName": ""
   },
   {
     "code": "ZAR13",
     "nHK": "ZAR13",
-    "description": "GRANA PADANO PDO 16M 2 KG 1/16",
+    "description": "Grana Padano Pdo 16m 2 Kg 1/16",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "ZAR14",
     "nHK": "ZAR14",
-    "description": "GRANA PADANO PDO LOGO OVER 16M 1/8 SV",
+    "description": "Grana Padano Pdo Logo Over 16m 1/8 Sv (8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "",
     "nHK": "ZAR15",
-    "description": "PARMIGIANO REGGIANO 22-24M 1/8 SV",
+    "description": "Parmigiano Reggiano 22-24m 1/8 Sv (8)",
     "bcTransportation": "CH AIR",
     "vendorName": ""
   }
