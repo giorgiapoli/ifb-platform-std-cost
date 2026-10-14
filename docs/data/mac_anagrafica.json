@@ -9321,7 +9321,7 @@
     "uom": "PCS",
     "hkUom": "PCS",
     "pcsgrossweight": 0.06,
-    "qtyPerBox": 1.0,
+    "qtyPerBox": 12.0,
     "standardCostHkd": 20.84485,
     "isHoff": false,
     "active": true,

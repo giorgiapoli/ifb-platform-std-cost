@@ -79,7 +79,7 @@
   {
     "code": "27691",
     "nHK": "27691",
-    "description": "LOMBATA B.A. C/O S/V 1C CARIMA RARE",
+    "description": "Lombata B.A. C/O S/V 1c Carima Rare",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -1640,7 +1640,7 @@
   {
     "code": "",
     "nHK": "CFS3006-VL",
-    "description": "COMTE' MELODIE MEULE AOP",
+    "description": "Comte' Melodie Meule Aop",
     "bcTransportation": "CH AIR",
     "vendorName": "VALSANA SRL"
   },
@@ -2886,14 +2886,14 @@
   {
     "code": "IGR01",
     "nHK": "IGR01",
-    "description": "SWEET GORGONZOLA DOP CHEESE CASA LEONARDI 1/8 1,5KG EXPORT",
+    "description": "Sweet Gorgonzola Dop Cheese Casa Leonardi 1/8 1,5kg Export",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "IGR-03",
     "nHK": "IGR03",
-    "description": "SPICY GORGONZOLA DOP CHEESE IGOR NERO 1/8 1,5KG",
+    "description": "Spicy Gorgonzola Dop Cheese Igor Nero 1/8 1,5kg",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -3103,21 +3103,35 @@
   {
     "code": "",
     "nHK": "ITEM60-INA",
-    "description": "MOZZARELLA BUFALA FRESH 2X125GR",
+    "description": "Mozzarella Bufala Fresh 2x125gr",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "",
     "nHK": "ITEM61-INA",
-    "description": "BURRATA FRESH CON SORBATO 2X125 VASCHETTA",
+    "description": "Burrata Fresh Con Sorbato 2x125 Vaschetta",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "",
     "nHK": "ITEM62-INA",
-    "description": "BURRATA FRESH SENZA SORBATO 2X125GR",
+    "description": "Burrata Fresh Senza Sorbato 2x125gr",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM63-INA",
+    "description": "Campionatura-Salsa Tartufata 8%",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
+    "nHK": "ITEM64-INA",
+    "description": "Campionatura-Salsa Tartufata 15%",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -3215,7 +3229,7 @@
   {
     "code": "",
     "nHK": "JC2240-5/180",
-    "description": "JACK'S CREEK CUBE ROLL M5- 180 DAYS BLACK ANGUS(7/8 KG)",
+    "description": "Jack's Creek Cube Roll M5- 180 Days Black Angus(7/8 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3292,14 +3306,14 @@
   {
     "code": "LVC12-EN",
     "nHK": "LVC12-EN",
-    "description": "BURRATA LA VERACE TUB 125G (8)",
+    "description": "Burrata La Verace Tub 125g (8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "LVC16-EN",
     "nHK": "LVC16-EN",
-    "description": "FRZ BURRATA LA VERACE TUB 125 Gr (8)",
+    "description": "FRZ Burrata La Verace Tub 125 Gr (8)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -4895,7 +4909,7 @@
   {
     "code": "",
     "nHK": "TM0014-SK",
-    "description": "ANGUS PURE CHUCK ROLL MS4+(7/8kg)",
+    "description": "Angus Pure CHUCK ROLL MS4+(7/8kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "THOMAS FOODS INTERNATIONAL PTY LTD"
   },
@@ -4909,7 +4923,7 @@
   {
     "code": "",
     "nHK": "TM0015-SK",
-    "description": "ANGUS PURE RUMP CAP MS4+(2/3kg)",
+    "description": "Angus Pure Rump Cap Ms4+(2/3kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "THOMAS FOODS INTERNATIONAL PTY LTD"
   },
@@ -5063,28 +5077,28 @@
   {
     "code": "",
     "nHK": "TOL004",
-    "description": "ALLAITON AAA LAMB - SADDLE BONE-IN \"GDP\" 1,5/1.9kg",
+    "description": "Allaiton Aaa Lamb - Saddle Bone-In \"Gdp\" 1,5/1.9kg",
     "bcTransportation": "CH AIR",
     "vendorName": "Terroir Origin France"
   },
   {
     "code": "",
     "nHK": "TOL006",
-    "description": "ALLAITON AAA LAMB - RACK 8 RIBS \"GDP\" av 650g",
+    "description": "Allaiton Aaa Lamb - Rack 8 Ribs \"Gdp\" Av 650g",
     "bcTransportation": "CH AIR",
     "vendorName": "Terroir Origin France"
   },
   {
     "code": "",
     "nHK": "TOL008",
-    "description": "ALLAITON AAA LAMB - RACK 8 RIBS FRENCHED\"GDP\" av 600g",
+    "description": "Allaiton Aaa Lamb - Rack 8 Ribs Frenched\"Gdp\" Av 600g",
     "bcTransportation": "CH AIR",
     "vendorName": "Terroir Origin France"
   },
   {
     "code": "",
     "nHK": "TOL013",
-    "description": "ALLAITON AAA LAMB - SHOULDER (trimmed without the bone of shoulder blade) \"GDP\" 1.2/1.4kg",
+    "description": "Allaiton Aaa Lamb - Shoulder (Trimmed Without The Bone Of Shoulder Blade) \"Gdp\" 1.2/1.4kg",
     "bcTransportation": "CH AIR",
     "vendorName": "Terroir Origin France"
   },
@@ -6813,7 +6827,7 @@
   {
     "code": "",
     "nHK": "VH13020",
-    "description": "CHERRYTOM VINE PLUM POMODOLCE 18-22g 3kg",
+    "description": "Cherrytom Vine Plum POMODOLCE 18-22g 3kg",
     "bcTransportation": "CH AIR",
     "vendorName": "RD PRODUCE BV"
   },
@@ -8619,14 +8633,14 @@
   {
     "code": "",
     "nHK": "WB2210-4/5",
-    "description": "W BLACK CHILLED FLANK MS4-5 (2-3 kg)",
+    "description": "W Black Chilled FLANK MS4-5 (2-3 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
   {
     "code": "",
     "nHK": "WB2243-5/6",
-    "description": "W BLACK CHILLEDCUBE ROLL MS5-6 (7-8.5 kg)",
+    "description": "W Black chilled CUBE ROLL MS5-6 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
