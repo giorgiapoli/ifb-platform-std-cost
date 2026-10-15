@@ -239,6 +239,13 @@
   },
   {
     "code": "",
+    "nHK": "ABG2640-2",
+    "description": "Chilled Chuck Rib Boneless M2 + (2/3 kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ABG Australian Beef Group"
+  },
+  {
+    "code": "",
     "nHK": "AGTOSBM6/8",
     "description": "Italian Farmed Seabream 600-800 gr / pc",
     "bcTransportation": "CH AIR",
@@ -1857,7 +1864,7 @@
   {
     "code": "",
     "nHK": "DE6817270",
-    "description": "LA SPECIALE DE BRETAGNE N4 (270 PC PER CASE)",
+    "description": "La Speciale De Bretagne N4 (270 Pc Per Case)",
     "bcTransportation": "CH AIR",
     "vendorName": "DEMARNE"
   },

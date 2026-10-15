@@ -228,6 +228,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "ABG2243-3 FRZ",
+    "nHK": "ABG2243-3 FRZ",
+    "code": "ABG2243-3 FRZ",
+    "description": "Frozen Chilled Boneless Grain Fed MB3+Cube Roll 7 Rib",
+    "category": "BEEF",
+    "producttype": "FROZEN",
+    "temperature": "FROZEN",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 1.01,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "hoff",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "ABG2351-2",
     "nHK": "ABG2351-2",
     "code": "ABG2351-2",
