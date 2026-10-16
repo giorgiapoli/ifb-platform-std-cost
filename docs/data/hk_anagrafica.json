@@ -19643,7 +19643,7 @@
     "id": "MT382",
     "code": "MT382",
     "nHK": "MT382",
-    "description": "Frozen Mozzarella Fior Di Latte Cheese Mamma Tina Bag 2 Kg Napoli Cut",
+    "description": "Frozen Mozzarella Fior Di Latte Cheese Mamma Tina Bag 2 Kg Napoli Cut(6)",
     "category": "STRETCHED-CURD CHEESE",
     "uom": "PCS",
     "qtyPerBox": 4.0,
@@ -41023,7 +41023,7 @@
     "id": "Z0445",
     "code": "Z0445",
     "nHK": "Z0445",
-    "description": "Precooked Corn Flour 500gr (10)",
+    "description": "FARINA MAIS PRECOTTA 500GR",
     "category": "FLOUR AND GROATS",
     "uom": "PCS",
     "qtyPerBox": 10.0,
@@ -41036,7 +41036,7 @@
     "isHoff": false,
     "active": true,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
-    "vendorName2": "MARR SPA",
+    "vendorName2": "",
     "aiem": 0
   },
   {
