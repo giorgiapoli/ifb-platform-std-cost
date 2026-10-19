@@ -14,7 +14,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "21904",
     "nHK": "21904",
     "description": "DEBONED VEAL BELLY VS",
     "bcTransportation": "CH AIR",
@@ -1652,7 +1652,7 @@
     "vendorName": "VALSANA SRL"
   },
   {
-    "code": "",
+    "code": "CS690",
     "nHK": "CFS3007-VL",
     "description": "*Comte 16-24mth AOP Fort St Antoine +/- 2kg",
     "bcTransportation": "CH AIR",
@@ -1827,7 +1827,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "35755",
     "nHK": "CRM016-FRZ",
     "description": "FRZ Carima - Flat Iron Steak - Selection - Approx. 1.8 Kgs / pc",
     "bcTransportation": "CH AIR",
@@ -1848,7 +1848,7 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "57449",
     "nHK": "CRM020-FRZ",
     "description": "FRZ Carima Bone-in T Bone - Superior - Approx. 1 Kg / pc",
     "bcTransportation": "CH AIR",
@@ -2240,7 +2240,7 @@
     "vendorName": "FONTANA ENZO SRL"
   },
   {
-    "code": "",
+    "code": "CS553",
     "nHK": "FRO893",
     "description": "Raclette Livradois 6.5 kgs /pc",
     "bcTransportation": "CH AIR",
@@ -3409,14 +3409,14 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "26658",
     "nHK": "MBCSHO-U",
     "description": "Carima Bone-in Short Loin 8-9kg (From 23-28 Kgs loin) \"UNIQUE\" (M10-M12)[26658]",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "26658",
     "nHK": "MBCSHO-UFRZ",
     "description": "FRZ Carima Bone-in Short Loin 8-9kg (From 23-28 Kgs loin) \"UNIQUE\" (M10-M12)",
     "bcTransportation": "CH AIR",
@@ -3668,28 +3668,28 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "34692",
     "nHK": "MZR002-FRZ",
     "description": "FRZ Mazura - Flank Steak - Select - Approx. - Approx 1.4 Kgs",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "34693",
     "nHK": "MZR003-FRZ",
     "description": "FRZ Mazura - Thick Flank - Select - Approx 1.6 Kgs",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "34694",
     "nHK": "MZR004-FRZ",
     "description": "FRZ Mazura - Flat Iron Steak - Select - Approx 2-2.5 Kgs / pc",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
-    "code": "",
+    "code": "34696",
     "nHK": "MZR006-FRZ",
     "description": "FRZ Mazura - Spencer Roll - Select - Approx. 4 Kgs / pc",
     "bcTransportation": "CH AIR",
@@ -3991,6 +3991,13 @@
   },
   {
     "code": "",
+    "nHK": "OLS0038EL",
+    "description": "Farmed Seabass 1/1,5 (10 Kg France)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
     "nHK": "OLS0041EL",
     "description": "Farmed Seabream 400/600 (5 Kg)",
     "bcTransportation": "CH AIR",
@@ -4235,7 +4242,7 @@
     "vendorName": "ROUMEGOUS & FILS"
   },
   {
-    "code": "",
+    "code": "SA536",
     "nHK": "SA536",
     "description": "HALAL BEEF SMOKED BACON 2,5KG",
     "bcTransportation": "CH AIR",
@@ -4284,7 +4291,7 @@
     "vendorName": "FRESHCADO S. L"
   },
   {
-    "code": "",
+    "code": "25620",
     "nHK": "SCOT015-FR",
     "description": "FRZ CARIMA Bone-in Loin +/- 20kg",
     "bcTransportation": "FR AIR",

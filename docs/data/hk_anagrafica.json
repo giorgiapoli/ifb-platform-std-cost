@@ -41,7 +41,7 @@
   },
   {
     "id": "21904",
-    "code": "",
+    "code": "21904",
     "nHK": "21904",
     "description": "DEBONED VEAL BELLY VS",
     "category": "BEEF",
@@ -49,7 +49,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 440.0,
     "temperature": "FRESH",
     "bcTransportation": "CH AIR",
     "standardCostHkd": 124.63,
@@ -1281,7 +1281,7 @@
   },
   {
     "id": "BDG02",
-    "code": "",
+    "code": "BDG02",
     "nHK": "BDG02",
     "description": "CURED PORK CHEEK VP 1.2-1.7 KG",
     "category": "3.8",
@@ -1289,7 +1289,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 88.0,
     "kgPerBox": 0.0,
-    "kgxplt": 88.0,
+    "kgxplt": 299.2,
     "temperature": "FRESH",
     "bcTransportation": "CH AIR",
     "standardCostHkd": 0.0,
@@ -3180,8 +3180,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM016-FRZ",
-    "code": "",
+    "id": "35755",
+    "code": "35755",
     "nHK": "CRM016-FRZ",
     "description": "FRZ Carima - Flat Iron Steak - Selection - Approx. 1.8 Kgs / pc",
     "category": "BEEF",
@@ -3240,8 +3240,8 @@
     "aiem": 0
   },
   {
-    "id": "CRM020-FRZ",
-    "code": "",
+    "id": "57449",
+    "code": "57449",
     "nHK": "CRM020-FRZ",
     "description": "FRZ Carima Bone-in T Bone - Superior - Approx. 1 Kg / pc",
     "category": "BEEF",
@@ -3281,7 +3281,7 @@
   },
   {
     "id": "CS303",
-    "code": "",
+    "code": "CS303",
     "nHK": "CS303",
     "description": "Crescenza 1/8 250gr",
     "category": "2.04",
@@ -4740,8 +4740,8 @@
     "aiem": 0
   },
   {
-    "id": "FF0208-MF",
-    "code": "",
+    "id": "MRV03",
+    "code": "MRV03",
     "nHK": "FF0208-MF",
     "description": "Dried Tuna Heart +/- 80-300 Gr (2,5kg)",
     "category": "10.71",
@@ -4960,8 +4960,8 @@
     "aiem": 0
   },
   {
-    "id": "FGM25_FR",
-    "code": "",
+    "id": "FGM25",
+    "code": "FGM25",
     "nHK": "FGM25_FR",
     "description": "Grana Style \"Fresco Gourmet\" approx. 2KG (8)",
     "category": "COW CHEESE",
@@ -8260,8 +8260,8 @@
     "aiem": 0
   },
   {
-    "id": "GC0537",
-    "code": "",
+    "id": "ITA28",
+    "code": "ITA28",
     "nHK": "GC0537",
     "description": "*Nduja Paste \"Sila\" approx. 400gr (10)",
     "category": "",
@@ -9520,8 +9520,8 @@
     "aiem": 0
   },
   {
-    "id": "GCMA-4029H",
-    "code": "",
+    "id": "LGD06",
+    "code": "LGD06",
     "nHK": "GCMA-4029H",
     "description": "FRZ FASSONA 100% Beef Sausage 500G",
     "category": "BEEF",
@@ -12140,8 +12140,8 @@
     "aiem": 0
   },
   {
-    "id": "HA7018-IB",
-    "code": "",
+    "id": "ITA47",
+    "code": "ITA47",
     "nHK": "HA7018-IB",
     "description": "Parma Ham Bone-In 24M 10kg(2)",
     "category": "HAM",
@@ -12540,8 +12540,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8011-IB",
-    "code": "",
+    "id": "ITA33",
+    "code": "ITA33",
     "nHK": "HA8011-IB",
     "description": "Pancetta Flat Smoked \"BACON\" +/-1.5Kg(2)",
     "category": "",
@@ -12580,8 +12580,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8014-IB",
-    "code": "",
+    "id": "Y1665",
+    "code": "Y1665",
     "nHK": "HA8014-IB",
     "description": "Bresaola Valtellina Half 1.5Kg  (4)",
     "category": "",
@@ -12620,8 +12620,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8017-IB",
-    "code": "",
+    "id": "Y3136",
+    "code": "Y3136",
     "nHK": "HA8017-IB",
     "description": "Salame Ventricina +/- 2,8Kg Ø95mm (2)",
     "category": "",
@@ -12660,8 +12660,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8020-IB",
-    "code": "",
+    "id": "Y3403",
+    "code": "Y3403",
     "nHK": "HA8020-IB",
     "description": "Speck Half +/- 2.5Kg (4)",
     "category": "",
@@ -12680,8 +12680,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8021-IB-V1",
-    "code": "",
+    "id": "ITA31",
+    "code": "ITA31",
     "nHK": "HA8021-IB-V1",
     "description": "Pancetta Roll Half approx. 2Kg (4)",
     "category": "",
@@ -12720,8 +12720,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8023-IB",
-    "code": "",
+    "id": "SA377",
+    "code": "SA377",
     "nHK": "HA8023-IB",
     "description": "Spicy Salame 3x350gr (10) Ø35mm",
     "category": "",
@@ -12740,8 +12740,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8025-IB",
-    "code": "",
+    "id": "ITA54",
+    "code": "ITA54",
     "nHK": "HA8025-IB",
     "description": "*Cooked Ham PRAGA 8.3kg (2)",
     "category": "HAM",
@@ -12760,8 +12760,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8026-IB",
-    "code": "",
+    "id": "SA388",
+    "code": "SA388",
     "nHK": "HA8026-IB",
     "description": "Porchetta Half 4.3Kg (2)",
     "category": "",
@@ -12920,8 +12920,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8058-IB",
-    "code": "",
+    "id": "Y0974",
+    "code": "Y0974",
     "nHK": "HA8058-IB",
     "description": "Culatta di Busseto Half 2.7Kg (2)",
     "category": "",
@@ -13100,8 +13100,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8082-IB",
-    "code": "",
+    "id": "ITA29",
+    "code": "ITA29",
     "nHK": "HA8082-IB",
     "description": "Culatello di Zibello DOP 16/20M 4k (1)",
     "category": "",
@@ -13280,8 +13280,8 @@
     "aiem": 0
   },
   {
-    "id": "HA8098-IB",
-    "code": "",
+    "id": "ITA53",
+    "code": "ITA53",
     "nHK": "HA8098-IB",
     "description": "Cured Ham Bauletto Bosco SC approx. 5KG(2)",
     "category": "",
@@ -13400,8 +13400,8 @@
     "aiem": 0
   },
   {
-    "id": "HA9044-IF",
-    "code": "",
+    "id": "PGS01",
+    "code": "PGS01",
     "nHK": "HA9044-IF",
     "description": "Guanciale Stagionato (500g-1.2 Kg)",
     "category": "17.2",
@@ -13420,8 +13420,8 @@
     "aiem": 0
   },
   {
-    "id": "HA9045-IF",
-    "code": "",
+    "id": "PGS02",
+    "code": "PGS02",
     "nHK": "HA9045-IF",
     "description": "Guanciale Stagionato (1,3-1,8 Kg)",
     "category": "OTHER CURED MEATS",
@@ -18100,8 +18100,8 @@
     "aiem": 0
   },
   {
-    "id": "MBCSHO-U",
-    "code": "",
+    "id": "26658",
+    "code": "26658",
     "nHK": "MBCSHO-U",
     "description": "Carima Bone-in Short Loin 8-9kg (From 23-28 Kgs loin) \"UNIQUE\" (M10-M12)[26658]",
     "category": "BEEF",
@@ -18120,8 +18120,8 @@
     "aiem": 0
   },
   {
-    "id": "MBCSHO-UFRZ",
-    "code": "",
+    "id": "26658",
+    "code": "26658",
     "nHK": "MBCSHO-UFRZ",
     "description": "FRZ Carima Bone-in Short Loin 8-9kg (From 23-28 Kgs loin) \"UNIQUE\" (M10-M12)",
     "category": "BEEF",
@@ -19663,7 +19663,7 @@
     "id": "MT385",
     "code": "MT385",
     "nHK": "MT385",
-    "description": "Frozen Processed Cheese Fior Di Pizza Mamma Tina Bag 2 Kg Julienne Cut",
+    "description": "Frozen Processed Cheese Fior Di Pizza Mamma Tina Bag 2 Kg Julienne Cut(6)",
     "category": "STRETCHED-CURD CHEESE",
     "uom": "PCS",
     "qtyPerBox": 4.0,
@@ -19683,7 +19683,7 @@
     "id": "MT386",
     "code": "MT386",
     "nHK": "MT386",
-    "description": "Frozen Processed Cheese Fior Di Pizza Mamma Tina Bag 2 Kg Diced",
+    "description": "Frozen Processed Cheese Fior Di Pizza Mamma Tina Bag 2 Kg Diced(6)",
     "category": "STRETCHED-CURD CHEESE",
     "uom": "PCS",
     "qtyPerBox": 4.0,
@@ -20280,8 +20280,8 @@
     "aiem": 0
   },
   {
-    "id": "MZR002-FRZ",
-    "code": "",
+    "id": "34692",
+    "code": "34692",
     "nHK": "MZR002-FRZ",
     "description": "FRZ Mazura - Flank Steak - Select - Approx. - Approx 1.4 Kgs",
     "category": "BEEF",
@@ -20289,7 +20289,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 201.6,
     "temperature": "FROZEN",
     "bcTransportation": "CH AIR",
     "standardCostHkd": 148.665,
@@ -20300,8 +20300,8 @@
     "aiem": 0
   },
   {
-    "id": "MZR003-FRZ",
-    "code": "",
+    "id": "34693",
+    "code": "34693",
     "nHK": "MZR003-FRZ",
     "description": "FRZ Mazura - Thick Flank - Select - Approx 1.6 Kgs",
     "category": "BEEF",
@@ -20309,7 +20309,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 230.4,
     "temperature": "FROZEN",
     "bcTransportation": "CH AIR",
     "standardCostHkd": 170.1988218,
@@ -20320,8 +20320,8 @@
     "aiem": 0
   },
   {
-    "id": "MZR004-FRZ",
-    "code": "",
+    "id": "34694",
+    "code": "34694",
     "nHK": "MZR004-FRZ",
     "description": "FRZ Mazura - Flat Iron Steak - Select - Approx 2-2.5 Kgs / pc",
     "category": "BEEF",
@@ -20329,7 +20329,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 360.0,
     "temperature": "FROZEN",
     "bcTransportation": "CH AIR",
     "standardCostHkd": 170.34,
@@ -20340,8 +20340,8 @@
     "aiem": 0
   },
   {
-    "id": "MZR006-FRZ",
-    "code": "",
+    "id": "34696",
+    "code": "34696",
     "nHK": "MZR006-FRZ",
     "description": "FRZ Mazura - Spencer Roll - Select - Approx. 4 Kgs / pc",
     "category": "BEEF",
@@ -20349,7 +20349,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 288.0,
     "temperature": "FROZEN",
     "bcTransportation": "CH AIR",
     "standardCostHkd": 170.34,
@@ -21380,8 +21380,8 @@
     "aiem": 0
   },
   {
-    "id": "OL0903",
-    "code": "",
+    "id": "MUR06",
+    "code": "MUR06",
     "nHK": "OL0903",
     "description": "Muraglia EVO Rainbow Intense Fruity 500ML (6)",
     "category": "OIL AND FATS",
@@ -23640,8 +23640,8 @@
     "aiem": 0
   },
   {
-    "id": "RF013",
-    "code": "",
+    "id": "PPG13",
+    "code": "PPG13",
     "nHK": "RF013",
     "description": "FRZ Plum Puree 1KG (6)",
     "category": "FRUIT",
@@ -23801,7 +23801,7 @@
   },
   {
     "id": "SA536",
-    "code": "",
+    "code": "SA536",
     "nHK": "SA536",
     "description": "HALAL BEEF SMOKED BACON 2,5KG",
     "category": "OTHER CURED MEATS",
@@ -23920,8 +23920,8 @@
     "aiem": 0
   },
   {
-    "id": "SCOT002",
-    "code": "",
+    "id": "57486",
+    "code": "57486",
     "nHK": "SCOT002",
     "description": "*FRZ Boneless Ribeye CARIMA +/- 3kg",
     "category": "BEEF",
@@ -23940,8 +23940,8 @@
     "aiem": 0
   },
   {
-    "id": "SCOT014",
-    "code": "",
+    "id": "57483",
+    "code": "57483",
     "nHK": "SCOT014",
     "description": "*FRZ Porterhouse CARIMA +/- 1kg",
     "category": "BEEF",
@@ -23960,8 +23960,8 @@
     "aiem": 0
   },
   {
-    "id": "SCOT015-FR",
-    "code": "",
+    "id": "25620",
+    "code": "25620",
     "nHK": "SCOT015-FR",
     "description": "FRZ CARIMA Bone-in Loin +/- 20kg",
     "category": "BEEF",
@@ -27260,8 +27260,8 @@
     "aiem": 0
   },
   {
-    "id": "VITEYER",
-    "code": "",
+    "id": "21843",
+    "code": "21843",
     "nHK": "VITEYER",
     "description": "Veal Eye Round - \"VITULUS\" - 1-2 Kgs / Pc",
     "category": "6.62",
@@ -27269,7 +27269,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 384.0,
     "temperature": "FRESH",
     "bcTransportation": "CH AIR",
     "standardCostHkd": 170.8,
@@ -27300,8 +27300,8 @@
     "aiem": 0
   },
   {
-    "id": "VITFRAC",
-    "code": "",
+    "id": "21689",
+    "code": "21689",
     "nHK": "VITFRAC",
     "description": "Veal French Rack 6 Ribs - \"VITULUS\" - 2-3 kgs / pc",
     "category": "BEEF",
@@ -27309,7 +27309,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 480.0,
     "temperature": "FRESH",
     "bcTransportation": "CH AIR",
     "standardCostHkd": 229.7914242,
@@ -27360,8 +27360,8 @@
     "aiem": 0
   },
   {
-    "id": "VITLODE-FRZ",
-    "code": "",
+    "id": "31602",
+    "code": "31602",
     "nHK": "VITLODE-FRZ",
     "description": "FRZ Veal Loin Standard Deboned - \"VITULUS\" - 3-4 Kgs / Pc",
     "category": "13.33",
@@ -27380,8 +27380,8 @@
     "aiem": 0
   },
   {
-    "id": "VITSWBR-FRZ",
-    "code": "",
+    "id": "31928",
+    "code": "31928",
     "nHK": "VITSWBR-FRZ",
     "description": "FRZ Veal Sweetbreads  - \"VITULUS\"",
     "category": "2.5",
@@ -27400,8 +27400,8 @@
     "aiem": 0
   },
   {
-    "id": "VITTECO-FRZ",
-    "code": "",
+    "id": "31834",
+    "code": "31834",
     "nHK": "VITTECO-FRZ",
     "description": "FRZ Veal Tenderloin (Chain ON) - \"VITULUS\"",
     "category": "BEEF",
@@ -27440,8 +27440,8 @@
     "aiem": 0
   },
   {
-    "id": "VITTEOFF-FRZ",
-    "code": "",
+    "id": "31846",
+    "code": "31846",
     "nHK": "VITTEOFF-FRZ",
     "description": "FRZ Veal Tenderloin (Chain OFF) - \"VITULUS\"",
     "category": "BEEF",
@@ -27449,7 +27449,7 @@
     "qtyPerBox": 1.0,
     "boxPerPallet": 0.0,
     "kgPerBox": 0.0,
-    "kgxplt": 0.0,
+    "kgxplt": 600.0,
     "temperature": "FROZEN",
     "bcTransportation": "FR SEA",
     "standardCostHkd": 284.4,
@@ -27460,8 +27460,8 @@
     "aiem": 0
   },
   {
-    "id": "VITTOSI-FRZ",
-    "code": "",
+    "id": "31831",
+    "code": "31831",
     "nHK": "VITTOSI-FRZ",
     "description": "FRZ Veal Top Side  - \"VITULUS\" - 3-4 Kgs / pc",
     "category": "21.22",

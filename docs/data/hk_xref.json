@@ -8,6 +8,10 @@
     "ifbNo": "16658"
   },
   {
+    "nHK": "21904",
+    "ifbNo": "21904"
+  },
+  {
     "nHK": "26369",
     "ifbNo": "26369"
   },
@@ -234,6 +238,10 @@
   {
     "nHK": "BD7006-FC",
     "ifbNo": "Z9356"
+  },
+  {
+    "nHK": "BDG02",
+    "ifbNo": "BDG02"
   },
   {
     "nHK": "BFFR34855",
@@ -492,6 +500,18 @@
     "ifbNo": "VSN39"
   },
   {
+    "nHK": "CFS3007-IF",
+    "ifbNo": "CS690"
+  },
+  {
+    "nHK": "CFS3007-VL",
+    "ifbNo": "CS690"
+  },
+  {
+    "nHK": "CFS3008-IF",
+    "ifbNo": "CS691"
+  },
+  {
     "nHK": "CFS3012-IF",
     "ifbNo": "CS553"
   },
@@ -648,8 +668,20 @@
     "ifbNo": "24439"
   },
   {
+    "nHK": "CRM016-FRZ",
+    "ifbNo": "35755"
+  },
+  {
+    "nHK": "CRM020-FRZ",
+    "ifbNo": "57449"
+  },
+  {
     "nHK": "CRTP10",
     "ifbNo": "Z0236"
+  },
+  {
+    "nHK": "CS303",
+    "ifbNo": "CS303"
   },
   {
     "nHK": "CS313",
@@ -884,6 +916,10 @@
     "ifbNo": "SME17"
   },
   {
+    "nHK": "FF0208-MF",
+    "ifbNo": "MRV03"
+  },
+  {
     "nHK": "FG0527-L",
     "ifbNo": "FG0527-L"
   },
@@ -930,6 +966,10 @@
   {
     "nHK": "FGM25",
     "ifbNo": "FGM25-HK"
+  },
+  {
+    "nHK": "FGM25_FR",
+    "ifbNo": "FGM25"
   },
   {
     "nHK": "FGM28-F",
@@ -1002,6 +1042,10 @@
   {
     "nHK": "FRI06",
     "ifbNo": "FRI06"
+  },
+  {
+    "nHK": "FRO893",
+    "ifbNo": "CS553"
   },
   {
     "nHK": "FS0007-IF",
@@ -1552,6 +1596,10 @@
     "ifbNo": "Z3451"
   },
   {
+    "nHK": "GC0537",
+    "ifbNo": "ITA28"
+  },
+  {
     "nHK": "GC1011-IF",
     "ifbNo": "FSH76"
   },
@@ -1778,6 +1826,10 @@
   {
     "nHK": "GCMA-4029",
     "ifbNo": "LGD05"
+  },
+  {
+    "nHK": "GCMA-4029H",
+    "ifbNo": "LGD06"
   },
   {
     "nHK": "GCMA-4052A",
@@ -2304,6 +2356,10 @@
     "ifbNo": "ITA44"
   },
   {
+    "nHK": "HA7018-IB",
+    "ifbNo": "ITA47"
+  },
+  {
     "nHK": "HA7021-IB",
     "ifbNo": "HA7021-IB"
   },
@@ -2380,20 +2436,52 @@
     "ifbNo": "SA559"
   },
   {
+    "nHK": "HA8011-IB",
+    "ifbNo": "ITA33"
+  },
+  {
     "nHK": "HA8013-IB",
     "ifbNo": "SA522"
+  },
+  {
+    "nHK": "HA8014-IB",
+    "ifbNo": "Y1665"
   },
   {
     "nHK": "HA8015-IB",
     "ifbNo": "IT20359"
   },
   {
+    "nHK": "HA8017-IB",
+    "ifbNo": "Y3136"
+  },
+  {
     "nHK": "HA8018-IB",
     "ifbNo": "ITA32"
   },
   {
+    "nHK": "HA8020-IB",
+    "ifbNo": "Y3403"
+  },
+  {
+    "nHK": "HA8021-IB-V1",
+    "ifbNo": "ITA31"
+  },
+  {
     "nHK": "HA8022-IB",
     "ifbNo": "ITA42"
+  },
+  {
+    "nHK": "HA8023-IB",
+    "ifbNo": "SA377"
+  },
+  {
+    "nHK": "HA8025-IB",
+    "ifbNo": "ITA54"
+  },
+  {
+    "nHK": "HA8026-IB",
+    "ifbNo": "SA388"
   },
   {
     "nHK": "HA8028-IB",
@@ -2424,6 +2512,10 @@
     "ifbNo": "PL00982"
   },
   {
+    "nHK": "HA8058-IB",
+    "ifbNo": "Y0974"
+  },
+  {
     "nHK": "HA8060-IB",
     "ifbNo": "SA465"
   },
@@ -2450,6 +2542,10 @@
   {
     "nHK": "HA8081-IB",
     "ifbNo": "ITA46"
+  },
+  {
+    "nHK": "HA8082-IB",
+    "ifbNo": "ITA29"
   },
   {
     "nHK": "HA8083-IB",
@@ -2484,6 +2580,10 @@
     "ifbNo": "ITA49"
   },
   {
+    "nHK": "HA8098-IB",
+    "ifbNo": "ITA53"
+  },
+  {
     "nHK": "HA9001-GI",
     "ifbNo": "GOU11"
   },
@@ -2500,8 +2600,16 @@
     "ifbNo": "GOU10"
   },
   {
+    "nHK": "HA9044-IF",
+    "ifbNo": "PGS01"
+  },
+  {
     "nHK": "HA9044-IFL",
     "ifbNo": "PGS01"
+  },
+  {
+    "nHK": "HA9045-IF",
+    "ifbNo": "PGS02"
   },
   {
     "nHK": "HA9045-IFL",
@@ -2900,6 +3008,14 @@
     "ifbNo": "40845"
   },
   {
+    "nHK": "MBCSHO-U",
+    "ifbNo": "26658"
+  },
+  {
+    "nHK": "MBCSHO-UFRZ",
+    "ifbNo": "26658"
+  },
+  {
     "nHK": "MBCSTR-R",
     "ifbNo": "40844"
   },
@@ -3152,6 +3268,10 @@
     "ifbNo": "TRD04"
   },
   {
+    "nHK": "MT154",
+    "ifbNo": "MT154"
+  },
+  {
     "nHK": "MT155",
     "ifbNo": "MT155"
   },
@@ -3306,6 +3426,22 @@
   {
     "nHK": "MZ6005-FM",
     "ifbNo": "MT320"
+  },
+  {
+    "nHK": "MZR002-FRZ",
+    "ifbNo": "34692"
+  },
+  {
+    "nHK": "MZR003-FRZ",
+    "ifbNo": "34693"
+  },
+  {
+    "nHK": "MZR004-FRZ",
+    "ifbNo": "34694"
+  },
+  {
+    "nHK": "MZR006-FRZ",
+    "ifbNo": "34696"
   },
   {
     "nHK": "OCT0002",
@@ -3506,6 +3642,10 @@
   {
     "nHK": "OL0902",
     "ifbNo": "MUR22"
+  },
+  {
+    "nHK": "OL0903",
+    "ifbNo": "MUR06"
   },
   {
     "nHK": "OL0903L",
@@ -3976,6 +4116,10 @@
     "ifbNo": "PPG12"
   },
   {
+    "nHK": "RF013",
+    "ifbNo": "PPG13"
+  },
+  {
     "nHK": "RF014",
     "ifbNo": "PPG14"
   },
@@ -3986,6 +4130,10 @@
   {
     "nHK": "RLG16",
     "ifbNo": "RLG16"
+  },
+  {
+    "nHK": "SA536",
+    "ifbNo": "SA536"
   },
   {
     "nHK": "SCEAPE1",
@@ -4006,6 +4154,18 @@
   {
     "nHK": "SCOPN-23",
     "ifbNo": "SCOPN-23"
+  },
+  {
+    "nHK": "SCOT002",
+    "ifbNo": "57486"
+  },
+  {
+    "nHK": "SCOT014",
+    "ifbNo": "57483"
+  },
+  {
+    "nHK": "SCOT015-FR",
+    "ifbNo": "25620"
   },
   {
     "nHK": "SCOT015W",
@@ -4620,8 +4780,16 @@
     "ifbNo": "VIITVIVO-23"
   },
   {
+    "nHK": "VITEYER",
+    "ifbNo": "21843"
+  },
+  {
     "nHK": "VITEYER-FRZ",
     "ifbNo": "31843"
+  },
+  {
+    "nHK": "VITFRAC",
+    "ifbNo": "21689"
   },
   {
     "nHK": "VITFRAC-FRZ",
@@ -4632,8 +4800,28 @@
     "ifbNo": "21607"
   },
   {
+    "nHK": "VITLODE-FRZ",
+    "ifbNo": "31602"
+  },
+  {
+    "nHK": "VITSWBR-FRZ",
+    "ifbNo": "31928"
+  },
+  {
+    "nHK": "VITTECO-FRZ",
+    "ifbNo": "31834"
+  },
+  {
     "nHK": "VITTEOFF",
     "ifbNo": "21384"
+  },
+  {
+    "nHK": "VITTEOFF-FRZ",
+    "ifbNo": "31846"
+  },
+  {
+    "nHK": "VITTOSI-FRZ",
+    "ifbNo": "31831"
   },
   {
     "nHK": "VLFR31602",
