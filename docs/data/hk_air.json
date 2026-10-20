@@ -3144,6 +3144,13 @@
   },
   {
     "code": "",
+    "nHK": "ITEM65-INA",
+    "description": "FIOR DI LATTE 500 GR- L'ORO DEI LATTARI",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "",
     "nHK": "ITEM9-MAR",
     "description": "Orleans Cider Vinegar from Normandy 50cl(6)",
     "bcTransportation": "CH AIR",
@@ -4091,6 +4098,13 @@
     "code": "",
     "nHK": "OLS0083EL",
     "description": "Filet De Saumon TD/Salmon Fillet TD 1.5/2 Salmo Salar",
+    "bcTransportation": "CH AIR",
+    "vendorName": "Ocean's Link Fresh and Frozen Seafood"
+  },
+  {
+    "code": "",
+    "nHK": "OLS0100EL",
+    "description": "Farmed Seabass 2000/3000 (12Kg Greece)",
     "bcTransportation": "CH AIR",
     "vendorName": "Ocean's Link Fresh and Frozen Seafood"
   },
