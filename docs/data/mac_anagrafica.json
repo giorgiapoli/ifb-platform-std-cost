@@ -7923,6 +7923,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "OLS0100EL",
+    "nHK": "OLS0100EL",
+    "code": "OLS0100EL",
+    "description": "Farmed Seabass 2000/3000 (12Kg Greece)",
+    "category": "FISH",
+    "producttype": "FRESH",
+    "temperature": "FRESH",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 1.15,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 209.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "bv",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "PHMER-24",
     "nHK": "PHMER-24",
     "code": "PHMER-24",

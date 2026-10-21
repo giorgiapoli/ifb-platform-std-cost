@@ -4550,6 +4550,13 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
+    "code": "TAM88",
+    "nHK": "TAM88",
+    "description": "PANETTONE WITHOUT CANDIED FRUITS 1 KG",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
     "code": "TAM89",
     "nHK": "TAM89",
     "description": "PANETTONE DECORA E FARCISCI WITH PISTACHIO CREAM 830 G",
@@ -8635,6 +8642,13 @@
     "nHK": "WB2091-6/7",
     "description": "W.BLACK RUMP CAP M6/7",
     "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
+    "nHK": "WB2091-6/7FRZ",
+    "description": "FRZ W.BLACK RUMP CAP M6/7",
+    "bcTransportation": "FR AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
   {
