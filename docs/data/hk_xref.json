@@ -5252,6 +5252,10 @@
     "ifbNo": "MESGIUN-24"
   },
   {
+    "nHK": "WCMS02-25",
+    "ifbNo": "MESGIUN-25"
+  },
+  {
     "nHK": "WCMS03-20",
     "ifbNo": "MESSCU-20"
   },
@@ -6370,6 +6374,10 @@
   {
     "nHK": "WMDB10-23",
     "ifbNo": "MBBRIC-23"
+  },
+  {
+    "nHK": "WMDB10-25",
+    "ifbNo": "MBBRIC-25"
   },
   {
     "nHK": "WMDB11-22",

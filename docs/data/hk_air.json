@@ -163,7 +163,7 @@
   {
     "code": "",
     "nHK": "ABG2040-2",
-    "description": "Chilled Boneless Grain Fed MB2+ Eye Round(2 KG)",
+    "description": "Chilled Boneless Grain Fed MB2+ Eye Round(3/4 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
@@ -3159,14 +3159,14 @@
   {
     "code": "",
     "nHK": "JC1552-5/180",
-    "description": "JACK'S CREEK SHORTLOIN M5 - 180 DAYS BLACK ANGUS(10/12 KG)",
+    "description": "Jack's Creek SHORTLOIN M5 - 180 Days Black Angus(10/12 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC1592-3/180",
-    "description": "JACK'S CREEK TOMAHAW M3 - 180 DAYS BLACK ANGUS(7/8 KG)",
+    "description": "Jack's Creek TOMAHAW M3 - 180 Days Black Angus(7/8 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3180,7 +3180,7 @@
   {
     "code": "",
     "nHK": "JC1600-3/180",
-    "description": "JACK'S CREEK OP RIB M3 -180 DAYS BLACK ANGUS(10/12 KG)",
+    "description": "Jack's Creek OP RIB M3 -180 Days Black Angus(10/12 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3194,7 +3194,7 @@
   {
     "code": "",
     "nHK": "JC2100-5/180",
-    "description": "JACK'S CREEK D-RUMP M5 - 180 DAYS BLACK ANGUS(8/10 KG)",
+    "description": "Jack's Creek D-RUMP M5 - 180 Days Black Angus(8/10 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3208,7 +3208,7 @@
   {
     "code": "",
     "nHK": "JC2140-3/180",
-    "description": "JACK'S CREEK STRIPLOIN M3 -180 DAYS BLACK ANGUS(7/8 KG)",
+    "description": "Jack's Creek STRIPLOIN M3 180 Days Black Angus(7/8 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3221,22 +3221,29 @@
   },
   {
     "code": "",
+    "nHK": "JC2141 - 9+",
+    "description": "Jack's Creek Chilled Full Blood Wagyu Striploin M9+ (7/8 kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
+  },
+  {
+    "code": "",
     "nHK": "JC2206-3/180",
-    "description": "JACK'S CREEK FLAP MEAT M3 -180 DAYS BLACK ANGUS(2/3 KG)",
+    "description": "Jack's Creek FLAP MEAT M3 -180 Days Black Angus(2/3 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2210-3/180",
-    "description": "JACK'S CREEK FLANK STEAK M3 - 180 DAYS BLACK ANGUS(2/3 KG)",
+    "description": "Jack's Creek FLANK STEAK M3 - 180 Days Black Angus(2/3 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2240-3/130",
-    "description": "JACK'S CREEK CUBE ROLL M3- 130 DAYS BLACK ANGUS(7/8 KG)",
+    "description": "Jack's Creek CUBE ROLL M3- 130 Days Black Angus(7/8 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -3250,14 +3257,14 @@
   {
     "code": "",
     "nHK": "JC2303-5/180",
-    "description": "JACK'S CREEK OYSTER BLADE M5 - 180 DAYS BLACK ANGUS(10/12 KG)",
+    "description": "Jack's Creek OYSTER BLADE M5 - 180 Days Black Angus(4/5 kg) Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
   {
     "code": "",
     "nHK": "JC2350-3/130",
-    "description": "JACK'S CREEK POINT END BRISKET DECKLE OFF M3-130 DAYS BLACK ANGUS(2/3 KG)",
+    "description": "Jack's Creek POINT END BRISKET DECKLE OFF M3-130 Days Black Angus(2/3 Kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
   },
@@ -6113,7 +6120,7 @@
   {
     "code": "",
     "nHK": "VH07028",
-    "description": "PEAR  CONFERENCE 65/75  14 kg",
+    "description": "PEAR  CONFERENCE 65/75  7 kg",
     "bcTransportation": "CH AIR",
     "vendorName": "RD PRODUCE BV"
   },

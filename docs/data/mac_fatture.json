@@ -406,7 +406,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0001|1726070",
+    "No_": "TM0001|1726070|TM1014-SK",
     "BV_No": "TM1014-SK",
     "Description": "GRAIN FED SHORT RIB BONELESS AP *YP* MS2+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -420,7 +420,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "TM0001",
+    "No_": "TM0001|1726400|TM1015-SK",
     "BV_No": "TM1015-SK",
     "Description": "GRAIN FED CHUCK RIB BONELESS AP *YP* MS2+",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -2464,7 +2464,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "1820917",
+    "No_": "1820917|TM0015-SK",
     "BV_No": "TM0015-SK",
     "Description": "CHILLED BONELESS BEEF *YP-RMPC* RUMP CAP IW/ VAC MSA GRAIN FED ANGUS PURE MB:4+ MC:1B-4 FC:0",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -5222,7 +5222,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "1820917",
+    "No_": "1820917|TM0015-SK",
     "BV_No": "TM0015-SK",
     "Description": "CHILLED BONELESS BEEF *YP-RMPC* RUMP CAP IW/ VAC MSA GRAIN FED ANGUS PURE MB:4+ MC:1B-4 FC:0",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -9954,7 +9954,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "1820917",
+    "No_": "1820917|TM0015-SK",
     "BV_No": "TM0015-SK",
     "Description": "ANGUS PURE RUMP CAP MS4+(2/3kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -11396,7 +11396,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "DEM8694",
+    "No_": "8694",
     "BV_No": "DEM8694",
     "Description": "Poisson pour soupe/ Rock fish mix - [*Need 5 boxes]",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -11732,7 +11732,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "1820917",
+    "No_": "1820917|TM0015-SK",
     "BV_No": "TM0015-SK",
     "Description": "ANGUS PURE RUMP CAP MS4+(2/3kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13076,7 +13076,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "1820917",
+    "No_": "1820917|TM0015-SK",
     "BV_No": "TM0015-SK",
     "Description": "ANGUS PURE RUMP CAP MS4+(2/3kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13412,7 +13412,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "DEM8058",
+    "No_": "8058",
     "BV_No": "DEM8058",
     "Description": "Farmed Seabass - 800/1KG (Turkey)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13426,7 +13426,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "DEM8694",
+    "No_": "8694",
     "BV_No": "DEM8694",
     "Description": "Poisson pour soupe/ Rock fish mix",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13664,7 +13664,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "DEM2200",
+    "No_": "2200",
     "BV_No": "DEM2200",
     "Description": "Cockles Size M 1kg",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -13720,7 +13720,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "DEM2200",
+    "No_": "2200",
     "BV_No": "DEM2200",
     "Description": "Cockles Size M 1kg",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -15134,7 +15134,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "DEM2200",
+    "No_": "2200",
     "BV_No": "DEM2200",
     "Description": "Cockles Size M 1kg",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -16296,7 +16296,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "MF2210-SK",
+    "No_": "22109",
     "BV_No": "MF2210-SK",
     "Description": "Chilled Boneless Beef A Flank Steak - Grass Fed",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -16394,7 +16394,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "1820917",
+    "No_": "1820917|TM0015-SK",
     "BV_No": "TM0015-SK",
     "Description": "[1 box] ANGUS PURE RUMP CAP MS4+(2/3kg)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -24360,7 +24360,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "OLS0036EL",
+    "No_": "EL0036",
     "BV_No": "OLS0036EL",
     "Description": "Farmed Seabass 600/800 (6 Kg France)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -25578,7 +25578,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "OLS0051LC",
+    "No_": "LC0051",
     "BV_No": "OLS0051LC",
     "Description": "QUEUE DE LOTTE / MONK FISH TAIL 4 +(1X PC Box Origin France)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -26264,7 +26264,7 @@
     "Branch": "MAC"
   },
   {
-    "No_": "OLS0051LC",
+    "No_": "LC0051",
     "BV_No": "OLS0051LC",
     "Description": "QUEUE DE LOTTE / MONK FISH TAIL 4 +(1X PC Box Origin France)",
     "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
@@ -27170,6 +27170,258 @@
     "Location Code": "HK",
     "Section Description": "",
     "Document No": "BA261003959",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "CRS20",
+    "BV_No": "CH0002-C",
+    "Description": "*Gorgonzola Piccante 1.5Kg",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 7.03,
+    "Price": 132.04,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004582",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "Y1390",
+    "BV_No": "CF0024-IF",
+    "Description": "Taleggio DOP Arnoldi 2.2Kg  (2)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 2.366,
+    "Price": 105.67,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004582",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "267.1",
+    "BV_No": "CF8003",
+    "Description": "*Ricotta \"Ciresa\" 250gr (6)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 6.0,
+    "Price": 22.13,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004582",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "21904",
+    "BV_No": "21904",
+    "Description": "DEBONED VEAL BELLY VS",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 93.64,
+    "Price": 131.19,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004582",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "AN0006-SK",
+    "BV_No": "AN0006-SK",
+    "Description": "W BLACK Chilled  STRIPLOIN MS6-7 (7-8.5 kg)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 45.75,
+    "Price": 321.71,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004582",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "CGR01",
+    "BV_No": "PT7002-IF",
+    "Description": "Fregula Media  500g  (12)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 24.0,
+    "Price": 17.83,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "RST01",
+    "BV_No": "GCRI-1001",
+    "Description": "Boretto Onion w/Balsamic Vinegar 800g(6)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 6.0,
+    "Price": 42.38,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "DIL13",
+    "BV_No": "TM0202",
+    "Description": "Semi-Dried Tomatoes in Oil 950g (6)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 24.0,
+    "Price": 43.63,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "BON19",
+    "BV_No": "BD0101-IF",
+    "Description": "Lady Finger SAVOIARDI 400g (15)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 60.0,
+    "Price": 15.05,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "FVB16",
+    "BV_No": "IMP24-L",
+    "Description": "Pompelmo Rosa Bio San Graziano 275 Ml",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 4.0,
+    "Price": 89.49,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "PUMOPRI-24",
+    "BV_No": "WIFB03-24",
+    "Description": "Pumo Del Fato Primitivo Puglia Igp 75cl 14%",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 12.0,
+    "Price": 21.78,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "FRASOA-24",
+    "BV_No": "WMDF03-24",
+    "Description": "Soave Classico DOC 2024",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 12.0,
+    "Price": 63.16,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "VIITMER-24",
+    "BV_No": "VIITMER-24",
+    "Description": "Viitam Merlot Terre Siciliane Igp 75cl 2024",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 12.0,
+    "Price": 20.81,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "FLT03",
+    "BV_No": "FLT03",
+    "Description": "anchovy fillets in sunflower seeds oil 700g (12)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 12.0,
+    "Price": 101.0,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004583",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "IPZ01",
+    "BV_No": "PZ005-L",
+    "Description": "FRZ Pinsa Base 18x28cm/220g (32)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 10.0,
+    "Price": 558.63,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004589",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "ERI02",
+    "BV_No": "GCMA-2006L",
+    "Description": "FRZ Porcini Mushroom Whole 1A 1kg (5)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 30.0,
+    "Price": 96.55,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004589",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "Y0931",
+    "BV_No": "FZB001",
+    "Description": "*#FRZ Italy Butter 1KG (10)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 50.0,
+    "Price": 52.0,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004589",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "FGM05",
+    "BV_No": "FB5004",
+    "Description": "FRZ Burrata Fresco Gourmet 1.5KG (125gx12)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-22",
+    "Quantity": 30.0,
+    "Price": 155.76,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261004589",
     "Customer No": "CUST-02012",
     "Branch": "MAC"
   },
