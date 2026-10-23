@@ -2328,6 +2328,10 @@
     "ifbNo": "GIF11"
   },
   {
+    "nHK": "GIF12",
+    "ifbNo": "GIF12"
+  },
+  {
     "nHK": "GOU11",
     "ifbNo": "GOU11"
   },
@@ -4512,12 +4516,20 @@
     "ifbNo": "TRF13"
   },
   {
+    "nHK": "TF0001-L",
+    "ifbNo": "GAL05"
+  },
+  {
     "nHK": "TF0002",
     "ifbNo": "TRF49"
   },
   {
     "nHK": "TF0004",
     "ifbNo": "TRF07"
+  },
+  {
+    "nHK": "TF0004-L",
+    "ifbNo": "GAL05"
   },
   {
     "nHK": "TF0005-F",
