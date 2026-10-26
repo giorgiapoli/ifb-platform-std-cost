@@ -2353,6 +2353,13 @@
   },
   {
     "code": "",
+    "nHK": "GC9107",
+    "description": "Panettone w/Moscato Wine 1kg (6)",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "RELANGHE S.R.L."
+  },
+  {
+    "code": "",
     "nHK": "GC9117",
     "description": "Crunchy Nougat with Piedmont Hazelnuts I.G.P. and Dark Chocolate 250g (10)",
     "bcTransportation": "DRY AIR",
@@ -8508,6 +8515,13 @@
     "code": "",
     "nHK": "VI8004",
     "description": "BERGAMOTTO CAT I",
+    "bcTransportation": "CH AIR",
+    "vendorName": "FUMAGALLI DANILO SRL"
+  },
+  {
+    "code": "",
+    "nHK": "VI8005",
+    "description": "Persimmon Vanilla (9kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "FUMAGALLI DANILO SRL"
   },

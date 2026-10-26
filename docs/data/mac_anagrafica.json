@@ -6650,6 +6650,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "JC2141-9+",
+    "nHK": "JC2141-9+",
+    "code": "JC2141-9+",
+    "description": "Jack's Creek Chilled Full Blood Wagyu Striploin M9+ (7/8 kg)",
+    "category": "BEEF",
+    "producttype": "FRESH",
+    "temperature": "FRESH",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "PCS",
+    "pcsgrossweight": 1.01,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 5.53984,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "bv",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "JC2206-5/180",
     "nHK": "JC2206-5/180",
     "code": "JC2206-5/180",
