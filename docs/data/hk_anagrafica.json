@@ -11960,6 +11960,26 @@
     "aiem": 0
   },
   {
+    "id": "GIF12",
+    "code": "GIF12",
+    "nHK": "GIF12",
+    "description": "FIORDILATTE TIPO AGEROLA AFFUMICATO 8X500 G VASCHETTA 4 KG",
+    "category": "STRETCHED-CURD CHEESE",
+    "uom": "BOX",
+    "qtyPerBox": 8.0,
+    "boxPerPallet": 121.0,
+    "kgPerBox": 32.0,
+    "kgxplt": 3872.0,
+    "temperature": "FRESH",
+    "bcTransportation": "CH AIR",
+    "standardCostHkd": 91.39,
+    "isHoff": false,
+    "active": true,
+    "vendorName": "INALCA FOOD & BEVERAGE SRL",
+    "vendorName2": "GIFFONIELLO SRL",
+    "aiem": 0
+  },
+  {
     "id": "GOU11",
     "code": "GOU11",
     "nHK": "GOU11",

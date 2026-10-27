@@ -27734,6 +27734,34 @@
     "Branch": "MAC"
   },
   {
+    "No_": "EL0004",
+    "BV_No": "OLS0004EL",
+    "Description": "Farmed Turbot - 3/4 Kg (2 Pc box)",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-27",
+    "Quantity": 6.66,
+    "Price": 337.48,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261005684",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
+    "No_": "TRF38",
+    "BV_No": "TF0007-K",
+    "Description": "Autumn Black Truffle (Tuber Uncinatum) Kitchen selection",
+    "Vendor Name": "BRIGHT VIEW TRADING HK LTD",
+    "Last Posting Date": "2026-10-27",
+    "Quantity": 500.0,
+    "Price": 4.85,
+    "Location Code": "HK",
+    "Section Description": "",
+    "Document No": "BA261005690",
+    "Customer No": "CUST-02012",
+    "Branch": "MAC"
+  },
+  {
     "No_": "TRF13",
     "BV_No": "TF0001",
     "Description": "White Truffle",

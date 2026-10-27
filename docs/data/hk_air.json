@@ -2353,8 +2353,29 @@
   },
   {
     "code": "",
+    "nHK": "GC9106-R",
+    "description": "Pandoro Classic  1kg (6)",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "RELANGHE S.R.L."
+  },
+  {
+    "code": "",
+    "nHK": "GC9106-S",
+    "description": "Panettone Classic  500g (6)",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "RELANGHE S.R.L."
+  },
+  {
+    "code": "",
     "nHK": "GC9107",
     "description": "Panettone w/Moscato Wine 1kg (6)",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "RELANGHE S.R.L."
+  },
+  {
+    "code": "",
+    "nHK": "GC9107-S",
+    "description": "Panettone w/Moscato Wine 500g (6)",
     "bcTransportation": "DRY AIR",
     "vendorName": "RELANGHE S.R.L."
   },
@@ -2651,6 +2672,13 @@
     "description": "OMUGI Chilled BONE IN Grain Fed MB1+ Short Loin (approx. 12 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
+  },
+  {
+    "code": "GIF12",
+    "nHK": "GIF12",
+    "description": "FIORDILATTE TIPO AGEROLA AFFUMICATO 8X500 G VASCHETTA 4 KG",
+    "bcTransportation": "CH AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
     "code": "",
