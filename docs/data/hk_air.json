@@ -2676,7 +2676,7 @@
   {
     "code": "GIF12",
     "nHK": "GIF12",
-    "description": "FIORDILATTE TIPO AGEROLA AFFUMICATO 8X500 G VASCHETTA 4 KG",
+    "description": "Smoked Mozzarella Fior Di Latte Agerola 8x500 G Tray 4 Kg",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
@@ -4567,6 +4567,41 @@
     "code": "TAM74",
     "nHK": "TAM74",
     "description": "MIXED BERRIES CHEESECAKE 16X70 G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TAM76",
+    "nHK": "TAM76",
+    "description": "EMPTY CANNONCINI 72X8 G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TAM81",
+    "nHK": "TAM81",
+    "description": "TIRAMISÙ 24X90 G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TAM82",
+    "nHK": "TAM82",
+    "description": "MIXED BERRIES CHEESECAKE 24X90 G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TAM83",
+    "nHK": "TAM83",
+    "description": "VIENNA CHOCOLATE AND APRICOT CAKE 24X90 G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TAM84",
+    "nHK": "TAM84",
+    "description": "TROPICAL 24X90 G",
     "bcTransportation": "FR AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
