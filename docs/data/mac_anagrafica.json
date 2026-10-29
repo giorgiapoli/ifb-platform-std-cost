@@ -2698,6 +2698,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "CRBISL-FRZ-CUT",
+    "nHK": "CRBISL-FRZ-CUT",
+    "code": "CRBISL-FRZ-CUT",
+    "description": "FROZEN BONE IN SHORT LOIN 1/RIB CARIMA RARE",
+    "category": "BEEF",
+    "producttype": "FROZEN",
+    "temperature": "FROZEN",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 1.0,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 252.2,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "hoff",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "CRM008",
     "nHK": "CRM008",
     "code": "CRM008",
