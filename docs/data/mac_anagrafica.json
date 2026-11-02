@@ -7201,6 +7201,25 @@
     "_entity": "Item_Card_Excel"
   },
   {
+    "id": "ML106060153",
+    "nHK": "ML106060153",
+    "code": "ML106060153",
+    "description": "Live Scallop Baie de Seine 3-4 (12 Kg Box Origin France)",
+    "category": "FISH",
+    "producttype": "FRESH",
+    "temperature": "FRESH",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 1.05,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 124.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "bv",
+    "_entity": "Item_Card_Excel"
+  },
+  {
     "id": "MNC37",
     "nHK": "MNC37",
     "code": "MNC37",
@@ -8870,6 +8889,25 @@
     "isHoff": true,
     "active": true,
     "_bvScSource": "bv",
+    "_entity": "Item_Card_Excel"
+  },
+  {
+    "id": "SB0004-FRZ",
+    "nHK": "SB0004-FRZ",
+    "code": "SB0004-FRZ",
+    "description": "Frozen LUB10 Spanish Farmed Seabass 1KG-1.5KG (10KG 7-9pc)",
+    "category": "FISH",
+    "producttype": "FROZEN",
+    "temperature": "FROZEN",
+    "vendorName": "BRIGHT VIEW TRADING HK LTD",
+    "uom": "KG",
+    "hkUom": "KG",
+    "pcsgrossweight": 1.5,
+    "qtyPerBox": 1.0,
+    "standardCostHkd": 0.0,
+    "isHoff": false,
+    "active": true,
+    "_bvScSource": "hoff",
     "_entity": "Item_Card_Excel"
   },
   {

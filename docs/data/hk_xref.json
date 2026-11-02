@@ -2992,6 +2992,10 @@
     "ifbNo": "MBBART-20"
   },
   {
+    "nHK": "MBBBST-22",
+    "ifbNo": "MBBBST-22"
+  },
+  {
     "nHK": "MBBRIC-24",
     "ifbNo": "MBBRIC-24"
   },
@@ -4134,6 +4138,18 @@
   {
     "nHK": "RLG16",
     "ifbNo": "RLG16"
+  },
+  {
+    "nHK": "RLG17",
+    "ifbNo": "RLG17"
+  },
+  {
+    "nHK": "RLG18",
+    "ifbNo": "RLG18"
+  },
+  {
+    "nHK": "RLG19",
+    "ifbNo": "RLG19"
   },
   {
     "nHK": "SA536",
@@ -6065,7 +6081,7 @@
   },
   {
     "nHK": "WIFB03-25",
-    "ifbNo": "PUMOPRI-24"
+    "ifbNo": "PUMOPRI-25"
   },
   {
     "nHK": "WIFB04-24",
@@ -7514,6 +7530,10 @@
   {
     "nHK": "Z1502",
     "ifbNo": "Z1502"
+  },
+  {
+    "nHK": "Z1914",
+    "ifbNo": "Z1914"
   },
   {
     "nHK": "Z2560",

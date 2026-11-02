@@ -24594,7 +24594,7 @@
     "bcTransportation": "+18°C SEA",
     "standardCostHkd": 46.4249,
     "isHoff": false,
-    "active": true,
+    "active": false,
     "vendorName": "INALCA FOOD & BEVERAGE SRL",
     "vendorName2": "SAS BLENDS FRANCE",
     "aiem": 0
@@ -33600,8 +33600,8 @@
     "aiem": 0
   },
   {
-    "id": "PUMOPRI-24",
-    "code": "PUMOPRI-24",
+    "id": "PUMOPRI-25",
+    "code": "PUMOPRI-25",
     "nHK": "WIFB03-25",
     "description": "PUMO DEL FATO PRIMITIVO PUGLIA IGP 75CL 2025",
     "category": "WINE",
