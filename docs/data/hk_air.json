@@ -3207,6 +3207,13 @@
   },
   {
     "code": "",
+    "nHK": "JC1592-5/180",
+    "description": "Jack's Creek TOMAHAW M5 - 180 Days Black Angus(7/8 Kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "WARMOLL FOODS PTY LTD (JACK'S CREEK)"
+  },
+  {
+    "code": "",
     "nHK": "JC1600-3/130",
     "description": "Jack's Creek Op Rib M3 -130 Days Black Angus(10/12 Kg)",
     "bcTransportation": "CH AIR",
@@ -4452,6 +4459,55 @@
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },
   {
+    "code": "TA118",
+    "nHK": "TA118",
+    "description": "COCONUT AND PINEAPPLE GEL CUP 24X90G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TA119",
+    "nHK": "TA119",
+    "description": "WILD BERRY YOGURT CUP 24X90G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TA120",
+    "nHK": "TA120",
+    "description": "ZABAGLIONE CREAM 500G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TA121",
+    "nHK": "TA121",
+    "description": "CRUNCHY CARAMELIZED PEANUT PEARLS 200G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TA123",
+    "nHK": "TA123",
+    "description": "MINI BABA' 35 PCS 490G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TA124",
+    "nHK": "TA124",
+    "description": "LEMON AND STRAWBERRY CUP 90G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
+    "code": "TA125",
+    "nHK": "TA125",
+    "description": "STRAWBERRY AND PEACH CUP 90G",
+    "bcTransportation": "FR AIR",
+    "vendorName": "INALCA FOOD & BEVERAGE SRL"
+  },
+  {
     "code": "TAM03",
     "nHK": "TAM03",
     "description": "MINI CONI 6X170GR CONFEZIONE",
@@ -4873,6 +4929,13 @@
   },
   {
     "code": "",
+    "nHK": "TJ2143-4/5",
+    "description": "TAJIMA CHILLED STRIPLOIN MS4-5 (7-8.5 kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
     "nHK": "TJ2160FRZ-4/5",
     "description": "FRZ TAJIMA Wagyu *S* OX TENDERLOIN Ss/Off Iw/Vac Mb4-5",
     "bcTransportation": "CH AIR",
@@ -5252,7 +5315,7 @@
   {
     "code": "M4854",
     "nHK": "TUNA02",
-    "description": "Tuna Justfish In Olive Oil 1730g",
+    "description": "Tuna Justfish In Olive Oil 1730g(6)",
     "bcTransportation": "CH AIR",
     "vendorName": "INALCA FOOD & BEVERAGE SRL"
   },

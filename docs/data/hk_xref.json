@@ -2992,10 +2992,6 @@
     "ifbNo": "MBBART-20"
   },
   {
-    "nHK": "MBBBST-22",
-    "ifbNo": "MBBBST-22"
-  },
-  {
     "nHK": "MBBRIC-24",
     "ifbNo": "MBBRIC-24"
   },
@@ -3714,6 +3710,10 @@
   {
     "nHK": "PDL02",
     "ifbNo": "PDL02"
+  },
+  {
+    "nHK": "PGS02",
+    "ifbNo": "PGS02"
   },
   {
     "nHK": "PHMER-24",
@@ -6522,6 +6522,10 @@
   {
     "nHK": "WMDB16-21",
     "ifbNo": "MBBBST-21"
+  },
+  {
+    "nHK": "WMDB16-22",
+    "ifbNo": "MBBBST-22"
   },
   {
     "nHK": "WMDB17-19",
