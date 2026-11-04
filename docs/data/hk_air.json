@@ -219,7 +219,7 @@
   {
     "code": "",
     "nHK": "ABG2243-2",
-    "description": "Chilled Boneless Grain Fed MB2+ Ribs Eye Roll(6/7 KG)",
+    "description": "Chilled Boneless Grain Fed MB2+ Cube Roll(6/7 KG)",
     "bcTransportation": "CH AIR",
     "vendorName": "ABG Australian Beef Group"
   },
@@ -4924,13 +4924,6 @@
     "code": "",
     "nHK": "TJ2040-4/5",
     "description": "TAJMA CHILLED EYE ROUD MS4-5 (2-3 kg)",
-    "bcTransportation": "CH AIR",
-    "vendorName": "ANDREWS MEAT INDUSTRIES"
-  },
-  {
-    "code": "",
-    "nHK": "TJ2143-4/5",
-    "description": "TAJIMA CHILLED STRIPLOIN MS4-5 (7-8.5 kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
