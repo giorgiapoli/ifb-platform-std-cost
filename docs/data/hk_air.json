@@ -2353,8 +2353,15 @@
   },
   {
     "code": "",
+    "nHK": "GC9106",
+    "description": "PANETTONE CLASSIC  RELANGHE 1kg (6)",
+    "bcTransportation": "DRY AIR",
+    "vendorName": "RELANGHE S.R.L."
+  },
+  {
+    "code": "",
     "nHK": "GC9106-R",
-    "description": "Pandoro Classic  1kg (6)",
+    "description": "PANDORO CLASSIC RELANGHE  1kg (6)",
     "bcTransportation": "DRY AIR",
     "vendorName": "RELANGHE S.R.L."
   },
@@ -2368,7 +2375,7 @@
   {
     "code": "",
     "nHK": "GC9107",
-    "description": "Panettone w/Moscato Wine 1kg (6)",
+    "description": "PANETTONE FLAVOURED MOSCATO RELANGHE 1kg (6)",
     "bcTransportation": "DRY AIR",
     "vendorName": "RELANGHE S.R.L."
   },
