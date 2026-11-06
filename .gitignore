@@ -1,0 +1,14 @@
+# dati aziendali: non vanno su GitHub
+INPUT/
+OUTPUT/
+MARGINI_MESI/
+STORICO_STD/
+cache_std/
+*.xlsx
+*.xlsm
+*.xls
+*.pkl
+margini_storico.json
+annotazioni.json
+__pycache__/
+.claude/

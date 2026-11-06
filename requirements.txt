@@ -1,0 +1,7 @@
+streamlit>=1.57
+pandas>=3.0
+numpy
+altair
+openpyxl
+xlrd
+xlsxwriter
