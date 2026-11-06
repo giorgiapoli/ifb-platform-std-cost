@@ -176,6 +176,13 @@
   },
   {
     "code": "",
+    "nHK": "ABG2131-2",
+    "description": "CHILLED BONELESS GRAINFED MB2+ TRI TIP (2/3 Kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ABG Australian Beef Group"
+  },
+  {
+    "code": "",
     "nHK": "ABG2141-3",
     "description": "Chilled Boneless Grain Fed MB3+ Striploin(6/7 KG)",
     "bcTransportation": "CH AIR",
@@ -2614,13 +2621,6 @@
     "code": "",
     "nHK": "GF5010-OMN",
     "description": "OMUGI Aus Chuck Eye Roll MB1+ approx 4.5 kg",
-    "bcTransportation": "CH AIR",
-    "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
-  },
-  {
-    "code": "",
-    "nHK": "GF5010-OMR",
-    "description": "FRZ OMUGI Aus Chuck Eye Roll MB1+ approx 4.5 kg",
     "bcTransportation": "CH AIR",
     "vendorName": "NH FOODS AUSTRALIA PTY. LTD."
   },
@@ -8788,6 +8788,13 @@
     "code": "",
     "nHK": "WB2100-8/9",
     "description": "W BLACK Chilled D-RUMP MS8-9 (6-8kg)",
+    "bcTransportation": "CH AIR",
+    "vendorName": "ANDREWS MEAT INDUSTRIES"
+  },
+  {
+    "code": "",
+    "nHK": "WB2100-8/9FRZ",
+    "description": "FRZ W BLACK Chilled D-RUMP MS8-9 (6-8kg)",
     "bcTransportation": "CH AIR",
     "vendorName": "ANDREWS MEAT INDUSTRIES"
   },
