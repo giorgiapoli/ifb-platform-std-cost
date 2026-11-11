@@ -10,6 +10,7 @@ import glob
 import hashlib
 import io
 import os
+import sys
 import pickle
 import re
 import tempfile
@@ -462,7 +463,10 @@ with st.sidebar:
     VAL = "HKD" if filiale == "HONG KONG" else "€"          # valuta dello standard cost della filiale
     _sto.imposta_filiale(filiale, VAL)            # ogni filiale ha il suo storico a sistema e i suoi mesi di margini; Hong Kong e' in HKD
     _mfx.imposta_filiale(filiale)
-    sorgente = st.radio("Sorgente dei file", ["Dalle cartelle", "Carica i file"], horizontal=True)
+    if sys.platform == "emscripten":          # versione web: non ci sono cartelle sul PC, i file si caricano sempre
+        sorgente = "Carica i file"
+    else:
+        sorgente = st.radio("Sorgente dei file", ["Dalle cartelle", "Carica i file"], horizontal=True)
     p_old = p_new = None
     modelli = {}
     if sorgente == "Dalle cartelle":

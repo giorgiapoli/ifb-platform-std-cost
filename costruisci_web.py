@@ -26,6 +26,7 @@ html = f"""<!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Standard Cost</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/browser@{STLITE}/build/style.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block">
 </head><body>
 <div id="root"></div>
 <script type="module">
@@ -33,6 +34,8 @@ import {{ mount }} from "https://cdn.jsdelivr.net/npm/@stlite/browser@{STLITE}/b
 mount({{
   requirements: ["openpyxl", "xlsxwriter", "reportlab", "xlrd"],
   idbfsMountpoints: ["/home/pyodide/dati"],
+  streamlitConfig: {{"theme.base": "light", "theme.primaryColor": "#0F766E", "theme.backgroundColor": "#FFFFFF",
+                    "theme.secondaryBackgroundColor": "#F6F7F9", "theme.textColor": "#14213D"}},
   entrypoint: "app.py",
   files: {json.dumps(files)}
 }}, document.getElementById("root"));
