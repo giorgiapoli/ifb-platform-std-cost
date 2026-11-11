@@ -486,7 +486,6 @@ with st.sidebar:
     st.divider()
     isole = list(sv.ISLANDS)       # sempre tutte le destinazioni della filiale
     soglia = sv.TOL                # variazioni sotto 0,005 € considerate nulle
-    st.caption("I file vengono letti in sola lettura. Niente esce dal tuo PC.")
     st.toggle("Suggerimenti dell'assistente", value=True, key="assistente_on",
               help="Un fumetto sotto il campo che spiega a cosa serve. Si chiude con la X.")
 
