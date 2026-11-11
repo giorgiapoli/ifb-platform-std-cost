@@ -4,7 +4,9 @@ import glob
 import json
 import os
 import shutil
+import time
 
+VER = str(int(time.time()))          # cambia a ogni costruzione: il browser non usa copie vecchie dei file
 QUI = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(QUI, "docs")
 STLITE = "1.12.1"
@@ -15,13 +17,13 @@ for f in sorted(glob.glob(os.path.join(QUI, "*.py"))):
     if n == "costruisci_web.py":
         continue
     shutil.copy(f, os.path.join(OUT, "app", n))
-    files[n] = {"url": "./app/" + n}
+    files[n] = {"url": "./app/" + n + "?v=" + VER}
 for sub in ("assets", ".streamlit"):
     for f in glob.glob(os.path.join(QUI, sub, "*")):
         d = os.path.join(OUT, "app", sub)
         os.makedirs(d, exist_ok=True)
         shutil.copy(f, d)
-        files[f"{sub}/{os.path.basename(f)}"] = {"url": f"./app/{sub}/{os.path.basename(f)}"}
+        files[f"{sub}/{os.path.basename(f)}"] = {"url": f"./app/{sub}/{os.path.basename(f)}?v=" + VER}
 html = f"""<!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Standard Cost</title>
