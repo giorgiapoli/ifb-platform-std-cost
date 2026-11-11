@@ -17,7 +17,7 @@ INK, MUTED, UP, DOWN = "#14213D", "#667085", "#B42318", "#027A48"
 # dove cercare gli output della macro, per filiale (relativi alla cartella della filiale)
 GLOBS = {
     "CANARIE": ["STANDARD_COST_AUTOMATION/OUTPUT/SC_Analisi_*.xlsx"],
-    "HONG KONG": ["STANDARD_COST_AUTOMATION/OUTPUT/SC_Analisi_*.xlsx", "IFB/**/OUTPUT/SC_Analisi_*.xlsx"],
+    "HONG KONG": ["STANDARD_COST_AUTOMATION/OUTPUT/SC_Analisi_*.xlsx"],          # solo gli output della macro della cartella OUTPUT
 }
 # nomi di colonna diversi nei vari mesi -> nome unico
 ALIAS = {
@@ -54,7 +54,7 @@ def _cella_azione(v):
 def trova_file(filiale, base):
     """Output della macro trovati: [(etichetta, path, mtime)], dal piu' recente. Duplicati (stesso nome) uniti."""
     visti = {}
-    for pat in GLOBS.get(filiale, []):
+    for pat in GLOBS.get(filiale, ["STANDARD_COST_AUTOMATION/OUTPUT/SC_Analisi_*.xlsx"]):
         for p in glob.glob(os.path.join(base, pat), recursive=True):
             nome = os.path.basename(p)
             if nome.startswith("~$"):
@@ -143,6 +143,8 @@ CSS_TABELLA = """<style>
 
 def _mostra(df, altezza):
     """Tabella con testo che va a capo (st.dataframe taglierebbe la motivazione): si scorre solo in verticale."""
+    import filtri
+    df = filtri.filtra(df, "car")
     sty = stile(df).hide(axis="index")
     if True:                                           # tabella HTML ridimensionabile (larghezza colonne e area si ricordano)
         import margini_ui
@@ -172,6 +174,56 @@ def _con_motivazione(df, periodo, motiva):
     df = df.copy()
     df["Motivazione"] = mot
     return df
+
+
+def righe_articolo(filiale, base, codici):
+    """Le volte in cui un articolo compare negli output della macro (caricamenti): vuol dire che e' stata mandata la richiesta di
+    caricare/aggiornare il suo standard. Ritorna [("carica", data del file, testo)] dal piu' vecchio al piu' recente."""
+    cod = {str(c).strip().lower() for c in codici if c}
+    out = []
+    for lab, pth, mtime in trova_file(filiale, base):
+        try:
+            _, _, d = leggi(pth, mtime)
+        except Exception:
+            continue
+        if d.empty:
+            continue
+        ident = d.iloc[:, :2].astype(str).apply(lambda s: s.str.strip().str.lower().isin(cod)).any(axis=1)
+        for _, r in d[ident].iterrows():
+            periodo = lab.split("  ·  ")[0]
+            coppie = []
+            for c in d.columns:
+                m = re.match(r"^old_sc(.*)$", str(c), flags=re.I)
+                if m:
+                    nuovo = next((x for x in d.columns if str(x).lower() == "new_sc" + m.group(1).lower()), None)
+                    if nuovo is not None and pd.notna(r[c]) and pd.notna(r[nuovo]):
+                        etich = m.group(1).strip("_ ")
+                        v = lambda x: f"{x:,.2f}".replace(",", "§").replace(".", ",").replace("§", ".") + " €"
+                        coppie.append((etich, v(float(r[c])), v(float(r[nuovo]))))
+            pct = None
+            if "D %" in d.columns and pd.notna(r["D %"]):
+                try:
+                    pct = float(r["D %"])
+                except (TypeError, ValueError):
+                    pct = None
+            testo = f"Caricamento «{periodo}» (richiesta inviata): "
+            if coppie:
+                testo += " · ".join((f"{e}: " if e else "") + f"standard da {a} a <b>{b}</b>" for e, a, b in coppie)
+            else:
+                testo += "standard aggiornato"
+            if pct is not None:
+                testo += f" ({pct:+.1%})".replace(".", ",")
+            if "ACTION" in d.columns and pd.notna(r["ACTION"]):
+                testo += f" · azione {r['ACTION']}"
+            if "Last Date Invoiced" in d.columns and pd.notna(r["Last Date Invoiced"]):
+                try:
+                    testo += f" · ultimo acquisto {pd.to_datetime(r['Last Date Invoiced']):%d/%m/%Y}"
+                except Exception:
+                    pass
+            if "NEW" in d.columns and pd.notna(r["NEW"]) and str(r["NEW"]).strip():
+                testo += " · articolo nuovo"
+            out.append(("carica", pd.Timestamp(datetime.fromtimestamp(mtime).date()), testo))
+    return sorted(out, key=lambda x: x[1])
 
 
 def _storico_articolo(files, motiva, key):
@@ -252,13 +304,13 @@ def render(filiale, base, key, motiva=None):
                 kpi(k[3], "Acquisti dal / al", f"{dd.min():%d/%m} - {dd.max():%d/%m}", date[0])
         st.write("")
         _storico_articolo(files, motiva, key)          # ricerca di un articolo: sopra la tabella
-        st.markdown("##### Elenco del caricamento")
-        _mostra(df, 680 if len(df) > 14 else None)
-        if delta:
-            st.caption("Rosso = costo in aumento · verde = costo in calo · piu' e' scuro, piu' pesa la variazione.")
-        if "Motivazione" in df.columns:
-            st.caption("Motivazione: confronto tra il modello del mese precedente e quello del mese del caricamento "
-                       "(prima destinazione). Se lo standard a sistema ('Old' del file) non coincide con quello del "
-                       "modello precedente, e' indicato: vuol dire che a sistema non era stato aggiornato.")
-        elif motiva is not None and "Code" in df.columns:
-            st.caption("Motivazione non disponibile: non trovo nello storico i due modelli di questo periodo.")
+        with st.expander("Elenco del caricamento", expanded=False):
+            _mostra(df, 680 if len(df) > 14 else None)
+            if delta:
+                st.caption("Rosso = costo in aumento · verde = costo in calo · piu' e' scuro, piu' pesa la variazione.")
+            if "Motivazione" in df.columns:
+                st.caption("Motivazione: confronto tra il modello del mese precedente e quello del mese del caricamento "
+                           "(prima destinazione). Se lo standard a sistema ('Old' del file) non coincide con quello del "
+                           "modello precedente, e' indicato: vuol dire che a sistema non era stato aggiornato.")
+            elif motiva is not None and "Code" in df.columns:
+                st.caption("Motivazione non disponibile: non trovo nello storico i due modelli di questo periodo.")

@@ -9,6 +9,9 @@ import pandas as pd
 import streamlit as st
 
 import margini_fifo as mf
+import filtri
+import memoria_file
+import scarica_excel
 
 INK, MUTED, LINE = "#14213D", "#667085", "#E4E7EC"
 SEMAFORO = {"verde": ("#027A48", "#ECFDF3", "#ABEFC6"), "giallo": ("#B54708", "#FFFAEB", "#FEDF89"),
@@ -29,6 +32,47 @@ def _margini(data, motore):
 @st.cache_data(show_spinner=False)
 def _entrate(data, motore):
     return mf.leggi_entrate(data)
+
+
+@st.cache_data(show_spinner=False)
+def _items_modello_hk(path, mtime):
+    """Codici degli articoli presenti nei fogli ITEM STDC del modello di Hong Kong (quelli che gestiamo noi)."""
+    import openpyxl
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    out = set()
+    for n in wb.sheetnames:
+        if n.upper().startswith("ITEM STDC"):
+            for r in wb[n].iter_rows(min_row=6, max_col=1, values_only=True):
+                if r[0] not in (None, ""):
+                    out.add(str(r[0]).strip())
+    wb.close()
+    return out
+
+
+@st.cache_data(show_spinner=False)
+def _listino(path, mtime):
+    return mf.leggi_listino(path)
+
+
+@st.cache_data(show_spinner=False)
+def _entrate_hk(data, motore):
+    return mf.leggi_entrate_hk(data)
+
+
+from contextlib import contextmanager
+
+
+@contextmanager
+def _cx(tab):
+    """Contenitore di una scheda; se la scheda non esiste (filiale senza quei controlli) il contenuto si scarta."""
+    if tab is not None:
+        with tab:
+            yield
+    else:
+        ph = st.empty()
+        with ph.container():
+            yield
+        ph.empty()
 
 
 @st.cache_data(show_spinner=False)
@@ -80,30 +124,151 @@ def _evidenzia(v, soglia=0.0):
     return "color:#B42318;font-weight:600" if v > 0 else "color:#027A48;font-weight:600"
 
 
+def _xlsx_outlier(tb):
+    """Excel con la stessa tabella e gli stessi colori della pagina (STD verde, FIFO rosso, righe a standard zero in giallo)."""
+    import io
+    buf = io.BytesIO()
+    with pd.ExcelWriter(buf, engine="xlsxwriter") as xw:
+        wb = xw.book
+        ws = wb.add_worksheet("Outlier")
+        xw.sheets["Outlier"] = ws
+        num = {"Q.tà venduta": '#,##0', "Prezzo vendita per UM": '#,##0.000 "€"', "STD per UM": '#,##0.000 "€"',
+               "FIFO per UM": '#,##0.000 "€"', "Vendite": '#,##0 "€"', "Δ margine": '+#,##0 "€";-#,##0 "€"',
+               "Δ % vendite": '+0.0%;-0.0%', "Δ prezzo acquisto": '+0.000 "€";-0.000 "€"', "Δ logistica": '+0.000 "€";-0.000 "€"',
+               "Δ AIEM": '+0.000 "€";-0.000 "€"', "Non spiegato": '+0.000 "€";-0.000 "€"'}
+        larg = {"Descrizione": 42, "Cause probabili": 80, "Articolo": 10, "Origine": 9, "UM": 6}
+        testa = wb.add_format({"bold": True, "bg_color": "#F9FAFB", "font_color": "#667085", "text_wrap": True,
+                               "align": "center", "valign": "bottom", "border": 1, "border_color": "#E4E7EC"})
+        cache = {}
+
+        def fmt(c, bg=None, col=None, bold=False):
+            k = (c, bg, col, bold)
+            if k not in cache:
+                d = {"valign": "top", "border": 1, "border_color": "#F2F4F7"}
+                if c in num:
+                    d["num_format"] = num[c]
+                    d["align"] = "right"
+                else:
+                    d["align"] = "left"
+                if c in ("Descrizione", "Cause probabili"):
+                    d["text_wrap"] = True
+                if bg:
+                    d["bg_color"] = bg
+                if col:
+                    d["font_color"] = col
+                if bold:
+                    d["bold"] = True
+                cache[k] = wb.add_format(d)
+            return cache[k]
+
+        for j, c in enumerate(tb.columns):
+            ws.write(0, j, c, testa)
+            ws.set_column(j, j, larg.get(c, 14))
+        ws.set_row(0, 32)
+        ws.freeze_panes(1, 2)
+        for i, (_, r) in enumerate(tb.iterrows(), start=1):
+            zero = "standard cost a zero" in str(r.get("Cause probabili", ""))
+            for j, c in enumerate(tb.columns):
+                v = r[c]
+                bg = col = None
+                bold = False
+                if c == "STD per UM":
+                    bg, col = "#D1FADF", "#05603A"
+                elif c == "FIFO per UM":
+                    bg, col, bold = "#FEE4E2", "#B42318", True
+                elif c in ("Δ margine", "Δ % vendite") and pd.notna(v) and v != 0:
+                    col, bold = ("#B42318" if v > 0 else "#027A48"), True
+                if zero:
+                    bg = "#FEF9C3"
+                if v is None or (not isinstance(v, str) and pd.isna(v)):
+                    ws.write_blank(i, j, None, fmt(c, bg, col, bold))
+                elif isinstance(v, str):
+                    ws.write_string(i, j, v, fmt(c, bg, col, bold))
+                else:
+                    ws.write_number(i, j, float(v), fmt(c, bg, col, bold))
+        ws.autofilter(0, 0, len(tb), len(tb.columns) - 1)
+    return buf.getvalue()
+
+
 LUNGHE = ("Cause probabili", "Segnale", "Anomalia", "Motivo", "Esito", "Motivazione")
 VERDE_C = "background-color:#D1FADF;color:#05603A"
 ROSSO_C = "background-color:#FEE4E2;color:#B42318;font-weight:600"
 AMBRA_C = "background-color:#FEF0C7;color:#93370D"
 
 
-def _tabella_html(sty, a_sinistra=(), altezza=520, a_capo=()):
+@st.cache_data(show_spinner=False)
+def _ultima_fattura(path, mtime, codice):
+    """Data dell'ultima fattura di un codice IFB in 02_Ultime_Fatture (ultima registrazione con quantita' positiva, altrimenti qualsiasi)."""
+    d = pd.read_excel(path, usecols=[0, 3, 4])
+    d.columns = ["cod", "data", "qty"]
+    d = d[d["cod"].astype(str).str.strip() == codice]
+    d["data"] = pd.to_datetime(d["data"], errors="coerce")
+    d = d[d["data"].notna()]
+    if d.empty:
+        return None
+    pos = d[pd.to_numeric(d["qty"], errors="coerce").fillna(0) > 0]
+    return (pos if len(pos) else d)["data"].max()
+
+
+@st.dialog("Storico dell'articolo", width="large")
+def _dialog_storico(codice, descr, ifb, filiale, trasp=""):
+    """Si apre cliccando il codice di un articolo: la sua storia a sistema (cambi, caricamenti, da quanto non si aggiorna)."""
+    import caricamenti
+    import spiega_variazioni as sv
+    import storico_std
+    st.markdown(f"**{codice} · {descr}**" + (f" · IFB {ifb}" if ifb else "") + (f" · Transportation <b>{trasp}</b>" if trasp and trasp != "—" else ""),
+                unsafe_allow_html=True)
+    if ifb:          # solo articoli IFB: data dell'ultima fattura (da «Ultime fatture»)
+        try:
+            _pf = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), sv.BRANCHES[filiale]["folder"],
+                               "STANDARD_COST_AUTOMATION", "INPUT", "02_Ultime_Fatture.xlsx")
+            _uf = _ultima_fattura(_pf, os.path.getmtime(_pf), ifb) if os.path.exists(_pf) else None
+            st.markdown("Ultima fattura (da Ultime fatture): " + (f"**{_uf:%d/%m/%Y}**" if _uf is not None else "nessuna nel file"))
+        except Exception:
+            pass
+    righe = storico_std.storia_reale([codice, ifb])
+    base = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), sv.BRANCHES[filiale]["folder"])
+    try:
+        car = caricamenti.righe_articolo(filiale, base, [codice, ifb])
+    except Exception:
+        car = []
+    righe = storico_std.unisci_caricamenti(righe, car)
+    if not righe:
+        st.info("Questo articolo non è nell'export dello storico caricato" +
+                ((": " + storico_std.nota_mancante()) if storico_std.nota_mancante() else "") + ".")
+        return
+    st.markdown(storico_std.scheda_storia("reale", "In macchina", "lo standard che c'è davvero a sistema, giorno per giorno", righe),
+                unsafe_allow_html=True)
+
+
+def _tabella_html(sty, a_sinistra=(), altezza=520, a_capo=(), excel=True, nome=None, apri=None):
     """Tabella HTML: le intestazioni vanno a capo quando la finestra si restringe (st.dataframe le taglia).
     a_sinistra = nomi delle colonne di testo da allineare a sinistra; a_capo = colonne di testo lungo che vanno a capo;
     scorre in orizzontale e in verticale."""
     cols = list(sty.data.columns)
     cid = "t" + hashlib.md5("|".join(map(str, cols)).encode("utf-8")).hexdigest()[:8]      # le regole valgono solo per questa tabella
-    reg = "".join(f".tab-h.{cid} td:nth-child({i + 1}),.tab-h.{cid} th:nth-child({i + 1}){{text-align:left}}" for i, c in enumerate(cols)
+    reg = "".join(f".tab-h.{cid} td.col{i},.tab-h.{cid} th.col{i}{{text-align:left}}" for i, c in enumerate(cols)
                   if c in a_sinistra)
-    reg += "".join(f".tab-h.{cid} td:nth-child({i + 1}){{white-space:normal;min-width:{300 if c in LUNGHE else 170}px;"
+    reg += "".join(f".tab-h.{cid} td.col{i}{{white-space:normal;min-width:{300 if c in LUNGHE else 170}px;"
                    f"max-width:{520 if c in LUNGHE else 260}px;line-height:1.3;overflow-wrap:anywhere}}" for i, c in enumerate(cols) if c in a_capo)
     st.markdown(
-        "<style>.tab-h{overflow:auto;resize:both;height:" + str(min(altezza, 130 + 29 * len(sty.data))) + "px;min-height:90px;"
+        "<style>.tab-h{overflow:auto;resize:both;max-height:78vh;height:" + str(min(altezza, 130 + 29 * len(sty.data))) + "px;min-height:90px;"
         "border:1px solid #E4E7EC;border-radius:10px}"
         ".tab-h table{border-collapse:collapse;font-size:.82rem;width:100%}"
-        ".tab-h th{position:sticky;top:0;white-space:normal;text-align:center;vertical-align:bottom;background:#F9FAFB;color:#667085;"
+        ".tab-h th{position:sticky;top:0;z-index:2;white-space:normal;text-align:center;vertical-align:bottom;background:#F9FAFB;color:#667085;"
         "font-weight:500;padding:6px 8px;border-bottom:1px solid #E4E7EC;min-width:76px;line-height:1.2}"
         ".tab-h td{white-space:nowrap;padding:5px 8px;border-bottom:1px solid #F2F4F7;text-align:right}" + reg
-        + f"</style><div class='tab-h {cid}'>" + sty.hide(axis="index").to_html() + "</div>", unsafe_allow_html=True)
+        + (f".tab-h.{cid} td.col0{{cursor:pointer;color:#0F766E;text-decoration:underline dotted}}"
+           f".st-key-{apri}{{position:absolute;left:-9999px;height:0;overflow:hidden}}" if apri else "")
+        + f"</style><div class='tab-h {cid}'" + (f" data-apri='{apri}'" if apri else "") + ">" + sty.hide(axis="index").to_html() + "</div>",
+        unsafe_allow_html=True)
+    if apri:          # campo nascosto: lo script della pagina ci scrive il codice cliccato e questo apre la finestra dello storico
+        _v = st.text_input("Apri storico articolo", key=apri, label_visibility="collapsed")
+        if _v and st.session_state.get(apri + "_ult") != _v:
+            st.session_state[apri + "_ult"] = _v
+            st.session_state["_apri_cod"] = _v.split("|")[0]
+    if excel:
+        scarica_excel.bottone(sty, nome=nome, indice=False)
 
 
 def _motivo(r):
@@ -118,6 +283,9 @@ def _motivo(r):
     if r["imposte_indebite_eur"] >= 1:
         n = int(r["imposte_su_senza_aiem"])
         m.append(f"imposte per {_eur(r['imposte_indebite_eur'])} su {n} {'articolo' if n == 1 else 'articoli'} senza AIEM")
+    if r["esito"].startswith("Ripartito a peso"):
+        m.append("ripartito a peso: spedizione aerea, coerente" + (f" · IBRIDO: {int(r['n_ibridi'])} articoli etichettati via mare "
+                                                                  "viaggiano in aereo" if r.get("n_ibridi", 0) else ""))
     if not m and r["esito"].startswith("Non verificabile"):
         m.append("volume non verificabile (meno di 3 righe con le misure del box): nessuna anomalia rilevata")
     return " · ".join(m)
@@ -131,99 +299,182 @@ def _date_ingresso(date):
     return f"{a:%d/%m/%Y}" if a == b else f"{a:%d/%m/%Y} – {b:%d/%m/%Y}"
 
 
-def _disegno_container(d, totale_trasporto):
-    """Due container affiancati, divisi in tanti blocchi quanti sono gli articoli: in verde com'e' giusto dividere il
-    trasporto (per volume), in rosso com'e' stato diviso davvero. Stesso colore/posizione = stesso articolo."""
-    g = d.groupby("item").agg(desc=("desc", "first"), vol=("v_ok", "sum"), reg=("reg", "sum"), att=("atteso", "sum")).reset_index()
-    g = g.sort_values("vol", ascending=False).reset_index(drop=True)
-    g["q_ok"] = g["vol"] / g["vol"].sum()
-    g["q_reg"] = g["reg"] / g["reg"].sum()
-    verdi = ["#027A48", "#12B76A", "#05603A", "#32D583"]
-    rossi = ["#B42318", "#F04438", "#7A271A", "#F97066"]
-
-    def barra(col, palette, valore):
+def _barre_container(titolo, totale, g, c_ok, c_reg, pal_ok, pal_reg, txt_ok, txt_reg, col_ok, col_reg):
+    """HTML di un disegno: due container affiancati divisi in blocchi (uno per articolo). g ha item, desc e, per ogni
+    grandezza, la quota (c_ok / c_reg) e il valore (v_ok / v_reg). Stesso colore/posizione = stesso articolo."""
+    def barra(col, palette, vcol):
         blocchi = []
         for i, r in g.iterrows():
             q = r[col]
-            testo = (f'<b>{r["item"]}</b><br>{q:.0%}' if q >= 0.055 else (f'{q:.0%}' if q >= 0.03 else ""))
-            tip = f'{r["item"]} · {str(r["desc"]).strip()} · {q:.1%} · {valore(r):,.0f} €'.replace(",", ".")
+            testo = (f'<b>{r["item"]}</b><br>{q:.0%}' if q >= 0.09 else (f'{q:.0%}' if q >= 0.045 else ""))
+            tip = f'{r["item"]} · {str(r["desc"]).strip()} · {q:.1%} · {r[vcol]:,.0f} €'.replace(",", ".")
             blocchi.append(f'<div title="{tip}" style="flex:{max(q, 0.004):.4f} 1 0;background:{palette[i % len(palette)]};'
-                           'color:#fff;font-size:.74rem;line-height:1.15;text-align:center;display:flex;align-items:center;'
+                           'color:#fff;font-size:.7rem;line-height:1.15;text-align:center;display:flex;align-items:center;'
                            'justify-content:center;border-right:2px solid #fff;min-width:2px;overflow:hidden">'
                            f'<span>{testo}</span></div>')
         return ('<div style="display:flex;align-items:stretch">'
-                '<div style="flex:1;display:flex;height:66px;border:3px solid #475467;border-right:0;border-radius:8px 0 0 8px;'
+                '<div style="flex:1;display:flex;height:60px;border:3px solid #475467;border-right:0;border-radius:8px 0 0 8px;'
                 'overflow:hidden;background:#fff">' + "".join(blocchi) + '</div>'
-                '<div style="width:14px;border:3px solid #475467;border-radius:0 8px 8px 0;background:'
+                '<div style="width:12px;border:3px solid #475467;border-radius:0 8px 8px 0;background:'
                 'repeating-linear-gradient(90deg,#98A2B3 0 3px,#D0D5DD 3px 6px)"></div></div>')
 
-    righe_leg = "".join(
-        f'<span style="display:inline-block;margin:2px 10px 2px 0;font-size:.82rem"><span style="display:inline-block;width:10px;height:10px;'
-        f'background:{verdi[i % len(verdi)]};margin-right:4px"></span><span style="display:inline-block;width:10px;height:10px;'
-        f'background:{rossi[i % len(rossi)]};margin-right:5px"></span><b>{r["item"]}</b> {str(r["desc"]).strip()[:34]}: '
-        f'{r["q_ok"]:.0%} → <span style="color:#B42318;font-weight:600">{r["q_reg"]:.0%}</span></span>'
+    leg = "".join(
+        f'<span style="display:inline-block;margin:2px 9px 2px 0;font-size:.78rem"><span style="display:inline-block;width:9px;height:9px;'
+        f'background:{pal_ok[i % len(pal_ok)]};margin-right:3px"></span><span style="display:inline-block;width:9px;height:9px;'
+        f'background:{pal_reg[i % len(pal_reg)]};margin-right:4px"></span><b>{r["item"]}</b> {str(r["desc"]).strip()[:22]}: '
+        f'{r[c_ok]:.0%} → <span style="color:{col_reg};font-weight:600">{r[c_reg]:.0%}</span></span>'
         for i, r in g.iterrows())
-    st.markdown(
-        '<div style="background:#fff;border:1px solid #E4E7EC;border-radius:12px;padding:12px 16px;margin:8px 0">'
-        '<div style="font-weight:600;margin-bottom:4px">Il trasporto ' + f'({totale_trasporto:,.0f} €)'.replace(",", ".") + ' dentro la spedizione</div>'
-        '<div style="color:#027A48;font-weight:600;font-size:.88rem;margin:6px 0 3px 0">Come dovrebbe essere diviso (in base al volume dei box)</div>'
-        + barra("q_ok", verdi, lambda r: r["att"]) +
-        '<div style="color:#B42318;font-weight:600;font-size:.88rem;margin:10px 0 3px 0">Come è stato diviso davvero</div>'
-        + barra("q_reg", rossi, lambda r: r["reg"]) +
-        '<div style="margin-top:6px">' + righe_leg + '</div></div>', unsafe_allow_html=True)
+    return ('<div style="background:#fff;border:1px solid #E4E7EC;border-radius:12px;padding:12px 14px;margin:8px 0">'
+            f'<div style="font-weight:600;margin-bottom:4px">{titolo} ' + f'({totale:,.0f} €)'.replace(",", ".") + ' dentro la spedizione</div>'
+            f'<div style="color:{col_ok};font-weight:600;font-size:.86rem;margin:6px 0 3px 0">{txt_ok}</div>'
+            + barra(c_ok, pal_ok, "v_ok") +
+            f'<div style="color:{col_reg};font-weight:600;font-size:.86rem;margin:10px 0 3px 0">{txt_reg}</div>'
+            + barra(c_reg, pal_reg, "v_reg") +
+            '<div style="margin-top:6px">' + leg + '</div></div>')
 
 
-def render(p_modello):
-    st.markdown("#### Margini COMIT: standard cost contro FIFO")
+def _disegno_container(d, totale_trasporto, con_aiem=True):
+    """Due disegni affiancati: a sinistra la ripartizione del trasporto (verde = come dovrebbe essere, per volume; rosso = come
+    e' stato diviso), a destra quella dell'AIEM (giallo = atteso, arancione = registrato). Stesso articolo = stessa posizione."""
+    g = d.groupby("item").agg(desc=("desc", "first"), vol=("v_ok", "sum"), reg=("reg", "sum"), att=("atteso", "sum"),
+                              ai_reg=("imp_reg", "sum"), ai_att=("aiem_att", "sum")).reset_index()
+    g = g.sort_values("vol", ascending=False).reset_index(drop=True)
+    g["q_ok"] = g["vol"] / g["vol"].sum()
+    g["q_reg"] = g["reg"] / g["reg"].sum()
+    g["v_ok"], g["v_reg"] = g["att"], g["reg"]
+    verdi = ["#027A48", "#12B76A", "#05603A", "#32D583"]
+    rossi = ["#B42318", "#F04438", "#7A271A", "#F97066"]
+    gialli = ["#CA8A04", "#EAB308", "#854D0E", "#FACC15"]
+    arancio = ["#C2410C", "#F97316", "#7C2D12", "#FB923C"]
+    sx, dx = st.columns(2) if con_aiem else (st.container(), None)
+    sx.markdown(_barre_container("Il trasporto", totale_trasporto, g, "q_ok", "q_reg", verdi, rossi,
+                                 "Come dovrebbe essere diviso (in base al volume dei box)", "Come è stato diviso davvero",
+                                 "#027A48", "#B42318"), unsafe_allow_html=True)
+    if dx is None:          # Hong Kong: niente AIEM
+        return
+    tot_att, tot_reg = float(g["ai_att"].sum()), float(g["ai_reg"].sum())
+    if tot_att <= 0 and tot_reg <= 0:
+        dx.markdown('<div style="background:#fff;border:1px solid #E4E7EC;border-radius:12px;padding:12px 14px;margin:8px 0">'
+                    '<div style="font-weight:600;margin-bottom:4px">L\'AIEM dentro la spedizione</div>'
+                    '<div style="color:#667085;font-size:.88rem">Nessuna imposta AIEM in questa spedizione.</div></div>',
+                    unsafe_allow_html=True)
+        return
+    h = g.copy()
+    h["q_ok"] = h["ai_att"] / tot_att if tot_att > 0 else 0.0
+    h["q_reg"] = h["ai_reg"] / tot_reg if tot_reg > 0 else 0.0
+    h["v_ok"], h["v_reg"] = h["ai_att"], h["ai_reg"]
+    dx.markdown(_barre_container("L'AIEM", tot_reg, h, "q_ok", "q_reg", gialli, arancio,
+                                 "Come dovrebbe essere ripartita (aliquota × merce + trasporto atteso)", "Come è stata registrata davvero",
+                                 "#A16207", "#C2410C"), unsafe_allow_html=True)
+
+
+_NC = {"c": "COMIT", "m": " Canarie"}          # nomi che cambiano da filiale a filiale: COMIT e' il cliente di Canarie
+
+
+def render(p_modello, filiale="CANARIE"):
+    """Pagina Margini. Per Hong Kong gli importi (vendite, margini, costi, FOB...) sono in HKD: mentre si disegna la pagina il
+    simbolo € diventa HKD in testi, riquadri e tabelle (il prezzo di listino resta in euro, scritto «EUR»)."""
+    if filiale == "CANARIE":
+        return _render(p_modello, filiale)
+    from pandas.io.formats.style import Styler as _St
+    from streamlit.delta_generator import DeltaGenerator as _DGm
+    orig_md, orig_cap, orig_fmt, orig_st_md, orig_st_cap = _DGm.markdown, _DGm.caption, _St.format, st.markdown, st.caption
+    sost = lambda t: t.replace("€", "HKD") if isinstance(t, str) else t
+
+    def _f(f):
+        if isinstance(f, str):
+            return sost(f)
+        if callable(f):
+            return lambda v, _f=f: sost(_f(v))
+        if isinstance(f, dict):
+            return {k: _f(v) for k, v in f.items()}
+        return f
+
+    def md(self, body, *a, **k):
+        return orig_md(self, sost(body), *a, **k)
+
+    def cap(self, body, *a, **k):
+        return orig_cap(self, sost(body), *a, **k)
+
+    def fmt(self, formatter=None, *a, **k):
+        return orig_fmt(self, _f(formatter), *a, **k)
+
+    _DGm.markdown, _DGm.caption, _St.format = md, cap, fmt
+    st.markdown, st.caption = (lambda body, *a, **k: md(st._main, body, *a, **k)), (lambda body, *a, **k: cap(st._main, body, *a, **k))
+    try:
+        return _render(p_modello, filiale)
+    finally:
+        _DGm.markdown, _DGm.caption, _St.format = orig_md, orig_cap, orig_fmt
+        st.markdown, st.caption = orig_st_md, orig_st_cap
+
+
+def _render(p_modello, filiale="CANARIE"):
+    mf.imposta_filiale(filiale)
+    _NC["c"], _NC["m"] = ("COMIT", " Canarie") if filiale == "CANARIE" else ("il cliente", "")
+    sfx = "" if filiale == "CANARIE" else "_" + filiale.replace(" ", "_")          # chiavi separate per filiale (mese scelto, file caricati)
+    k_mese = "mf_mese" + sfx
+    st.markdown("#### Margini " + ("COMIT" if filiale == "CANARIE" else "") + ": standard cost contro FIFO")
     st.caption("Carica ogni mese i report: i file vengono letti in sola lettura e non escono dal PC. "
                "Differenza margine = margine STD − margine FIFO: negativa = standard prudente, "
                "positiva = i costi reali superano lo standard. Fascia buona: tra −3% e −0,5% delle vendite.")
     # ---- mesi salvati: un pulsante per mese ---------------------------------------------------
     salvati = mf.mesi_salvati()
-    sel = st.session_state.get("mf_mese")
+    sel = st.session_state.get(k_mese)
     if sel not in salvati:
         sel = None
     if salvati:
         st.markdown("**Mesi in memoria**")
-        cols = st.columns([1] * len(salvati) + [1, max(8 - len(salvati), 1)])
+        cols = st.columns([3] * len(salvati) + [3, max(18 - 3 * len(salvati), 3)])
         for col, k in zip(cols, salvati):
             if col.button(mf.etichetta_mese(k), key=f"mf_btn_{k}", type="primary" if k == sel else "secondary",
                           width="stretch"):
-                st.session_state["mf_mese"] = k
+                st.session_state[k_mese] = k
                 st.rerun()
         if cols[len(salvati)].button("＋ Nuovo mese", key="mf_nuovo", type="primary" if sel is None else "secondary",
                                      width="stretch"):
-            st.session_state["mf_mese"] = None
+            st.session_state[k_mese] = None
             st.rerun()
     b_marg = b_cost = b_non = None
     giorni_rec = 30          # entrate recenti a costi accessori zero = fatture probabilmente non ancora registrate
     if sel:
         b_marg, b_cost, b_non = mf.leggi_file_mese(sel)
+        # se in «File da caricare» c'e' un report diverso da quello salvato per questo mese, si puo' sostituire il mese
+        _n = [st.session_state.get("dato_" + k + sfx) or memoria_file.carica(k + sfx) for k in ("mf_marg", "mf_cost", "mf_non")]
+        # avviso solo se il report in «File da caricare» e' stato caricato DOPO l'ultimo salvataggio del mese (e quindi e' piu' recente)
+        _t_up = os.path.getmtime(os.path.join(memoria_file.DIR, "mf_marg" + sfx + ".bin"))             if os.path.exists(os.path.join(memoria_file.DIR, "mf_marg" + sfx + ".bin")) else 0
+        _f_mese = os.path.join(mf._dir_mesi(), sel, mf._FILE_MESE["marg"])
+        _t_mese = os.path.getmtime(_f_mese) if os.path.exists(_f_mese) else 0
+        if _n[0] and _n[0].getvalue() != b_marg and _t_up > _t_mese:
+            _w1, _w2 = st.columns([5, 2], vertical_alignment="center")
+            _w1.warning(f"L'ultimo report margini caricato («{getattr(_n[0], 'name', '')}») è diverso da quello salvato per "
+                        f"{mf.etichetta_mese(sel)}: qui stai guardando quello salvato.")
+            if _w2.button("Sostituisci il mese con l'ultimo caricamento", key="mf_sost_" + sel, type="primary"):
+                mf.salva_file_mese(sel, _n[0].getvalue(), _n[1].getvalue() if _n[1] else b_cost,
+                                   _n[2].getvalue() if _n[2] else b_non)
+                st.rerun()
     else:
-        with st.expander("File del mese", expanded=not st.session_state.get("mf_ok", False)):
-            c1, c2, c3 = st.columns(3)
-            f_marg = c1.file_uploader("1 · Margini STD vs FIFO (obbligatorio)", type=["xlsx"], key="mf_marg",
-                                      help="Export 'Difference margin' per articolo, con riga Total.")
-            f_cost = c2.file_uploader("2 · Cost Analysis (entrate di magazzino)", type=["xlsx"], key="mf_cost",
-                                      help="Una riga per entrata: serve per capire PERCHE' lo standard e il FIFO si allontanano.")
-            f_non = c3.file_uploader("3 · Standard cost prodotti NON IFB", type=["xlsx"], key="mf_non",
-                                     help="Report che calcola in automatico lo standard dei prodotti acquistati direttamente da COMIT.")
-            b_marg = f_marg.getvalue() if f_marg else None
-            b_cost = f_cost.getvalue() if f_cost else None
-            b_non = f_non.getvalue() if f_non else None
+        f_marg, f_cost, f_non = (st.session_state.get("dato_" + k + sfx) or memoria_file.carica(k + sfx) for k in ("mf_marg", "mf_cost", "mf_non"))   # caricati in «File da caricare»
+        b_marg = f_marg.getvalue() if f_marg else None
+        b_cost = f_cost.getvalue() if f_cost else None
+        b_non = f_non.getvalue() if f_non else None
     if not b_marg:
-        st.info("Carica il report dei margini per iniziare. Con il Cost Analysis (e il report non IFB) l'app spiega anche "
-                "perché gli articoli si allontanano dallo standard.")
-        st.session_state["mf_ok"] = False
+        st.info("Carica i tre file del mese nella pagina «File da caricare» (pulsante in alto a destra) (il report dei margini è obbligatorio; con il Cost "
+                "Analysis e il report non IFB l'app spiega anche perché gli articoli si allontanano dallo standard).")
         return
-    st.session_state["mf_ok"] = True
     mt = _motore()
     try:
         art, tot = _margini(b_marg, mt)
     except Exception as ex:
         st.error(f"Non riesco a leggere il report dei margini: {ex}")
         return
-    ent = _entrate(b_cost, mt) if b_cost else None
+    ent_hk = None
+    try:
+        if b_cost and filiale != "CANARIE":
+            ent_hk = _entrate_hk(b_cost, mt)
+        ent = _entrate(b_cost, mt) if (b_cost and filiale == "CANARIE") else (mf.adatta_entrate_hk(ent_hk) if ent_hk is not None else None)
+    except Exception as ex:
+        st.error(f"Non riesco a leggere il Cost Analysis: {ex}")
+        ent = None
     non = _non_ifb(b_non, mt) if b_non else {}
     if sel is None:        # file appena caricati: li si puo' tenere in memoria con il nome del mese
         mese_nuovo_def = f"{ent['data'].max():%Y-%m}" if ent is not None and len(ent) else ""
@@ -233,14 +484,23 @@ def render(p_modello):
         s2.write("")
         if s2.button("Tieni in memoria", disabled=not chiave_nuova.strip(), width="stretch"):
             k = mf.salva_file_mese(chiave_nuova, b_marg, b_cost, b_non)
-            st.session_state["mf_mese"] = k
+            st.session_state[k_mese] = k
             st.rerun()
         s3.caption("Salva i file caricati: dalla prossima volta basta cliccare il pulsante del mese.")
     ifb = {}
-    if p_modello and os.path.exists(p_modello):
+    if filiale == "CANARIE" and p_modello and os.path.exists(p_modello):
         with st.spinner("Leggo gli standard cost IFB dal modello…"):
             ifb = _std_ifb(p_modello, os.path.getmtime(p_modello), mt)
     a = mf.perimetri(art, ifb, non)
+    a["trasp"] = ""
+    if filiale != "CANARIE":
+        # Hong Kong: IFB = articoli con codice IFB nel report; Transportation (SEA / AIR / ALTRO) dall'anagrafica del modello
+        _ifb_ok = a["ifb"].notna() & a["ifb"].astype(str).str.strip().ne("") if "ifb" in a.columns else pd.Series(False, index=a.index)
+        a["perimetro"] = np.where(_ifb_ok, "IFB", "Non IFB")
+        _cl = lambda t: "SEA" if "SEA" in t else ("AIR" if "AIR" in t else "ALTRO")
+        _ana_t = _anagrafica(p_modello, os.path.getmtime(p_modello), mt) if (p_modello and os.path.exists(p_modello)) else {}
+        a["trasp"] = [_cl(_ana_t.get(i, {}).get("_trasp") or "") for i in a["item"]]
+        a["trasp_txt"] = [(_ana_t.get(i, {}).get("_trasp") or "—") for i in a["item"]]          # transportation come scritta in anagrafica
     perim = mf.tabella_perimetri(a)
     # lo storico si aggiorna da solo a ogni caricamento (mese in memoria o file appena caricati con un mese valido)
     chiave_auto = sel if sel is not None else chiave_nuova.strip()
@@ -248,7 +508,8 @@ def render(p_modello):
         mf.salva_mese(chiave_auto, tot, perim)
 
     # dati di imballo di tutti gli articoli (modello per gli IFB, anagrafica COMIT per gli altri e per i mancanti)
-    p_ana = mf.cerca_anagrafica()
+    # l'anagrafica del mese e' gia' nel modello (foglio «Anagrafica Articoli»): si legge da li', senza altri file
+    p_ana = p_modello if (p_modello and os.path.exists(p_modello)) else None
     ana = _anagrafica(p_ana, os.path.getmtime(p_ana), mt) if p_ana else {}
     dati_art = mf.dati_articoli(ifb, non, ana)
 
@@ -270,6 +531,15 @@ def render(p_modello):
         med = mf.medie_entrate(w)
         aiem = mf.controllo_aiem(w, ifb, non, recenti_dal)
         cont, det = mf.controllo_container(w, dati_art)
+        if filiale != "CANARIE" and cont is not None and len(cont):
+            # Hong Kong: le spedizioni via aerea ripartiscono a PESO, non a volume. Se la ripartizione registrata torna con il
+            # peso la spedizione e' coerente (non e' un'anomalia); gli articoli «SEA» dentro sono IBRIDI (viaggiano in aereo).
+            pk = mf.classifica_peso_hk(w, ana)
+            cont = cont.merge(pk, on="ext", how="left")
+            aer = cont["a_peso"].fillna(False).astype(bool) & (cont["esito"] != "Ripartito a volume correttamente")
+            cont.loc[aer, "esito"] = "Ripartito a peso (spedizione aerea)"
+            cont.loc[aer, ["impatto_eur", "sbilancio_eur"]] = 0.0
+            cont["n_ibridi"] = [len(x) if isinstance(x, list) and a_ else 0 for x, a_ in zip(cont["ibridi"], aer)]
         trasp = mf.controllo_trasporto(med, ifb, non)
 
     if ent is not None and len(ent) and len(provv):
@@ -279,19 +549,37 @@ def render(p_modello):
                 columns={"data": "Data", "item": "Articolo", "desc": "Descrizione", "ubic": "Ubicazione",
                          "ext": "Spedizione (fattura)", "qty": "Q.tà", "prezzo": "Prezzo"}).style.format(
                 {"Data": "{:%d/%m/%Y}", "Q.tà": "{:,.0f}", "Prezzo": "{:.3f} €"}), hide_index=True, width="stretch")
-    t_esito, t_cont, t_art, t_aiem, t_tr, t_sto = st.tabs(
-        ["Esito e outlier", "Spedizioni", "Un articolo", "AIEM", "Trasporto", "Storico mesi"])
+    t_hk = None
+    if filiale == "CANARIE":
+        t_esito, t_cont, t_art, t_aiem, t_tr, t_sto = st.tabs(
+            ["Esito e outlier", "Spedizioni", "Un articolo", "AIEM", "Trasporto", "Storico mesi"])
+    else:          # Hong Kong: niente AIEM e niente confronto con la logistica del modello (solo ripartizione delle spedizioni)
+        t_esito, t_cont, t_art, t_hk, t_sto = st.tabs(["Esito e outlier", "Spedizioni", "Un articolo", "Costi d'entrata", "Storico mesi"])
+        t_aiem = t_tr = None
 
     # ================== esito e outlier =====================================================
     with t_esito:
-        scelta = st.segmented_control("Mostra", ["Tutti", "IFB", "Non IFB"], default="Tutti", key="mf_perim",
-                                      label_visibility="collapsed",
-                                      help="IFB = standard dal modello Canarie. Non IFB = prodotti che COMIT compra direttamente.")
+        scelta = None
+        if True:
+            scelta = st.segmented_control("Mostra", ["Tutti", "IFB", "Non IFB"], default="Tutti", key="mf_perim",
+                                          label_visibility="collapsed",
+                                          help="IFB = standard dal modello" + _NC["m"] + ". Non IFB = prodotti che " + _NC["c"] + " compra direttamente.")
+            scelta = scelta or "Tutti"
         scelta = scelta or "Tutti"
         a_v = a if scelta == "Tutti" else a[a["perimetro"] == scelta]
-        tot_v = tot if scelta == "Tutti" else mf.totali(a_v)
+        _ts = "Tutti"
+        if filiale != "CANARIE":          # filtro Transportation (Hong Kong): SEA / AIR / ALTRO
+            _ts = st.segmented_control("Transportation", ["Tutti", "SEA", "AIR", "ALTRO"], default="Tutti", key="mf_trasp_hk",
+                                       label_visibility="collapsed",
+                                       help="SEA = via mare, AIR = via aerea, ALTRO = le altre transportation. Dall'anagrafica del modello.") or "Tutti"
+            if _ts != "Tutti":
+                a_v = a_v[a_v["trasp"] == _ts]
+        tot_v = tot if (scelta == "Tutti" and _ts == "Tutti") else mf.totali(a_v)
         cod, tit, txt = mf.esito(tot_v["diff_pct"])
         _banner(cod, f"{tit}: scostamento {_pct(tot_v['diff_pct'], True, 2)} delle vendite", txt)
+        if tot_v.get("filtri"):
+            st.warning(f"Il report dei margini è filtrato ({tot_v['filtri']}): questo scostamento riguarda solo quegli articoli e può differire "
+                       "dal totale del mese. Per il dato complessivo ricarica l'export senza filtro sul trasporto.", icon="⚠️")
         k1, k2, k3, k4 = st.columns(4)
         _kpi(k1, "Vendite del mese", _eur(tot_v["vendite"]), f"{len(a_v)} articoli")
         _kpi(k2, "Margine a standard", _pct(tot_v["p_std"], False), _eur(tot_v["m_std"]))
@@ -303,14 +591,42 @@ def render(p_modello):
         st.write("")
 
         st.markdown("#### Outlier")
-        o1, o2, o3, o5, o4 = st.columns([1, 1, 1.3, 1.6, 2])
-        min_pct = o1.number_input("Scostamento minimo (% vendite)", 0.0, 100.0, 10.0, 1.0) / 100
-        min_eur = o2.number_input("Scostamento minimo (€)", 0.0, 100000.0, 50.0, 10.0)
-        verso = o3.selectbox("Verso", ["Tutti", "FIFO peggiore dello STD", "STD troppo alto"])
-        cerca = o4.text_input("Cerca", placeholder="codice o parte della descrizione")
-        entrate = o5.selectbox("Entrate nel periodo", ["Tutti", "Nascondi quelli senza entrate", "Solo quelli senza entrate"],
+        o1, o2, o3, o6, o5, o4 = st.columns([1, 1, 1.3, 1, 1.6, 2])
+        import assistente
+        min_pct = o1.number_input("Scostamento minimo (% vendite)", 0.0, 100.0, 10.0, 1.0, key="mf_min_pct") / 100
+        min_eur = o2.number_input("Scostamento minimo (€)", 0.0, 100000.0, 50.0, 10.0, key="mf_min_eur")
+        verso = o3.selectbox("Verso", ["Tutti", "FIFO peggiore dello STD", "STD troppo alto"], key="mf_verso")
+        cerca = o4.text_input("Cerca", placeholder="codice o parte della descrizione", key="mf_cerca")
+        with o1:
+            assistente.bolla("mf_min_pct", "Quanto pesa sulle vendite?",
+                             "Tieni solo gli articoli in cui la differenza tra margine a standard e a FIFO supera questa percentuale "
+                             "delle loro vendite.", larghezza=340)
+        with o2:
+            assistente.bolla("mf_min_eur", "E in euro?",
+                             "Toglie le differenze piccole: resta chi perde almeno questi euro di margine.", larghezza=320)
+        with o3:
+            assistente.bolla("mf_verso", "In che direzione?",
+                             "<b>FIFO peggiore dello STD</b> = i costi reali superano lo standard, il margine è a rischio. "
+                             "<b>STD troppo alto</b> = lo standard è più prudente del necessario.", larghezza=380)
+        entrate = o5.selectbox("Entrate nel periodo", ["Tutti", "Nascondi quelli senza entrate", "Solo quelli senza entrate"], key="mf_entrate",
                                help="«Senza entrate» = nessuna entrata nel periodo analizzato: il FIFO arriva da giacenza più vecchia (danno del passato che si trascina).")
+        origine = o6.selectbox("Origine", ["Tutti", "IFB", "Non IFB"], key="mf_origine",
+                               help="IFB = standard dal modello" + _NC["m"] + ". Non IFB = prodotti che " + _NC["c"] + " compra direttamente.")
+        with o6:
+          if True:
+            assistente.bolla("mf_origine", "IFB o non IFB?",
+                             "<b>IFB</b> = standard dal modello" + _NC["m"] + ". <b>Non IFB</b> = prodotti che " + _NC["c"] + " compra direttamente.",
+                             larghezza=340, destra=True)
+        with o5:
+            assistente.bolla("mf_entrate", "Danni del passato?",
+                             "«Senza entrate» = nessun acquisto nel periodo: il FIFO arriva da giacenza più vecchia, è un errore di "
+                             "ingresso che si trascina. Nascondili per vedere solo i problemi del mese.", larghezza=400, destra=True)
+        with o4:
+            assistente.bolla("mf_cerca", "Cerca un articolo", "Scrivi il codice o una parte della descrizione.",
+                             larghezza=320, destra=True)
         out = mf.outlier(a_v, min_pct, min_eur)
+        if origine != "Tutti":
+            out = out[out["perimetro"] == origine]
         if verso == "FIFO peggiore dello STD":
             out = out[out["diff"] > 0]
         elif verso == "STD troppo alto":
@@ -320,7 +636,10 @@ def render(p_modello):
             out = out[out["item"].str.lower().str.contains(q, regex=False) | out["desc"].astype(str).str.lower().str.contains(q, regex=False)]
         dg = None
         if med is not None:
-            dg = mf.diagnosi(out, med, aiem, trasp, det, ifb, non)
+            if filiale == "CANARIE":
+                dg = mf.diagnosi(out, med, aiem, trasp, det, ifb, non)
+            else:
+                dg = mf.diagnosi_hk(out, ent, mese_chiave, _items_modello_hk(p_modello, os.path.getmtime(p_modello)) if p_modello else set())
             out = out.join(dg, on="item")
             _senza = out["cause"].astype(str).str.contains("nessuna entrata nel periodo", regex=False)
             if entrate.startswith("Nascondi"):
@@ -334,15 +653,16 @@ def render(p_modello):
         if out.empty:
             st.success("Nessun articolo sopra le soglie scelte.")
         else:
-            cols = ["item", "desc", "perimetro", "qty", "uom", "prezzo", "c_std", "c_fifo", "vendite", "diff", "diff_pct"]
-            nomi = {"item": "Articolo", "desc": "Descrizione", "perimetro": "Origine", "qty": "Q.tà venduta", "uom": "UM",
+            cols = ["item", "desc", "perimetro"] + (["trasp_txt"] if filiale != "CANARIE" else []) + ["qty", "uom", "prezzo", "c_std", "c_fifo", "vendite", "diff", "diff_pct"]
+            nomi = {"item": "Articolo", "desc": "Descrizione", "perimetro": "Origine", "trasp_txt": "Transportation", "qty": "Q.tà venduta", "uom": "UM",
                     "prezzo": "Prezzo vendita per UM", "c_std": "STD per UM", "c_fifo": "FIFO per UM", "vendite": "Vendite",
                     "diff": "Δ margine", "diff_pct": "Δ % vendite"}
             if dg is not None:
-                cols += ["cause", "d_prezzo", "d_logistica", "d_aiem", "d_altro"]
-                nomi.update({"d_prezzo": "Δ prezzo acquisto", "d_logistica": "Δ logistica", "d_aiem": "Δ AIEM",
-                             "d_altro": "Non spiegato", "cause": "Cause probabili"})
+                cols += ["cause", "d_prezzo", "d_logistica"] + (["d_aiem"] if filiale == "CANARIE" else []) + ["d_altro"]
+                nomi.update({"d_prezzo": "Δ prezzo acquisto", "d_logistica": "Δ logistica" if filiale == "CANARIE" else "Δ FOB",
+                             "d_aiem": "Δ AIEM", "d_altro": "Non spiegato", "cause": "Cause probabili"})
             tb = out[cols].rename(columns=nomi).reset_index(drop=True)
+            tb = filtri.filtra(tb, "outlier")
             fm = {"Q.tà venduta": "{:,.0f}", "Prezzo vendita per UM": "{:.3f} €", "Vendite": "{:,.0f} €", "STD per UM": "{:.3f} €",
                   "FIFO per UM": "{:.3f} €", "Δ margine": "{:+,.0f} €", "Δ % vendite": "{:+.1%}",
                   "Δ prezzo acquisto": "{:+.3f} €", "Δ logistica": "{:+.3f} €", "Δ AIEM": "{:+.3f} €", "Non spiegato": "{:+.3f} €"}
@@ -350,8 +670,17 @@ def render(p_modello):
             sty = tb.style.format({k: fmt(v) for k, v in fm.items() if k in tb.columns})
             sty = sty.map(_evidenzia, subset=[c for c in ("Δ margine", "Δ % vendite") if c in tb.columns])
             sty = sty.map(lambda v: VERDE_C, subset=["STD per UM"]).map(lambda v: ROSSO_C, subset=["FIFO per UM"])   # verde = standard, rosso = costo reale
-            _tabella_html(sty, a_sinistra=("Articolo", "Descrizione", "Origine", "UM", "Cause probabili"), altezza=640,
+            if "Cause probabili" in tb.columns:        # standard a zero: tutta la riga in giallo tenue, per farla risaltare
+                sty = sty.apply(lambda r: ["background-color:#FEF9C3"] * len(r)
+                                if "standard cost a zero" in str(r["Cause probabili"]) else [""] * len(r), axis=1)
+            _tabella_html(sty, a_sinistra=("Articolo", "Descrizione", "Origine", "Transportation", "UM", "Cause probabili"), altezza=640, apri="mf_apri_art",
                           a_capo=("Descrizione", "Cause probabili"))
+            _cod = st.session_state.pop("_apri_cod", None)          # codice cliccato nella tabella: si apre lo storico dell'articolo
+            if _cod:
+                _r = a[a["item"] == _cod]
+                _dialog_storico(_cod, str(_r["desc"].iloc[0]) if len(_r) and "desc" in _r.columns else "",
+                                str(_r["ifb"].iloc[0]) if len(_r) and "ifb" in _r.columns and pd.notna(_r["ifb"].iloc[0]) else "", filiale,
+                                str(_r["trasp_txt"].iloc[0]) if len(_r) and "trasp_txt" in _r.columns else "")
             if dg is not None:
                 st.caption("Prezzo vendita, STD e FIFO sono per unità di misura (UM), come nel report: per un pezzo se la UM è PCS, per un kg se è KG. "
                            "STD per UM = lo standard che c'era a sistema nel mese su quelle vendite; FIFO per UM = il costo reale. "
@@ -369,14 +698,14 @@ def render(p_modello):
     needs = "Carica anche il file Cost Analysis (entrate di magazzino) per attivare questo controllo."
 
     # ================== AIEM ==============================================================
-    with t_aiem:
+    with _cx(t_aiem):
         if aiem is None:
             st.info(needs)
         else:
             st.markdown("#### AIEM registrato contro anagrafica")
             st.caption(f"Entrate dal {inizio:%d/%m/%Y} al {fine:%d/%m/%Y}. L'AIEM atteso viene dall'anagrafica articolo "
                        "(modello IFB / report non IFB): una voce IMPUESTOS su un articolo senza AIEM, o l'assenza su un articolo "
-                       "che ce l'ha, è una registrazione ambigua da segnalare a COMIT.")
+                       "che ce l'ha, è una registrazione ambigua da segnalare a " + _NC["c"] + ".")
             if aiem.empty:
                 st.success("Nessuna entrata con AIEM incoerente nel periodo.")
             else:
@@ -397,6 +726,7 @@ def render(p_modello):
                                          "spedizioni": "External Document No_ (entrate anomale)"})
                 ta = tb[["Articolo", "Descrizione", "Anomalia", "External Document No_ (entrate anomale)", "AIEM % anagrafica",
                          "Entrate anomale", "Entrate nel periodo", "Imposte vs atteso", "Ultima entrata"]]
+                ta = filtri.filtra(ta, "aiem")
                 sty_a = ta.style.format({"Imposte vs atteso": "{:+,.0f} €", "AIEM % anagrafica": "{:.0f}%", "Ultima entrata": "{:%d/%m/%Y}"})
                 # verde = aliquota prevista in anagrafica; rosso = imposte registrate diverse dall'atteso
                 sty_a = sty_a.map(lambda v: VERDE_C, subset=["AIEM % anagrafica"])
@@ -413,15 +743,17 @@ def render(p_modello):
                          "Q.tà": "{:,.0f}"}), hide_index=True, width="stretch")
 
     # ================== container =========================================================
-    with t_cont:
+    with _cx(t_cont):
         if cont is None:
             st.info(needs)
         else:
             st.markdown("#### Ripartizione dei costi sulle spedizioni")
-            st.caption("Il container si isola con il «External Document No_» (il numero fattura IFB: tutte le righe che lo condividono "
-                       "viaggiano insieme). Si confronta il trasporto registrato su ogni riga con la quota di volume attesa "
+            st.caption(("Ogni spedizione è un documento di acquisto (Document No_): tutte le righe che lo condividono viaggiano insieme. "
+                        if filiale != "CANARIE" else
+                        "Il container si isola con il «External Document No_» (il numero fattura IFB: tutte le righe che lo condividono "
+                        "viaggiano insieme). ") + " Si confronta il trasporto registrato su ogni riga con la quota di volume attesa "
                        "(box × volume di un box, con box = pezzi ÷ pezzi per box). Verificabile per gli articoli con le misure "
-                       "del box nel modello (IFB) o nell'anagrafica COMIT (tutti gli altri).")
+                       "del box nel modello (IFB) o nell'anagrafica " + _NC["c"] + " (tutti gli altri).")
             # i dati di imballo del modello devono coincidere con l'anagrafica: lo verifico sempre
             dif_ana = pd.DataFrame(columns=["item", "campo", "modello", "anagrafica"])
             if p_ana and ifb:
@@ -450,13 +782,19 @@ def render(p_modello):
                 n_bug = int(vc.get("Volume del collo x pezzi (manca la divisione per i pezzi per collo)", 0))
                 n_ok = int(vc.get("Ripartito a volume correttamente", 0))
                 n_nc = int(vc.get("Ripartizione non coerente con il volume", 0))
+                hk = filiale != "CANARIE"          # Hong Kong: niente AIEM ne' despachos
                 c1, c2, c3, c4 = st.columns(4)
-                _kpi(c1, "Spedizioni nel periodo", len(cont), f"{int(cont['stessa_chiave'].sum())} con imposte ripartite come il trasporto")
+                _kpi(c1, "Spedizioni nel periodo", len(cont), "nel mese" if hk else f"{int(cont['stessa_chiave'].sum())} con imposte ripartite come il trasporto")
                 _kpi(c2, "A volume corretto", n_ok, "ripartizione attesa", "#027A48")
                 _kpi(c3, "Errore «collo × pezzi»", n_bug, "manca la divisione per i pezzi per collo", "#B42318" if n_bug else INK)
                 _kpi(c4, "Non coerenti", n_nc, "né volume corretto né errore noto", "#B54708" if n_nc else INK)
                 st.write("")
-                f = st.selectbox("Mostra", ["Tutte le spedizioni", "Spedizioni con anomalie"])
+                f = st.selectbox("Mostra", ["Tutte le spedizioni", "Spedizioni con anomalie"], key="mf_mostra_sped")
+                import assistente
+                assistente.bolla("mf_mostra_sped", "Quali spedizioni?",
+                                 ("<b>Con anomalie</b> = solo quelle in cui il FOB è stato registrato diverso dall'atteso " if filiale != "CANARIE" else
+                                  "<b>Con anomalie</b> = solo quelle in cui trasporto o AIEM sono stati registrati diversi dall'atteso ") +
+                                 "per almeno 1 €. Le altre sono corrette o non verificabili.", larghezza=420)
                 vis = cont if f == "Tutte le spedizioni" else cont[cont["impatto_eur"] >= 1]
                 vis = vis.sort_values("impatto_eur", ascending=False)      # dalla problematica maggiore
                 vis = vis.assign(motivo=[_motivo(r) for _, r in vis.iterrows()])
@@ -470,6 +808,9 @@ def render(p_modello):
                 colonne += ["Valore merce", "Trasporto totale", "Trasporto su merce", "Despachos totali", "Imposte totali", "Esito", "Motivo",
                             "Impatto stimato", "Costo spostato tra righe", "Imposte su articoli senza AIEM",
                             "Imposte ripartite come il trasporto"]
+                if hk:
+                    colonne = [c for c in colonne if c not in ("Despachos totali", "Imposte totali", "Imposte su articoli senza AIEM",
+                                                               "Imposte ripartite come il trasporto")]
                 tb = vis.rename(columns={"ext": "Spedizione (fattura)", "data": "Ultima entrata", "ubic": "Ubicazione",
                                          "righe": "Righe", "trasporto_eur": "Trasporto totale", "esito": "Esito",
                                          "despachos_eur": "Despachos totali", "imposte_eur": "Imposte totali",
@@ -479,24 +820,47 @@ def render(p_modello):
                                          "impatto_eur": "Impatto stimato", "imposte_indebite_eur": "Imposte su articoli senza AIEM",
                                          "sbilancio_eur": "Costo spostato tra righe", "motivo": "Motivo", "q_art": "Q.tà articolo", "um_art": "UM",
                                          "t_art": "Trasporto sull'articolo", "t_unit": "Trasporto per UM"})
-                with st.expander("Elenco delle spedizioni", expanded=True):
+                with st.expander("Elenco delle spedizioni"):
                     tb = tb.assign(**{"Imposte ripartite come il trasporto": tb["Imposte ripartite come il trasporto"].map(
                         lambda v: "Sì" if v else "")})
+                    tb = tb.loc[filtri.filtra(tb[colonne], "sped").index]
                     sty_el = tb[colonne].style.format(
-                        {"Ultima entrata": "{:%d/%m/%Y}", "Valore merce": "{:,.0f} €", "Trasporto totale": "{:,.0f} €",
+                        {k: v for k, v in {"Ultima entrata": "{:%d/%m/%Y}", "Valore merce": "{:,.0f} €", "Trasporto totale": "{:,.0f} €",
                          "Trasporto su merce": "{:.1%}", "Despachos totali": "{:,.0f} €", "Imposte totali": "{:,.0f} €",
                          "Costo spostato tra righe": "{:,.0f} €", "Impatto stimato": "{:,.0f} €",
                          "Imposte su articoli senza AIEM": "{:,.0f} €", "Q.tà articolo": "{:,.0f}",
-                         "Trasporto sull'articolo": "{:,.0f} €", "Trasporto per UM": "{:.3f} €"}, na_rep="")
+                         "Trasporto sull'articolo": "{:,.0f} €", "Trasporto per UM": "{:.3f} €"}.items() if k in colonne}, na_rep="")
                     _tabella_html(sty_el, a_sinistra=("Spedizione (fattura)", "Ubicazione", "Esito", "Motivo", "UM"),
                                   a_capo=("Spedizione (fattura)", "Esito", "Motivo"))
                 if len(vis):
-                    scelta = st.selectbox("Dettaglio di una spedizione", list(vis["ext"]))
+                    scelta = st.selectbox("Dettaglio di una spedizione", list(vis["ext"]), key="mf_sped_sel")
+                    import assistente
+                    assistente.bolla("mf_sped_sel", "Guarda dentro la spedizione",
+                                     "Sotto trovi il disegno del container (come doveva essere diviso e come è stato diviso), "
+                                     "la tabella articolo per articolo e il testo pronto per la segnalazione a " + _NC["c"] + ".", larghezza=440)
                     tt = cont[cont["ext"] == scelta].iloc[0]
-                    st.markdown(f"**Spedizione {scelta}**: trasporto totale **{_eur(tt['trasporto_eur'])}** · despachos "
-                                f"{_eur(tt['despachos_eur'])} · imposte {_eur(tt['imposte_eur'])} · valore merce "
-                                f"{_eur(tt['merce_eur'])} · {int(tt['righe'])} righe · ingresso in magazzino "
+                    st.markdown((f"**Spedizione {scelta}**: FOB totale **{_eur(tt['trasporto_eur'])}** · altri oneri "
+                                 f"{_eur(tt['despachos_eur'])} · valore merce " if hk else
+                                 f"**Spedizione {scelta}**: trasporto totale **{_eur(tt['trasporto_eur'])}** · despachos "
+                                 f"{_eur(tt['despachos_eur'])} · imposte {_eur(tt['imposte_eur'])} · valore merce ")
+                                + f"{_eur(tt['merce_eur'])} · {int(tt['righe'])} righe · ingresso in magazzino "
                                 + _date_ingresso(w[w["ext"] == scelta]["data"]))
+                    if hk:          # il tasso di cambio non e' nei report: lo scrive l'utente e resta salvato per questa spedizione
+                        _t0 = mf.leggi_tassi().get(str(scelta), 0.0)
+                        _lst = _listino(p_modello, os.path.getmtime(p_modello)) if (p_modello and os.path.exists(p_modello)) else {}
+                        _ws = w[w["ext"] == scelta]
+                        _rap = [r_.prezzo / _lst[r_.item][0] for r_ in _ws.itertuples()
+                                if r_.item in _lst and _lst[r_.item][0] > 0 and _lst[r_.item][1] in ("", str(r_.uom).upper())]
+                        _imp = float(np.median(_rap)) if _rap else 0.0
+                        _tc, _ = st.columns([1, 3])
+                        _tv = _tc.number_input("Tasso di cambio usato alla registrazione dell'entrata"
+                                               + (f" (dalle righe: {_imp:.4f})" if _imp else ""), min_value=0.0,
+                                               value=float(_t0 or round(_imp, 4)),
+                                               step=0.0001, format="%.4f", key=f"mf_tasso_{scelta}",
+                                               help="Il cambio è quello del giorno in cui l'entrata è registrata (via mare circa un mese dopo "
+                                                    "la partenza, via aerea pochi giorni). Lascia 0 se non lo conosci.")
+                        if abs(_tv - (_t0 or round(_imp, 4))) > 1e-9:
+                            mf.salva_tasso(scelta, _tv)
                     d_sped = det[det["ext"] == scelta].copy() if len(det) else pd.DataFrame()
                     # righe della spedizione che non entrano nel controllo del volume: lo dico, con il motivo
                     w_sp = w[w["ext"] == scelta].drop_duplicates("item")
@@ -511,8 +875,9 @@ def render(p_modello):
                     if fuori and len(d_sped):
                         st.caption("Righe non verificabili sul volume, quindi fuori dal disegno e dalla tabella: " + "; ".join(fuori) + ".")
                     if len(d_sped):
-                        with st.expander("Disegno del container: come dovrebbe essere diviso il trasporto e come è stato diviso", expanded=True):
-                            _disegno_container(d_sped, tt["trasporto_eur"])
+                        with st.expander("Disegno del container: come dovrebbe essere diviso il FOB e come è stato diviso" if hk else
+                                         "Disegno del container: come dovrebbero essere divisi trasporto e AIEM e come sono stati divisi"):
+                            _disegno_container(d_sped, tt["trasporto_eur"], con_aiem=not hk)
                     if len(d_sped):
                         d = d_sped.copy()
                         d["pz_scatola"] = d["qty"] / d["scatole"]
@@ -521,6 +886,12 @@ def render(p_modello):
                         d["quota_reg"] = d["reg"] / d["reg"].sum()
                         d["tr_reg_u"] = d["reg"] / d["qty"]
                         d["tr_att_u"] = d["atteso"] / d["qty"]
+                        d["ai_reg_u"] = d["imp_reg"] / d["qty"]
+                        d["ai_att_u"] = d["aiem_att"] / d["qty"]
+                        d["de_reg_u"] = d["desp_reg"] / d["qty"]
+                        d["de_att_u"] = d["desp_att"] / d["qty"]
+                        d["tot_r_u"] = d["tot_reale"] / d["qty"]
+                        d["tot_a_u"] = d["tot_atteso"] / d["qty"]
                         d["aliq"] = d["aliquota"].where(d["aliquota"] >= 0)
                         d = d.rename(columns={"item": "Articolo", "desc": "Descrizione", "uom": "UM", "qty": "Q.tà",
                                               "pz_scatola": "UM x box", "scatole": "Box", "vol_scatola": "Volume box (m³)",
@@ -529,19 +900,45 @@ def render(p_modello):
                                               "sbilancio": "Δ trasporto", "aliq": "AIEM %", "imp_reg": "AIEM reale",
                                               "aiem_att": "AIEM atteso", "aiem_diff": "Δ AIEM",
                                               "tot_reale": "Totale reale", "tot_atteso": "Totale atteso",
-                                              "tr_reg_u": "Trasporto reale per UM", "tr_att_u": "Trasporto atteso per UM"})
+                                              "tr_reg_u": "Trasporto reale per UM", "tr_att_u": "Trasporto atteso per UM",
+                                              "ai_reg_u": "AIEM reale per UM", "ai_att_u": "AIEM atteso per UM", "de_reg_u": "Despachos reale per UM", "de_att_u": "Despachos atteso per UM", "tot_r_u": "Totale reale per UM", "tot_a_u": "Totale atteso per UM",
+                                              "merce": "Purchase price", "desp_reg": "Despachos reale", "desp_att": "Despachos atteso"})
                         d = d.sort_values("Δ trasporto", key=abs, ascending=False)
-                        cols = ["Articolo", "Descrizione", "Data ingresso", "UM", "Q.tà", "UM x box", "Box", "Volume box (m³)", "Volume totale (m³)",
+                        if hk:          # peso e quota di peso: le spedizioni aeree si ripartiscono a kg
+                            _ws2 = w[w["ext"] == scelta]
+                            _pk = pd.Series({r_.item: mf.peso_riga(r_.item, r_.qty, r_.uom, ana) for r_ in _ws2.itertuples()})
+                            _pk = _ws2.assign(_p=[mf.peso_riga(r_.item, r_.qty, r_.uom, ana) for r_ in _ws2.itertuples()]).groupby("item")["_p"].sum()
+                            d["Peso (kg)"] = d["Articolo"].map(_pk)
+                            d["Quota di peso"] = d["Peso (kg)"] / d["Peso (kg)"].sum() if d["Peso (kg)"].sum() > 0 else np.nan
+                        if hk:          # oneri di Hong Kong: certificato sanitario, altri oneri, dogana, pallet (totali della riga)
+                            ws_ = w[w["ext"] == scelta]
+                            ch_ = pd.DataFrame({"Cert. sanitario": ws_["c_salute"] * ws_["qty"], "Other Charge": ws_["c_altro"] * ws_["qty"],
+                                                "Other Custom Charge": ws_["c_dogana"] * ws_["qty"], "Pallet": ws_["c_pallet"] * ws_["qty"],
+                                                "item": ws_["item"]}).groupby("item").sum()
+                            d = d.join(ch_, on="Articolo")
+                        cols = ["Articolo", "Descrizione", "UM", "Q.tà", "UM x box", "Box", "Volume box (m³)", "Volume totale (m³)",
                                 "Quota di volume", "Quota registrata", "Trasporto reale", "Trasporto atteso", "Δ trasporto",
-                                "AIEM %", "AIEM reale", "AIEM atteso", "Δ AIEM", "Totale reale", "Totale atteso", "Trasporto reale per UM", "Trasporto atteso per UM"]
+                                "Trasporto reale per UM", "Trasporto atteso per UM",
+                                "AIEM %", "AIEM reale", "AIEM atteso", "Δ AIEM", "AIEM reale per UM", "AIEM atteso per UM",
+                                "Purchase price", "Despachos reale", "Despachos atteso", "Despachos reale per UM", "Despachos atteso per UM", "Totale reale per UM", "Totale atteso per UM"]
+                        if hk:
+                            cols = ["Articolo", "Descrizione", "UM", "Q.tà", "UM x box", "Box", "Volume box (m³)", "Volume totale (m³)",
+                                    "Quota di volume", "Peso (kg)", "Quota di peso", "Quota registrata", "Trasporto reale", "Trasporto atteso", "Δ trasporto",
+                                    "Trasporto reale per UM", "Trasporto atteso per UM", "Cert. sanitario", "Other Charge",
+                                    "Other Custom Charge", "Pallet", "Purchase price", "Totale reale per UM", "Totale atteso per UM"]
                         tab = d[cols].copy()
                         tot_riga = {c: None for c in cols}
                         tot_riga.update({"Articolo": "TOTALE", "Box": d["Box"].sum(), "Volume totale (m³)": d["Volume totale (m³)"].sum(),
                                          "Quota di volume": d["Quota di volume"].sum(), "Quota registrata": d["Quota registrata"].sum(),
                                          "Trasporto reale": d["Trasporto reale"].sum(), "Trasporto atteso": d["Trasporto atteso"].sum(),
-                                         "Δ trasporto": d["Δ trasporto"].clip(lower=0).sum(), "AIEM reale": d["AIEM reale"].sum(),
-                                         "AIEM atteso": d["AIEM atteso"].sum(), "Δ AIEM": d["Δ AIEM"].clip(lower=0).sum(),
-                                         "Totale reale": d["Totale reale"].sum(), "Totale atteso": d["Totale atteso"].sum()})
+                                         "AIEM reale": d["AIEM reale"].sum(),
+                                         "AIEM atteso": d["AIEM atteso"].sum(), 
+                                         "Purchase price": d["Purchase price"].sum(), "Despachos reale": d["Despachos reale"].sum(),
+                                         "Despachos atteso": d["Despachos atteso"].sum()})
+                        if hk:
+                            for c_ in ("Cert. sanitario", "Other Charge", "Other Custom Charge", "Pallet"):
+                                tot_riga[c_] = d[c_].sum()
+                        tot_riga = {k: v for k, v in tot_riga.items() if k in cols}
                         tab = pd.concat([tab, pd.DataFrame([tot_riga])], ignore_index=True)
                         for c in tab.columns:                        # niente "None" nella riga dei totali
                             if c == "Data ingresso":
@@ -551,17 +948,20 @@ def render(p_modello):
                             else:
                                 tab[c] = pd.to_numeric(tab[c], errors="coerce")
                         sty = tab.style.format(
-                            {"Q.tà": "{:,.0f}", "UM x box": "{:,.0f}", "Box": "{:,.0f}", "Volume box (m³)": "{:.4f}",
+                            {k: v for k, v in {"Peso (kg)": "{:,.1f}", "Quota di peso": "{:.1%}", "Cert. sanitario": "{:,.0f} €", "Other Charge": "{:,.0f} €", "Other Custom Charge": "{:,.0f} €",
+                                               "Pallet": "{:,.0f} €", "Q.tà": "{:,.0f}", "UM x box": "{:,.0f}", "Box": "{:,.0f}", "Volume box (m³)": "{:.4f}",
                              "Volume totale (m³)": "{:.2f}", "Quota di volume": "{:.1%}", "Quota registrata": "{:.1%}",
                              "Trasporto reale": "{:,.0f} €", "Trasporto atteso": "{:,.0f} €", "Δ trasporto": "{:+,.0f} €",
                              "AIEM %": "{:.0f}%", "AIEM reale": "{:,.0f} €", "AIEM atteso": "{:,.0f} €", "Δ AIEM": "{:+,.0f} €",
-                             "Totale reale": "{:,.0f} €", "Totale atteso": "{:,.0f} €",
-                             "Trasporto reale per UM": "{:.3f} €", "Trasporto atteso per UM": "{:.3f} €"}, na_rep="")
-                        sty = sty.map(_evidenzia, subset=pd.IndexSlice[tab.index[:-1], ["Δ trasporto", "Δ AIEM"]])
+                             "Trasporto reale per UM": "{:.3f} €", "Trasporto atteso per UM": "{:.3f} €",
+                             "Totale reale per UM": "{:.3f} €", "Totale atteso per UM": "{:.3f} €", "AIEM reale per UM": "{:.3f} €", "AIEM atteso per UM": "{:.3f} €",
+                             "Purchase price": "{:,.0f} €", "Despachos reale": "{:,.2f} €", "Despachos atteso": "{:,.2f} €", "Despachos reale per UM": "{:.4f} €", "Despachos atteso per UM": "{:.4f} €"}.items() if k in tab.columns}, na_rep="")
+                        sty = sty.map(_evidenzia, subset=pd.IndexSlice[tab.index[:-1], [c_ for c_ in ("Δ trasporto", "Δ AIEM") if c_ in tab.columns]])
                         # verde = come dovrebbe essere; rosso = com'e' stato registrato, se si scosta dall'atteso
-                        verdi_c = ["Quota di volume", "Trasporto atteso", "AIEM atteso", "Totale atteso", "Trasporto atteso per UM"]
+                        verdi_c = ["Quota di volume", "Trasporto atteso", "AIEM atteso", "Totale atteso", "Trasporto atteso per UM", "AIEM atteso per UM", "Despachos atteso", "Despachos atteso per UM"]
                         rossi_t = ["Quota registrata", "Trasporto reale", "Trasporto reale per UM"]
-                        rossi_a = ["AIEM reale"]
+                        rossi_a = ["AIEM reale", "AIEM reale per UM"]
+                        rossi_d = ["Despachos reale", "Despachos reale per UM"]
                         soglia_t = 0.5        # rosso per qualsiasi differenza dall'atteso (sotto 0,5 € sono arrotondamenti)
                         soglia_a = 0.5
                         ultimo = tab.index[-1]
@@ -570,18 +970,26 @@ def render(p_modello):
                             if r.name == ultimo:
                                 return [""] * len(r)
                             err_t = abs(r["Δ trasporto"]) >= soglia_t
-                            err_tot = abs(r["Totale reale"] - r["Totale atteso"]) >= soglia_t
-                            err_a = pd.notna(r["Δ AIEM"]) and abs(r["Δ AIEM"]) >= soglia_a
+                            err_tot = abs(r["Totale reale per UM"] - r["Totale atteso per UM"]) * r["Q.tà"] >= soglia_t
+                            err_a = "Δ AIEM" in r.index and pd.notna(r["Δ AIEM"]) and abs(r["Δ AIEM"]) >= soglia_a
+                            err_d = "Despachos reale" in r.index and abs(r["Despachos reale"] - r["Despachos atteso"]) >= 0.05      # importi piccoli: la soglia di 0,5 € nasconderebbe le differenze
                             rosso = "background-color:#FEE4E2;color:#B42318;font-weight:600"
                             ok = "background-color:#F6FEF9;color:#05603A"
                             out = []
                             for c in r.index:
-                                if c in verdi_c:
+                                if c in ("Totale atteso", "Totale atteso per UM"):                      # totali: testo nero e grassetto, sfondo verde/rosso
+                                    out.append("background-color:#D1FADF;color:#000000;font-weight:700")
+                                elif c in ("Totale reale", "Totale reale per UM"):
+                                    out.append(("background-color:#FEE4E2" if err_tot else "background-color:#F6FEF9")
+                                               + ";color:#000000;font-weight:700")
+                                elif c in verdi_c:
                                     out.append("background-color:#D1FADF;color:#05603A")
                                 elif c in rossi_t:
                                     out.append(rosso if err_t else ok)
                                 elif c == "Totale reale":
                                     out.append(rosso if err_tot else ok)
+                                elif c in rossi_d:
+                                    out.append(rosso if err_d else ok)
                                 elif c in rossi_a:
                                     out.append(rosso if err_a else ok)
                                 else:
@@ -597,17 +1005,18 @@ def render(p_modello):
                             gialle = ["Articolo", "Descrizione", "UM", "Q.tà", "UM x box", "Box"]
                             sty = sty.apply(lambda r: ["background-color:#FEF9C3" if (r.name < ultimo and trovata.iloc[r.name]
                                                                                        and c in gialle) else "" for c in r.index], axis=1)
-                        with st.expander("Tabella di dettaglio", expanded=True):
+                        with st.expander("Tabella di dettaglio"):
                             # tabella HTML: le intestazioni vanno a capo quando la finestra si restringe (st.dataframe le taglia)
                             st.markdown(
-                                "<style>.tab-det{overflow:auto;resize:both;min-height:90px;border:1px solid #E4E7EC;border-radius:10px}.tab-det table{border-collapse:collapse;font-size:.82rem;width:100%}"
-                                ".tab-det th{white-space:normal;text-align:center;vertical-align:bottom;background:#F9FAFB;color:#667085;"
+                                "<style>.tab-det{overflow:auto;resize:both;max-height:78vh;min-height:90px;border:1px solid #E4E7EC;border-radius:10px}.tab-det table{border-collapse:collapse;font-size:.82rem;width:100%}"
+                                ".tab-det th{position:sticky;top:0;z-index:2;white-space:normal;text-align:center;vertical-align:bottom;background:#F9FAFB;color:#667085;"
                                 "font-weight:500;padding:6px 8px;border-bottom:1px solid #E4E7EC;min-width:58px;line-height:1.2}"
                                 ".tab-det td{white-space:nowrap;padding:5px 8px;border-bottom:1px solid #F2F4F7;text-align:right}"
-                                ".tab-det td:nth-child(1),.tab-det td:nth-child(3),.tab-det td:nth-child(4){text-align:left}"
-                                ".tab-det td:nth-child(2){white-space:normal;min-width:170px;text-align:left}"
-                                ".tab-det th:nth-child(2){text-align:left}</style><div class='tab-det'>"
+                                ".tab-det td.col0,.tab-det td.col2{text-align:left}"
+                                ".tab-det td.col1{white-space:normal;min-width:170px;text-align:left}"
+                                ".tab-det th.col1{text-align:left}</style><div class='tab-det'>"
                                 + sty.hide(axis="index").to_html() + "</div>", unsafe_allow_html=True)
+                            scarica_excel.bottone(sty, indice=False, nome=f"spedizione_{scelta}_dettaglio.xlsx")
                             st.caption(
                                 "**Box** = pezzi ÷ pezzi per box (per i prodotti a peso: kg ÷ kg per box; dati dall'anagrafica). "
                                 "**Volume totale** = box × volume di un box (altezza × lunghezza × profondità). "
@@ -616,6 +1025,20 @@ def render(p_modello):
                                 "registrato; atteso con trasporto e despachos divisi a volume). **AIEM atteso** = aliquota AIEM dell'articolo × (valore della merce + "
                                 "trasporto atteso della riga), come nella fattura delle imposte; **AIEM reale** = imposte registrate sulla riga. "
                                 "**Δ** = reale − atteso: positivo = riga sovraccaricata, negativo = sottocaricata.")
+                            import pdf_report
+                            _intro = [f"<b>Trasporto totale</b> {_eur(tt['trasporto_eur'])} · <b>despachos</b> {_eur(tt['despachos_eur'])} · "
+                                      f"<b>imposte</b> {_eur(tt['imposte_eur'])} · <b>valore merce</b> {_eur(tt['merce_eur'])} · "
+                                      f"{int(tt['righe'])} righe · ingresso in magazzino " + _date_ingresso(w[w["ext"] == scelta]["data"]),
+                                      "Verde = come dovrebbe essere (diviso a volume) · rosso = come è stato registrato, se si scosta dall'atteso."]
+                            _nota = ("Box = pezzi ÷ pezzi per box (per i prodotti a peso: kg ÷ kg per box). Volume totale = box × volume di un box. "
+                                     "Trasporto atteso = trasporto totale della spedizione × quota di volume dell'articolo; Trasporto reale = quanto è stato "
+                                     "registrato sulla riga. Totale = prezzo di acquisto + trasporto + AIEM + despachos. AIEM atteso = aliquota × (valore "
+                                     "della merce + trasporto atteso della riga). Δ = reale − atteso: positivo = riga sovraccaricata, negativo = sottocaricata.")
+                            st.download_button("Estrai in PDF (per la segnalazione)", pdf_report.tabella_pdf(
+                                f"Spedizione {scelta}: dettaglio per articolo", _intro, tab, sty, _nota,
+                                a_sinistra=("Articolo", "Descrizione", "Data ingresso", "UM"),
+                                larghe={"Articolo": 28, "Descrizione": 82, "Data ingresso": 36, "UM": 22, "Despachos reale": 34, "Despachos atteso": 34}),
+                                file_name=f"spedizione_{scelta}.pdf", mime="application/pdf", key="mf_pdf_sped")
                     if len(d_sped) and len(dif_ana):
                         sospetti = dif_ana[dif_ana["item"].isin(d_sped["item"])]
                         for r in sospetti.itertuples():
@@ -637,13 +1060,13 @@ def render(p_modello):
                             + f'<b>Effetto.</b> {p["effetto"]}<br><b>Cosa chiedere.</b> {p["richiesta"]}</div>',
                             unsafe_allow_html=True)
                     if problemi:
-                        with st.expander("Testo pronto per la segnalazione a COMIT"):
-                            st.code(mf.testo_segnalazione(tt, problemi), language=None)
+                        with st.expander("Testo pronto per la segnalazione " + ("a COMIT" if not hk else "al cliente")):
+                            st.code(mf.testo_segnalazione(tt, problemi, hk=hk, tasso=mf.leggi_tassi().get(str(scelta)) if hk else None), language=None)
                     else:
                         st.caption("Nessuna anomalia rilevata su questa spedizione.")
 
     # ================== trasporto =========================================================
-    with t_tr:
+    with _cx(t_tr):
         if trasp is None:
             st.info(needs)
         else:
@@ -666,6 +1089,7 @@ def render(p_modello):
                              "std_logistica": "Logistica STD", "rapporto": "Reale / STD", "segnale": "Segnale"})
                 for c in ("Vendite mese", "Trasp. min", "Trasp. max", "Reale", "Logistica STD", "Reale / STD"):
                     tt_[c] = pd.to_numeric(tt_[c], errors="coerce")
+                tt_ = filtri.filtra(tt_, "trasp")
                 sty_t = tt_.style.format({"Vendite mese": "{:,.0f} €", "Trasp. min": "{:.3f} €", "Trasp. max": "{:.3f} €",
                                           "Reale": "{:.3f} €", "Logistica STD": "{:.3f} €", "Reale / STD": "{:.1f}x"}, na_rep="")
                 # verde = come dovrebbe essere (standard); rosso = com'e' stato registrato; ambra = trasporto instabile tra le entrate
@@ -676,7 +1100,7 @@ def render(p_modello):
                 _tabella_html(sty_t, a_sinistra=("Articolo", "Descrizione", "Segnale"), altezza=620, a_capo=("Descrizione", "Segnale"))
 
     # ================== un articolo =======================================================
-    with t_art:
+    with _cx(t_art):
         q = st.text_input("Articolo", placeholder="codice o parte della descrizione", key="mf_art")
         cand = a if not q else a[a["item"].str.lower().str.contains(q.strip().lower(), regex=False)
                                  | a["desc"].astype(str).str.lower().str.contains(q.strip().lower(), regex=False)]
@@ -725,6 +1149,60 @@ def render(p_modello):
                          "Despachos": "{:.3f} €", "Imposte": "{:.3f} €", "Totale": "{:.3f} €"}), hide_index=True, width="stretch", height=360)
 
     # ================== storico ===========================================================
+    if t_hk is not None:
+        with t_hk:
+            st.markdown("#### Costi d'entrata per articolo")
+            if ent_hk is None:
+                st.info("Carica il Cost Analysis nella pagina «File da caricare» per vedere il costo reale di entrata di ogni articolo.")
+            else:
+                ce = mf.costi_entrata_hk(ent_hk, mese_chiave)
+                if ce.empty:
+                    st.warning(f"Nel Cost Analysis non ci sono entrate di {mf.etichetta_mese(mese_chiave)}.")
+                else:
+                    st.caption(f"Costo medio per UM delle entrate di {mf.etichetta_mese(mese_chiave)}, ponderato sulle quantità. "
+                               "Totale = prezzo di acquisto + FOB + certificato sanitario + altri oneri + dogana + pallet.")
+                    ce = ce.join(a.set_index("item")[["c_std", "c_fifo"]], on="item")
+                    # prezzo di acquisto registrato contro il listino del mese (foglio CURRENT PRICELIST del modello)
+                    lst = _listino(p_modello, os.path.getmtime(p_modello)) if (p_modello and os.path.exists(p_modello)) else {}
+                    ce["listino"] = ce["item"].map(lambda i: lst.get(i, (np.nan, ""))[0]).where(lambda s_: s_ > 0)
+                    um_l = ce["item"].map(lambda i: lst.get(i, (np.nan, ""))[1])
+                    # il prezzo registrato e' in valuta, il listino in euro: il rapporto e' il cambio usato alla registrazione
+                    ce["d_lst"] = ce["prezzo"] / ce["listino"]
+                    ce["nota_lst"] = np.where(ce["listino"].isna(), "non nel listino",
+                                              np.where((um_l != "") & (um_l != ce["uom"].astype(str).str.upper()),
+                                                       "UM diversa dal listino: confronto non attendibile", ""))
+                    ce.loc[ce["nota_lst"].str.startswith("UM diversa"), "d_lst"] = np.nan
+                    _cm = float(ce["d_lst"].median()) if ce["d_lst"].notna().any() else np.nan
+                    ce["d_lst_pct"] = ce["d_lst"] / _cm - 1 if _cm == _cm else np.nan
+                    ce["delta_std"] = ce["tot"] - ce["c_std"]
+                    ce["delta_pct"] = ce["delta_std"] / ce["c_std"].where(ce["c_std"] > 0)
+                    ce = ce.sort_values("delta_std", key=lambda s: s.abs(), ascending=False, na_position="last")
+                    tb_h = ce.rename(columns={"item": "Articolo", "desc": "Descrizione", "uom": "UM", "entrate": "Entrate",
+                                              "qty": "Q.tà", "prezzo": "Prezzo acquisto", "fob": "FOB", "salute": "Cert. sanitario",
+                                              "altro": "Altri oneri", "dogana": "Dogana", "pallet": "Pallet", "tot": "Totale entrata",
+                                              "c_std": "STD per UM", "c_fifo": "FIFO per UM", "delta_std": "Entrata − STD",
+                                              "delta_pct": "Δ %", "ultima": "Ultima entrata", "listino": "Prezzo listino (€)", "d_lst": "Cambio implicito",
+                                              "d_lst_pct": "Scost. dal cambio mediano", "nota_lst": "Nota listino"})[
+                        ["Articolo", "Descrizione", "UM", "Entrate", "Q.tà", "Prezzo acquisto", "Prezzo listino (€)", "Cambio implicito",
+                         "Scost. dal cambio mediano", "Nota listino", "FOB", "Cert. sanitario", "Altri oneri",
+                         "Dogana", "Pallet", "Totale entrata", "STD per UM", "FIFO per UM", "Entrata − STD", "Δ %", "Ultima entrata"]]
+                    tb_h = filtri.filtra(tb_h.reset_index(drop=True), "hk_entrate")
+                    eur = lambda v: "" if pd.isna(v) else f"{v:,.3f} €"
+                    sty_h = tb_h.style.format({"Q.tà": "{:,.0f}", "Prezzo acquisto": eur, "FOB": eur, "Cert. sanitario": eur,
+                                               "Altri oneri": eur, "Dogana": eur, "Pallet": eur, "Totale entrata": eur,
+                                               "STD per UM": eur, "FIFO per UM": eur, "Entrata − STD": lambda v: "" if pd.isna(v) else f"{v:+,.3f} €",
+                                               "Δ %": lambda v: "" if pd.isna(v) else f"{v:+.1%}", "Ultima entrata": "{:%d/%m/%Y}",
+                                               "Prezzo listino (€)": lambda v: "" if pd.isna(v) else f"{v:,.3f} EUR", "Cambio implicito": lambda v: "" if pd.isna(v) else f"{v:.4f}",
+                                               "Scost. dal cambio mediano": lambda v: "" if pd.isna(v) else f"{v:+.1%}"})
+                    # cambio implicito lontano dalla mediana degli articoli (oltre il 3%): prezzo registrato diverso dal listino
+                    sty_h = sty_h.map(lambda v: ROSSO_C if pd.notna(v) and abs(v) >= 0.03 else "", subset=["Scost. dal cambio mediano"])
+                    sty_h = sty_h.map(lambda v: VERDE_C if pd.notna(v) else "", subset=["Prezzo listino (€)"])
+                    if _cm == _cm:
+                        st.markdown(f"**Cambio mediano del mese: {_cm:.4f}** (prezzo registrato ÷ prezzo di listino in euro, sugli articoli "
+                                    "con listino e stessa UM). In rosso gli articoli il cui rapporto si discosta di oltre il 3%: prezzo "
+                                    "registrato diverso dal listino, o listino non aggiornato.")
+                    sty_h = sty_h.map(lambda v: VERDE_C, subset=["STD per UM"]).map(lambda v: ROSSO_C, subset=["Totale entrata"])
+                    _tabella_html(sty_h, a_sinistra=("Articolo", "Descrizione", "UM"), altezza=620, a_capo=("Descrizione",))
     with t_sto:
         sto = mf.leggi_storico()
         if not sto:
@@ -756,6 +1234,6 @@ def render(p_modello):
                 if st.button("Sostituisci i file caricati", disabled=not (n_marg or n_cost or n_non)):
                     mf.sostituisci_file_mese(k_corr, n_marg.getvalue() if n_marg else None,
                                              n_cost.getvalue() if n_cost else None, n_non.getvalue() if n_non else None)
-                    st.session_state["mf_mese"] = k_corr
+                    st.session_state[k_mese] = k_corr
                     st.rerun()
                 st.caption("Si sostituiscono solo i file caricati qui, gli altri restano; lo storico si aggiorna da solo.")

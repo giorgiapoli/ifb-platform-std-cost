@@ -51,7 +51,17 @@ def _num(s):
 def leggi_margini(data):
     """Report margini per articolo (export 'Difference STD FIFO'). Ritorna (articoli, totale)."""
     df = pd.read_excel(io.BytesIO(data))
-    df = df.rename(columns={c: COLONNE_MARGINI.get(str(c).strip(), c) for c in df.columns})
+    # le intestazioni cambiano un po' da un report all'altro (Canarie: «Cost unit Standard», Hong Kong: «Unit cost std»): si
+    # riconoscono ignorando maiuscole, spazi e simboli
+    sin = {"itemno": "item", "no": "item", "description": "desc", "quantity": "qty", "uom": "uom", "price": "prezzo",
+           "costunitstandard": "cstd", "unitcoststd": "cstd", "unitcoststandard": "cstd",
+           "costunitfifo": "cfifo", "unitcostfifo": "cfifo", "salesamount": "vendite", "salesamountactual": "vendite",
+           "costamountstandard": "costo_std", "costamountfifo": "costo_fifo", "costamountactual": "costo_fifo",
+           "marginstandard": "m_std", "marginfifo": "m_fifo", "margin": "m_fifo", "marginstandardpct": "p_std",
+           "marginfifopct": "p_fifo", "marginpct": "p_fifo", "differencemargin": "diff", "differencemarginpct": "diff_pct",
+           "ifbitem": "ifb", "sectiondescription": "sez"}
+    _n = lambda c: re.sub(r"[^a-z0-9]", "", str(c).lower().replace("%", "pct"))
+    df = df.rename(columns={c: sin.get(_n(c), COLONNE_MARGINI.get(str(c).strip(), c)) for c in df.columns})
     mancanti = [v for v in ("item", "vendite", "cstd", "cfifo", "m_std", "m_fifo", "diff") if v not in df.columns]
     if mancanti:
         raise ValueError("Nel report dei margini mancano colonne: " + ", ".join(mancanti))
@@ -59,14 +69,22 @@ def leggi_margini(data):
     for c in ("qty", "prezzo", "cstd", "cfifo", "vendite", "costo_std", "costo_fifo", "m_std", "m_fifo", "diff"):
         if c in df.columns:
             df[c] = _num(df[c])
+    # nota dei filtri applicati all'export (in fondo al file): lo scostamento vale solo per gli articoli che il filtro lascia passare
+    _nota = df.loc[df["item"].str.lower().str.startswith("filtri"), "item"]
+    filtri = ""
+    if len(_nota):
+        _tr = next((r for r in str(_nota.iloc[0]).splitlines() if r.lower().startswith("transportation")), "")
+        _tag = re.findall(r"(\+?\d*\S?C|CH|DRY|FR)\s+(SEA|AIR|ALTRO)", _tr)
+        filtri = ("Trasporto: " + ", ".join(sorted({t[1] for t in _tag}))) if _tag else             re.sub(r"\s+", " ", _tr.replace("�", " ")).strip()
     riga_tot = df[df["item"].str.lower() == "total"]
-    art = df[df["item"].str.lower() != "total"].copy()
+    art = df[~df["item"].str.lower().isin(["total"]) & ~df["item"].str.lower().str.startswith("filtri")].copy()
     art = art[art["vendite"].notna() & (art["vendite"] != 0)]
     if len(riga_tot):
         t = riga_tot.iloc[0]
         tot = dict(vendite=float(t["vendite"]), m_std=float(t["m_std"]), m_fifo=float(t["m_fifo"]))
     else:
         tot = dict(vendite=float(art["vendite"].sum()), m_std=float(art["m_std"].sum()), m_fifo=float(art["m_fifo"].sum()))
+    tot["filtri"] = filtri
     tot["diff"] = tot["m_std"] - tot["m_fifo"]
     tot["p_std"] = tot["m_std"] / tot["vendite"]
     tot["p_fifo"] = tot["m_fifo"] / tot["vendite"]
@@ -76,6 +94,105 @@ def leggi_margini(data):
     art["c_fifo"] = art["cfifo"].abs()
     art["diff_pct"] = art["diff"] / art["vendite"]
     return art.reset_index(drop=True), tot
+
+
+def leggi_entrate_hk(data):
+    """Cost Analysis di Hong Kong: una riga per entrata, con i costi unitari scomposti (FOB, certificato sanitario, altri oneri,
+    dogana, pallet, prezzo di acquisto, totale). Non c'e' il numero di spedizione ne' l'AIEM."""
+    raw = pd.read_excel(io.BytesIO(data), header=None)
+    if raw.shape[1] < 15:
+        raise ValueError("Il Cost Analysis di Hong Kong ha meno colonne del previsto (servono 15).")
+    df = raw.iloc[2:, :15].copy()
+    df.columns = ["item", "desc", "data", "doc", "lotto", "qty", "uom", "x", "fob", "salute", "altro", "dogana", "pallet",
+                  "prezzo", "tot"]
+    df = df[df["item"].notna()].copy()
+    df["item"] = df["item"].astype(str).str.strip()
+    df["data"] = pd.to_datetime(df["data"], errors="coerce")
+    for c in ("qty", "fob", "salute", "altro", "dogana", "pallet", "prezzo", "tot"):
+        df[c] = _num(df[c]).fillna(0.0)
+    return df[df["data"].notna() & (df["qty"] > 0)].drop(columns=["x"]).reset_index(drop=True)
+
+
+def leggi_listino(path):
+    """Listino di acquisto del mese dal foglio «CURRENT PRICELIST (ACQ)» del modello: {codice: (prezzo, UM)}.
+    Prezzo = FCA scontato se c'e', altrimenti DAP scontato, altrimenti prezzo MTS (per UM del listino)."""
+    import openpyxl
+    wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+    nome = next((n for n in wb.sheetnames if n.strip().upper().startswith("CURRENT PRICELIST")), None)
+    out = {}
+    if nome:
+        it = wb[nome].iter_rows(min_row=1, max_col=20, values_only=True)
+        hdr = None
+        for r in it:
+            if hdr is None:
+                if r and str(r[0]).strip().lower() == "no_":
+                    hdr = [re.sub(r"[^a-z0-9]", "", str(c).lower()) for c in r]
+                continue
+            if r[0] in (None, ""):
+                continue
+            g = lambda n: r[hdr.index(n)] if n in hdr and hdr.index(n) < len(r) else None
+            num = lambda v: float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else 0.0
+            prezzo = next((p for p in (num(g("fcadiscounted")), num(g("dapdiscounted")), num(g("mtsprice"))) if p > 0), 0.0)
+            out[str(r[0]).strip()] = (prezzo, str(g("unitofmeasure") or "").strip().upper())
+    wb.close()
+    return out
+
+
+def peso_riga(item, qty, uom, ana):
+    """Peso (kg) di una riga: se l'UM e' KG la quantita' stessa; per pezzi e colli, quantita' x peso netto del pezzo (x pezzi per collo)."""
+    a = ana.get(item) or {}
+    um = (a.get("_um") or str(uom)).upper()
+    if um == "KG":
+        return float(qty)
+    pw = a.get("_pcsw")
+    if not pw:
+        return np.nan
+    return float(qty) * pw * ((a.get("Quantity x Packaging") or 1.0) if um == "BOX" else 1.0)
+
+
+def classifica_peso_hk(w, ana, tol=0.10):
+    """Hong Kong: le spedizioni via aerea ripartiscono il costo a PESO (kg), non a volume. Per ogni spedizione confronta la
+    ripartizione registrata con quella a peso. Ritorna per spedizione: e_kg (distanza dalla ripartizione a peso), n (righe con peso),
+    ibridi (articoli etichettati via mare, «SEA», in una spedizione ripartita a peso: viaggiano in aereo)."""
+    righe = []
+    for ext, g in w.groupby("ext"):
+        g = g.assign(reg=g["trasp"] * g["qty"])
+        g = g.assign(peso=[peso_riga(r.item, r.qty, r.uom, ana) for r in g.itertuples()])
+        a = g.groupby("item").agg(reg=("reg", "sum"), peso=("peso", "sum"))
+        a = a[(a["peso"] > 0)]
+        if len(a) < 3 or a["reg"].sum() <= 0:
+            continue
+        e_kg = float(0.5 * (a["reg"] / a["reg"].sum() - a["peso"] / a["peso"].sum()).abs().sum())
+        ib = [i for i in a.index if "SEA" in (ana.get(i, {}).get("_trasp") or "")]
+        righe.append(dict(ext=str(ext), e_kg=e_kg, n_peso=len(a), a_peso=e_kg <= tol, ibridi=ib))
+    return pd.DataFrame(righe, columns=["ext", "e_kg", "n_peso", "a_peso", "ibridi"])
+
+
+def adatta_entrate_hk(ent):
+    """Entrate di Hong Kong nello stesso formato di quelle di Canarie, cosi' i controlli sulle spedizioni valgono anche per loro:
+    spedizione = documento di acquisto, trasporto = FOB, altri oneri (certificato, dogana, pallet...) come «despachos», niente AIEM."""
+    out = pd.DataFrame({
+        "item": ent["item"], "desc": ent["desc"], "data": ent["data"], "ubic": "HONG KONG", "ext": ent["doc"].astype(str).str.strip(),
+        "doc": ent["doc"].astype(str), "lotto": ent["lotto"], "qty": ent["qty"], "pend": 0.0, "uom": ent["uom"], "altro": 0.0,
+        "abono": 0.0, "desp": ent["salute"] + ent["altro"] + ent["dogana"] + ent["pallet"], "imp": 0.0, "prezzo": ent["prezzo"],
+        "trasp": ent["fob"], "tot": ent["tot"]})
+    out["isola"] = "HK"
+    out["c_salute"], out["c_altro"], out["c_dogana"], out["c_pallet"] = ent["salute"], ent["altro"], ent["dogana"], ent["pallet"]
+    return out.reset_index(drop=True)
+
+
+def costi_entrata_hk(ent, mese):
+    """Per articolo, nel mese (AAAA-MM; se non valido tutte le entrate): costo medio di entrata per UM, ponderato sulle quantita'."""
+    e = ent
+    if re.fullmatch(r"\d{4}-\d{2}", str(mese).strip()):
+        e = ent[ent["data"].dt.strftime("%Y-%m") == mese.strip()]
+    if e.empty:
+        return e
+    cols = ["fob", "salute", "altro", "dogana", "pallet", "prezzo", "tot"]
+    pesata = e[cols].mul(e["qty"], axis=0).groupby(e["item"]).sum().div(e.groupby("item")["qty"].sum(), axis=0)
+    out = pesata.join(e.groupby("item").agg(desc=("desc", "first"), uom=("uom", "first"), entrate=("qty", "count"),
+                                            qty=("qty", "sum"), ultima=("data", "max")))
+    return out.reset_index()
 
 
 def leggi_entrate(data):
@@ -155,8 +272,28 @@ CAMPI_ANAGRAFICA = [("Quantity x Packaging", "qpk", "pezzi per box"), ("Packagin
 
 
 def leggi_anagrafica(path):
-    """Dati di imballo dall'anagrafica articoli: {codice: {campo: valore}}."""
-    df = pd.read_excel(path)
+    """Dati di imballo dall'anagrafica articoli: {codice: {campo: valore}}. Se path e' il modello Excel, si legge il suo foglio
+    «Anagrafica Articoli» (l'anagrafica del mese e' gia' dentro il modello: nessun altro file da cercare)."""
+    if str(path).lower().endswith((".xlsm", ".xlsx")):
+        import openpyxl
+        wb = openpyxl.load_workbook(path, read_only=True, data_only=True)
+        nomi = wb.sheetnames
+        wb.close()
+        foglio = next((n for n in nomi if n.strip().lower() == "anagrafica articoli"), None)
+        df = pd.read_excel(path, sheet_name=foglio) if foglio else pd.read_excel(path)
+        if "No_" not in df.columns:          # modello di Hong Kong: intestazioni senza spazi e magari una riga di titolo sopra
+            grezzo = pd.read_excel(path, sheet_name=foglio, header=None)
+            _n = lambda c: re.sub(r"[^a-z0-9]", "", str(c).lower())
+            r0 = next((i for i in range(min(6, len(grezzo))) if _n(grezzo.iloc[i, 0]) == "no"), 0)
+            nomi = {"no": "No_", "quantityxpackaging": "Quantity x Packaging", "packagingxpallet": "Packaging x Pallet",
+                    "boxheightmm": "Box Height mm", "boxlengthmm": "Box Length mm", "boxdepthmm": "Box Depth mm",
+                    "salesunitofmeasure": "Sales Unit of Measure", "netweight": "PCS Net Weight", "pcsnetweight": "PCS Net Weight",
+                    "aiem": "AIEM _", "transportation": "Transportation"}
+            df = grezzo.iloc[r0 + 1:].copy()
+            df.columns = [nomi.get(_n(c), str(c)) for c in grezzo.iloc[r0]]
+            df = df.loc[:, ~df.columns.duplicated()]
+    else:
+        df = pd.read_excel(path)
     df.columns = [re.sub(r"\s+", " ", str(c)).strip() for c in df.columns]
     out = {}
     for _, r in df.iterrows():
@@ -165,6 +302,7 @@ def leggi_anagrafica(path):
         out[k]["_um"] = str(r["Sales Unit of Measure"]).strip().upper() if "Sales Unit of Measure" in df.columns else ""
         out[k]["_pcsw"] = float(r["PCS Net Weight"]) if "PCS Net Weight" in df.columns and pd.notna(r["PCS Net Weight"]) else None
         out[k]["_aiem"] = float(r["AIEM _"]) if "AIEM _" in df.columns and pd.notna(r["AIEM _"]) else None
+        out[k]["_trasp"] = str(r["Transportation"]).strip().upper() if "Transportation" in df.columns and pd.notna(r["Transportation"]) else ""
     return out
 
 
@@ -523,13 +661,40 @@ def analisi_spedizione(tt, d, w_ext, std_ifb):
     return problemi
 
 
-def testo_segnalazione(tt, problemi):
-    """Testo pronto da incollare in una mail a COMIT."""
+def _file_tassi():
+    return os.path.join(HERE, f"tassi_cambio_{_FIL['k'].replace(' ', '_')}.json")
+
+
+def leggi_tassi():
+    """{spedizione: tasso di cambio usato alla registrazione dell'entrata}, inserito a mano (Hong Kong)."""
+    try:
+        with open(_file_tassi(), encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+
+def salva_tasso(spedizione, valore):
+    t = leggi_tassi()
+    if valore and valore > 0:
+        t[str(spedizione)] = float(valore)
+    else:
+        t.pop(str(spedizione), None)
+    with open(_file_tassi(), "w", encoding="utf-8") as fh:
+        json.dump(t, fh, ensure_ascii=False, indent=1)
+
+
+def testo_segnalazione(tt, problemi, hk=False, tasso=None):
+    """Testo pronto da incollare in una mail a COMIT (hk=True: Hong Kong, senza imposte e despachos, con FOB al posto del trasporto)."""
     data = tt["data"].strftime("%d/%m/%Y") if pd.notna(tt["data"]) else ""
     t = [f"Oggetto: Ripartizione costi accessori - fattura/spedizione {tt['ext']}", "",
-         f"Buongiorno, sulla spedizione {tt['ext']} (ultima entrata del {data}, {tt['ubic']}) risulta: trasporto totale "
-         f"{_eur(tt['trasporto_eur'])}, imposte {_eur(tt['imposte_eur'])}, despachos {_eur(tt['despachos_eur'])}, valore merce "
-         f"{_eur(tt['merce_eur'])}. Abbiamo rilevato quanto segue.", ""]
+         (f"Buongiorno, sulla spedizione {tt['ext']} (ultima entrata del {data}) risulta: FOB totale "
+          f"{_eur(tt['trasporto_eur'])}, valore merce {_eur(tt['merce_eur'])}. Abbiamo rilevato quanto segue."
+          + (f" Tasso di cambio usato alla registrazione dell'entrata: {tasso:.4f}." if tasso else "")
+          if hk else
+          f"Buongiorno, sulla spedizione {tt['ext']} (ultima entrata del {data}, {tt['ubic']}) risulta: trasporto totale "
+          f"{_eur(tt['trasporto_eur'])}, imposte {_eur(tt['imposte_eur'])}, despachos {_eur(tt['despachos_eur'])}, valore merce "
+          f"{_eur(tt['merce_eur'])}. Abbiamo rilevato quanto segue."), ""]
     for i, p in enumerate(problemi, 1):
         t.append(f"{i}) {p['titolo']}")
         t.append(f"   Cosa ci aspettiamo: {p['atteso']}")
@@ -539,6 +704,8 @@ def testo_segnalazione(tt, problemi):
         t.append(f"   Effetto: {p['effetto']}")
         t.append(f"   Richiesta: {p['richiesta']}")
         t.append("")
+    if hk:          # in testo: il costo e' il FOB
+        t = [x.replace("trasporto", "FOB").replace("Trasporto", "FOB") for x in t]
     t.append("Potete verificare e, se confermato, correggere la registrazione? Grazie.")
     return "\n".join(t)
 
@@ -572,6 +739,48 @@ def controllo_trasporto(med, std_ifb, std_non, tol_cv=0.40, tol_rapporto=2.0):
 def outlier(a, min_pct, min_eur):
     x = a[(a["diff"].abs() >= min_eur) & (a["diff_pct"].abs() >= min_pct)].copy()
     return x.sort_values("diff", ascending=False)      # dal peggiore (FIFO sopra lo standard) al migliore
+
+
+def diagnosi_hk(a, ent, mese, in_modello):
+    """Cause probabili dello scostamento STD-FIFO per Hong Kong (a = articoli, ent = entrate nel formato Canarie, mese 'AAAA-MM',
+    in_modello = codici degli articoli gestiti nel modello). Si guarda cosa e' cambiato nelle entrate del mese rispetto allo storico:
+    - FOB (trasporto) molto piu' alto: e' arrivata via aerea una merce etichettata via mare («ibrido»);
+    - prezzo di acquisto diverso: possibile tasso di cambio (la merce e' registrata al cambio del giorno di entrata; via mare l'arrivo
+      richiede circa un mese, via aerea pochi giorni)."""
+    m = ent["data"].dt.strftime("%Y-%m") == str(mese).strip()
+    e_m, e_h = ent[m], ent[~m & (ent["data"] < ent[m]["data"].min())] if m.any() else ent.iloc[0:0]
+    e_h = e_h[e_h["data"] >= (e_h["data"].max() - pd.Timedelta(days=200))] if len(e_h) else e_h
+
+    def medie(e, col):
+        v = e[col].mul(e["qty"]).groupby(e["item"]).sum() / e.groupby("item")["qty"].sum()
+        return v
+    p_m, f_m = medie(e_m, "prezzo"), medie(e_m, "trasp")
+    p_h = e_h.groupby("item")["prezzo"].median()
+    f_h = e_h.groupby("item")["trasp"].median()
+    out = []
+    for r in a.itertuples():
+        it = r.item
+        cause, d_p, d_f = [], np.nan, np.nan
+        if it in p_m.index and it in p_h.index and p_h[it] > 0:
+            d_p = float(p_m[it] - p_h[it])
+            pct = p_m[it] / p_h[it] - 1
+            if abs(pct) >= 0.03:
+                cause.append(f"prezzo di acquisto {pct:+.1%} rispetto allo storico: possibile tasso di cambio (registrato al cambio del "
+                             "giorno di entrata; via mare l'arrivo richiede circa un mese)")
+        if it in f_m.index and it in f_h.index and f_h[it] > 0:
+            d_f = float(f_m[it] - f_h[it])
+            if f_m[it] >= 2 * f_h[it] and d_f > 0.05:
+                cause.append(f"FOB {f_m[it] / f_h[it]:.1f}x lo storico: probabile spedizione via aerea su un articolo via mare")
+        elif it in f_m.index and f_m[it] > 0 and it not in f_h.index:
+            cause.append("nessuna entrata precedente per confrontare il FOB")
+        if it not in in_modello:
+            cause.append("non è nel modello: standard gestito da altri (se è anomalo, segnalare: c'è da aggiornare lo standard cost)")
+        if it not in e_m["item"].values:
+            cause = ["nessuna entrata nel periodo analizzato: il FIFO arriva da giacenza piu' vecchia"] + cause
+        gap = float(getattr(r, "c_fifo") - getattr(r, "c_std"))
+        d_altro = gap - (0 if pd.isna(d_p) else d_p) - (0 if pd.isna(d_f) else d_f)
+        out.append(dict(item=it, cause=" | ".join(cause) if cause else "", d_prezzo=d_p, d_logistica=d_f, d_aiem=0.0, d_altro=d_altro))
+    return pd.DataFrame(out, columns=["item", "cause", "d_prezzo", "d_logistica", "d_aiem", "d_altro"]).set_index("item")
 
 
 def diagnosi(a, med, an_aiem, trasp, det_cont, std_ifb, std_non):
@@ -624,7 +833,7 @@ def diagnosi(a, med, an_aiem, trasp, det_cont, std_ifb, std_non):
 # ---- storico mensile ----------------------------------------------------------------------------
 def leggi_storico():
     try:
-        with open(STORICO, encoding="utf-8") as f:
+        with open(_file_storico(), encoding="utf-8") as f:
             return json.load(f)
     except Exception:
         return {}
@@ -638,7 +847,7 @@ def salva_mese(mese, tot, perim):
     if s.get(mese) == nuovo:
         return s
     s[mese] = nuovo
-    with open(STORICO, "w", encoding="utf-8") as f:
+    with open(_file_storico(), "w", encoding="utf-8") as f:
         json.dump(dict(sorted(s.items())), f, ensure_ascii=False, indent=1)
     return s
 
@@ -658,6 +867,19 @@ def excel_report(tot, perim, out, aiem, cont, det_cont, trasp):
 
 # ---- mesi salvati (i 3 caricamenti di un mese restano in memoria) --------------------------------
 CARTELLA_MESI = os.path.join(HERE, "MARGINI_MESI")
+_FIL = {"k": "CANARIE"}          # filiale: Canarie resta com'era, le altre hanno una sottocartella e un file di storico propri
+
+
+def imposta_filiale(k):
+    _FIL["k"] = k
+
+
+def _dir_mesi():
+    return CARTELLA_MESI if _FIL["k"] == "CANARIE" else os.path.join(CARTELLA_MESI, _FIL["k"])
+
+
+def _file_storico():
+    return STORICO if _FIL["k"] == "CANARIE" else os.path.join(HERE, f"margini_storico_{_FIL['k']}.json")
 NOMI_MESI = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre",
              "Novembre", "Dicembre"]
 _FILE_MESE = {"marg": "margini.xlsx", "cost": "cost_analysis.xlsx", "non": "standard_non_ifb.xlsx"}
@@ -671,16 +893,16 @@ def etichetta_mese(chiave):
 
 def mesi_salvati():
     """Chiavi dei mesi salvati, dal piu' vecchio al piu' recente."""
-    if not os.path.isdir(CARTELLA_MESI):
+    if not os.path.isdir(_dir_mesi()):
         return []
-    return sorted(d for d in os.listdir(CARTELLA_MESI)
-                  if os.path.exists(os.path.join(CARTELLA_MESI, d, _FILE_MESE["marg"])))
+    return sorted(d for d in os.listdir(_dir_mesi())
+                  if os.path.exists(os.path.join(_dir_mesi(), d, _FILE_MESE["marg"])))
 
 
 def salva_file_mese(chiave, marg, cost=None, non=None):
     """Salva i caricamenti del mese (byte dei file). Sovrascrive il mese se esiste gia'."""
     chiave = re.sub(r'[\/:*?"<>|]', "-", chiave.strip())
-    d = os.path.join(CARTELLA_MESI, chiave)
+    d = os.path.join(_dir_mesi(), chiave)
     os.makedirs(d, exist_ok=True)
     for k, dati in (("marg", marg), ("cost", cost), ("non", non)):
         f = os.path.join(d, _FILE_MESE[k])
@@ -694,7 +916,7 @@ def salva_file_mese(chiave, marg, cost=None, non=None):
 
 def sostituisci_file_mese(chiave, marg=None, cost=None, non=None):
     """Corregge un caricamento sbagliato: sostituisce solo i file passati, gli altri restano."""
-    d = os.path.join(CARTELLA_MESI, chiave)
+    d = os.path.join(_dir_mesi(), chiave)
     for k, dati in (("marg", marg), ("cost", cost), ("non", non)):
         if dati:
             with open(os.path.join(d, _FILE_MESE[k]), "wb") as fh:
@@ -703,7 +925,7 @@ def sostituisci_file_mese(chiave, marg=None, cost=None, non=None):
 
 def leggi_file_mese(chiave):
     """(marg, cost, non) come byte; None dove il file non c'e'."""
-    d = os.path.join(CARTELLA_MESI, chiave)
+    d = os.path.join(_dir_mesi(), chiave)
     out = []
     for k in ("marg", "cost", "non"):
         f = os.path.join(d, _FILE_MESE[k])

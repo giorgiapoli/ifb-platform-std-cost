@@ -68,6 +68,7 @@ BRANCHES = {
     "HONG KONG": dict(
         label="Hong Kong", sheets={"ITEM STDC_SEA_FOOD": 5, "ITEM STDC_SEA_WINE": 5, "ITEM STDC_SEA_MEAT-FISH": 5},
         dest={"HK": dict(nome="Hong Kong", s1="standardcoststep1euro", s2="standardcoststep2euro",
+                         s1h="standardcoststep1hkd", s2h="standardcoststep2hkd",          # lo standard finale in HKD (valuta di Hong Kong)
                          parts={"FOB": ["fobcostperunit"],
                                 "Oneri import": ["localimportchargesperunit"],
                                 "VGM": ["vgmchargesperunit"],
@@ -88,6 +89,55 @@ BRANCHES = {
         log={"transport": ["D23:F25", "D29:F29", "D32:F33", "C13:D15", "C35", "C2"],
              "pallet": ["I2"], "mtsmto": ["D43:F46", "D49:F51"]}),
 }
+
+# ---- filiali aggiunte dall'utente (pulsante «Aggiungi filiale»): si basano sulla struttura del modello di Canarie o di Hong Kong ----
+import copy
+import json
+
+FILIALI_BASE = ("CANARIE", "HONG KONG")
+_FILE_FILIALI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "filiali_utente.json")
+
+
+def filiali_utente():
+    """{chiave: {label, template, folder, current, storico, model_glob}} dal file filiali_utente.json."""
+    try:
+        with open(_FILE_FILIALI, encoding="utf-8") as fh:
+            return json.load(fh)
+    except Exception:
+        return {}
+
+
+def applica_filiali_utente():
+    """Aggiunge a BRANCHES le filiali dell'utente e toglie quelle rimosse."""
+    dati = filiali_utente()
+    for k in [k for k in BRANCHES if k not in FILIALI_BASE and k not in dati]:
+        del BRANCHES[k]
+    for k, d in dati.items():
+        if d.get("template") not in FILIALI_BASE:
+            continue
+        b = copy.deepcopy(BRANCHES[d["template"]])
+        b.update(label=d["label"], folder=d["folder"], current=d["current"], storico=d["storico"],
+                 model_glob=d.get("model_glob") or b["model_glob"], utente=True, template=d["template"])
+        BRANCHES[k] = b
+
+
+def salva_filiale_utente(chiave, label, template, folder, current, storico, model_glob=""):
+    dati = filiali_utente()
+    dati[chiave] = dict(label=label, template=template, folder=folder, current=current, storico=storico, model_glob=model_glob)
+    with open(_FILE_FILIALI, "w", encoding="utf-8") as fh:
+        json.dump(dati, fh, ensure_ascii=False, indent=2)
+    applica_filiali_utente()
+
+
+def rimuovi_filiale_utente(chiave):
+    dati = filiali_utente()
+    dati.pop(chiave, None)
+    with open(_FILE_FILIALI, "w", encoding="utf-8") as fh:
+        json.dump(dati, fh, ensure_ascii=False, indent=2)
+    applica_filiali_utente()
+
+
+applica_filiali_utente()
 
 BRANCH = BRANCHES["CANARIE"]
 HEADER_ROWS, SHEETS, ISLANDS, GROUPS = {}, [], {}, []
@@ -293,7 +343,17 @@ def components(sh, row, isl):
     z = lambda v: v or 0.0
     parts = {g: sum(z(comp_value(sh, row, t)) for t in toks) for g, toks in c["parts"].items()}
     s2, s2f = sh.n(row, c["s2"]), sh.n(row, c["s2"], occ=1)
-    return dict(price=sh.n(row, _price_name(sh)), parts=parts, s1=sh.n(row, c["s1"]), s2=s2, s2f=s2f,
+    price, s1 = sh.n(row, _price_name(sh)), sh.n(row, c["s1"])
+    if c.get("s2h"):
+        # Hong Kong: il modello ha lo standard sia in euro sia in HKD; si prende sempre quello in HKD. Le componenti sono in euro:
+        # le porto in HKD con il cambio implicito della riga (standard HKD / standard euro), cosi' la somma torna
+        s2h, s1h, s2hf = sh.n(row, c["s2h"]), sh.n(row, c["s1h"]), sh.n(row, c["s2h"], occ=1)
+        k = (s2h / s2) if s2 and s2h else None
+        if k:
+            parts = {g: (v * k) for g, v in parts.items()}
+            price = price * k if price else price
+            s1, s2, s2f = s1h, s2h, (s2hf if s2hf else s2h * ((s2f / s2) if s2 and s2f else 1.0))
+    return dict(price=price, parts=parts, s1=s1, s2=s2, s2f=s2f,
                 f=(s2f / s2) if s2 and s2f else 1.0)   # f = 1,02 dove il modello ha la maggiorazione concordata
 
 
@@ -511,19 +571,21 @@ def explain(sh_old, r_old, sh_new, r_new, isl):
                 final_old=co["s2f"], final_new=cn["s2f"], parts=parts, frase_parts=frase_parts)
 
 
-def sentence(code, desc, isl, e):
+def sentence(code, desc, isl, e, periodo=None):
+    """Frase pronta. periodo = (mese precedente, mese nuovo): se c'e', dice DOVE e QUANDO (nel modello Excel tra i due mesi)."""
+    quando = f" nel modello Excel tra {periodo[0]} e {periodo[1]}" if periodo else ""
     if abs(e["delta"]) <= TOL:
-        return f"Art. {code} {desc} [{isl}]: invariato ({fmt(e['new'], False)} EUR)"
+        return f"Art. {code} {desc} [{isl}]:{quando} invariato ({fmt(e['new'], False)} EUR in entrambi i modelli)" if periodo             else f"Art. {code} {desc} [{isl}]: invariato ({fmt(e['new'], False)} EUR)"
     pct = f" ({fmt(e['pct'])}%)" if e["pct"] is not None else ""
     if e.get("um"):
         u = e["um"]
         eq = (f"; a parita' di unita': {fmt(e['old'], False)} -> {fmt(u['eq'], False)} EUR ({fmt(u['delta_eq'])})"
               if u["eq"] is not None else "")
-        return (f"Art. {code} {desc} [{isl}]: {fmt(e['old'], False)} -> {fmt(e['new'], False)} EUR per CAMBIO UNITA' DI MISURA "
+        return (f"Art. {code} {desc} [{isl}]{quando}: {fmt(e['old'], False)} -> {fmt(e['new'], False)} EUR per CAMBIO UNITA' DI MISURA "
                 f"{u['da']} -> {u['a']} (il listino non e' aumentato: e' riferito a un'altra unita'){eq}")
     body = "; ".join(e["frase_parts"]) if e["frase_parts"] else "variazione sotto soglia"
     monte = f" | a monte: {'; '.join(e['a_monte'])}" if e.get("a_monte") else ""
-    return (f"Art. {code} {desc} [{isl}]: {fmt(e['old'], False)} -> {fmt(e['new'], False)} EUR, "
+    return (f"Art. {code} {desc} [{isl}]{quando}: {fmt(e['old'], False)} -> {fmt(e['new'], False)} EUR, "
             f"{fmt(e['delta'])}{pct} = {body}{monte}")
 
 

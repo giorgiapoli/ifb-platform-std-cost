@@ -171,6 +171,19 @@ def _titolo_breve(titolo):
     return titolo
 
 
+def _tabella_compatta(titolo, sty):
+    """Tabella piccola, larga quanto serve (non a tutta pagina), con titolo sopra: le tabelle si mettono una sotto l'altra."""
+    st.markdown(
+        "<style>.tab-c{margin:0 0 10px 0;overflow:auto;max-height:70vh}.tab-c table{border-collapse:collapse;font-size:.78rem;width:auto}"
+        ".tab-c th{position:sticky;top:0;z-index:2;background:#F9FAFB;color:#667085;font-weight:500;padding:2px 9px;text-align:left;white-space:nowrap;"
+        "border-bottom:1px solid #E4E7EC}.tab-c td{padding:2px 9px;border-bottom:1px solid #F2F4F7;text-align:right;white-space:nowrap}"
+        ".tab-c .tit{font-size:.84rem;font-weight:600;color:#14213D;margin:8px 0 3px 0}</style>"
+        f"<div class='tab-c'><div class='tit'>{titolo}</div>" + sty.to_html() + "</div>", unsafe_allow_html=True)
+    import re
+    import scarica_excel
+    scarica_excel.bottone(sty, nome=re.sub(r"[^\w\-]+", "_", titolo).strip("_")[:40] + ".xlsx")
+
+
 def render(filiale, p_old, p_new, mt_old, mt_new):
     blocchi = BLOCCHI.get(filiale, [])
     st.markdown("#### Costi logistici considerati")
@@ -211,7 +224,15 @@ def render(filiale, p_old, p_new, mt_old, mt_new):
         st.caption("Valori della versione nuova. (Nella versione precedente il foglio COSTS (LOG) non c'e': nessun confronto.)")
     elif cambi:
         st.warning(f"**{len(cambi)} tariffe cambiate** rispetto alla versione precedente (evidenziate in giallo nelle tabelle).")
-        st.dataframe(pd.DataFrame(cambi), hide_index=True, width="stretch")
+        _dc = pd.DataFrame(cambi)
+        # nelle intestazioni la data delle due versioni (data dell'ultimo salvataggio del file del modello)
+        import datetime as _dt
+        _dp, _dn = (f"{_dt.datetime.fromtimestamp(m):%d/%m/%Y}" for m in (mt_old, mt_new))
+        _dc = _dc.rename(columns={"Precedente": f"Precedente · {_dp}", "Nuovo": f"Nuovo · {_dn}"})
+        # precedente in rosso tenue, nuovo in verde tenue (come STD e FIFO nel resto dell'app), numeri a destra
+        _sc = (_dc.style.map(lambda v: "background-color:#FEE4E2;color:#B42318;font-weight:600;text-align:right", subset=[f"Precedente · {_dp}"])
+               .map(lambda v: "background-color:#D1FADF;color:#05603A;font-weight:600;text-align:right", subset=[f"Nuovo · {_dn}"]))
+        st.dataframe(_sc, hide_index=True, width="stretch")
     else:
         st.success("**Nessuna tariffa cambiata** rispetto alla versione precedente.")
     # raggruppo i blocchi per categoria: Gomma, Mare, Via aerea, Unifreddo, altro
@@ -220,13 +241,12 @@ def render(filiale, p_old, p_new, mt_old, mt_new):
         gruppi.setdefault(_categoria(titolo), []).append((titolo, sty))
     pallino = {"Gomma": "🟡", "Mare": "🔵", "Via aerea": "🟣", "Unifreddo · logistica MTS/MTO": "🔴", "Altro": "⚪"}
     con_cambi = {_categoria(c["Voce"]) for c in cambi}
-    for cat in [c for c in CATEGORIE if c in gruppi]:
+    _cats = [c for c in CATEGORIE if c in gruppi]
+    _cols = st.columns(len(_cats)) if _cats else []          # le categorie stanno tutte sulla stessa riga
+    for cat, _col in zip(_cats, _cols):
         # chiuso di default; si apre da solo se dentro c'e' una tariffa cambiata
         n_cambi = sum(1 for c in cambi if _categoria(c["Voce"]) == cat)
         etichetta = f"{pallino.get(cat, '')} **{cat}**" + (f" · {n_cambi} cambiate" if n_cambi else "")
-        with st.expander(etichetta, expanded=cat in con_cambi):
-            cols = st.columns(2)
-            for i, (titolo, sty) in enumerate(gruppi[cat]):
-                with cols[i % 2]:
-                    st.markdown(f"**{_titolo_breve(titolo)}**")
-                    st.dataframe(sty, width="stretch")
+        with _col.expander(etichetta, expanded=False):
+            for titolo, sty in gruppi[cat]:
+                _tabella_compatta(_titolo_breve(titolo), sty)

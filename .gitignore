@@ -12,3 +12,8 @@ margini_storico.json
 annotazioni.json
 __pycache__/
 .claude/
+filiali_utente.json
+ULTIMI_CARICATI/
+filiale_ultima.json
+tassi_cambio_*.json
+margini_storico_*.json
