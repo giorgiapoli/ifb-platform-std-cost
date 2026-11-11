@@ -185,7 +185,10 @@ def render(filiale, cartella_input, modelli, p_old, p_new, sorgente, sv=None, da
         _mod = modelli.get("Mese in corso · INPUT") or os.path.join(cartella_input, "05_Modello_Standard_Cost" + ("_COMIT" if not hk else "") + ".xlsm")
         _sostituisci("modello", "modello del mese in corso", _mod, ["xlsm", "xlsx"])
 
-    # ---- 4. file nella cartella INPUT --------------------------------------------------------------
+    # ---- 4. file nella cartella INPUT (solo sul PC: nella versione web non c'e' nessuna cartella) --------
+    import sys
+    if sys.platform == "emscripten":
+        return
     with st.container(border=True):
         _titolo("4", "File nella cartella INPUT")
         st.caption("Quelli automatici li aggiorna Power Automate ogni giorno: caricarli qui serve solo se vuoi forzare un aggiornamento.")
