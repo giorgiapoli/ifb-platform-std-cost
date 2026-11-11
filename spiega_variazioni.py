@@ -95,7 +95,8 @@ import copy
 import json
 
 FILIALI_BASE = ("CANARIE", "HONG KONG")
-_FILE_FILIALI = os.path.join(os.path.dirname(os.path.abspath(__file__)), "filiali_utente.json")
+import percorsi
+_FILE_FILIALI = os.path.join(percorsi.DATI, "filiali_utente.json")
 
 
 def filiali_utente():

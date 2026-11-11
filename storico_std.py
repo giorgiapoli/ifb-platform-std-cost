@@ -21,7 +21,8 @@ import pandas as pd
 import streamlit as st
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CARTELLA = os.path.join(HERE, "STORICO_STD")
+import percorsi
+CARTELLA = os.path.join(percorsi.DATI, "STORICO_STD")
 COLONNE = ["data", "item", "ifb", "desc", "sez", "std", "gc", "tf", "fue", "lan"]
 NOMI = {"std": "Standard Cost", "gc": "Gran Canaria", "tf": "Tenerife", "fue": "Fuerteventura", "lan": "Lanzarote"}
 COLORI = {"Standard Cost": "#0F766E", "Gran Canaria / Tenerife": "#2563EB", "Gran Canaria": "#2563EB", "Tenerife": "#7C3AED",

@@ -4,7 +4,8 @@ riaprendo l'app non si deve caricare di nuovo. Si toglie con il pulsante «Togli
 """
 import os
 
-DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ULTIMI_CARICATI")
+import percorsi
+DIR = os.path.join(percorsi.DATI, "ULTIMI_CARICATI")
 
 
 class FileTenuto:

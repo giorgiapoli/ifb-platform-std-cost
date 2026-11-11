@@ -28,7 +28,8 @@ import pandas as pd
 import spiega_variazioni as sv
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-STORICO = os.path.join(HERE, "margini_storico.json")
+import percorsi
+STORICO = os.path.join(percorsi.DATI, "margini_storico.json")
 
 BANDA_MIN, BANDA_MAX = -0.03, -0.005        # fascia di scostamento considerata buona (in % delle vendite)
 ISOLA_DI = {"GRACAN": "GC-TF", "TENERIFE": "GC-TF", "LANZAR": "LAN-FUE", "FUERTE": "LAN-FUE", "LAPALM": "GC-TF"}
@@ -662,7 +663,7 @@ def analisi_spedizione(tt, d, w_ext, std_ifb):
 
 
 def _file_tassi():
-    return os.path.join(HERE, f"tassi_cambio_{_FIL['k'].replace(' ', '_')}.json")
+    return os.path.join(percorsi.DATI, f"tassi_cambio_{_FIL['k'].replace(' ', '_')}.json")
 
 
 def leggi_tassi():
@@ -866,7 +867,7 @@ def excel_report(tot, perim, out, aiem, cont, det_cont, trasp):
 
 
 # ---- mesi salvati (i 3 caricamenti di un mese restano in memoria) --------------------------------
-CARTELLA_MESI = os.path.join(HERE, "MARGINI_MESI")
+CARTELLA_MESI = os.path.join(percorsi.DATI, "MARGINI_MESI")
 _FIL = {"k": "CANARIE"}          # filiale: Canarie resta com'era, le altre hanno una sottocartella e un file di storico propri
 
 
@@ -879,7 +880,7 @@ def _dir_mesi():
 
 
 def _file_storico():
-    return STORICO if _FIL["k"] == "CANARIE" else os.path.join(HERE, f"margini_storico_{_FIL['k']}.json")
+    return STORICO if _FIL["k"] == "CANARIE" else os.path.join(percorsi.DATI, f"margini_storico_{_FIL['k']}.json")
 NOMI_MESI = ["Gennaio", "Febbraio", "Marzo", "Aprile", "Maggio", "Giugno", "Luglio", "Agosto", "Settembre", "Ottobre",
              "Novembre", "Dicembre"]
 _FILE_MESE = {"marg": "margini.xlsx", "cost": "cost_analysis.xlsx", "non": "standard_non_ifb.xlsx"}

@@ -435,7 +435,8 @@ with st.sidebar:
     st.caption("Confronta due versioni del modello e mostra **cosa e perche'** e' cambiato.")
     sv.applica_filiali_utente()          # la lista delle filiali puo' essere cambiata (aggiunta o tolta)
     _etichette = {sv.BRANCHES[k]["label"]: k for k in sv.BRANCHES}
-    _f_ult = os.path.join(os.path.dirname(os.path.abspath(__file__)), "filiale_ultima.json")
+    import percorsi
+    _f_ult = os.path.join(percorsi.DATI, "filiale_ultima.json")
     if st.session_state.get("filiale_sel") not in _etichette:
         # la filiale scelta resta finche' non la cambi tu (anche dopo un ricaricamento della pagina o un riavvio)
         try:

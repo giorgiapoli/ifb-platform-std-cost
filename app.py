@@ -8,6 +8,10 @@ import runpy
 import sys
 import threading
 
+if sys.platform == "emscripten":          # versione web: i dati restano nel browser (cartella conservata tra una visita e l'altra)
+    os.environ.setdefault("STDC_DATI", "/home/pyodide/dati")
+    os.makedirs(os.environ["STDC_DATI"], exist_ok=True)
+
 _serratura = getattr(sys, "_stdc_serratura", None)
 if _serratura is None:
     _serratura = sys._stdc_serratura = threading.RLock()

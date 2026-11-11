@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Standard Cost</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@stlite/browser@1.12.1/build/style.css">
+</head><body>
+<div id="root"></div>
+<script type="module">
+import { mount } from "https://cdn.jsdelivr.net/npm/@stlite/browser@1.12.1/build/stlite.js";
+mount({
+  requirements: ["openpyxl", "xlsxwriter", "reportlab", "xlrd"],
+  idbfsMountpoints: ["/home/pyodide/dati"],
+  entrypoint: "app.py",
+  files: {"app.py": {"url": "./app/app.py"}, "app_main.py": {"url": "./app/app_main.py"}, "assistente.py": {"url": "./app/assistente.py"}, "caricamenti.py": {"url": "./app/caricamenti.py"}, "costi_log.py": {"url": "./app/costi_log.py"}, "cronologia.py": {"url": "./app/cronologia.py"}, "file_caricati.py": {"url": "./app/file_caricati.py"}, "filtri.py": {"url": "./app/filtri.py"}, "margini_fifo.py": {"url": "./app/margini_fifo.py"}, "margini_ui.py": {"url": "./app/margini_ui.py"}, "memoria_file.py": {"url": "./app/memoria_file.py"}, "pdf_report.py": {"url": "./app/pdf_report.py"}, "percorsi.py": {"url": "./app/percorsi.py"}, "scarica_excel.py": {"url": "./app/scarica_excel.py"}, "spiega_variazioni.py": {"url": "./app/spiega_variazioni.py"}, "storico_std.py": {"url": "./app/storico_std.py"}, "tabelle_ridimensionabili.py": {"url": "./app/tabelle_ridimensionabili.py"}, "assets/standard_cost.ico": {"url": "./app/assets/standard_cost.ico"}, "assets/standard_cost.png": {"url": "./app/assets/standard_cost.png"}, ".streamlit/config.toml": {"url": "./app/.streamlit/config.toml"}}
+}, document.getElementById("root"));
+</script></body></html>
